@@ -32,7 +32,7 @@ DiContainer
 let package = Package(
     ...
     dependencies: [
-        .package(url: "git@github.com:Roy-wonji/DiContainer.git", from: "1.0.0")
+        .package(url: "git@github.com:Roy-wonji/DiContainer.git", from: "1.0.1")
     ],
     ...
 )
@@ -41,45 +41,62 @@ let package = Package(
 import DiContainer
 ```
 
-## 사용 방법</br>
-### AppDIContainer 등록
-먼저, UseCase 랑  Repository를  먼저 등록 합니다
+## 사용 방법  
+### AppDIContainer 등록  
+먼저, UseCase와 Repository 의존성을 등록합니다.  
+아래 예시는 AppDIContainer의 확장을 통해 기본 의존성(Repository, UseCase)을 DI 컨테이너에 등록하는 방법을 보여줍니다.
 
 ```swift
 import DiContainer
 
-public final class AppDIContainer {
-  public static let shared: AppDIContainer = .init()
-  
-  private init() {}
-  
-  public func registerDependencies() async {
-    let container = Container() // Container 초기화
-    let useCaseModuleFactory = UseCaseModuleFactory() // 팩토리 인스턴스 생성
-    let repositoryModuleFactory = RepositoryModuleFactory()
-    
-    await container {
-      repositoryModuleFactory.makeAllModules().forEach { module in
-        container.register(module)
+extension AppDIContainer {
+  /// 기본 의존성(Repository, UseCase)을 DI 컨테이너에 등록합니다.
+  ///
+  /// 이 메서드는 다음 단계를 수행합니다:
+  /// 1. `RepositoryModuleFactory`와 `UseCaseModuleFactory` 인스턴스를 생성하여,
+  ///    각각 Repository와 UseCase 관련 모듈들을 관리합니다.
+  /// 2. Repository 모듈 팩토리에서 기본 의존성 정의를 등록합니다.
+  ///    (앱 측에서는 이 기본 정의를 extension을 통해 커스터마이징할 수 있습니다.)
+  /// 3. 두 팩토리의 `makeAllModules()` 메서드를 호출하여 생성된 모듈들을 DI 컨테이너(Container)에 등록합니다.
+  public func registerDefaultDependencies() async {
+    await registerDependencies { container in
+      var repositoryFactory = RepositoryModuleFactory()
+      let useCaseFactory = UseCaseModuleFactory()
+      
+      // Repository 기본 의존성 정의 등록
+      repositoryFactory.registerDefaultDefinitions()
+      
+      // Repository 모듈들을 컨테이너에 등록
+      repositoryFactory.makeAllModules().forEach {
+        container.register($0)
       }
-      useCaseModuleFactory.makeAllModules().forEach { module in
-        container.register(module)
+      
+      // UseCase 모듈들을 컨테이너에 등록
+      useCaseFactory.makeAllModules().forEach {
+        container.register($0)
       }
-    }.build() // 등록된 모든 의존성을 처리
+    }
   }
 }
 ```
 
-### UseCaseModuleFactory 등록
-####  Factory로 등록 할수 있게 편리하게 등록 
+### UseCaseModuleFactory 등록  
+#### Factory로 등록할 수 있게 편리하게 등록  
 
- ```swift
- import DiContainer
- 
- struct UseCaseModuleFactory {
-  let registerModule = RegisterModule()
+이 확장은 `UseCaseModuleFactory`에 기본 UseCase 의존성을 등록하기 위한 computed property를 추가합니다.  
+- **목적:**  
+  - UseCase 관련 의존성을 Factory 방식으로 등록하여 DI 컨테이너에 주입할 준비를 합니다.
+- **동작 방식:**  
+  - `registerModule.makeUseCaseWithRepository`를 호출하여,  
+    `AuthUseCaseProtocol` 타입의 의존성을 생성하는 클로저를 반환합니다.
+  - 이 클로저는 내부적으로 `AuthRepositoryProtocol`에 대한 의존성을 주입받고,  
+    생성된 Repository를 사용해 `AuthUseCase` 인스턴스를 생성합니다.
   
-  private var useCaseDefinitions: [() -> Module] {
+```swift
+import DiContainer
+
+extension UseCaseModuleFactory {
+  public var useCaseDefinitions: [() -> Module] {
     return [
       registerModule.makeUseCaseWithRepository(
         AuthUseCaseProtocol.self,
@@ -90,58 +107,84 @@ public final class AppDIContainer {
       }
     ]
   }
-  
-  func makeAllModules() -> [Module] {
-    useCaseDefinitions.map { $0() }
+}
+ ```
+ 
+### RepositoryModuleFactory 등록  
+#### Factory로 등록할 수 있게 편리하게 등록
+
+이 확장(extension)은 `RepositoryModuleFactory`에 기본 의존성 정의를 설정하는 `registerDefaultDefinitions()` 메서드를 추가합니다.  
+이를 통해, 앱에서 별도의 추가 설정 없이 기본 Repository 의존성(예: AuthRepositoryProtocol)을 DI 컨테이너에 등록할 수 있습니다.
+
+**주요 동작:**
+
+- **로컬 변수에 복사:**  
+  `registerModule` 프로퍼티를 `registerModuleCopy`라는 로컬 변수에 복사합니다.  
+  이렇게 하면 클로저 내부에서 `self`를 직접 캡처하지 않아, 값 타입인 `RepositoryModuleFactory`에서 발생할 수 있는 캡처 문제를 방지할 수 있습니다.
+
+- **즉시 실행 클로저 사용:**  
+  클로저를 즉시 실행하여 반환된 배열을 `repositoryDefinitions`에 할당합니다.  
+  이 배열은 기본 의존성 정의들을 포함하며, 여기서는 `AuthRepositoryProtocol` 타입에 대해 `AuthRepository` 인스턴스를 생성하는 정의가 등록됩니다.
+
+**코드 예시:**
+
+```swift
+import DiContainer
+
+extension RepositoryModuleFactory {
+  /// 기본 의존성 정의를 설정하는 함수입니다.
+  ///
+  /// 이 메서드는 RepositoryModuleFactory의 기본 의존성 정의(repositoryDefinitions)를 업데이트합니다.
+  /// - 먼저, `registerModule` 프로퍼티를 로컬 변수 `registerModuleCopy`에 복사하여 self를 직접 캡처하지 않고 사용합니다.
+  /// - 그 후, 클로저를 즉시 실행하여, 반환값(여기서는 AuthRepositoryProtocol에 대한 의존성 정의 배열)을
+  ///   `repositoryDefinitions`에 할당합니다.
+  ///
+  /// 이 예제에서는 AuthRepositoryProtocol 타입의 의존성을 등록하고, 이 의존성은 AuthRepository 인스턴스를 생성합니다.
+  public mutating func registerDefaultDefinitions() {
+    let registerModuleCopy = registerModule  // self를 직접 캡처하지 않고 복사합니다.
+    repositoryDefinitions = {
+      return [
+        registerModuleCopy.makeDependency(AuthRepositoryProtocol.self) { AuthRepository() },
+      ]
+    }()
   }
 }
 ```
- 
-### RepositoryModuleFactory 등록
-####  Factory로 등록 할수 있게 편리하게 등록 
 
- ```swift
- import DiContainer
- 
- struct RepositoryModuleFactory {
-  private  let registerModule = RegisterModule()
-  
-  private var repositoryDefinitions: [() -> Module] {
-    return [
-      registerModule.makeDependency(
-        AuthRepositoryProtocol.self) { AuthRepository() },
-      registerModule.makeDependency(FireStoreRepositoryProtocol.self) { FireStoreRepository() },
-      registerModule.makeDependency(QrCodeRepositoryProtcol.self) { QrCodeRepository() },
-      registerModule.makeDependency(SignUpRepositoryProtcol.self) { SignUpRepository() }
-    ]
-  }
-  
-  func makeAllModules() -> [Module] {
-    repositoryDefinitions.map { $0() }
-  }
-}
-```
+### 앱 실행 부분 호출  
+#### AppDelegate에서 의존성 등록 호출
 
-### 앱 실행 부분 호출 
-#### AppDelegate 에서 호출 
+아래 코드는 AppDelegate에서 앱 실행 시 DI(의존성 주입) 컨테이너에 필요한 의존성을 등록하는 예시입니다.
 
-``` swift
-  
-  import Foundation
-  
-  class AppDelegate: UIResponder, UIApplicationDelegate {
+**주요 동작:**
+
+- **앱 시작 시 등록:**  
+  AppDelegate의 `application(_:didFinishLaunchingWithOptions:)` 메서드에서 `registerDependencies()`를 호출하여,  
+  앱이 실행될 때 DI 컨테이너에 의존성이 등록되도록 합니다.
+
+- **비동기 작업:**  
+  의존성 등록 작업은 비동기적으로 수행되므로, `Task { ... }`를 사용하여 async/await 패턴으로 실행합니다.  
+  이를 통해, 앱 초기화 시점에 DI 컨테이너의 의존성이 비동기적으로 등록되고, 등록이 완료될 때까지 기다릴 수 있습니다.
+
+**코드 예시:**
+
+```swift
+import Foundation
+
+class AppDelegate: UIResponder, UIApplicationDelegate {
   func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     
+    // 앱 실행 시 DI 컨테이너에 의존성을 등록합니다.
     registerDependencies()
     return true
   }
   
- 
-  
- fileprivate func registerDependencies() {
+  /// 의존성 등록 작업을 비동기적으로 수행하는 함수입니다.
+  /// 이 함수는 AppDIContainer의 전역 인스턴스를 사용하여 의존성 등록을 시작합니다.
+  fileprivate func registerDependencies() {
     Task {
       await AppDIContainer.shared.registerDependencies()
     }
@@ -149,41 +192,66 @@ public final class AppDIContainer {
 }
 ```
 
-#### SwiftUI App 파일 에서 호출
- 
-``` swift
-  
-import SwiftUI
+#### SwiftUI App 파일에서 의존성 등록 호출
 
+아래 코드는 SwiftUI 앱의 진입점(`@main`)에서 DI(의존성 주입) 컨테이너에 필요한 의존성을 등록하는 예시입니다.
+
+**주요 동작:**
+
+- **앱 초기화 시 의존성 등록:**  
+  `init()`에서 `registerDependencies()`를 호출하여 앱 실행 전에 DI 컨테이너에 의존성이 등록되도록 합니다.
+
+- **비동기 등록:**  
+  `registerDependencies()` 함수는 `Task { ... }`를 사용하여 비동기적으로 의존성을 등록합니다.  
+  이를 통해, 의존성 등록 작업이 앱 초기화 중에 안전하게 실행됩니다.
+
+- **AppDelegate 연동:**  
+  `@UIApplicationDelegateAdaptor`를 사용하여 기존 AppDelegate의 기능을 SwiftUI 앱과 연동합니다.  
+  이 방식으로 UIKit 기반 초기화 코드와 SwiftUI 기반 코드를 함께 사용할 수 있습니다.
+
+- **Composable Architecture 사용:**  
+  `Store` 인스턴스를 생성하여 앱의 상태와 리듀서를 관리하며, 이를 뷰에 주입합니다.
+
+**코드 예시:**
+
+```swift
+import SwiftUI
 import ComposableArchitecture
 
 @main
 struct TestApp: App {
+  // 기존 UIKit 기반의 AppDelegate와 연동
   @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
   
   init() {
+    // 앱 초기화 시 DI 컨테이너에 의존성을 등록합니다.
     registerDependencies()
   }
   
   var body: some Scene {
     WindowGroup {
+      // Composable Architecture의 Store 생성 및 주입
       let store = Store(initialState: AppReducer.State()) {
         AppReducer()
           ._printChanges()
           ._printChanges(.actionLabels)
       }
       
+      // 최상위 뷰에 Store를 주입합니다.
       AppView(store: store)
     }
   }
   
+  /// 비동기적으로 DI 컨테이너에 의존성을 등록하는 함수입니다.
+  /// AppDIContainer의 전역 인스턴스를 사용하여 의존성 등록을 수행합니다.
   private func registerDependencies() {
     Task {
       await AppDIContainer.shared.registerDependencies()
     }
   }
 }
-``` 
+```
+
 ### Log Use
 로그 관련 사용은 [LogMacro](https://github.com/Roy-wonji/LogMacro) 해당 라이브러리에 문서를 참고 해주세요. <br>
 
