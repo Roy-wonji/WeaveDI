@@ -15,7 +15,7 @@ import LogMacro
 /// DependencyContainer는 애플리케이션 내 의존성(또는 팩토리 클로저)을 등록, 조회 및 해제하는 역할을 합니다.
 /// 내부적으로 의존성을 ObjectIdentifier를 키로 관리하며, 이를 통해 타입 기반 의존성 주입을 구현합니다.
 @Observable
-public final class DependencyContainer: Sendable {
+public final class DependencyContainer: @unchecked Sendable {
   
   /// 의존성(또는 팩토리 클로저)을 저장하는 딕셔너리입니다.
   /// - 키: ObjectIdentifier (등록할 타입의 식별자)

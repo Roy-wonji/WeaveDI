@@ -32,7 +32,7 @@ DiContainer
 let package = Package(
     ...
     dependencies: [
-        .package(url: "git@github.com:Roy-wonji/DiContainer.git", from: "1.0.1")
+        .package(url: "git@github.com:Roy-wonji/DiContainer.git", from: "1.0.2")
     ],
     ...
 )
