@@ -6,71 +6,61 @@
 //
 
 import LogMacro
+import Combine
 
 #if swift(>=5.9)
 @available(iOS 17.0, *)
-/// DependencyContainer는 애플리케이션 내 의존성(또는 팩토리 클로저)을 등록, 조회 및 해제하는 역할을 합니다.
-/// 내부적으로 의존성을 String을 키로 관리하여 타입 기반 의존성 주입을 구현합니다.
+/// DependencyContainer는 애플리케이션 내 의존성을 등록, 조회 및 해제하는 역할을 하며,
+/// 내부적으로 의존성을 String(타입 이름) 키로 관리합니다.
+/// 동기화를 위해 concurrent queue와 barrier 플래그를 사용해 thread safe하게 구현되었습니다.
 @Observable
 public final class DependencyContainer: @unchecked Sendable {
   
-  /// 의존성(또는 팩토리 클로저)을 저장하는 딕셔너리입니다.
-  /// - 키: String (등록할 타입의 이름)
-  /// - 값: Any (보통은 해당 타입의 인스턴스를 생성하는 클로저)
   private var registry = [String: Any]()
+  private var releaseHandlers = [String: @Sendable () -> Void]()
   
-  /// 등록된 의존성을 해제(release)하기 위한 핸들러들을 저장하는 딕셔너리입니다.
-  private var releaseHandlers = [String: () -> Void]()
+  private let syncQueue = DispatchQueue(label: "com.diContainer.syncQueue", attributes: .concurrent)
   
-  /// 기본 생성자. 이 컨테이너는 빈 registry와 releaseHandlers로 시작합니다.
   public init() {}
   
-  /// 주어진 타입의 의존성을 등록합니다.
-  ///
-  /// - Parameters:
-  ///   - type: 등록할 의존성의 타입 (예: AuthRepositoryProtocol.self)
-  ///   - build: 해당 타입의 인스턴스를 생성하는 팩토리 클로저
-  /// - Returns: 나중에 해당 의존성을 해제할 때 호출할 해제 핸들러 클로저
   @discardableResult
-  public func register<T>(
+  public func register<T: Sendable>(
     _ type: T.Type,
-    build: @escaping () -> T
-  ) -> () -> Void {
+    build: @escaping @Sendable () -> T
+  ) -> @Sendable () -> Void {
     let key = String(describing: type)
-    registry[key] = build
+    let safeBuild: @Sendable () -> T = build
+    // barrier 클로저에서 self를 unowned로 캡처
+    syncQueue.async(flags: .barrier) { [unowned self] in
+      self.registry[key] = safeBuild
+    }
     Log.debug("Registered", key)
     
-    let releaseHandler = { [weak self] in
-      self?.registry[key] = nil
-      self?.releaseHandlers[key] = nil
+    let releaseHandler: @Sendable () -> Void = { [weak self] in
+      self?.syncQueue.async(flags: .barrier) { [unowned self] in
+        self?.registry[key] = nil
+        self?.releaseHandlers[key] = nil
+      }
       Log.debug("Released", key)
     }
     
-    releaseHandlers[key] = releaseHandler
+    syncQueue.async(flags: .barrier) { [unowned self] in
+      self.releaseHandlers[key] = releaseHandler
+    }
     return releaseHandler
   }
   
-  /// 주어진 타입의 의존성을 registry에서 조회하여 인스턴스를 생성합니다.
-  ///
-  /// - Parameter type: 조회할 의존성의 타입
-  /// - Returns: 등록된 의존성이 있으면 생성된 인스턴스, 없으면 nil
-  public func resolve<T>(
-    _ type: T.Type
-  ) -> T? {
+  public func resolve<T>(_ type: T.Type) -> T? {
     let key = String(describing: type)
-    guard let factory = registry[key] as? () -> T else {
-      Log.error("No registered dependency found for \(String(describing: T.self))")
-      return nil
+    return syncQueue.sync {
+      guard let factory = self.registry[key] as? @Sendable () -> T else {
+        Log.error("No registered dependency found for \(String(describing: T.self))")
+        return nil
+      }
+      return factory()
     }
-    return factory()
   }
   
-  /// 의존성을 조회하거나, 등록되어 있지 않으면 기본값을 반환합니다.
-  ///
-  /// - Parameters:
-  ///   - type: 조회할 의존성의 타입
-  ///   - defaultValue: 의존성이 없을 때 사용할 기본값 (자동 클로저로 전달됨)
-  /// - Returns: 조회된 의존성 또는 기본값
   public func resolveOrDefault<T>(
     _ type: T.Type,
     default defaultValue: @autoclosure () -> T
@@ -78,37 +68,26 @@ public final class DependencyContainer: @unchecked Sendable {
     resolve(type) ?? defaultValue()
   }
   
-  /// 특정 타입의 의존성을 해제합니다.
-  ///
-  /// - Parameter type: 해제할 의존성의 타입
-  public func release<T>(
-    _ type: T.Type
-  ) {
+  public func release<T>(_ type: T.Type) {
     let key = String(describing: type)
-    releaseHandlers[key]?()
+    syncQueue.async(flags: .barrier) {
+      self.releaseHandlers[key]?()
+    }
   }
   
-  /// KeyPath 기반 접근을 위한 서브스크립트.
-  /// 이 예제에서는 단순히 타입 기반 resolve를 호출합니다.
-  public subscript<T>(
-    keyPath: KeyPath<DependencyContainer, T>
-  ) -> T? {
+  public subscript<T>(keyPath: KeyPath<DependencyContainer, T>) -> T? {
     get { resolve(T.self) }
   }
   
-  /// 인스턴스를 직접 등록하는 메서드입니다.
-  ///
-  /// - Parameters:
-  ///   - type: 등록할 의존성의 타입
-  ///   - instance: 등록할 인스턴스
-  ///
-  /// 이미 생성된 인스턴스를 클로저로 래핑하여 registry에 저장합니다.
-  public func register<T>(
+  public func register<T: Sendable>(
     _ type: T.Type,
     instance: T
   ) {
     let key = String(describing: type)
-    registry[key] = { instance }
+    syncQueue.async(flags: .barrier) {
+      // 클로저를 @Sendable으로 캐스팅
+      self.registry[key] = { instance } as @Sendable () -> T
+    }
     Log.debug("Registered instance for", key)
   }
 }
@@ -123,6 +102,7 @@ public final class DependencyContainer: ObservableObject {
   
   private var registry = [String: Any]()
   private var releaseHandlers = [String: () -> Void]()
+  private let syncQueue = DispatchQueue(label: "com.diContainer.syncQueue", attributes: .concurrent)
   
   public init() {}
   
@@ -133,16 +113,23 @@ public final class DependencyContainer: ObservableObject {
     build: @escaping () -> T
   ) -> () -> Void {
     let key = String(describing: type)
-    registry[key] = build
+    let safeBuild:  () -> T = build
+    syncQueue.async(flags: .barrier) {
+      self.registry[key] = safeBuild
+    }
     Log.debug("Registered", String(describing: type))
     
-    let releaseHandler = { [weak self] in
-      self?.registry[key] = nil
-      self?.releaseHandlers[key] = nil
+    let releaseHandler:  () -> Void = { [weak self] in
+      self?.syncQueue.async(flags: .barrier) {
+        self?.registry[key] = nil
+        self?.releaseHandlers[key] = nil
+      }
       Log.debug("Released", String(describing: type))
     }
     
-    releaseHandlers[key] = releaseHandler
+    syncQueue.async(flags: .barrier) {
+      self.releaseHandlers[key] = releaseHandler
+    }
     return releaseHandler
   }
   
@@ -151,11 +138,13 @@ public final class DependencyContainer: ObservableObject {
     _ type: T.Type
   ) -> T? {
     let key = String(describing: type)
-    guard let factory = registry[key] as? () -> T else {
-      Log.error("No registered dependency found for \(String(describing: T.self))")
-      return nil
+    return syncQueue.sync {
+      guard let factory = self.registry[key] as?  () -> T else {
+        Log.error("No registered dependency found for \(String(describing: T.self))")
+        return nil
+      }
+      return factory()
     }
-    return factory()
   }
   
   /// Resolves a dependency or provides a default value
@@ -171,21 +160,23 @@ public final class DependencyContainer: ObservableObject {
     _ type: T.Type
   ) {
     let key = String(describing: type)
-    releaseHandlers[key]?()
+    syncQueue.async(flags: .barrier) {
+      self.releaseHandlers[key]?()
+    }
   }
   
-  /// Subscript for KeyPath-based access
   public subscript<T>(keyPath: KeyPath<DependencyContainer, T>) -> T? {
     get { resolve(T.self) }
   }
   
-  /// Registers an instance directly
-  public func register<T>(
+  public func register<T: Sendable>(
     _ type: T.Type,
     instance: T
   ) {
     let key = String(describing: type)
-    registry[key] = { instance }
+    syncQueue.async(flags: .barrier) {
+      self.registry[key] = { instance } as () -> T
+    }
     Log.debug("Registered instance for", String(describing: type))
   }
 }
