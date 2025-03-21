@@ -5,26 +5,22 @@
 //  Created by 서원지 on 6/8/24.
 //
 
-import Foundation
-import Combine
-
 import LogMacro
 
 #if swift(>=5.9)
 @available(iOS 17.0, *)
 /// DependencyContainer는 애플리케이션 내 의존성(또는 팩토리 클로저)을 등록, 조회 및 해제하는 역할을 합니다.
-/// 내부적으로 의존성을 ObjectIdentifier를 키로 관리하며, 이를 통해 타입 기반 의존성 주입을 구현합니다.
+/// 내부적으로 의존성을 String을 키로 관리하여 타입 기반 의존성 주입을 구현합니다.
 @Observable
 public final class DependencyContainer: @unchecked Sendable {
   
   /// 의존성(또는 팩토리 클로저)을 저장하는 딕셔너리입니다.
-  /// - 키: ObjectIdentifier (등록할 타입의 식별자)
+  /// - 키: String (등록할 타입의 이름)
   /// - 값: Any (보통은 해당 타입의 인스턴스를 생성하는 클로저)
-  private var registry = [ObjectIdentifier: Any]()
+  private var registry = [String: Any]()
   
   /// 등록된 의존성을 해제(release)하기 위한 핸들러들을 저장하는 딕셔너리입니다.
-  /// 이 핸들러들을 호출하면 registry에서 해당 의존성이 제거됩니다.
-  private var releaseHandlers = [ObjectIdentifier: () -> Void]()
+  private var releaseHandlers = [String: () -> Void]()
   
   /// 기본 생성자. 이 컨테이너는 빈 registry와 releaseHandlers로 시작합니다.
   public init() {}
@@ -35,21 +31,19 @@ public final class DependencyContainer: @unchecked Sendable {
   ///   - type: 등록할 의존성의 타입 (예: AuthRepositoryProtocol.self)
   ///   - build: 해당 타입의 인스턴스를 생성하는 팩토리 클로저
   /// - Returns: 나중에 해당 의존성을 해제할 때 호출할 해제 핸들러 클로저
-  ///
-  /// 등록 시, DependencyContainer.live에 의존성을 추가하고, 등록 성공 메시지를 기록합니다.
   @discardableResult
   public func register<T>(
     _ type: T.Type,
     build: @escaping () -> T
   ) -> () -> Void {
-    let key = ObjectIdentifier(type)
+    let key = String(describing: type)
     registry[key] = build
-    Log.debug("Registered", String(describing: type))
+    Log.debug("Registered", key)
     
     let releaseHandler = { [weak self] in
       self?.registry[key] = nil
       self?.releaseHandlers[key] = nil
-      Log.debug("Released", String(describing: type))
+      Log.debug("Released", key)
     }
     
     releaseHandlers[key] = releaseHandler
@@ -63,7 +57,7 @@ public final class DependencyContainer: @unchecked Sendable {
   public func resolve<T>(
     _ type: T.Type
   ) -> T? {
-    let key = ObjectIdentifier(type)
+    let key = String(describing: type)
     guard let factory = registry[key] as? () -> T else {
       Log.error("No registered dependency found for \(String(describing: T.self))")
       return nil
@@ -90,7 +84,7 @@ public final class DependencyContainer: @unchecked Sendable {
   public func release<T>(
     _ type: T.Type
   ) {
-    let key = ObjectIdentifier(type)
+    let key = String(describing: type)
     releaseHandlers[key]?()
   }
   
@@ -113,9 +107,9 @@ public final class DependencyContainer: @unchecked Sendable {
     _ type: T.Type,
     instance: T
   ) {
-    let key = ObjectIdentifier(type)
+    let key = String(describing: type)
     registry[key] = { instance }
-    Log.debug("Registered instance for", String(describing: type))
+    Log.debug("Registered instance for", key)
   }
 }
 
@@ -126,8 +120,9 @@ public extension DependencyContainer {
 
 #else
 public final class DependencyContainer: ObservableObject {
-  private var registry = [ObjectIdentifier: Any]()
-  private var releaseHandlers = [ObjectIdentifier: () -> Void]()
+  
+  private var registry = [String: Any]()
+  private var releaseHandlers = [String: () -> Void]()
   
   public init() {}
   
@@ -137,7 +132,7 @@ public final class DependencyContainer: ObservableObject {
     _ type: T.Type,
     build: @escaping () -> T
   ) -> () -> Void {
-    let key = ObjectIdentifier(type)
+    let key = String(describing: type)
     registry[key] = build
     Log.debug("Registered", String(describing: type))
     
@@ -155,7 +150,7 @@ public final class DependencyContainer: ObservableObject {
   public func resolve<T>(
     _ type: T.Type
   ) -> T? {
-    let key = ObjectIdentifier(type)
+    let key = String(describing: type)
     guard let factory = registry[key] as? () -> T else {
       Log.error("No registered dependency found for \(String(describing: T.self))")
       return nil
@@ -175,7 +170,7 @@ public final class DependencyContainer: ObservableObject {
   public func release<T>(
     _ type: T.Type
   ) {
-    let key = ObjectIdentifier(type)
+    let key = String(describing: type)
     releaseHandlers[key]?()
   }
   
@@ -189,7 +184,7 @@ public final class DependencyContainer: ObservableObject {
     _ type: T.Type,
     instance: T
   ) {
-    let key = ObjectIdentifier(type)
+    let key = String(describing: type)
     registry[key] = { instance }
     Log.debug("Registered instance for", String(describing: type))
   }

@@ -32,7 +32,7 @@ DiContainer
 let package = Package(
     ...
     dependencies: [
-        .package(url: "git@github.com:Roy-wonji/DiContainer.git", from: "1.0.2")
+        .package(url: "git@github.com:Roy-wonji/DiContainer.git", from: "1.0.3")
     ],
     ...
 )
@@ -274,6 +274,6 @@ Swift 의존성 주입 컨테이너에 대한 기여는 언제나 환영합니�
 - 새로운 기능을 추가할 때는 코딩 표준을 따르고 테스트를 작성해 주시기 바랍니다.
 ## License
 
-AsyncMoya 는 MIT 라이선스로 이용할 수 있습니다. 자세한 내용은 [라이선스](LICENSE) 파일을 참조해 주세요.<br>
-AsyncMoya is available under the MIT license. See the  [LICENSE](LICENSE) file for more info.
+DiContainer 는 MIT 라이선스로 이용할 수 있습니다. 자세한 내용은 [라이선스](LICENSE) 파일을 참조해 주세요.<br>
+DiContainer is available under the MIT license. See the  [LICENSE](LICENSE) file for more info.
 
