@@ -58,6 +58,9 @@ extension AppDIContainer {
   /// 2. Repository 모듈 팩토리에서 기본 의존성 정의를 등록합니다.
   ///    (앱 측에서는 이 기본 정의를 extension을 통해 커스터마이징할 수 있습니다.)
   /// 3. 두 팩토리의 `makeAllModules()` 메서드를 호출하여 생성된 모듈들을 DI 컨테이너(Container)에 등록합니다.
+  /// 4. Factory 프로퍼티 사용해  각각 인스턴스를 생성 할수 있습니다  
+  
+  Factory 사용 안한 예제 
   public func registerDefaultDependencies() async {
     await registerDependencies { container in
       var repositoryFactory = RepositoryModuleFactory()
@@ -78,6 +81,29 @@ extension AppDIContainer {
     }
   }
 }
+
+  Factory 사용 한 예제
+  
+  public func registerDefaultDependencies() async {
+    var repositoryFactoryCopy = self.repositoryFactory
+    let useCaseFactoryCopy = self.repositoryFactory
+    
+    await registerDependencies {  container in
+      
+      // Repository 기본 의존성 정의 등록
+      repositoryFactoryCopy.registerDefaultDefinitions()
+      
+      // Repository 모듈들을 컨테이너에 등록
+      repositoryFactoryCopy.makeAllModules().forEach {
+        container.register($0)
+      }
+      
+      // UseCase 모듈들을 컨테이너에 등록
+      useCaseFactoryCopy.makeAllModules().forEach {
+        container.register($0)
+      }
+    }
+  } 
 ```
 
 ### UseCaseModuleFactory 등록  

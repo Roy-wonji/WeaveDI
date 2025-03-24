@@ -8,16 +8,7 @@
 import LogMacro
 import Combine
 
-// MARK: - Box 클래스
-// non‑Sendable 타입도 안전하게 캡슐화하기 위한 래퍼입니다.
-private final class Box<T> {
-  let value: T
-  init(_ value: T) {
-    self.value = value
-  }
-}
 
-extension Box: @unchecked Sendable {}
 
 #if swift(>=5.9)
 @available(iOS 17.0, *)

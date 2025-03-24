@@ -14,6 +14,11 @@ import Foundation
 
 public final class AppDIContainer {
   /// 전역 싱글턴 인스턴스입니다.
+  ///
+  @Factory(\.repositoryFactory) public var repositoryFactory: RepositoryModuleFactory
+  
+  @Factory(\.useCaseFactory) public var useCaseFactory: UseCaseModuleFactory
+  
   @MainActor public static let shared: AppDIContainer = .init()
   
   /// 외부에서 생성하지 못하도록 private으로 생성자를 감춥니다.
