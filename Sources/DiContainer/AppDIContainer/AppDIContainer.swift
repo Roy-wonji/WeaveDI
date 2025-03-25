@@ -16,6 +16,8 @@ public final actor AppDIContainer {
   @Factory(\.repositoryFactory) public var repositoryFactory: RepositoryModuleFactory
   @Factory(\.useCaseFactory) public var useCaseFactory: UseCaseModuleFactory
 
+  public static let shared: AppDIContainer = .init()
+  
   private init() {}
 
   private let container = Container()
@@ -48,6 +50,9 @@ public final actor  AppDIContainer {
   @Factory(\.useCaseFactory) public var useCaseFactory: UseCaseModuleFactory
 
   /// 외부에서 생성하지 못하도록 private으로 생성자를 감춥니다.
+  ///
+  public static let shared: AppDIContainer = .init()
+  
   private init() {}
   
   /// 내부에 DI 모듈을 관리하는 Container 인스턴스를 보관합니다.
