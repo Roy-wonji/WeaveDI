@@ -12,20 +12,12 @@ import Foundation
 #if swift(>=5.9)
 @available(iOS 17.0, *)
 
-public final class AppDIContainer {
-  /// 전역 싱글턴 인스턴스입니다.
-  ///
+public final actor AppDIContainer {
   @Factory(\.repositoryFactory) public var repositoryFactory: RepositoryModuleFactory
-  
   @Factory(\.useCaseFactory) public var useCaseFactory: UseCaseModuleFactory
-  
-  @MainActor public static let shared: AppDIContainer = .init()
-  
-  /// 외부에서 생성하지 못하도록 private으로 생성자를 감춥니다.
+
   private init() {}
-  
-  /// 내부에 DI 모듈을 관리하는 Container 인스턴스를 보관합니다.
-  /// Container는 개별 모듈들을 등록(register)하고, build()를 통해 모든 등록된 모듈의 의존성 등록을 수행합니다.
+
   private let container = Container()
   
   /// registerDependencies 메서드는 비동기 클로저를 받아, 해당 클로저에서 의존성 모듈들을 등록하도록 합니다.
@@ -48,11 +40,13 @@ public final class AppDIContainer {
     }.build()
   }
 }
+
 #else
-public final class AppDIContainer {
+public final actor  AppDIContainer {
   /// 전역 싱글턴 인스턴스입니다.
-  public static let shared: AppDIContainer = .init()
-  
+  @Factory(\.repositoryFactory) public var repositoryFactory: RepositoryModuleFactory
+  @Factory(\.useCaseFactory) public var useCaseFactory: UseCaseModuleFactory
+
   /// 외부에서 생성하지 못하도록 private으로 생성자를 감춥니다.
   private init() {}
   
@@ -70,11 +64,13 @@ public final class AppDIContainer {
   ) async {
     // 1. 전달받은 비동기 클로저(registerModules)를 실행합니다.
     //    이 클로저 내부에서 필요한 의존성 모듈들이 container에 등록됩니다.
-    await registerModules(container)
+    let containerCopy = container
+    
+    await registerModules(containerCopy)
     
     // 2. container에 등록된 모든 모듈의 register() 메서드를 실행합니다.
     //    여기서 callAsFunction은 빈 클로저를 사용하여, 단순히 container의 build()를 호출할 수 있도록 합니다.
-    await container {
+    await containerCopy {
       // 이 클로저는 비어있지만, callAsFunction 메서드를 활용해 메서드 체이닝을 가능하게 합니다.
     }.build()
   }

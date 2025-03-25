@@ -12,8 +12,7 @@ import Combine
 @available(iOS 17.0, *)
 /// `Container`는 모듈(의존성)을 등록하고, 이를 일괄적으로 실행(build)하는 역할을 하는 Observable 클래스입니다.
 
-@Observable
-public class Container {
+public actor Container {
   /// 등록된 모듈들을 보관하는 배열입니다.
   private var modules: [Module] = []
   
@@ -57,7 +56,7 @@ public class Container {
 }
 
 #else
-public final class Container: ObservableObject {
+public final actor  Container {
   private var modules: [Module] = []
   
   public init() {}

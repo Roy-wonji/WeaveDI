@@ -61,26 +61,22 @@ extension AppDIContainer {
   /// 4. Factory 프로퍼티 사용해  각각 인스턴스를 생성 할수 있습니다  
   
   Factory 사용 안한 예제 
-  public func registerDefaultDependencies() async {
+   public func registerDefaultDependencies() async {
     await registerDependencies { container in
       var repositoryFactory = RepositoryModuleFactory()
       let useCaseFactory = UseCaseModuleFactory()
       
-      // Repository 기본 의존성 정의 등록
       repositoryFactory.registerDefaultDefinitions()
       
-      // Repository 모듈들을 컨테이너에 등록
-      repositoryFactory.makeAllModules().forEach {
-        container.register($0)
+      // asyncForEach를 사용하여 각 모듈을 비동기적으로 등록합니다.
+      await repositoryFactory.makeAllModules().asyncForEach { module in
+        await container.register(module)
       }
-      
-      // UseCase 모듈들을 컨테이너에 등록
-      useCaseFactory.makeAllModules().forEach {
-        container.register($0)
+      await useCaseFactory.makeAllModules().asyncForEach { module in
+        await container.register(module)
       }
     }
   }
-}
 
   Factory 사용 한 예제
   
@@ -94,13 +90,13 @@ extension AppDIContainer {
       repositoryFactoryCopy.registerDefaultDefinitions()
       
       // Repository 모듈들을 컨테이너에 등록
-      repositoryFactoryCopy.makeAllModules().forEach {
-        container.register($0)
+      await repositoryFactory.makeAllModules().asyncForEach { module in
+        await container.register(module)
       }
       
       // UseCase 모듈들을 컨테이너에 등록
-      useCaseFactoryCopy.makeAllModules().forEach {
-        container.register($0)
+      await useCaseFactory.makeAllModules().asyncForEach { module in
+        await container.register(module)
       }
     }
   } 
