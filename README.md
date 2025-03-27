@@ -32,7 +32,7 @@ DiContainer
 let package = Package(
     ...
     dependencies: [
-        .package(url: "git@github.com:Roy-wonji/DiContainer.git", from: "1.0.3")
+        .package(url: "git@github.com:Roy-wonji/DiContainer.git", from: "1.0.7")
     ],
     ...
 )
@@ -214,6 +214,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 }
 ```
 
+### UseCase 등록 
+
+아래 코드는 UseCase 에서 DI(의존성 주입) 을 하는 부분입니다.(with TCA)
+
+```swift
+extension AuthUseCase: DependencyKey {
+  static public var liveValue: AuthUseCase = {
+    let authRepository = ContainerResgister(\.authUseCase).wrappedValue
+    return AuthUseCase(repository:  authRepository)
+  }()
+}
+```
+
+### ContainerResgister 를 프로 퍼티를 사용 하는 방법
+
+```swift
+extension DependencyContainer {
+  var authUseCase: AuthUseCaseProtocol? {
+    resolve(AuthRepositoryProtocol.self)
+  }
+}
+```
+
 #### SwiftUI App 파일에서 의존성 등록 호출
 
 아래 코드는 SwiftUI 앱의 진입점(`@main`)에서 DI(의존성 주입) 컨테이너에 필요한 의존성을 등록하는 예시입니다.
@@ -230,9 +253,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 - **AppDelegate 연동:**  
   `@UIApplicationDelegateAdaptor`를 사용하여 기존 AppDelegate의 기능을 SwiftUI 앱과 연동합니다.  
   이 방식으로 UIKit 기반 초기화 코드와 SwiftUI 기반 코드를 함께 사용할 수 있습니다.
-
-- **Composable Architecture 사용:**  
-  `Store` 인스턴스를 생성하여 앱의 상태와 리듀서를 관리하며, 이를 뷰에 주입합니다.
 
 **코드 예시:**
 
