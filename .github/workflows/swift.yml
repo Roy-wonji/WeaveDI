@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build-and-deploy:
     name: Generate Documentation and Deploy
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout repository
