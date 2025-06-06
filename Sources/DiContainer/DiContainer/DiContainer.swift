@@ -5,13 +5,6 @@
 //  Created by 서원지 on 6/8/24.
 //
 
-//
-//  DependencyContainer.swift
-//  YourProjectName
-//
-//  Created by YourName on 2025/06/06.
-//
-
 import Foundation
 import LogMacro
 import Combine
@@ -65,7 +58,10 @@ public final class DependencyContainer: @unchecked Sendable {
         syncQueue.sync(flags: .barrier) {
             self.registry[key] = build
         }
-        Log.debug("Registered", key)
+     
+      Task {
+        await #logDebug("Registered", key)
+      }
         
         // 해제 클로저: 해당 키의 값을 제거합니다.
         let releaseHandler: () -> Void = { [weak self] in
@@ -73,7 +69,9 @@ public final class DependencyContainer: @unchecked Sendable {
                 self?.registry[key] = nil
                 self?.releaseHandlers[key] = nil
             }
-            Log.debug("Released", key)
+          Task {
+            await #logDebug("Released", key)
+          }
         }
         
         // 동기적으로 releaseHandlers에도 저장합니다.
@@ -94,7 +92,9 @@ public final class DependencyContainer: @unchecked Sendable {
         let key = String(describing: type)
         return syncQueue.sync { [unowned self] in
             guard let factory = self.registry[key] as? () -> T else {
-                #logError("No registered dependency found for \(String(describing: T.self))")
+              Task {
+                await #logError("No registered dependency found for \(String(describing: T.self))")
+              }
                 return nil
             }
             return factory()
@@ -150,7 +150,9 @@ public final class DependencyContainer: @unchecked Sendable {
             // @Sendable 캐스트를 제거하여 instance 캡처 오류 해결
             self.registry[key] = { instance }
         }
-        #logDebug("Registered instance for", key)
+      Task {
+        await #logDebug("Registered instance for", key)
+      }
     }
 }
 
@@ -217,7 +219,10 @@ public final class DependencyContainer: ObservableObject {
         syncQueue.async(flags: .barrier) {
             self.registry[key] = build
         }
-        #logDebug("Registered", String(describing: type))
+        
+      Task {
+        await #logDebug("Registered", String(describing: type))
+      }
         
         // 해제 클로저: 해당 키의 값을 제거합니다.
         let releaseHandler: () -> Void = { [weak self] in
@@ -225,7 +230,9 @@ public final class DependencyContainer: ObservableObject {
                 self?.registry[key] = nil
                 self?.releaseHandlers[key] = nil
             }
-            #logDebug("Released", String(describing: type))
+          Task {
+            await #logDebug("Released", String(describing: type))
+          }
         }
         
         // releaseHandlers에도 barrier 플래그를 사용해 비동기적으로 저장합니다.
@@ -246,7 +253,10 @@ public final class DependencyContainer: ObservableObject {
         let key = String(describing: type)
         return syncQueue.sync {
             guard let factory = self.registry[key] as? () -> T else {
-                #logError("No registered dependency found for \(String(describing: T.self))")
+              Task {
+                await #logError("No registered dependency found for \(String(describing: T.self))")
+              }
+              
                 return nil
             }
             return factory()
@@ -302,7 +312,9 @@ public final class DependencyContainer: ObservableObject {
         syncQueue.async(flags: .barrier) { [unowned self, box] in
             self.registry[key] = { box.value }
         }
-        #logDebug("Registered instance for", String(describing: type))
+      Task {
+        await  #logDebug("Registered instance for", String(describing: type))
+      }
     }
 }
 
