@@ -1,0 +1,47 @@
+on:
+  # "main" 브랜치에 푸시할 때마다 워크플로우 작동
+  push:
+    branches: [ "main" ]
+
+# GitHub Pages에 배포하기 위한 GITHUB_TOKEN 권한 설정
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# 동시성 배포 허용
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Generate Documentation and Deploy
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          # GITHUB_TOKEN을 사용해 gh-pages 브랜치에도 push할 수 있도록 전체 히스토리를 가져옵니다.
+          fetch-depth: 0
+          # GITHUB_TOKEN으로 선언된 권한을 사용합니다.
+          persist-credentials: true
+
+      - name: Set up Swift 6.1
+        uses: fwal/setup-swift@v2
+        with:
+          swift-version: "6.1.0"
+
+      - name: Generate documentation
+        run: |
+          chmod +x ./GENERATE_DOCS.sh
+          ./GENERATE_DOCS.sh
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          # 별도 토큰 없이 내장 GITHUB_TOKEN을 사용합니다.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          # publish_branch 또는 commit_message를 필요에 따라 설정하세요.
