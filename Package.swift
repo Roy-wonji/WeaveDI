@@ -12,7 +12,7 @@ let package = Package(
             targets: ["DiContainer"]),
     ],
     dependencies: [
-      .package(url: "https://github.com/Roy-wonji/LogMacro.git", exact: "1.0.6"),
+      .package(url: "https://github.com/Roy-wonji/LogMacro.git", exact: "1.0.7"),
       .package(url: "https://github.com/apple/swift-docc-plugin.git", exact: "1.4.4"),
     ],
     targets: [
