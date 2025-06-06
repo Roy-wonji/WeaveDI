@@ -24,6 +24,7 @@ public extension Sequence {
     /// ```swift
     /// let numbers = [1, 2, 3, 4, 5]
     /// await numbers.asyncForEach { number in
+    ///     // 요소마다 0.1초씩 대기
     ///     try await Task.sleep(nanoseconds: UInt64(number) * 100_000_000)
     ///     print("Processed number: \(number)")
     /// }
@@ -38,3 +39,63 @@ public extension Sequence {
         }
     }
 }
+
+/// ## 사용 예시
+///
+/// 1. 배열에서 `asyncForEach` 호출
+/// ```swift
+/// import Foundation
+///
+/// @main
+/// struct MyApp {
+///     static func main() async {
+///         let words = ["apple", "banana", "cherry"]
+///
+///         do {
+///             await words.asyncForEach { word in
+///                 // 각 단어마다 0.2초 대기 후 출력
+///                 try await Task.sleep(nanoseconds: 200_000_000)
+///                 print("Word: \(word)")
+///             }
+///         } catch {
+///             print("Error during iteration:", error)
+///         }
+///
+///         print("All words processed.")
+///     }
+/// }
+/// ```
+///
+/// 2. URL 목록을 비동기적으로 다운로드할 때 사용
+/// ```swift
+/// import Foundation
+///
+/// struct Downloader {
+///     func download(from url: URL) async throws -> Data {
+///         let (data, _) = try await URLSession.shared.data(from: url)
+///         return data
+///     }
+/// }
+///
+/// @main
+/// struct DownloadApp {
+///     static func main() async {
+///         let urls = [
+///             URL(string: "https://example.com/file1")!,
+///             URL(string: "https://example.com/file2")!
+///         ]
+///         let downloader = Downloader()
+///
+///         do {
+///             try await urls.asyncForEach { url in
+///                 let data = try await downloader.download(from: url)
+///                 print("Downloaded \(data.count) bytes from \(url)")
+///             }
+///         } catch {
+///             print("Download error:", error)
+///         }
+///
+///         print("All downloads completed.")
+///     }
+/// }
+/// ```
