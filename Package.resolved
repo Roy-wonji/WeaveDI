@@ -1,13 +1,31 @@
 {
-  "originHash" : "70b058554bba63812cc77842789214d6336f9ab6edf10367a515e9c993379957",
+  "originHash" : "0904036f67cb3894738d1ed44c732674caba2f274f7c4a0950179310ddabea01",
   "pins" : [
     {
       "identity" : "logmacro",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Roy-wonji/LogMacro.git",
       "state" : {
-        "revision" : "3f1c1295a44358e82d60c26b7e4f5c4e2203cb15",
-        "version" : "1.0.5"
+        "revision" : "3d8dd883f23d2477752ab2447557c4c735030432",
+        "version" : "1.0.6"
+      }
+    },
+    {
+      "identity" : "swift-docc-plugin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-docc-plugin.git",
+      "state" : {
+        "revision" : "d1691545d53581400b1de9b0472d45eb25c19fed",
+        "version" : "1.4.4"
+      }
+    },
+    {
+      "identity" : "swift-docc-symbolkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-docc-symbolkit",
+      "state" : {
+        "revision" : "b45d1f2ed151d057b54504d653e0da5552844e34",
+        "version" : "1.0.0"
       }
     },
     {
