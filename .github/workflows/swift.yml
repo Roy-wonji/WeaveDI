@@ -5,7 +5,7 @@ on:
 
 # GitHub Pages 에 배포하기 위한 GITHUB_TOKEN 권한 설정
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 # 동시성 배포 허용
