@@ -1,13 +1,14 @@
 on:
-  # "main" 브랜치에 푸시할 때 마다 워크플로우 작동
+  # "main" 브랜치에 푸시할 때마다 워크플로우 작동
   push:
     branches: [ "main" ]
 
-# GitHub Pages 에 배포하기 위한 GITHUB_TOKEN 권한 설정
+# GitHub Pages에 배포하기 위한 GITHUB_TOKEN 권한 설정
 permissions:
   contents: write
   pages: write
   id-token: write
+
 # 동시성 배포 허용
 concurrency:
   group: "pages"
@@ -26,6 +27,11 @@ jobs:
           fetch-depth: 0
           # GITHUB_TOKEN으로 선언된 권한을 사용합니다.
           persist-credentials: true
+
+      - name: Set up Swift 6.1
+        uses: fwal/setup-swift@v2
+        with:
+          swift-version: "6.1.0"
 
       - name: Generate documentation
         run: |
