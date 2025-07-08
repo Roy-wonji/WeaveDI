@@ -168,7 +168,7 @@ import Foundation
 /// - `register()` 호출 시 반드시 `await` 키워드를 사용해야 하며,
 ///   등록이 완료될 때까지 대기합니다.
 /// - 등록된 의존성은 이후에 `DependencyContainer.live.resolve(...)` 형태로 꺼내 사용할 수 있습니다.
-public struct Module: Sendable {
+public actor Module {
   /// ### Instance Methods
     // MARK: – Stored Properties
     /// 비동기 클로저로, `DependencyContainer`에 의존성을 등록하는 작업을 수행합니다.
@@ -179,7 +179,8 @@ public struct Module: Sendable {
     ///   DI 컨테이너에 `type` ↔ `factory()` 매핑을 등록합니다.
     /// - 접근 제한:
     ///   외부에서는 직접 접근할 수 없고, 오직 `register()` 메서드를 통해서만 실행됩니다.
-    private let registrationClosure: @Sendable () async -> Void
+  
+    private let registrationClosure:  () async -> Void
 
     // MARK: – Initialization
 
@@ -194,13 +195,22 @@ public struct Module: Sendable {
     /// 이때 생성된 클로저는 외부에 노출되지 않으며, `register()` 메서드를 통해 실행됩니다.
     public init<T>(
         _ type: T.Type,
-        factory: @escaping @Sendable () -> T
+        factory: @escaping () -> T
     ) {
         // registrationClosure 내부에서는 반드시 `DependencyContainer.live`를 사용하여
         // 비동기로 의존성을 등록하도록 구현합니다.
+      if #available(iOS 17.0, *) {
+        // @Sendable 클로저로 wrapping
+        let sendableFactory = unsafeBitCast(factory, to: (@Sendable () -> T).self)
         self.registrationClosure = {
-            DependencyContainer.live.register(type, build: factory)
+          DependencyContainer.live.register(type, build: sendableFactory)
         }
+      } else {
+        // 일반 클로저 등록
+        self.registrationClosure = {
+          DependencyContainer.live.register(type, build: factory)
+        }
+      }
     }
 
     // MARK: – Instance Method
