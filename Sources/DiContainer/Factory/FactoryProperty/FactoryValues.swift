@@ -7,8 +7,6 @@
 
 import Foundation
 
-#if swift(>=5.9)
-@available(iOS 17.0, *)
 /// `FactoryValues`는 애플리케이션 전역에서 사용할 팩토리 인스턴스들을 보관하는 구조체입니다.
 ///
 /// - `repositoryFactory`: Repository 모듈 팩토리의 기본 인스턴스를 저장합니다.
@@ -42,7 +40,6 @@ public struct FactoryValues {
     nonisolated(unsafe) static var current = FactoryValues()
 }
 
-#else
 
 /// `FactoryValues`는 애플리케이션 전역에서 사용할 팩토리 인스턴스들을 보관하는 구조체입니다.
 ///
@@ -53,30 +50,6 @@ public struct FactoryValues {
 /// ## 설명
 /// - Swift 5.9 미만 또는 iOS 17.0 미지원 환경에서 사용 가능합니다.
 /// - `nonisolated(unsafe)`를 사용하여 액터 격리 제약을 우회하고 동기적으로 접근할 수 있습니다.
-public struct FactoryValues {
-    // MARK: - 팩토리 프로퍼티
-    
-    /// Repository 모듈 팩토리 기본 인스턴스
-    public var repositoryFactory: RepositoryModuleFactory = RepositoryModuleFactory()
-    
-    /// UseCase 모듈 팩토리 기본 인스턴스
-    public var useCaseFactory: UseCaseModuleFactory = UseCaseModuleFactory()
-    
-    // MARK: - 초기화
-    
-    /// 기본 생성자.
-    /// - 설명: 별도 설정 없이 기본 팩토리 인스턴스를 사용하고자 할 때 호출합니다.
-    public init() {}
-    
-    // MARK: - 전역 인스턴스
-    
-    /// 전역으로 사용 가능한 `FactoryValues` 싱글턴 인스턴스
-    ///
-    /// - 설명:
-    ///   - `nonisolated(unsafe)`를 사용하여, 액터 격리 제약을 우회하고 동기적으로 접근할 수 있도록 합니다.
-    nonisolated(unsafe) static var current = FactoryValues()
-}
-#endif
 
 
 // MARK: - 사용 예시 코드

@@ -16,8 +16,6 @@ import Foundation
 ///
 /// 내부적으로 `Container`를 사용해 개별 모듈(Module)을 등록하고, `build()` 호출 시 등록된 모든 모듈의 `register()`를 병렬로 실행합니다.
 /// 이 과정을 통해 런타임에 의존성 그래프를 구성하고, 앱 전역에서 `DependencyContainer.live.resolve(...)` 를 통해 인스턴스를 꺼내 사용할 수 있습니다.
-#if swift(>=5.9)
-@available(iOS 17.0, *)
 public final actor AppDIContainer {
     // MARK: - 프로퍼티
 
@@ -62,7 +60,7 @@ public final actor AppDIContainer {
     }
 }
 
-#else
+
 /// `AppDIContainer`는 애플리케이션 전반에서 의존성 주입(Dependency Injection)을 담당하는 중앙 컨테이너 클래스입니다.
 /// 싱글턴 패턴을 활용하여 앱 전체에서 동일한 인스턴스를 참조할 수 있도록 설계되었습니다.
 ///
@@ -72,51 +70,6 @@ public final actor AppDIContainer {
 ///
 /// 내부적으로 `Container`를 사용해 개별 모듈(Module)을 등록하고, `build()` 호출 시 등록된 모든 모듈의 `register()`를 병렬로 실행합니다.
 /// 앱 전역에서 `DependencyContainer.live.resolve(...)`를 통해 인스턴스를 꺼내 사용할 수 있습니다.
-public final actor AppDIContainer {
-    // MARK: - 프로퍼티
-
-    /// Repository 계층에서 사용할 모듈(팩토리) 인스턴스를 `FactoryValues` 내에 정의된 경로에서 자동으로 주입받습니다.
-    @Factory(\.repositoryFactory)
-    public var repositoryFactory: RepositoryModuleFactory
-
-    /// UseCase 계층에서 사용할 모듈(팩토리) 인스턴스를 `FactoryValues` 내에 정의된 경로에서 자동으로 주입받습니다.
-    @Factory(\.useCaseFactory)
-    public var useCaseFactory: UseCaseModuleFactory
-
-    /// 애플리케이션 전역에서 사용할 수 있는 싱글턴 인스턴스입니다.
-    public static let shared: AppDIContainer = .init()
-
-    /// 외부에서 인스턴스를 생성하지 못하도록 생성자를 `private`으로 감춥니다.
-    private init() {}
-
-    /// 내부에서 실제 의존성 등록을 수행할 `Container` 인스턴스입니다.
-    private let container = Container()
-
-    // MARK: - 메서드
-
-    /// `registerDependencies` 메서드는 비동기 클로저를 받아, 해당 클로저에서 의존성 모듈들을 등록하도록 합니다.
-    /// 이후 `container.build()`를 호출하여 등록된 모든 모듈의 `register()`를 비동기적으로 실행합니다.
-    ///
-    /// - Parameter registerModules: `Container`를 인자로 받아 비동기적으로 의존성 모듈들을 등록하는 클로저.
-    /// - Note: 이 클로저 내부에서 `registerModule.makeDependency(...)` 등을 활용하여 여러 모듈을 한 번에 등록할 수 있습니다.
-    public func registerDependencies(
-        registerModules: @escaping (Container) async -> Void
-    ) async {
-        // 1. self를 직접 캡처하지 않도록 container를 로컬 상수에 복사합니다.
-        let containerCopy = container
-
-        // 2. 전달받은 비동기 클로저를 로컬 containerCopy를 사용하여 실행합니다.
-        //    이 시점에 repositoryFactory, useCaseFactory를 통해 모듈 정의를 containerCopy에 추가
-        await registerModules(containerCopy)
-
-        // 3. containerCopy에 모듈이 모두 등록되면, 병렬로 각각의 Module.register()를 실행
-        await containerCopy {
-            // 빈 클로저: callAsFunction() 체이닝을 위해 사용
-        }.build()
-    }
-}
-#endif
-
 
 // MARK: - 사용 예시 코드
 

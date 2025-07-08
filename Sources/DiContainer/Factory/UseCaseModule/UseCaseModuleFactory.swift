@@ -15,8 +15,7 @@
 
 import Foundation
 
-#if swift(>=5.9)
-@available(iOS 17.0, *)
+
 /// `UseCaseModuleFactory`는 `UseCaseModuleFactoryProtocol`을 채택한 구조체로,
 /// 애플리케이션에서 Use Case 계층의 모듈 생성 및 등록을 담당합니다.
 ///
@@ -154,7 +153,6 @@ public struct UseCaseModuleFactory: UseCaseModuleFactoryProtocol {
     public init() {}
 }
 
-#else
 
 /// `UseCaseModuleFactory`는 `UseCaseModuleFactoryProtocol`을 채택한 구조체로,
 /// Use Case 계층의 모듈 생성 및 등록을 담당합니다.
@@ -241,21 +239,4 @@ public struct UseCaseModuleFactory: UseCaseModuleFactoryProtocol {
 ///     }
 /// }
 /// ```
-public struct UseCaseModuleFactory: UseCaseModuleFactoryProtocol {
-    // MARK: - 저장 프로퍼티
 
-    /// 의존성 등록을 담당하는 헬퍼 객체입니다.
-    public let registerModule = RegisterModule()
-
-    /// Use Case 모듈을 생성하는 클로저들의 배열입니다.
-    /// 기본 구현에서는 빈 배열을 반환합니다.
-    public var useCaseDefinitions: [() -> Module] {
-        return []
-    }
-
-    // MARK: - 초기화
-
-    /// 기본 생성자입니다.
-    public init() {}
-}
-#endif

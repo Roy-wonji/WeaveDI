@@ -8,61 +8,59 @@
 
 import Foundation
 
-#if swift(>=5.9)
-@available(iOS 17.0, *)
 /// `RepositoryModuleFactory`는 `RepositoryModuleFactoryProtocol`을 채택하여
 /// Repository 계층의 모듈 생성 및 등록을 담당하는 타입입니다.
 ///
-/// - `registerModule`: 의존성 등록 헬퍼(`RegisterModule`) 인스턴스입니다.
-///   이 헬퍼를 통해 Repository 모듈을 생성하는 클로저를 등록하고,
-///   `Module` 인스턴스를 구성합니다.
-/// - `repositoryDefinitions`: Repository 모듈을 생성하는 클로저들의 배열입니다.
+/// - `registerModule`: 의존성 등록 헬퍼(`RegisterModule`) 인스턴스를 통해
+///   Repository 모듈을 구성할 때 필요한 다른 의존성을 DI 컨테이너에 등록할 수 있습니다.
+/// - `repositoryDefinitions`: Repository 모듈을 생성하는 클로저들의 배열로,
 ///   각 클로저는 호출 시 `Module` 인스턴스를 반환합니다.
-/// - `makeAllModules()`: 내부 `repositoryDefinitions` 배열에 있는 모든 클로저를 실행하여,
+/// - `makeAllModules()`: 내부 `repositoryDefinitions` 배열에 포함된 모든 클로저를 실행하여,
 ///   생성된 `Module` 인스턴스들의 배열을 반환합니다.
 ///
 /// ## 사용 예시
 ///
-/// 1) 기본 Repository 정의 확장
+/// 1) 프로토콜 및 기본 구현체 정의
 /// ```swift
-/// import DiContainer
-///
 /// protocol AuthRepositoryProtocol {
 ///     func login(user: String, password: String) async -> Bool
 /// }
 ///
 /// struct DefaultAuthRepository: AuthRepositoryProtocol {
 ///     func login(user: String, password: String) async -> Bool {
-///         // 실제 로그인 로직
+///         // 실제 로그인 로직 구현
 ///         return true
 ///     }
 /// }
+/// ```
 ///
+/// 2) `RepositoryModuleFactory` 확장하여 기본 정의 등록
+/// ```swift
 /// extension RepositoryModuleFactory {
 ///     /// 기본 Repository 의존성 정의를 설정합니다.
-///     /// - `registerModule.makeDependency(AuthRepositoryProtocol.self) { DefaultAuthRepository() }`
-///     ///   클로저는 `AuthRepositoryProtocol` 타입의 `DefaultAuthRepository`를 반환합니다.
 ///     public mutating func registerDefaultDefinitions() {
-///         let helper = registerModule  // self를 직접 캡처하지 않도록 복사
+///         let helper = registerModule  // self를 직접 캡처하지 않기 위해 복사
 ///         repositoryDefinitions = [
-///             helper.makeDependency(AuthRepositoryProtocol.self) { DefaultAuthRepository() }
+///             helper.makeDependency(AuthRepositoryProtocol.self) {
+///                 DefaultAuthRepository()
+///             }
 ///         ]
 ///     }
 /// }
 /// ```
 ///
-/// 2) AppDIContainer에서 호출하여 DI 컨테이너에 등록
+/// 3) `AppDIContainer`에서 호출하여 DI 컨테이너에 모듈 등록
 /// ```swift
-/// import DiContainer
-///
 /// extension AppDIContainer {
-///     public func registerDefaultRepositoryModules() async {
-///         var factoryCopy = repositoryFactory
-///         await registerDependencies { container in
-///             // DefaultAuthRepository 등록
-///             factoryCopy.registerDefaultDefinitions()
+///     public func registerAuthRepository() async {
+///         // 값 타입인 RepositoryModuleFactory 복사 (클로저 캡처 문제 방지)
+///         var factoryCopy = RepositoryModuleFactory()
 ///
-///             // 생성된 Module 배열을 순회하며 Container에 등록
+///         // 기본 정의 등록
+///         factoryCopy.registerDefaultDefinitions()
+///
+///         // 생성된 모듈들을 비동기적으로 Container에 등록
+///         await registerDependencies { container in
 ///             for module in factoryCopy.makeAllModules() {
 ///                 await container.register(module)
 ///             }
@@ -71,17 +69,15 @@ import Foundation
 /// }
 /// ```
 ///
-/// 3) 실제 앱 초기화 시점 예시
+/// 4) 앱 초기화 시점 (SwiftUI `@main` 또는 `AppDelegate`)에서 호출
 /// ```swift
-/// import SwiftUI
-///
 /// @main
 /// struct MyApp: App {
 ///     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 ///
 ///     init() {
 ///         Task {
-///             await AppDIContainer.shared.registerDefaultRepositoryModules()
+///             await AppDIContainer.shared.registerAuthRepository()
 ///         }
 ///     }
 ///
@@ -92,15 +88,20 @@ import Foundation
 ///     }
 /// }
 /// ```
+///
+/// - Note:
+///   - `repositoryDefinitions`는 값 타입이므로,
+///     클로저를 등록하기 전 반드시 로컬 복사(`var factoryCopy`)를 생성하여 사용해야 합니다.
+///   - `makeAllModules()`를 호출하면 정의된 모든 클로저가 실행되어
+///     `Module` 인스턴스가 만들어지고, 이후 `container.register(_:)`로 실제 DI 컨테이너에 주입됩니다.
 public struct RepositoryModuleFactory: RepositoryModuleFactoryProtocol {
     // MARK: - 저장 프로퍼티
 
     /// 의존성 등록 헬퍼 객체(`RegisterModule`)입니다.
-    /// - Repository 모듈 생성 시 필요한 의존성 등록 로직을 이 헬퍼를 통해 수행합니다.
     public let registerModule = RegisterModule()
 
     /// Repository 모듈을 생성하는 클로저들의 배열입니다.
-    /// - 각 클로저는 호출 시 `Module` 인스턴스를 반환합니다.
+    /// 각 클로저는 호출 시 `Module` 인스턴스를 반환합니다.
     public var repositoryDefinitions: [() -> Module]
 
     // MARK: - 초기화
@@ -124,53 +125,60 @@ public struct RepositoryModuleFactory: RepositoryModuleFactoryProtocol {
     }
 }
 
-#else
 
 /// `RepositoryModuleFactory`는 `RepositoryModuleFactoryProtocol`을 채택하여
 /// Repository 계층의 모듈 생성 및 등록을 담당하는 타입입니다.
 ///
-/// - `registerModule`: 의존성 등록 헬퍼(`RegisterModule`) 인스턴스입니다.
-/// - `repositoryDefinitions`: Repository 모듈을 생성하는 클로저들의 배열입니다.
-/// - `makeAllModules()`: 내부 `repositoryDefinitions` 배열에 있는 모든 클로저를 실행하여,
+/// - `registerModule`: 의존성 등록 헬퍼(`RegisterModule`) 인스턴스를 통해
+///   Repository 모듈을 구성할 때 필요한 다른 의존성을 DI 컨테이너에 등록할 수 있습니다.
+/// - `repositoryDefinitions`: Repository 모듈을 생성하는 클로저들의 배열로,
+///   각 클로저는 호출 시 `Module` 인스턴스를 반환합니다.
+/// - `makeAllModules()`: 내부 `repositoryDefinitions` 배열에 포함된 모든 클로저를 실행하여,
 ///   생성된 `Module` 인스턴스들의 배열을 반환합니다.
 ///
 /// ## 사용 예시 (Swift 5.9 미만 / iOS 17.0 미지원)
 ///
-/// 1) 기본 Repository 정의 확장
+/// 1) 프로토콜 및 기본 구현체 정의
 /// ```swift
-/// import DiContainer
-///
 /// protocol AuthRepositoryProtocol {
 ///     func login(user: String, password: String) -> Bool
 /// }
 ///
 /// struct DefaultAuthRepository: AuthRepositoryProtocol {
 ///     func login(user: String, password: String) -> Bool {
-///         // 실제 로그인 로직
+///         // 실제 로그인 로직 구현
 ///         return true
 ///     }
 /// }
+/// ```
 ///
+/// 2) `RepositoryModuleFactory` 확장하여 기본 정의 등록
+/// ```swift
 /// extension RepositoryModuleFactory {
 ///     /// 기본 Repository 의존성 정의를 설정합니다.
 ///     public mutating func registerDefaultDefinitions() {
 ///         let helper = registerModule  // self를 직접 캡처하지 않기 위해 복사
 ///         repositoryDefinitions = [
-///             helper.makeDependency(AuthRepositoryProtocol.self) { DefaultAuthRepository() }
+///             helper.makeDependency(AuthRepositoryProtocol.self) {
+///                 DefaultAuthRepository()
+///             }
 ///         ]
 ///     }
 /// }
 /// ```
 ///
-/// 2) AppDIContainer에서 호출하여 DI 컨테이너에 등록
+/// 3) `AppDIContainer`에서 호출하여 DI 컨테이너에 모듈 등록
 /// ```swift
-/// import DiContainer
-///
 /// extension AppDIContainer {
-///     public func registerDefaultRepositoryModules() async {
-///         var factoryCopy = repositoryFactory
+///     public func registerAuthRepository() async {
+///         // 값 타입인 RepositoryModuleFactory 복사 (클로저 캡처 문제 방지)
+///         var factoryCopy = RepositoryModuleFactory()
+///
+///         // 기본 정의 등록
+///         factoryCopy.registerDefaultDefinitions()
+///
+///         // 생성된 모듈들을 비동기적으로 Container에 등록
 ///         await registerDependencies { container in
-///             factoryCopy.registerDefaultDefinitions()
 ///             for module in factoryCopy.makeAllModules() {
 ///                 await container.register(module)
 ///             }
@@ -179,10 +187,8 @@ public struct RepositoryModuleFactory: RepositoryModuleFactoryProtocol {
 /// }
 /// ```
 ///
-/// 3) 실제 앱 초기화 시점 예시
+/// 4) 앱 초기화 시점 (UIKit `AppDelegate`)에서 호출
 /// ```swift
-/// import UIKit
-///
 /// @main
 /// class AppDelegate: UIResponder, UIApplicationDelegate {
 ///     func application(
@@ -190,38 +196,15 @@ public struct RepositoryModuleFactory: RepositoryModuleFactoryProtocol {
 ///         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
 ///     ) -> Bool {
 ///         Task {
-///             await AppDIContainer.shared.registerDefaultRepositoryModules()
+///             await AppDIContainer.shared.registerAuthRepository()
 ///         }
 ///         return true
 ///     }
 /// }
 /// ```
-public struct RepositoryModuleFactory: RepositoryModuleFactoryProtocol {
-    // MARK: - 저장 프로퍼티
-
-    /// 의존성 등록 헬퍼 객체(`RegisterModule`)입니다.
-    public let registerModule = RegisterModule()
-
-    /// Repository 모듈을 생성하는 클로저들의 배열입니다.
-    public var repositoryDefinitions: [() -> Module]
-
-    // MARK: - 초기화
-
-    /// 생성자
-    ///
-    /// - Parameter repositoryDefinitions: 모듈 생성 클로저 배열을 전달할 수 있습니다.
-    ///   - `nil`이 전달되면 기본 의존성 정의는 빈 배열로 초기화됩니다.
-    public init(repositoryDefinitions: [() -> Module]? = nil) {
-        self.repositoryDefinitions = repositoryDefinitions ?? []
-    }
-
-    // MARK: - 메서드
-
-    /// `repositoryDefinitions` 배열의 모든 클로저를 실행하여 생성된 `Module` 인스턴스들의 배열을 반환합니다.
-    ///
-    /// - Returns: 생성된 `Module` 인스턴스들의 배열
-    public func makeAllModules() -> [Module] {
-        repositoryDefinitions.map { $0() }
-    }
-}
-#endif
+///
+/// - Note:
+///   - `repositoryDefinitions`는 값 타입이므로,
+///     클로저를 등록하기 전 반드시 로컬 복사(`var factoryCopy`)를 생성하여 사용해야 합니다.
+///   - `makeAllModules()`를 호출하면 정의된 모든 클로저가 실행되어
+///     `Module` 인스턴스가 만들어지고, 이후 `container.register(_:)`로 실제 DI 컨테이너에 주입됩니다.

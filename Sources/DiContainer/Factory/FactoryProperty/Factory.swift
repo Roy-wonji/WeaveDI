@@ -7,8 +7,6 @@
 
 import Foundation
 
-#if swift(>=5.9)
-@available(iOS 17.0, *)
 /// `Factory` 프로퍼티 래퍼는 `FactoryValues` 내에서 특정 타입의 팩토리 인스턴스를 주입받기 위해 사용됩니다.
 ///
 /// - 제네릭 타입 `T`는 주입받을 팩토리 인스턴스의 타입을 나타냅니다.
@@ -72,7 +70,7 @@ public struct Factory<T> {
         self.keyPath = keyPath
     }
 }
-#else
+
 /// `Factory` 프로퍼티 래퍼는 `FactoryValues` 내에서 특정 타입의 팩토리 인스턴스를 주입받기 위해 사용됩니다.
 ///
 /// - 제네릭 타입 `T`는 주입받을 팩토리 인스턴스의 타입을 나타냅니다.
@@ -111,29 +109,4 @@ public struct Factory<T> {
 ///     }
 /// }
 /// ```
-@propertyWrapper
-public struct Factory<T> {
-    // MARK: - 저장 프로퍼티
 
-    /// `FactoryValues` 내에서 `T` 타입의 팩토리 인스턴스를 조회 및 수정하기 위한 KeyPath.
-    private let keyPath: WritableKeyPath<FactoryValues, T>
-
-    // MARK: - 래퍼된 값
-
-    /// `FactoryValues.current`에서 `keyPath`를 통해 해당 팩토리 인스턴스를 가져오거나 설정합니다.
-    public var wrappedValue: T {
-        get { FactoryValues.current[keyPath: keyPath] }
-        set { FactoryValues.current[keyPath: keyPath] = newValue }
-    }
-
-    // MARK: - 초기화
-
-    /// 주입받을 팩토리 인스턴스가 저장된 `WritableKeyPath`를 지정합니다.
-    ///
-    /// - Parameter keyPath: `FactoryValues`의 `T` 타입 프로퍼티를 가리키는 `WritableKeyPath`.
-    /// - Note: 사용 예시처럼 `@Factory(\.repositoryFactory)` 형태로 사용합니다.
-    public init(_ keyPath: WritableKeyPath<FactoryValues, T>) {
-        self.keyPath = keyPath
-    }
-}
-#endif

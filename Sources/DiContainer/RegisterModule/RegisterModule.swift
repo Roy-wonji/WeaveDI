@@ -7,8 +7,7 @@
 
 import Foundation
 
-#if swift(>=5.9)
-@available(iOS 17.0, *)
+
 /// `RegisterModule`은 Repository 및 UseCase 모듈을 생성하고, 의존성을 DI 컨테이너에 등록하는 공통 로직을 제공합니다.
 /// 이 구조체를 통해 다음 작업을 수행할 수 있습니다:
 /// 1. 특정 타입의 `Module` 인스턴스를 생성 (`makeModule(_:factory:)`).
@@ -339,7 +338,7 @@ public struct RegisterModule: Sendable {
     }
 }
 
-#else
+
 
 /// `RegisterModule`은 Repository 및 UseCase 모듈을 생성하고, 의존성을 DI 컨테이너에 등록하는 공통 로직을 제공합니다.
 /// 이 구조체를 통해 다음 작업을 수행할 수 있습니다:
@@ -373,7 +372,7 @@ public struct RegisterModule: Sendable {
 ///                 AuthRepositoryProtocol.self,
 ///                 factory: { DefaultAuthRepository() }
 ///             )
-///         ]
+///       /Users/suhwonji/Desktop/SideProject/DiContainer/Sources/DiContainer/ContainerResgister/ContainerResgister.swift  ]
 ///     }
 /// }
 /// ```
@@ -454,101 +453,3 @@ public struct RegisterModule: Sendable {
 ///     }
 /// }
 /// ```
-public struct RegisterModule {
-    // MARK: - 초기화
-
-    /// 기본 생성자
-    public init() {}
-
-    // MARK: - Module 생성
-
-    /// 주어진 타입 `T`와 팩토리 클로저를 이용해 `Module` 인스턴스를 생성합니다.
-    ///
-    /// - Parameters:
-    ///   - type: 생성할 의존성의 프로토콜 타입 (예: `AuthRepositoryProtocol.self`)
-    ///   - factory: 해당 타입 인스턴스를 생성하는 클로저
-    /// - Returns: DI 컨테이너에 등록할 `Module` 인스턴스
-    public func makeModule<T>(_ type: T.Type, factory: @escaping () -> T) -> Module {
-        Module(type, factory: factory)
-    }
-
-    // MARK: - Repository/UseCase 공통 모듈 생성
-
-    /// 내부 헬퍼 메서드. 실제로는 `makeModule(_:factory:)`를 호출하여 `Module`을 생성합니다.
-    ///
-    /// - Parameters:
-    ///   - type: 생성할 의존성의 타입
-    ///   - factory: 의존성 인스턴스를 생성하는 클로저
-    /// - Returns: 생성된 `Module` 인스턴스
-    private func makeDependencyModule<T>(_ type: T.Type, factory: @escaping () -> T) -> Module {
-        self.makeModule(type, factory: factory)
-    }
-
-    // MARK: - 통합 의존성 생성 함수
-
-    /// 특정 프로토콜 타입 `T`에 대해 `Module`을 생성하는 클로저를 반환합니다.
-    /// 반환된 클로저를 호출하면, 내부적으로 `factory()` 결과를 `T`로 캐스팅하여 `Module`을 생성합니다.
-    ///
-    /// - Parameters:
-    ///   - protocolType: 등록할 의존성의 프로토콜 타입 (`T.Type`)
-    ///   - factory: 인스턴스를 생성하는 클로저 (`U` 타입이지만 `T`로 캐스팅 가능해야 함)
-    /// - Returns: `Module`을 생성하는 클로저 (`() -> Module`)
-    public func makeDependency<T, U>(_ protocolType: T.Type, factory: @escaping () -> U) -> () -> Module {
-        return {
-            guard let dependency = factory() as? T else {
-                fatalError("Failed to cast \(U.self) to \(T.self)")
-            }
-            return self.makeDependencyModule(protocolType) {
-                dependency
-            }
-        }
-    }
-
-    // MARK: - UseCase에 Repository 자동 주입
-
-    /// UseCase 모듈 생성 시, 자동으로 Repository 인스턴스를 주입받아 `Module`을 생성하는 클로저를 반환합니다.
-    ///
-    /// - Parameters:
-    ///   - useCaseProtocol: 등록할 UseCase 프로토콜 타입 (`UseCase.Type`)
-    ///   - repositoryProtocol: 주입받을 Repository 프로토콜 타입 (`Repo.Type`)
-    ///   - repositoryFallback: 등록된 Repository가 없을 경우 반환할 기본 인스턴스를 생성하는 `@autoclosure` 클로저
-    ///   - factory: 주입된 `Repo` 인스턴스를 사용하여 `UseCase` 인스턴스를 생성하는 클로저
-    /// - Returns: `Module`을 생성하는 클로저 (`() -> Module`)
-    public func makeUseCaseWithRepository<UseCase, Repo>(
-        _ useCaseProtocol: UseCase.Type,
-        repositoryProtocol: Repo.Type,
-        repositoryFallback: @autoclosure @escaping () -> Repo,
-        factory: @escaping (Repo) -> UseCase
-    ) -> () -> Module {
-        return makeDependency(useCaseProtocol) {
-            let repo: Repo = self.defaultInstance(for: repositoryProtocol, fallback: repositoryFallback())
-            return factory(repo)
-        }
-    }
-
-    // MARK: - DI연산
-
-    /// DI 컨테이너에서 주어진 타입의 인스턴스를 조회하거나, 없으면 `defaultFactory()` 결과를 반환합니다.
-    ///
-    /// - Parameters:
-    ///   - type: 조회할 의존성의 타입 (`T.Type`)
-    ///   - defaultFactory: 의존성이 없을 경우 사용할 기본값을 생성하는 클로저 (`@autoclosure`)
-    /// - Returns: 조회된 인스턴스 또는 해당 타입의 기본값
-    public func resolveOrDefault<T>(_ type: T.Type, default defaultFactory: @autoclosure @escaping () -> T) -> T {
-        DependencyContainer.live.resolveOrDefault(type, default: defaultFactory())
-    }
-
-    // MARK: - 기본 인스턴스 반환
-
-    /// 주어진 타입에 대해 DI 컨테이너에 등록된 인스턴스가 있으면 이를 반환하고,
-    /// 없으면 `fallback()` 결과를 반환합니다. 내부적으로 `resolveOrDefault(_:default:)`를 호출합니다.
-    ///
-    /// - Parameters:
-    ///   - type: 조회할 의존성의 타입 (`T.Type`)
-    ///   - fallback: 등록된 인스턴스가 없을 경우 사용할 기본 인스턴스를 생성하는 `@autoclosure` 클로저
-    /// - Returns: 해당 타입의 인스턴스
-    public func defaultInstance<T>(for type: T.Type, fallback: @autoclosure @escaping () -> T) -> T {
-        resolveOrDefault(type, default: fallback())
-    }
-}
-#endif

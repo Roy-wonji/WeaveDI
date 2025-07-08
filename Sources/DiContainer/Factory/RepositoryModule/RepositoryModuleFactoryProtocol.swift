@@ -7,8 +7,7 @@
 
 import Foundation
 
-#if swift(>=5.9)
-@available(iOS 17.0, *)
+
 /// `RepositoryModuleFactoryProtocol`은 Repository 모듈을 생성하고 등록하기 위한 기본 인터페이스를 정의합니다.
 ///
 /// - `registerModule`: 의존성 등록 헬퍼 객체(`RegisterModule`)로, 각 Repository 모듈을 구성할 때 필요한 의존성을 등록합니다.
@@ -64,7 +63,7 @@ import Foundation
 ///
 /// extension AppDIContainer {
 ///     public func registerAuthRepository() async {
-///         // 팩토리 복사(값 타입인 경우 클로저 캡처 문제 방지)
+///         // 팩토리 복사(값 타입인 경우 캡처 문제 방지)
 ///         var factoryCopy = AuthRepositoryModuleFactory()
 ///
 ///         // 등록 클로저 실행: 모듈을 Container에 등록
@@ -99,7 +98,6 @@ import Foundation
 ///     }
 /// }
 /// ```
-///
 public protocol RepositoryModuleFactoryProtocol {
     // MARK: - 프로퍼티
 
@@ -116,7 +114,6 @@ public protocol RepositoryModuleFactoryProtocol {
     func makeAllModules() -> [Module]
 }
 
-#else
 
 /// `RepositoryModuleFactoryProtocol`은 Repository 모듈을 생성하고 등록하기 위한 기본 인터페이스를 정의합니다.
 /// - `registerModule`: 의존성 등록 헬퍼 객체(`RegisterModule`)로, 각 Repository 모듈을 구성할 때 필요한 의존성을 등록합니다.
@@ -197,22 +194,7 @@ public protocol RepositoryModuleFactoryProtocol {
 ///     }
 /// }
 /// ```
-public protocol RepositoryModuleFactoryProtocol {
-    // MARK: - 프로퍼티
-
-    var registerModule: RegisterModule { get }
-    var repositoryDefinitions: [() -> Module] { get }
-
-    // MARK: - 메서드
-
-    func makeAllModules() -> [Module]
-}
-#endif
-
 // MARK: - 기본 구현 제공
-
-#if swift(>=5.9)
-@available(iOS 17.0, *)
 public extension RepositoryModuleFactoryProtocol {
     /// `repositoryDefinitions` 배열의 모든 클로저를 호출하여 생성된 `Module` 인스턴스들의 배열을 반환합니다.
     ///
@@ -221,13 +203,3 @@ public extension RepositoryModuleFactoryProtocol {
         repositoryDefinitions.map { $0() }
     }
 }
-#else
-public extension RepositoryModuleFactoryProtocol {
-    /// `repositoryDefinitions` 배열의 모든 클로저를 호출하여 생성된 `Module` 인스턴스들의 배열을 반환합니다.
-    ///
-    /// - Returns: 생성된 `Module` 인스턴스들의 배열
-    func makeAllModules() -> [Module] {
-        repositoryDefinitions.map { $0() }
-    }
-}
-#endif
