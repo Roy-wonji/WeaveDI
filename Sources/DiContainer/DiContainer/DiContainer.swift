@@ -150,7 +150,7 @@ public final class DependencyContainer: @unchecked Sendable , ObservableObject {
             self.registry[key] = { instance }
         }
         Task {
-            await #logDebug("Registered instance for", key)
+            await Log.debug("Registered instance for", key)
         }
     }
 }
