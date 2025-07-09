@@ -199,17 +199,8 @@ public actor Module {
     ) {
         // registrationClosure 내부에서는 반드시 `DependencyContainer.live`를 사용하여
         // 비동기로 의존성을 등록하도록 구현합니다.
-      if #available(iOS 17.0, *) {
-        // @Sendable 클로저로 wrapping
-        let sendableFactory = unsafeBitCast(factory, to: (@Sendable () -> T).self)
-        self.registrationClosure = {
-          DependencyContainer.live.register(type, build: sendableFactory)
-        }
-      } else {
-        // 일반 클로저 등록
-        self.registrationClosure = {
-          DependencyContainer.live.register(type, build: factory)
-        }
+      self.registrationClosure = {
+        DependencyContainer.live.register(type, build: factory)
       }
     }
 
