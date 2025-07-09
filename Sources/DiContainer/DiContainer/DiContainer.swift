@@ -59,7 +59,7 @@ public final class DependencyContainer: @unchecked Sendable , ObservableObject {
 
         // 로그: 등록 완료
         Task {
-            await #logDebug("Registered", key)
+            await Log.debug("Registered", key)
         }
 
         // 해제 클로저: 해당 키의 값을 제거합니다.
@@ -69,7 +69,7 @@ public final class DependencyContainer: @unchecked Sendable , ObservableObject {
                 self?.releaseHandlers[key] = nil
             }
             Task {
-                await #logDebug("Released", key)
+                await Log.debug("Released", key)
             }
         }
 
@@ -92,7 +92,7 @@ public final class DependencyContainer: @unchecked Sendable , ObservableObject {
         return syncQueue.sync {
             guard let factory = self.registry[key] as? () -> T else {
                 Task {
-                    await #logError("No registered dependency found for \(String(describing: T.self))")
+                  await Log.error("No registered dependency found for \(String(describing: T.self))")
                 }
                 return nil
             }
