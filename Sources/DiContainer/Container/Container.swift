@@ -66,7 +66,7 @@ public protocol BatchModule: Sendable {
   /// 같은 배치(batch) 값의 모듈들은 **동시에 실행**되고,
   /// 배치 간에는 **작은 숫자부터 순차 실행**됩니다.
   static var batch: Int { get }
-  
+
   /// 실제 등록/초기화 로직을 수행합니다.
   /// - Throws: 등록 과정에서 발생한 오류
   func register() async throws
@@ -122,108 +122,54 @@ public protocol BatchModule: Sendable {
 /// }
 /// ```
 public actor Container {
-  // MARK: - Properties
-  
-  /// 등록된 모듈을 **등록 순서(index)** 와 함께 저장합니다.
-  ///
-  /// - Note: 같은 배치 내 병렬 실행 환경에서도 **결정적 실행 순서**(정렬 기준)를
-  ///   제공하기 위해 인덱스를 보존합니다.
-  private var modules: [(index: Int, module: BatchModule)] = []
-  
-  /// 모듈 등록 시 증가하는 인덱스 값 (등록 순서 보존)
-  private var nextIndex: Int = 0
-  
-  // MARK: - Init
-  
-  /// 기본 생성자입니다.
+  // MARK: - 저장 프로퍼티
+
+  /// 등록된 모듈(Module) 인스턴스들을 저장하는 내부 배열.
+  private var modules: [Module] = []
+
+  // MARK: - 초기화
+
+  /// 기본 초기화 메서드.
+  /// - 설명: 인스턴스 생성 시 `modules` 배열은 빈 상태로 시작됩니다.
   public init() {}
-  
-  // MARK: - Register
-  
-  /// 단일 모듈을 컨테이너에 등록합니다.
+
+  // MARK: - 모듈 등록
+
+  /// 단일 모듈(Module) 인스턴스를 등록합니다.
   ///
-  /// - Parameter module: 등록할 ``BatchModule`` 인스턴스
-  /// - Returns: 현재 컨테이너(`Self`) — **체이닝** 가능
-  ///
-  /// ### Discussion
-  /// 등록된 모듈은 `(index, module)` 형태로 보관되며,
-  /// 이후 ``build()`` 단계에서 **배치 asc → 인덱스 asc**로 정렬되어 실행됩니다.
+  /// - Parameter module: 등록할 모듈 인스턴스 (Module 프로토콜을 준수).
+  /// - Returns: 현재 `Container` 인스턴스(Self). 메서드 체이닝(Fluent API) 방식으로 연쇄 호출이 가능합니다.
   @discardableResult
-  public func register(_ module: BatchModule) -> Self {
-    modules.append((index: nextIndex, module: module))
-    nextIndex += 1
+  public func register(_ module: Module) -> Self {
+    modules.append(module)
     return self
   }
-  
-  /// 여러 모듈을 한 번에 컨테이너에 등록합니다.
+
+  /// Trailing closure를 처리할 때 사용되는 메서드입니다.
   ///
-  /// - Parameter modules: 등록할 모듈 시퀀스
-  /// - Returns: 현재 컨테이너(`Self`)
-  ///
-  /// ### Discussion
-  /// 내부적으로 ``register(_:)`` 를 반복 호출하여 **등록 순서 보존**을 유지합니다.
+  /// - Parameter block: 호출 즉시 실행할 클로저. 이 클로저 내부에서 추가 설정을 수행할 수 있습니다.
+  /// - Returns: 현재 `Container` 인스턴스(Self). 메서드 체이닝(Fluent API) 방식으로 연쇄 호출이 가능합니다.
   @discardableResult
-  public func register<S: Sequence>(_ modules: S) -> Self where S.Element == BatchModule {
-    for m in modules { register(m) }
+  public func callAsFunction(_ block: () -> Void) -> Self {
+    block()
     return self
   }
+
+  // MARK: - 빌드(등록 실행)
   
-  // MARK: - Build
-  
-  /// 등록된 모듈들을 **배치 내 병렬, 배치 간 순차**로 실행합니다.
+  /// 등록된 모든 모듈(Module) 인스턴스들의 `register()` 메서드를 `TaskGroup`을 사용해 병렬로 실행합니다.
   ///
-  /// - Throws: 모듈 초기화 중 첫 번째로 발생한 오류
-  ///
-  /// ### Algorithm
-  /// 1. `Dictionary(grouping:by:)`로 `batch` 기준 그룹핑
-  /// 2. 각 그룹 내부를 등록 **인덱스 오름차순**으로 정렬
-  /// 3. 배치를 **작은 번호부터 순차**로 순회
-  /// 4. 각 배치 내부는 `withThrowingTaskGroup`으로 **동시에 register()** 실행
-  ///
-  /// ### Notes
-  /// - 같은 배치 내에서의 **완료 순서**는 병렬 실행 특성상 보장되지 않습니다.
-  /// - 결정적 재현성이 필요하면 배치 분해를 세분화하거나, 해당 배치를 순차 실행으로 전환하는 별도 경로를 고려하세요.
-  public func build() async throws {
-    let grouped: [(batch: Int, items: [(Int, BatchModule)])] = Dictionary(
-      grouping: modules, by: { type(of: $0.module).batch }
-    )
-      .map { (key: $0.key, value: $0.value.sorted { $0.index < $1.index }) }
-      .sorted { $0.key < $1.key }
-      .map { (batch: $0.key, items: $0.value) }
-    
-    for (_, items) in grouped {
-      try await withThrowingTaskGroup(of: Void.self) { group in
-        for (_, mod) in items {
-          let m = mod
-          group.addTask { @Sendable in
-            try await m.register()
-          }
+  /// - 설명:
+  ///   - 내부에 저장된 `modules` 배열의 각 요소에 대해 비동기 태스크를 생성하고, `register()`를 호출합니다.
+  ///   - 모든 태스크가 완료될 때까지 대기하므로, 전체 모듈 등록 시간이 단축됩니다.
+  public func build() async {
+    await withTaskGroup(of: Void.self) { group in
+      for module in modules {
+        group.addTask {
+          await module.register()
         }
-        try await group.waitForAll()
       }
+      // 모든 태스크가 완료될 때까지 대기
     }
-  }
-  
-  /// 등록 실행 중 발생한 오류를 **무시**하고 계속 진행하는 편의 메서드입니다.
-  ///
-  /// - Parameter onError: 각 오류를 처리할 선택적 콜백(예: 로깅·메트릭 수집)
-  /// - Returns: **실패 횟수**(최초 실패 기준)
-  ///
-  /// ### Discussion
-  /// 이 메서드는 내부적으로 ``build()`` 를 호출하여,
-  /// 발생한 오류를 throw 하지 않고 첫 실패만 집계해 `onError`로 전달합니다.
-  ///
-  /// 만약 **발생한 모든 오류를 개별적으로 집계**하고 싶다면,
-  /// `TaskGroup` 결과를 직접 수집하는 전용 빌드 함수를 구현하는 편이 더 적절합니다.
-  @discardableResult
-  public func buildIgnoringErrors(onError: ((Error) -> Void)? = nil) async -> Int {
-    var failures = 0
-    do {
-      try await build()
-    } catch {
-      failures += 1
-      onError?(error)
-    }
-    return failures
   }
 }
