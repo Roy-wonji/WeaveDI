@@ -162,14 +162,29 @@ public actor Container {
   /// - 설명:
   ///   - 내부에 저장된 `modules` 배열의 각 요소에 대해 비동기 태스크를 생성하고, `register()`를 호출합니다.
   ///   - 모든 태스크가 완료될 때까지 대기하므로, 전체 모듈 등록 시간이 단축됩니다.
+//  public func build() async {
+//    await withTaskGroup(of: Void.self) { group in
+//      for module in modules {
+//        group.addTask {
+//          await module.register()
+//        }
+//      }
+//      // 모든 태스크가 완료될 때까지 대기
+//    }
+//  }
+
   public func build() async {
+    // 1) actor 내부 배열을 스냅샷 -> task 생성 중 불필요한 actor hop 방지
+    let snapshot = modules
+    
+    // 2) 병렬 실행 + 전체 완료 대기
     await withTaskGroup(of: Void.self) { group in
-      for module in modules {
-        group.addTask {
+      for module in snapshot {
+        group.addTask { @Sendable in
           await module.register()
         }
       }
-      // 모든 태스크가 완료될 때까지 대기
+      await group.waitForAll()
     }
   }
 }
