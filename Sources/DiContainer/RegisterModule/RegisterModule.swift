@@ -427,20 +427,19 @@ public struct RegisterModule: Sendable {
   ///     DefaultAuthUseCase(repository: repo)
   /// }
   /// ```
-  public func makeUseCaseWithRepository<UseCase, Repo: Sendable>(
-      _ useCaseProtocol: UseCase.Type,
-      repositoryProtocol: Repo.Type,
-      repositoryFallback: @autoclosure @escaping @Sendable () -> Repo,
-      missing: MissingRepoStrategy<Repo> = .skipRegistration(),
-      factory: @Sendable @escaping (Repo) -> UseCase
-  ) -> (() -> Module)? {
-      return makeUseCaseWithRepositoryOrNil(
-          useCaseProtocol,
-          repositoryProtocol: repositoryProtocol,
-          repositoryFallback: { repositoryFallback() },
-          missing: missing,
-          factory: factory
+  public func makeUseCaseWithRepository<UseCase, Repo>(
+    _ useCaseProtocol: UseCase.Type,
+    repositoryProtocol: Repo.Type,
+    repositoryFallback: @Sendable @autoclosure @escaping () -> Repo,
+    factory: @Sendable @escaping (Repo) -> UseCase
+  ) -> () -> Module {
+    return makeDependency(useCaseProtocol) {
+      let repo: Repo = self.defaultInstance(
+        for: repositoryProtocol,
+        fallback: repositoryFallback()
       )
+      return factory(repo)
+    }
   }
 
   // MARK: - DI연산
