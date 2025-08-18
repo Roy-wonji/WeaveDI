@@ -196,4 +196,12 @@ public final actor AppDIContainer {
       // 빈 클로저: callAsFunction() 체이닝을 위해 사용
     }.build()
   }
+
+  public func registerDependencies2(
+    registerModules: @Sendable @escaping (Container) async -> Void
+  ) async {
+    let containerCopy = container
+    await registerModules(containerCopy)
+    await containerCopy.build()
+  }
 }
