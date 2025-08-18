@@ -101,7 +101,7 @@ import Foundation
 ///     }
 /// }
 /// ```
-public actor UseCaseModuleFactory: @preconcurrency UseCaseModuleFactoryProtocol {
+public struct UseCaseModuleFactory: UseCaseModuleFactoryProtocol {
   
   // MARK: - Properties
   

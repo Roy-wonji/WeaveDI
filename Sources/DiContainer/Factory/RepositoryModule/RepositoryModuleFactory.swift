@@ -103,7 +103,7 @@ import Foundation
 ///   - `RepositoryModuleFactory`는 값 타입이므로, 클로저 캡처 문제를 피하려면 반드시
 ///     `var factoryCopy`로 복사하여 사용해야 합니다.
 ///   - `makeAllModules()` 호출 시 모든 의존성이 생성되며, 이후 `container.register(_:)`로 주입됩니다.
-public actor RepositoryModuleFactory: @preconcurrency RepositoryModuleFactoryProtocol {
+public struct RepositoryModuleFactory:  RepositoryModuleFactoryProtocol {
   // MARK: - 저장 프로퍼티
   
   /// 의존성 등록 헬퍼 객체
