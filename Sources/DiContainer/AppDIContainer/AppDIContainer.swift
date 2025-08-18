@@ -182,10 +182,18 @@ public final actor AppDIContainer {
   /// - `registerModule.makeDependency(...)`, `makeUseCaseWithRepository(...)` 등을
   ///   활용해 여러 모듈을 한 번에 등록할 수 있습니다.
   public func registerDependencies(
-    registerModules: @Sendable @escaping (Container) async -> Void
-  ) async throws {
+    registerModules: @escaping (Container) async -> Void
+  ) async {
+    // 1. self를 직접 캡처하지 않도록 container를 로컬 상수에 복사
     let containerCopy = container
+
+    // 2. 전달받은 비동기 클로저를 로컬 containerCopy를 통해 실행
+    //    이 시점에 repositoryFactory, useCaseFactory를 통해 모듈 정의를 containerCopy에 추가
     await registerModules(containerCopy)
-    try await containerCopy.build()
+
+    // 3. containerCopy에 모듈이 모두 등록되면, 병렬로 각각의 Module.register()를 실행
+    await containerCopy {
+      // 빈 클로저: callAsFunction() 체이닝을 위해 사용
+    }.build()
   }
 }
