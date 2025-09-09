@@ -31,6 +31,11 @@ jobs:
           # GITHUB_TOKEN으로 선언된 권한을 사용합니다.
           persist-credentials: true
 
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+            xcode-version: "16.4"
+
       - name: Set up Swift 6.1
         uses: fwal/setup-swift@v2
         with:
