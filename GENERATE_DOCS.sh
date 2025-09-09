@@ -1,58 +1,76 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
 
 # ──────────────────────────────────────────────────────────────
-# 설정 (환경변수로 오버라이드 가능)
+# 사전 정의 (Definition)
 # ──────────────────────────────────────────────────────────────
-OUTPUT_PATH="${OUTPUT_PATH:-./docs}"          # 최종 산출물 폴더
-TARGET_NAME="${TARGET_NAME:-DiContainer}"     # SPM 타깃(모듈) 이름
-HOSTING_BASE_PATH="${HOSTING_BASE_PATH:-}"    # 프로젝트 페이지면 저장소명, 사용자 페이지면 비움
-IS_USER_SITE="${IS_USER_SITE:-true}"         # username.github.io 저장소면 "true"
 
-# DocC 문서 루트(/documentation/<모듈소문자>)
-MODULE_SLUG="$(echo "$TARGET_NAME" | tr '[:upper:]' '[:lower:]')"
-DOC_ROOT="documentation/${MODULE_SLUG}"
+# Docs가 생성될 최종 경로 (main 브랜치의 /docs)
+OUTPUT_PATH="./docs"
+
+# 문서를 생성할 SPM 타겟 이름
+TARGET_NAME="DiContainer"
+
+# 정적 호스팅 시 URL 경로의 base path (예: roy-wonji.github.io/LogMacro/…)
+HOSTING_BASE_PATH="DiContainer"
+
+# (만약 xcodebuild으로 DocC 아카이브를 만들고 싶다면 아래 변수를 사용하세요)
+#BUILD_DESTINATION="generic/platform=iOS"
+#BUILD_PATH="/tmp/docbuild"
+#DOCCARCHIVE_PATH="${BUILD_PATH}/Build/Products/Debug-iphoneos/${TARGET_NAME}.doccarchive"
+
 
 # ──────────────────────────────────────────────────────────────
 # SwiftPM DocC 플러그인 방식
 # ──────────────────────────────────────────────────────────────
 
-# ✅ 항상 배열을 선언/초기화해서 unbound variable 방지
-declare -a BASE_PATH_ARGS=()
-# 사용자 페이지가 아니고, base path가 비어있지 않을 때만 옵션 추가
-if [[ "$IS_USER_SITE" != "true" && -n "$HOSTING_BASE_PATH" ]]; then
-  BASE_PATH_ARGS=( --hosting-base-path "$HOSTING_BASE_PATH" )
-fi
-
-swift package --allow-writing-to-directory "$OUTPUT_PATH" \
-  generate-documentation \
-  --target "$TARGET_NAME" \
-  --disable-indexing \
-  --output-path "$OUTPUT_PATH" \
-  --transform-for-static-hosting \
-  "${BASE_PATH_ARGS[@]}"
+swift package --allow-writing-to-directory "${OUTPUT_PATH}" \
+    generate-documentation \
+      --target "${TARGET_NAME}" \
+      --disable-indexing \
+      --output-path "${OUTPUT_PATH}" \
+      --transform-for-static-hosting \
+      --hosting-base-path "${HOSTING_BASE_PATH}"
 
 # GitHub Pages에서 DocC 리소스가 차단되지 않도록 .nojekyll 생성 (필수)
-touch "$OUTPUT_PATH/.nojekyll"
+touch "${OUTPUT_PATH}/.nojekyll"
+
 
 # ──────────────────────────────────────────────────────────────
-# (선택) 루트 리다이렉트 index.html
+# Xcode 'xcodebuild docbuild' 방식 (SwiftPM이 아닌 .xcodeproj/.xcworkspace가 있을 때)
 # ──────────────────────────────────────────────────────────────
-cat > "$OUTPUT_PATH/index.html" <<EOF
-<!doctype html>
-<meta charset="utf-8">
+
+# 아래 블록을 활성화하려면 주석(#)을 제거하고,
+# 반드시 Xcode 프로젝트 안에 'LogMacro' 스킴이 정의되어 있어야 합니다.
+
+#: '
+#xcodebuild docbuild \
+#  -scheme "${TARGET_NAME}" \
+#  -derivedDataPath "${BUILD_PATH}" \
+#  -destination "${BUILD_DESTINATION}"
+#
+#$(xcrun --find docc) process-archive \
+#  transform-for-static-hosting "${DOCCARCHIVE_PATH}" \
+#  --hosting-base-path "${HOSTING_BASE_PATH}" \
+#  --output-path "${OUTPUT_PATH}"
+#'
+
+
+# ──────────────────────────────────────────────────────────────
+# (선택) 최상위 /docs/index.html 에 리다이렉트 스크립트를 추가
+# ──────────────────────────────────────────────────────────────
+
+# 만약 GitHub Pages에서 `main` 브랜치의 `/docs` 폴더를 그대로 호스팅하도록 설정했다면,
+# 최상위 URL 접속 시 자동으로 `/documentation/logmacro` 로 이동하게 하기 위해
+# 아래 파일을 생성하실 수 있습니다.
+
+cat > "${OUTPUT_PATH}/index.html" << 'EOF'
 <script>
-  // /docs/ → /docs/${DOC_ROOT}
-  window.location.href = "./${DOC_ROOT}";
+  // 브라우저가 /docs/ 에서 열릴 때
+  // 로그메크로 패키지 문서 루트(/documentation/logmacro)로 리다이렉트
+  window.location.href += "/documentation/dicontainer"
 </script>
-<noscript>
-  <meta http-equiv="refresh" content="0; url=./${DOC_ROOT}">
-</noscript>
 EOF
 
-echo "✅ DocC generated at: ${OUTPUT_PATH}/${DOC_ROOT}"
-if [[ "$IS_USER_SITE" != "true" && -n "$HOSTING_BASE_PATH" ]]; then
-  echo "   Hosting base path: /${HOSTING_BASE_PATH}"
-else
-  echo "   Hosting base path: /"
-fi
+echo "✅ DocC 문서가 '${OUTPUT_PATH}/documentation/dicontainer' 에 생성되었으며,"
+echo "   '${OUTPUT_PATH}/index.html' 에 리다이렉트 스크립트를 추가했습니다."
