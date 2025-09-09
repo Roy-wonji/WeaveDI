@@ -294,6 +294,358 @@ struct TestApp: App {
 }
 ```
 
+###  모듈 등록 패턴 (KeyPath + TCA `DependencyKey` + `RegisterModule`)
+
+#### 1) `DependencyContainer` 확장 — KeyPath용 접근자
+```swift
+extension DependencyContainer {
+  var bookListInterface: BookListInterface? {
+    resolve(BookListInterface.self)
+  }
+}
+```
+- **역할:** 타입 기반 `resolve(BookListInterface.self)`를 **KeyPath 프로퍼티**로 노출.  
+- **이유:** `ContainerRegister(\.bookListInterface, ...)` 같은 **키패스 래퍼**가 가리킬 수 있도록 하기 위함.
+
+---
+
+#### 2) `DependencyKey` 채택 — TCA 의존성 브리징
+```swift
+extension BookListUseCaseImpl: DependencyKey {
+  public static var liveValue: BookListInterface = {
+    let repository = ContainerRegister(\.bookListInterface, defaultFactory: { BookListRepositoryImpl() }).wrappedValue
+    return BookListUseCaseImpl(repository: repository)
+  }()
+}
+```
+- **역할:** TCA의 `DependencyValues`에서 사용할 **기본(live) 의존성**을 제공.  
+- **동작:**  
+  1) `ContainerRegister`로 레포지토리(`bookListInterface`) 획득  
+  2) 미등록이면 `defaultFactory`로 **한 번만 생성/등록** 후 사용  
+  3) 해당 레포로 `BookListUseCaseImpl` 생성해 반환  
+- **전제:** `BookListUseCaseImpl`이 **`BookListInterface`를 준수**해야 반환 타입과 일치.
+
+---
+
+#### 3) `DependencyValues` 확장 — TCA에서 쓰는 키
+```swift
+public extension DependencyValues {
+  var bookListUseCase: BookListInterface {
+    get { self[BookListUseCaseImpl.self] }
+    set { self[BookListUseCaseImpl.self] = newValue }
+  }
+}
+```
+- **역할:** `@Dependency(\.bookListUseCase)`로 **UseCase**를 주입할 수 있게 함.  
+- **연결:** 위의 `DependencyKey`(`BookListUseCaseImpl.self`)와 매핑.
+
+---
+
+#### 4) `RegisterModule` 확장 — 선언적 모듈 정의
+```swift
+public extension RegisterModule {
+  var bookListUseCaseImplModule: () -> Module {
+    makeUseCaseWithRepository(
+      BookListInterface.self,
+      repositoryProtocol: BookListInterface.self,
+      repositoryFallback: DefaultBookListRepositoryImpl()
+    ) { repo in
+      BookListUseCaseImpl(repository: repo)
+    }
+  }
+
+  var bookListRepositoryImplModule: () -> Module {
+    makeDependency(BookListInterface.self) {
+      BookListRepositoryImpl()
+    }
+  }
+}
+```
+- **역할:** DI 컨테이너에 등록할 **UseCase/Repository 모듈**을 선언적으로 제공.  
+- `bookListRepositoryImplModule` → `BookListInterface` 키에 `BookListRepositoryImpl` 등록(팩토리).  
+- `bookListUseCaseImplModule` → “레포 → 유스케이스” **연쇄 등록**을 헬퍼로 간결하게 작성.  
+  `repositoryFallback` 제공으로 레포 미등록 시 기본 구현 사용.
+
+---
+
+### ✅ 어떻게 쓰나
+
+**부트스트랩에서 모듈 등록**
+```swift
+await DependencyContainer.bootstrapAsync { c in
+  let reg = RegisterModule()
+  await c.register(reg.bookListRepositoryImplModule())
+  await c.register(reg.bookListUseCaseImplModule())
+}
+```
+
+**TCA 피처에서 의존성 사용**
+```swift
+@Reducer
+struct BookListFeature {
+  struct State: Equatable {}
+  enum Action: Equatable { case load }
+
+  @Dependency(\.bookListUseCase) var useCase
+
+  func reduce(into state: inout State, action: Action) -> Effect<Action> {
+    switch action {
+    case .load:
+      return .run { _ in
+        _ = try await useCase.getBookList()
+      }
+    }
+  }
+}
+```
+
+**컨테이너에서 직접 사용(서비스/테스트)**
+```swift
+let repo: BookListInterface? = DependencyContainer.live.resolve(BookListInterface.self)
+let books = try await repo?.getBookList()
+```
+
+---
+
+### ⚠️ 주의사항 / 팁
+- **타입 정합성:**  
+  - `liveValue`의 반환 타입(`BookListInterface`) ↔︎ `BookListUseCaseImpl`의 프로토콜 준수 관계 확인.  
+  - `makeUseCaseWithRepository`의 `repositoryProtocol:`은 **레포지토리 프로토콜**을 넣는 컨벤션이 일반적.  
+    현재 예시는 UseCase/Repo가 같은 프로토콜을 공유한다는 가정이므로, **설계에 따라 분리**(`…RepositoryProtocol`, `…UseCaseProtocol`)하는 게 명확할 수 있음.
+- **fallback 통일:**  
+  - `ContainerRegister`에선 `BookListRepositoryImpl()`, 모듈에선 `DefaultBookListRepositoryImpl()`을 쓰고 있음.  
+    실제 프로젝트에선 **하나로 통일**하는 걸 권장.
+- **스레드 안전:**  
+  - `defaultFactory`가 **한 번만 등록**되도록 내부에서 락/배리어로 보호돼야 함(현재 컨테이너 구조면 OK).
+
+
+## 부트스트랩(필수)
+
+앱 시작 시 필요한 의존성을 한 번에 등록합니다.  
+`bootstrap(_:)`, `bootstrapAsync(_:)`, `bootstrapMixed(sync:async:)`, `bootstrapIfNeeded(_:)` 중 선택하세요.  
+> Swift 6 동시성 경고를 피하려면 클로저에 `@Sendable`을 붙이는 걸 권장합니다.
+
+먼저 등록 함수들을 정의합니다:
+
+```swift
+// 동기 등록 (필수/가벼운 의존성)
+private func registerSyncDependencies(_ c: DependencyContainer) {
+  c.register(AuthRepositoryProtocol.self) { DefaultAuthRepository() }
+  c.register(AuthUseCaseProtocol.self) {
+    let repo = c.resolve(AuthRepositoryProtocol.self)!
+    return AuthUseCase(repository: repo)
+  }
+}
+
+// 비동기 등록 (DB, 원격설정 등 I/O)
+private func registerAsyncDependencies(_ c: DependencyContainer) async {
+  let db = await Database.open()
+  c.register(Database.self, instance: db)
+
+  let remote = await RemoteConfigService.load()
+  c.register(RemoteConfigService.self, instance: remote)
+}
+```
+
+### 동기 부트스트랩
+```swift
+@main
+struct MyApp: App {
+  init() {
+    Task {
+      await DependencyContainer.bootstrap { c in
+        registerSyncDependencies(c)
+      }
+    }
+  }
+  var body: some Scene { WindowGroup { RootView() } }
+}
+```
+
+### 비동기 부트스트랩
+```swift
+@main
+struct MyApp: App {
+  init() {
+    Task {
+      _ = await DependencyContainer.bootstrapAsync { c in
+        registerSyncDependencies(c)
+        await registerAsyncDependencies(c)
+      }
+    }
+  }
+  var body: some Scene { WindowGroup { RootView() } }
+}
+```
+
+### 혼합 부트스트랩 (Sync → Async)
+```swift
+@main
+struct MyApp: App {
+  init() {
+    Task { @MainActor in
+      await DependencyContainer.bootstrapMixed(
+        sync: { c in
+          registerSyncDependencies(c)
+        },
+        async: { c in
+          await registerAsyncDependencies(c)
+        }
+      )
+    }
+  }
+  var body: some Scene { WindowGroup { RootView() } }
+}
+```
+
+### 이미 되어 있으면 스킵
+```swift
+Task {
+  _ = await DependencyContainer.bootstrapIfNeeded { c in
+    registerSyncDependencies(c)
+    await registerAsyncDependencies(c)
+  }
+}
+```
+
+### AppDelegate에서 부트스트랩
+```swift
+final class AppDelegate: UIResponder, UIApplicationDelegate {
+  func application(
+    _ app: UIApplication,
+    didFinishLaunchingWithOptions opts: [UIApplication.LaunchOptionsKey: Any]? = nil
+  ) -> Bool {
+    Task {
+      _ = await DependencyContainer.bootstrapAsync { c in
+        registerSyncDependencies(c)
+        await registerAsyncDependencies(c)
+      }
+    }
+    return true
+  }
+}
+```
+
+---
+
+## 의존성 사용(Resolve)
+
+```swift
+let auth: AuthUseCaseProtocol = DependencyContainer.live
+  .resolve(AuthUseCaseProtocol.self)!
+
+let user = try await auth.signIn(id: "roy", pw: "•••")
+```
+
+> 기본값이 필요하면:
+```swift
+let logger = DependencyContainer.live.resolveOrDefault(
+  LoggerProtocol.self,
+  default: ConsoleLogger()
+)
+```
+
+---
+
+## 런타임 업데이트
+
+앱 실행 중 특정 의존성을 교체해야 할 때 사용합니다.
+
+```swift
+// 동기
+await DependencyContainer.update { c in
+  c.register(LoggerProtocol.self) { FileLogger() }
+}
+
+// 비동기
+await DependencyContainer.updateAsync { c in
+  let newDB = await Database.open(path: "test.sqlite")
+  c.register(Database.self, instance: newDB)
+}
+```
+
+---
+
+## 부트스트랩 보장 & 상태 확인
+
+```swift
+// 접근 전 보장(개발 빌드에서 precondition)
+await DependencyContainer.ensureBootstrapped()
+
+// 상태 확인
+let ok = await DependencyContainer.isBootstrapped
+```
+
+---
+
+## 테스트 초기화
+
+```swift
+#if DEBUG
+await DependencyContainer.resetForTesting()
+
+// 더블/스텁 등록
+DependencyContainer.live.register(AuthRepositoryProtocol.self) {
+  StubAuthRepository()
+}
+#endif
+```
+
+---
+
+## 선택: KeyPath 스타일 접근
+
+타입 기반 레지스트리를 쓰더라도, KeyPath 형태를 선호하면 아래처럼 매핑할 수 있습니다.
+
+```swift
+// 컨테이너 확장: 키패스에서 resolve로 위임
+extension DependencyContainer {
+  var authRepository: AuthRepositoryProtocol? { resolve(AuthRepositoryProtocol.self) }
+  var authUseCase:   AuthUseCaseProtocol?    { resolve(AuthUseCaseProtocol.self) }
+}
+
+// 사용 예
+let useCase: AuthUseCaseProtocol? = DependencyContainer.live[\.authUseCase]
+```
+
+> 반환 타입과 `resolve` 타입을 반드시 일치시켜 주세요.
+
+---
+
+## TCA/SwiftUI 예시
+
+```swift
+import ComposableArchitecture
+import DiContainer
+
+@Reducer
+struct LoginFeature {
+  @Dependency(\.continuousClock) var clock
+
+  struct State: Equatable { var id = "" ; var pw = "" }
+  enum Action: Equatable { case signInTapped ; case signedIn(Result<User, Error>) }
+
+  func reduce(into state: inout State, action: Action) -> Effect<Action> {
+    switch action {
+    case .signInTapped:
+      return .run { send in
+        // DiContainer에서 직접 resolve
+        let auth = DependencyContainer.live.resolve(AuthUseCaseProtocol.self)!
+        do {
+          let user = try await auth.signIn(id: state.id, pw: state.pw)
+          await send(.signedIn(.success(user)))
+        } catch {
+          await send(.signedIn(.failure(error)))
+        }
+      }
+    case .signedIn:
+      return .none
+    }
+  }
+}
+```
+
+
 ### Log Use
 로그 관련 사용은 [LogMacro](https://github.com/Roy-wonji/LogMacro) 해당 라이브러리에 문서를 참고 해주세요. <br>
 

@@ -20,7 +20,8 @@ let package = Package(
             name: "DiContainer",
             dependencies: [
               .product(name: "LogMacro", package: "LogMacro"),
-            ]
+            ],
+            path: "Sources"
         )
     ],
 )
