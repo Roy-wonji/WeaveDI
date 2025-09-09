@@ -6,13 +6,8 @@ set -euo pipefail
 # ──────────────────────────────────────────────────────────────
 OUTPUT_PATH="${OUTPUT_PATH:-./docs}"          # 최종 산출물 폴더
 TARGET_NAME="${TARGET_NAME:-DiContainer}"     # SPM 타깃(모듈) 이름
-
-# 프로젝트 페이지(일반 저장소)면 저장소 이름(대/소문자 그대로)
-# 사용자 페이지(username.github.io 저장소)면 빈 값 또는 아래 IS_USER_SITE=true 설정
-HOSTING_BASE_PATH="${HOSTING_BASE_PATH:-DiContainer}"
-
-# 사용자 페이지 여부 (true/false)
-IS_USER_SITE="${IS_USER_SITE:-false}"
+HOSTING_BASE_PATH="${HOSTING_BASE_PATH:-}"    # 프로젝트 페이지면 저장소명, 사용자 페이지면 비움
+IS_USER_SITE="${IS_USER_SITE:-true}"         # username.github.io 저장소면 "true"
 
 # DocC 문서 루트(/documentation/<모듈소문자>)
 MODULE_SLUG="$(echo "$TARGET_NAME" | tr '[:upper:]' '[:lower:]')"
@@ -22,14 +17,13 @@ DOC_ROOT="documentation/${MODULE_SLUG}"
 # SwiftPM DocC 플러그인 방식
 # ──────────────────────────────────────────────────────────────
 
-# ✅ 항상 배열을 초기화하여 unbound variable 방지
-BASE_PATH_ARGS=()
-# 사용자 페이지가 아니고, base path가 설정된 경우에만 옵션 추가
+# ✅ 항상 배열을 선언/초기화해서 unbound variable 방지
+declare -a BASE_PATH_ARGS=()
+# 사용자 페이지가 아니고, base path가 비어있지 않을 때만 옵션 추가
 if [[ "$IS_USER_SITE" != "true" && -n "$HOSTING_BASE_PATH" ]]; then
   BASE_PATH_ARGS=( --hosting-base-path "$HOSTING_BASE_PATH" )
 fi
 
-# DocC 정적 사이트 생성
 swift package --allow-writing-to-directory "$OUTPUT_PATH" \
   generate-documentation \
   --target "$TARGET_NAME" \
@@ -48,7 +42,7 @@ cat > "$OUTPUT_PATH/index.html" <<EOF
 <!doctype html>
 <meta charset="utf-8">
 <script>
-  // /docs/ → /docs/documentation/${MODULE_SLUG}
+  // /docs/ → /docs/${DOC_ROOT}
   window.location.href = "./${DOC_ROOT}";
 </script>
 <noscript>
