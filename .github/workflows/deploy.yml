@@ -1,15 +1,13 @@
+name: Build DocC and Deploy (gh-pages)
+
 on:
-  # "main" 브랜치에 푸시할 때마다 워크플로우 작동
   push:
     branches: [ "main" ]
 
-# GitHub Pages에 배포하기 위한 GITHUB_TOKEN 권한 설정
+# peaceiris 사용 시 pages/id-token 권한은 불필요
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
-# 동시성 배포 허용
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -21,27 +19,45 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          # GITHUB_TOKEN을 사용해 gh-pages 브랜치에도 push할 수 있도록 전체 히스토리를 가져옵니다.
           fetch-depth: 0
-          # GITHUB_TOKEN으로 선언된 권한을 사용합니다.
           persist-credentials: true
 
+      # ✅ 요청대로 유지
       - name: Set up Swift 6.1
         uses: fwal/setup-swift@v2
         with:
           swift-version: "6.1.0"
 
+      # DocC 안정적 빌드를 위해 Xcode도 준비 (docc 바이너리 제공)
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "15.4"
+
+      - name: Show toolchain versions (debug)
+        run: |
+          swift --version
+          xcrun --find docc || true
+          xcodebuild -version
+
       - name: Generate documentation
+        env:
+          # ⬇️ 프로젝트 페이지(일반 저장소)라면 저장소 이름과 동일하게
+          TARGET_NAME: DiContainer
+          HOSTING_BASE_PATH: DiContainer
+          IS_USER_SITE: "true"  # username.github.io 저장소(사용자 페이지)면 "true"
         run: |
           chmod +x ./GENERATE_DOCS.sh
           ./GENERATE_DOCS.sh
+          # (스크립트에서 생성 안 하면 대비용)
+          touch ./docs/.nojekyll
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages (gh-pages)
         uses: peaceiris/actions-gh-pages@v3
         with:
-          # 별도 토큰 없이 내장 GITHUB_TOKEN을 사용합니다.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
-          # publish_branch 또는 commit_message를 필요에 따라 설정하세요.
+          # publish_branch: gh-pages
+          # commit_message: "Update DocC"

@@ -9,10 +9,6 @@ import Foundation
 import LogMacro
 import Combine
 
-import Foundation
-import LogMacro
-import Combine
-
 // MARK: - DependencyContainer
 
 /// 애플리케이션 전역에서 의존성을 **등록·조회·해제**할 수 있는
@@ -22,11 +18,12 @@ import Combine
 /// - Important: 동시성 안전을 위해 **concurrent `DispatchQueue` + `.barrier`**로
 ///   쓰기 작업을 직렬화합니다.
 /// - SeeAlso: ``register(_:build:)``, ``resolve(_:)``, ``release(_:)``,
-///   ``bootstrap(_:)``, ``bootstrapAsync(_:)``, ``bootstrapMixed(sync:async:)``
+///   ``bootstrap(_:)``, ``bootstrapAsync(_:)``, ``bootstrapMixed(sync:async:)``, ``bootstrapIfNeeded(_:)``,
+///   ``update(_:)``, ``updateAsync(_:)``, ``resetForTesting()``, ``isBootstrapped``, ``ensureBootstrapped(file:line:)```
 ///
 /// ### 동시성 모델
 /// - 읽기: `sync`
-/// - 쓰기: `async(flags: .barrier)`
+/// - 쓰기: `sync(flags: .barrier)` / `async(flags: .barrier)`
 ///
 /// ### 예시
 /// 등록 및 조회:
@@ -122,7 +119,7 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
   ///
   /// - Parameter type: 조회할 타입
   /// - Returns: 등록된 팩토리가 있으면 해당 타입의 인스턴스, 없으면 `nil`
-  /// - Note: `register(_:instance:)`로 등록된 경우 **같은 인스턴스**가 반환됩니다.
+  /// - Note: ``register(_:instance:)``로 등록된 경우 **같은 인스턴스**가 반환됩니다.
   public func resolve<T>(_ type: T.Type) -> T? {
     let key = String(describing: type)
     return syncQueue.sync {
@@ -179,7 +176,7 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
   /// - Parameters:
   ///   - type: 등록할 타입
   ///   - instance: 등록할 인스턴스
-  /// - Note: 이후 `resolve(_:)`는 항상 이 인스턴스를 반환합니다.
+  /// - Note: 이후 ``resolve(_:)``는 항상 이 인스턴스를 반환합니다.
   public func register<T>(
     _ type: T.Type,
     instance: T
@@ -274,10 +271,33 @@ public extension DependencyContainer {
 
   // MARK: - Sync Bootstrap
 
-  /// 앱 시작 시 1회, **동기** 의존성을 등록합니다.
+  /// 앱 시작 시 1회, **동기 의존성**을 등록합니다.
   ///
-  /// - Parameter configure: 새 컨테이너를 구성하는 동기 클로저
-  /// - Important: 이미 부트스트랩된 경우 스킵됩니다.
+  /// 부트스트랩이 아직 수행되지 않았다면 새 컨테이너를 생성해 `configure`로 동기 등록을 수행하고,
+  /// 성공 시 ``live`` 와 ``didBootstrap`` 를 갱신합니다. 이미 부트스트랩된 경우 동작을 스킵합니다.
+  ///
+  /// - Parameter configure: 새 컨테이너를 **동기**로 구성하는 클로저.
+  ///   동시성 안전을 위해 `@Sendable` 사용을 권장합니다.
+  /// - Important: 이 API 자체는 `async`이지만, `configure` 블록은 **동기 등록**만 수행해야 합니다.
+  /// - SeeAlso: ``bootstrapAsync(_:)``, ``bootstrapMixed(sync:async:)``, ``bootstrapIfNeeded(_:)``
+  ///
+  /// ### 예시
+  /// ```swift
+  /// @main
+  /// struct MyApp: App {
+  ///   init() {
+  ///     Task {
+ ///       await DependencyContainer.bootstrap { c in
+ ///         c.register(AuthRepositoryProtocol.self) { DefaultAuthRepository() }
+ ///         c.register(AuthUseCaseProtocol.self) {
+  ///           AuthUseCase(repository: c.resolve(AuthRepositoryProtocol.self)!)
+  ///         }
+  ///       }
+  ///     }
+  ///   }
+  ///   var body: some Scene { WindowGroup { RootView() } }
+  /// }
+  /// ```
   static func bootstrap(
     _ configure: @Sendable (DependencyContainer) -> Void
   ) async {
@@ -300,11 +320,28 @@ public extension DependencyContainer {
 
   // MARK: - Async Bootstrap
 
-  /// 앱 시작 시 1회, **비동기** 의존성을 등록합니다.
+  /// 앱 시작 시 1회, **비동기 의존성**까지 포함하여 등록합니다.
   ///
-  /// - Parameter configure: 새 컨테이너를 구성하는 비동기 클로저
-  /// - Returns: 실제로 부트스트랩이 수행되었다면 `true`, 이미 되어 있었다면 `false`
-  /// - Important: 구성 시간 로깅을 포함합니다.
+  /// 내부적으로 새 컨테이너를 만들고 `configure`에서 DB 오픈, 원격 설정 로드 등
+  /// **비동기 초기화**를 안전하게 수행할 수 있습니다. 완료 후 ``live`` , ``didBootstrap`` 를 갱신합니다.
+  /// 이미 부트스트랩된 경우 `false`를 반환합니다.
+  ///
+  /// - Parameter configure: 새 컨테이너를 **비동기**로 구성하는 클로저.
+  /// - Returns: 실제로 부트스트랩이 수행되면 `true`, 이미 되어 있으면 `false`.
+  /// - Important: 장시간 I/O가 포함될 수 있는 초기화를 이 API에서 처리하세요.
+  /// - SeeAlso: ``bootstrapMixed(sync:async:)``, ``bootstrapIfNeeded(_:)``
+  ///
+  /// ### 예시
+  /// ```swift
+  /// Task {
+  ///   let didBootstrap = await DependencyContainer.bootstrapAsync { c in
+  ///     c.register(AuthRepositoryProtocol.self) { DefaultAuthRepository() }
+  ///     let db = await Database.open()
+  ///     c.register(Database.self, instance: db)
+  ///   }
+  ///   assert(didBootstrap == true)
+  /// }
+  /// ```
   @discardableResult
   static func bootstrapAsync(
     _ configure: @Sendable (DependencyContainer) async throws -> Void
@@ -335,10 +372,20 @@ public extension DependencyContainer {
     }
   }
 
-  /// **Task 컨텍스트**에서 비동기 부트스트랩을 수행하는 편의 메서드입니다.
+  /// 별도의 `Task` 컨텍스트에서 **비동기 부트스트랩**을 수행하는 편의 메서드입니다.
   ///
-  /// - Parameter configure: 새 컨테이너를 구성하는 비동기 클로저
-  /// - Note: 완료/실패 로그를 MainActor에서 출력합니다.
+  /// 완료/실패 로그는 `MainActor`에서 출력됩니다.
+  ///
+  /// - Parameter configure: 새 컨테이너를 **비동기**로 구성하는 클로저.
+  /// - SeeAlso: ``bootstrapAsync(_:)``
+  ///
+  /// ### 예시
+  /// ```swift
+  /// DependencyContainer.bootstrapInTask { c in
+  ///   c.register(Tracker.self, instance: Tracker.live)
+  ///   await Telemetry.bootstrap()
+  /// }
+  /// ```
   static func bootstrapInTask(
     _ configure: @Sendable @escaping (DependencyContainer) async throws -> Void
   ) {
@@ -352,10 +399,21 @@ public extension DependencyContainer {
     }
   }
 
-  /// 아직 부트스트랩되지 않았다면 비동기 부트스트랩을 수행합니다.
+  /// 이미 부트스트랩되어 있지 **않은 경우에만** 비동기 부트스트랩을 수행합니다.
   ///
-  /// - Parameter configure: 새 컨테이너를 구성하는 비동기 클로저
-  /// - Returns: 실제로 수행되면 `true`, 이미 되어 있으면 `false`
+  /// - Parameter configure: 새 컨테이너를 **비동기**로 구성하는 클로저.
+  /// - Returns: 실제로 부트스트랩이 수행되면 `true`, 이미 되어 있으면 `false`.
+  /// - SeeAlso: ``bootstrapAsync(_:)``
+  ///
+  /// ### 예시
+  /// ```swift
+  /// Task {
+  ///   _ = await DependencyContainer.bootstrapIfNeeded { c in
+  ///     c.register(Config.self, instance: .default)
+  ///     await Preloader.loadAll()
+  ///   }
+  /// }
+  /// ```
   @discardableResult
   static func bootstrapIfNeeded(
     _ configure: @Sendable (DependencyContainer) async throws -> Void
@@ -369,12 +427,28 @@ public extension DependencyContainer {
     }
   }
 
-  /// **동기 + 비동기** 의존성을 순차적으로 등록합니다.
+  /// 앱 시작 시 **동기 → 비동기** 순서로 의존성을 등록합니다.
   ///
   /// - Parameters:
-  ///   - syncConfigure: 즉시 필요한 동기 의존성 등록
-  ///   - asyncConfigure: 추가 비동기 의존성 등록
-  /// - Important: MainActor에서 호출되며, 내부적으로는 코디네이터가 직렬화합니다.
+  ///   - syncConfigure: 즉시 필요한 **동기** 의존성 등록 블록.
+  ///   - asyncConfigure: 추가적인 **비동기** 초기화(예: DB/네트워크 등)를 수행하는 블록.
+  /// - Important: 이 API는 `@MainActor`에서 호출됩니다. 내부적으로 코디네이터가 경쟁 없이 한 번만 실행하도록 보장합니다.
+  /// - SeeAlso: ``bootstrap(_:)``, ``bootstrapAsync(_:)``
+  ///
+  /// ### 예시
+  /// ```swift
+  /// Task { @MainActor in
+  ///   await DependencyContainer.bootstrapMixed(
+  ///     sync: { c in
+  ///       c.register(LoggerProtocol.self) { ConsoleLogger() } // 즉시 필요
+  ///     },
+  ///     async: { c in
+  ///       let remote = await RemoteConfigService.load()
+  ///       c.register(RemoteConfigService.self, instance: remote)
+  ///     }
+  ///   )
+  /// }
+  /// ```
   @MainActor
   static func bootstrapMixed(
     sync syncConfigure: @Sendable (DependencyContainer) -> Void,
@@ -411,10 +485,18 @@ public extension DependencyContainer {
 
   // MARK: - Update APIs
 
-  /// 실행 중 **동기**로 컨테이너를 갱신합니다.
+  /// 실행 중 **동기**로 컨테이너를 갱신(교체/추가)합니다.
   ///
-  /// - Parameter mutate: 컨테이너를 수정하는 동기 클로저
-  /// - Important: 부트스트랩이 완료되어 있어야 합니다.
+  /// - Parameter mutate: 컨테이너를 **동기**로 수정하는 블록.
+  /// - Important: 호출 전 ``ensureBootstrapped(file:line:)`` 경로를 통해 부트스트랩 보장이 수행됩니다.
+  /// - SeeAlso: ``updateAsync(_:)``
+  ///
+  /// ### 예시
+  /// ```swift
+  /// await DependencyContainer.update { c in
+  ///   c.register(LoggerProtocol.self) { FileLogger() } // 런타임 교체
+  /// }
+  /// ```
   static func update(
     _ mutate: (DependencyContainer) -> Void
   ) async {
@@ -423,10 +505,19 @@ public extension DependencyContainer {
     Log.debug("DependencyContainer updated synchronously")
   }
 
-  /// 실행 중 **비동기**로 컨테이너를 갱신합니다.
+  /// 실행 중 **비동기**로 컨테이너를 갱신(교체/추가)합니다.
   ///
-  /// - Parameter mutate: 컨테이너를 수정하는 비동기 클로저
-  /// - Important: 부트스트랩이 완료되어 있어야 합니다.
+  /// - Parameter mutate: 컨테이너를 **비동기**로 수정하는 블록.
+  /// - Important: 호출 전 ``ensureBootstrapped(file:line:)`` 경로를 통해 부트스트랩 보장이 수행됩니다.
+  /// - SeeAlso: ``update(_:)``
+  ///
+  /// ### 예시
+  /// ```swift
+  /// await DependencyContainer.updateAsync { c in
+  ///   let newDB = await Database.open(path: "test.sqlite")
+  ///   c.register(Database.self, instance: newDB)
+  /// }
+  /// ```
   static func updateAsync(
     _ mutate: (DependencyContainer) async -> Void
   ) async {
@@ -437,13 +528,19 @@ public extension DependencyContainer {
 
   // MARK: - Utilities
 
-  /// 접근 전 **부트스트랩 보장**을 확인합니다.
+  /// DI 컨테이너 접근 전, **부트스트랩이 완료되었는지**를 보장합니다.
   ///
   /// - Parameters:
-  ///   - file: 호출 파일(자동)
-  ///   - line: 호출 라인(자동)
-  /// - Precondition: 부트스트랩이 완료되어 있어야 하며,
-  ///   아닐 경우 개발 빌드에서 크래시합니다.
+  ///   - file: 호출 파일(자동 전달).
+  ///   - line: 호출 라인(자동 전달).
+  /// - Precondition: 부트스트랩 미완료 시 **개발 빌드에서 크래시**합니다.
+  /// - SeeAlso: ``isBootstrapped``
+  ///
+  /// ### 예시
+  /// ```swift
+  /// await DependencyContainer.ensureBootstrapped()
+  /// let repo = DependencyContainer.live.resolve(AuthRepositoryProtocol.self)
+  /// ```
   static func ensureBootstrapped(
     file: StaticString = #fileID,
     line: UInt = #line
@@ -457,14 +554,33 @@ public extension DependencyContainer {
     )
   }
 
-  /// 현재 부트스트랩 여부입니다.
+  /// 현재 **부트스트랩 여부**를 나타냅니다.
+  ///
+  /// - Returns: 부트스트랩이 완료되었으면 `true`, 아니면 `false`.
+  ///
+  /// ### 예시
+  /// ```swift
+  /// let ready = await DependencyContainer.isBootstrapped
+  /// if !ready { /* 지연 초기화 처리 */ }
+  /// ```
   static var isBootstrapped: Bool {
     get async { await coordinator.isBootstrapped() }
   }
 
-  /// **테스트 전용**: 컨테이너 상태를 리셋합니다.
+  /// **테스트 전용**: 컨테이너 상태를 리셋합니다. (`DEBUG` 빌드에서만 동작)
   ///
-  /// - Note: `DEBUG` 빌드에서만 동작합니다.
+  /// 내부적으로 코디네이터 상태와 ``live`` 컨테이너를 초기화합니다.
+  /// 테스트에서 더블/스텁을 재등록할 수 있도록 합니다.
+  ///
+  /// - SeeAlso: ``register(_:build:)``, ``register(_:instance:)``
+  ///
+  /// ### 예시
+  /// ```swift
+  /// #if DEBUG
+  /// await DependencyContainer.resetForTesting()
+  /// DependencyContainer.live.register(AuthRepositoryProtocol.self) { StubAuthRepository() }
+  /// #endif
+  /// ```
   static func resetForTesting() async {
     #if DEBUG
     await coordinator.resetForTesting()
