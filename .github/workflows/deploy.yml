@@ -46,13 +46,10 @@ jobs:
         env:
           # ⬇️ 프로젝트 페이지(일반 저장소)라면 저장소 이름과 동일하게
           TARGET_NAME: DiContainer
-          HOSTING_BASE_PATH: DiContainer
           IS_USER_SITE: "true"  # username.github.io 저장소(사용자 페이지)면 "true"
         run: |
           chmod +x ./GENERATE_DOCS.sh
           ./GENERATE_DOCS.sh
-          # (스크립트에서 생성 안 하면 대비용)
-          touch ./docs/.nojekyll
 
       - name: Deploy to GitHub Pages (gh-pages)
         uses: peaceiris/actions-gh-pages@v3
