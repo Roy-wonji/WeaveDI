@@ -389,7 +389,7 @@ public extension DependencyContainer {
   static func bootstrapInTask(
     _ configure: @Sendable @escaping (DependencyContainer) async throws -> Void
   ) {
-    Task {
+    Task.detached(priority: .high) {
       let success = await bootstrapAsync(configure)
       if success {
         await MainActor.run { Log.info("DependencyContainer bootstrap completed in background task") }
