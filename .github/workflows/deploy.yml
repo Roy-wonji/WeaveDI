@@ -15,12 +15,10 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    name: Generate Documentation and Deploy
     runs-on: macos-latest
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4   # v3 → v4 권장
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: true
@@ -29,27 +27,23 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: "16.0.0"
+      # ✅ 요청대로 유지
+      - name: Set up Swift 6.1
+        uses: fwal/setup-swift@v2
+        with:
+          swift-version: "6.1.0"
 
-      # ⬇️ 꼭 필요한 건 아님(Xcode에 Swift 포함). 사용해도 문제는 없음.
-      #- name: Set up Swift 6.1
-      #  uses: fwal/setup-swift@v2
-      #  with:
-      #    swift-version: "6.1.0"
-
-      - name: Generate documentation
+      - name: Generate DocC
         env:
-          # ⚠️ 스킴명: 패키지의 제품(라이브러리) 이름과 동일해야 합니다.
-          SCHEME_NAME: DiContainer
-          # CI에선 macOS가 가장 안전
-          DESTINATION: generic/platform=macOS
-          # gh-pages(프로젝트 페이지)로 배포 → base path 필요
+          SCHEME_NAME: DiContainer            # 실제 스킴(=제품명)과 일치해야 함
+          DESTINATION: generic/platform=macOS # macOS가 안전
           IS_USER_SITE: "false"
-          HOSTING_BASE_PATH: ${{ github.event.repository.name }}
+          HOSTING_BASE_PATH: ${{ github.event.repository.name }} # → DiContainer
         run: |
           chmod +x ./GENERATE_DOCS.sh
           ./GENERATE_DOCS.sh
 
-      - name: Deploy to GitHub Pages (gh-pages branch)
+      - name: Deploy to GitHub Pages (gh-pages)
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
