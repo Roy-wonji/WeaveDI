@@ -1,18 +1,14 @@
 name: Build DocC and Deploy (gh-pages)
 
-
 on:
-  # "main" 브랜치에 푸시할 때마다 워크플로우 작동
   push:
     branches: [ "main" ]
 
-# GitHub Pages에 배포하기 위한 GITHUB_TOKEN 권한 설정
 permissions:
   contents: write
   pages: write
   id-token: write
 
-# 동시성 배포 허용
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -24,31 +20,37 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4   # v3 → v4 권장
         with:
-          # GITHUB_TOKEN을 사용해 gh-pages 브랜치에도 push할 수 있도록 전체 히스토리를 가져옵니다.
           fetch-depth: 0
-          # GITHUB_TOKEN으로 선언된 권한을 사용합니다.
           persist-credentials: true
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-            xcode-version: "16.0.0"
+          xcode-version: "16.0.0"
 
-      - name: Set up Swift 6.1
-        uses: fwal/setup-swift@v2
-        with:
-          swift-version: "6.1.0"
+      # ⬇️ 꼭 필요한 건 아님(Xcode에 Swift 포함). 사용해도 문제는 없음.
+      #- name: Set up Swift 6.1
+      #  uses: fwal/setup-swift@v2
+      #  with:
+      #    swift-version: "6.1.0"
 
       - name: Generate documentation
+        env:
+          # ⚠️ 스킴명: 패키지의 제품(라이브러리) 이름과 동일해야 합니다.
+          SCHEME_NAME: DiContainer
+          # CI에선 macOS가 가장 안전
+          DESTINATION: generic/platform=macOS
+          # gh-pages(프로젝트 페이지)로 배포 → base path 필요
+          IS_USER_SITE: "false"
+          HOSTING_BASE_PATH: ${{ github.event.repository.name }}
         run: |
           chmod +x ./GENERATE_DOCS.sh
           ./GENERATE_DOCS.sh
-      - name: Deploy to GitHub Pages
+
+      - name: Deploy to GitHub Pages (gh-pages branch)
         uses: peaceiris/actions-gh-pages@v3
         with:
-          # 별도 토큰 없이 내장 GITHUB_TOKEN을 사용합니다.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
-          # publish_branch 또는 commit_message를 필요에 따라 설정하세요.
