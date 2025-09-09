@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
-# GENERATE_DOCS_XCODE.sh
 # xcodebuild 기반 DocC 생성 스크립트 (워크스페이스/프로젝트 자동 탐지 + Swift Package 폴백)
-# 사용자 페이지(username.github.io) / 프로젝트 페이지(repo) 모두 대응
-
 set -euo pipefail
 
 # ──────────────────────────────────────────────────────────────
 # 설정(환경변수로 오버라이드 가능)
 # ──────────────────────────────────────────────────────────────
-OUTPUT_PATH="${OUTPUT_PATH:-./docs}"             # 최종 산출물 경로
-SCHEME_NAME="${SCHEME_NAME:-DiContainer}"        # 문서화할 스킴(=타깃이 포함된 스킴)
-CONFIGURATION="${CONFIGURATION:-Debug}"          # Debug / Release
-DESTINATION="${DESTINATION:-generic/platform=iOS}"   # macOS면 generic/platform=macOS
+OUTPUT_PATH="${OUTPUT_PATH:-./docs}"               # 최종 산출물 경로
+SCHEME_NAME="${SCHEME_NAME:-DiContainer}"          # 문서화할 스킴
+CONFIGURATION="${CONFIGURATION:-Debug}"            # Debug / Release
+DESTINATION="${DESTINATION:-generic/platform=iOS}" # macOS면 generic/platform=macOS
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-/tmp/docbuild}"
 
 # GitHub Pages 유형:
@@ -25,12 +22,13 @@ WORKSPACE_PATH="${WORKSPACE_PATH:-}"
 PROJECT_PATH="${PROJECT_PATH:-}"
 PACKAGE_PATH="${PACKAGE_PATH:-.}"
 
+# ⚠️ 반드시 미리 초기화해 unbound variable 방지
+declare -a XCODE_ARGS=()
+
 # ──────────────────────────────────────────────────────────────
 # 워크스페이스 / 프로젝트 자동 탐지 (없으면 Swift Package로 폴백)
 # ──────────────────────────────────────────────────────────────
 shopt -s nullglob
-declare -a XCODE_ARGS=()
-
 if [[ -n "$WORKSPACE_PATH" && -f "$WORKSPACE_PATH" ]]; then
   XCODE_ARGS=( -workspace "$WORKSPACE_PATH" )
 else
@@ -45,7 +43,7 @@ else
       if (( ${#proj[@]} )); then
         XCODE_ARGS=( -project "${proj[0]}" )
       else
-        echo "ℹ️  .xcworkspace/.xcodeproj 미발견 → Swift Package로 빌드합니다."
+        echo "ℹ️  .xcworkspace/.xcodeproj 미발견 → Swift Package로 빌드합니다 (-package-path ${PACKAGE_PATH})"
         XCODE_ARGS=()
       fi
     fi
@@ -63,17 +61,15 @@ xcodebuild docbuild \
   -scheme "$SCHEME_NAME" \
   -configuration "$CONFIGURATION" \
   -destination "$DESTINATION" \
-  -derivedDataPath "$DERIVED_DATA_PATH" \
-  -skipPackagePluginValidation \
-  -skipMacroValidation
+  -derivedDataPath "$DERIVED_DATA_PATH"
 set +x
 
-# 생성된 .doccarchive 경로 탐색 (스킴명 우선, 없으면 아무 doccarchive나 사용)
+# 생성된 .doccarchive 경로 탐색 (스킴 우선, 없으면 아무거나)
 DOCCARCHIVE_PATH="$(/usr/bin/find "$DERIVED_DATA_PATH" -type d -name "${SCHEME_NAME}.doccarchive" | head -n 1)"
-if [[ -z "${DOCCARCHIVE_PATH}" ]]; then
+if [[ -z "$DOCCARCHIVE_PATH" ]]; then
   DOCCARCHIVE_PATH="$(/usr/bin/find "$DERIVED_DATA_PATH" -type d -name '*.doccarchive' | head -n 1)"
 fi
-if [[ -z "${DOCCARCHIVE_PATH}" ]]; then
+if [[ -z "$DOCCARCHIVE_PATH" ]]; then
   echo "❌ .doccarchive 를 찾지 못했습니다. (scheme: ${SCHEME_NAME})"
   exit 1
 fi
@@ -106,7 +102,6 @@ cat > "${OUTPUT_PATH}/index.html" <<EOF
 <!doctype html>
 <meta charset="utf-8">
 <script>
-  // /docs/ → /docs/${DOC_ROOT}
   window.location.href = "./${DOC_ROOT}";
 </script>
 <noscript>
