@@ -47,4 +47,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
+          publish_branch: gh-pages          # ← 명시
+          publish_dir: ./docs               # ← DocC 산출물 폴더
