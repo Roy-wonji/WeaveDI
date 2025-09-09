@@ -1,76 +1,122 @@
 #!/usr/bin/env bash
-set -e
+# GENERATE_DOCS_XCODE.sh
+# xcodebuild 기반 DocC 생성 스크립트 (워크스페이스/프로젝트 자동 탐지 + Swift Package 폴백)
+# 사용자 페이지(username.github.io) / 프로젝트 페이지(repo) 모두 대응
+
+set -euo pipefail
 
 # ──────────────────────────────────────────────────────────────
-# 사전 정의 (Definition)
+# 설정(환경변수로 오버라이드 가능)
 # ──────────────────────────────────────────────────────────────
+OUTPUT_PATH="${OUTPUT_PATH:-./docs}"             # 최종 산출물 경로
+SCHEME_NAME="${SCHEME_NAME:-DiContainer}"        # 문서화할 스킴(=타깃이 포함된 스킴)
+CONFIGURATION="${CONFIGURATION:-Debug}"          # Debug / Release
+DESTINATION="${DESTINATION:-generic/platform=iOS}"   # macOS면 generic/platform=macOS
+DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-/tmp/docbuild}"
 
-# Docs가 생성될 최종 경로 (main 브랜치의 /docs)
-OUTPUT_PATH="./docs"
+# GitHub Pages 유형:
+#  - 사용자 페이지(username.github.io): IS_USER_SITE=true → --hosting-base-path 미사용
+#  - 프로젝트 페이지(repo): IS_USER_SITE=false, HOSTING_BASE_PATH=저장소명(대/소문자 동일)
+IS_USER_SITE="${IS_USER_SITE:-true}"
+HOSTING_BASE_PATH="${HOSTING_BASE_PATH:-}"
 
-# 문서를 생성할 SPM 타겟 이름
-TARGET_NAME="DiContainer"
-
-# 정적 호스팅 시 URL 경로의 base path (예: roy-wonji.github.io/LogMacro/…)
-HOSTING_BASE_PATH="DiContainer"
-
-# (만약 xcodebuild으로 DocC 아카이브를 만들고 싶다면 아래 변수를 사용하세요)
-#BUILD_DESTINATION="generic/platform=iOS"
-#BUILD_PATH="/tmp/docbuild"
-#DOCCARCHIVE_PATH="${BUILD_PATH}/Build/Products/Debug-iphoneos/${TARGET_NAME}.doccarchive"
-
+# 명시적으로 경로 지정 가능(없으면 자동 탐지 / 패키지 폴백)
+WORKSPACE_PATH="${WORKSPACE_PATH:-}"
+PROJECT_PATH="${PROJECT_PATH:-}"
+PACKAGE_PATH="${PACKAGE_PATH:-.}"
 
 # ──────────────────────────────────────────────────────────────
-# SwiftPM DocC 플러그인 방식
+# 워크스페이스 / 프로젝트 자동 탐지 (없으면 Swift Package로 폴백)
 # ──────────────────────────────────────────────────────────────
+shopt -s nullglob
+declare -a XCODE_ARGS=()
 
-swift package --allow-writing-to-directory "${OUTPUT_PATH}" \
-    generate-documentation \
-      --target "${TARGET_NAME}" \
-      --disable-indexing \
-      --output-path "${OUTPUT_PATH}" \
-      --transform-for-static-hosting \
-      --hosting-base-path "${HOSTING_BASE_PATH}"
+if [[ -n "$WORKSPACE_PATH" && -f "$WORKSPACE_PATH" ]]; then
+  XCODE_ARGS=( -workspace "$WORKSPACE_PATH" )
+else
+  ws=( ./*.xcworkspace )
+  if (( ${#ws[@]} )); then
+    XCODE_ARGS=( -workspace "${ws[0]}" )
+  else
+    if [[ -n "$PROJECT_PATH" && -f "$PROJECT_PATH" ]]; then
+      XCODE_ARGS=( -project "$PROJECT_PATH" )
+    else
+      proj=( ./*.xcodeproj )
+      if (( ${#proj[@]} )); then
+        XCODE_ARGS=( -project "${proj[0]}" )
+      else
+        echo "ℹ️  .xcworkspace/.xcodeproj 미발견 → Swift Package로 빌드합니다."
+        XCODE_ARGS=()
+      fi
+    fi
+  fi
+fi
+shopt -u nullglob
 
-# GitHub Pages에서 DocC 리소스가 차단되지 않도록 .nojekyll 생성 (필수)
+# ──────────────────────────────────────────────────────────────
+# 1) Xcode DocC 아카이브 생성
+# ──────────────────────────────────────────────────────────────
+echo "▶︎ xcodebuild docbuild"
+set -x
+xcodebuild docbuild \
+  "${XCODE_ARGS[@]}" \
+  -scheme "$SCHEME_NAME" \
+  -configuration "$CONFIGURATION" \
+  -destination "$DESTINATION" \
+  -derivedDataPath "$DERIVED_DATA_PATH" \
+  -skipPackagePluginValidation \
+  -skipMacroValidation
+set +x
+
+# 생성된 .doccarchive 경로 탐색 (스킴명 우선, 없으면 아무 doccarchive나 사용)
+DOCCARCHIVE_PATH="$(/usr/bin/find "$DERIVED_DATA_PATH" -type d -name "${SCHEME_NAME}.doccarchive" | head -n 1)"
+if [[ -z "${DOCCARCHIVE_PATH}" ]]; then
+  DOCCARCHIVE_PATH="$(/usr/bin/find "$DERIVED_DATA_PATH" -type d -name '*.doccarchive' | head -n 1)"
+fi
+if [[ -z "${DOCCARCHIVE_PATH}" ]]; then
+  echo "❌ .doccarchive 를 찾지 못했습니다. (scheme: ${SCHEME_NAME})"
+  exit 1
+fi
+echo "✓ Found doccarchive: ${DOCCARCHIVE_PATH}"
+
+# ──────────────────────────────────────────────────────────────
+# 2) 정적 호스팅 변환 (사용자/프로젝트 페이지 대응)
+# ──────────────────────────────────────────────────────────────
+declare -a HOSTING_FLAG=()
+if [[ "$IS_USER_SITE" != "true" && -n "$HOSTING_BASE_PATH" ]]; then
+  HOSTING_FLAG=( --hosting-base-path "$HOSTING_BASE_PATH" )
+fi
+
+/usr/bin/xcrun docc process-archive \
+  transform-for-static-hosting "${DOCCARCHIVE_PATH}" \
+  --output-path "${OUTPUT_PATH}" \
+  "${HOSTING_FLAG[@]}"
+
+# GitHub Pages에서 DocC 리소스 차단 방지
 touch "${OUTPUT_PATH}/.nojekyll"
 
+# 문서 루트 경로(/documentation/<모듈>) 계산
+MODULE_SLUG="$(basename "${DOCCARCHIVE_PATH}" .doccarchive | tr '[:upper:]' '[:lower:]')"
+DOC_ROOT="documentation/${MODULE_SLUG}"
 
 # ──────────────────────────────────────────────────────────────
-# Xcode 'xcodebuild docbuild' 방식 (SwiftPM이 아닌 .xcodeproj/.xcworkspace가 있을 때)
+# 3) /docs → /docs/documentation/<module> 리다이렉트
 # ──────────────────────────────────────────────────────────────
-
-# 아래 블록을 활성화하려면 주석(#)을 제거하고,
-# 반드시 Xcode 프로젝트 안에 'LogMacro' 스킴이 정의되어 있어야 합니다.
-
-#: '
-#xcodebuild docbuild \
-#  -scheme "${TARGET_NAME}" \
-#  -derivedDataPath "${BUILD_PATH}" \
-#  -destination "${BUILD_DESTINATION}"
-#
-#$(xcrun --find docc) process-archive \
-#  transform-for-static-hosting "${DOCCARCHIVE_PATH}" \
-#  --hosting-base-path "${HOSTING_BASE_PATH}" \
-#  --output-path "${OUTPUT_PATH}"
-#'
-
-
-# ──────────────────────────────────────────────────────────────
-# (선택) 최상위 /docs/index.html 에 리다이렉트 스크립트를 추가
-# ──────────────────────────────────────────────────────────────
-
-# 만약 GitHub Pages에서 `main` 브랜치의 `/docs` 폴더를 그대로 호스팅하도록 설정했다면,
-# 최상위 URL 접속 시 자동으로 `/documentation/logmacro` 로 이동하게 하기 위해
-# 아래 파일을 생성하실 수 있습니다.
-
-cat > "${OUTPUT_PATH}/index.html" << 'EOF'
+cat > "${OUTPUT_PATH}/index.html" <<EOF
+<!doctype html>
+<meta charset="utf-8">
 <script>
-  // 브라우저가 /docs/ 에서 열릴 때
-  // 로그메크로 패키지 문서 루트(/documentation/logmacro)로 리다이렉트
-  window.location.href += "/documentation/dicontainer"
+  // /docs/ → /docs/${DOC_ROOT}
+  window.location.href = "./${DOC_ROOT}";
 </script>
+<noscript>
+  <meta http-equiv="refresh" content="0; url=./${DOC_ROOT}">
+</noscript>
 EOF
 
-echo "✅ DocC 문서가 '${OUTPUT_PATH}/documentation/dicontainer' 에 생성되었으며,"
-echo "   '${OUTPUT_PATH}/index.html' 에 리다이렉트 스크립트를 추가했습니다."
+echo "✅ DocC 문서가 '${OUTPUT_PATH}/${DOC_ROOT}' 에 생성되었습니다."
+if [[ "$IS_USER_SITE" != "true" && -n "$HOSTING_BASE_PATH" ]]; then
+  echo "   Hosting base path: /${HOSTING_BASE_PATH} (프로젝트 페이지)"
+else
+  echo "   Hosting base path: / (사용자 페이지)"
+fi

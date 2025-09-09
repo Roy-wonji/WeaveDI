@@ -13,7 +13,7 @@ let package = Package(
     ],
     dependencies: [
       .package(url: "https://github.com/Roy-wonji/LogMacro.git", exact: "1.1.0"),
-      .package(url: "https://github.com/apple/swift-docc-plugin.git", exact: "1.4.4"),
+      .package(url: "https://github.com/apple/swift-docc-plugin.git", exact: "1.4.5"),
     ],
     targets: [
         .target(
