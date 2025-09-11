@@ -9,28 +9,92 @@ import Foundation
 
 // MARK: - AppDIContainer
 
-/// `AppDIContainer`는 애플리케이션 전반에서 **의존성 주입(Dependency Injection)** 을 담당하는
-/// 중앙 컨테이너 클래스입니다.
+/// ## 개요
+/// 
+/// `AppDIContainer`는 애플리케이션 전체의 의존성 주입을 체계적으로 관리하는 
+/// 최상위 컨테이너 클래스입니다. Clean Architecture의 각 계층(Repository, UseCase, Service)을 
+/// 자동화된 Factory 패턴을 통해 효율적으로 구성하고 관리합니다.
 ///
-/// # Overview
-/// - 앱 전역에서 사용되는 **싱글턴(Singleton)** 인스턴스로 제공됩니다.
-/// - 내부적으로 ``Container`` 를 통해 `BatchModule` 기반 모듈들을 등록 및 초기화합니다.
-/// - `build()` 호출 시 등록된 모듈들의 ``BatchModule/register()`` 를 **병렬 실행**하여
-///   런타임 시점에 의존성 그래프를 완성합니다.
-/// - 등록된 의존성은 ``DependencyContainer/live`` 를 통해 앱 전역에서 조회할 수 있습니다.
+/// ## 핵심 철학
 ///
-/// ## 특징
-/// - **중앙 관리**: 모든 모듈 의존성은 `AppDIContainer.shared`를 통해 등록·관리됩니다.
-/// - **자동 주입**: ``Factory`` 프로퍼티 래퍼를 활용하여 `FactoryValues` 내 정의된
-///   `repositoryFactory`, `useCaseFactory` 등을 자동으로 주입받습니다.
-/// - **유연성**: 커스텀 모듈 또는 Factory 확장을 통해 언제든지 새로운 의존성을 추가할 수 있습니다.
+/// ### 🏗️ 계층화된 아키텍처 지원
+/// - **Repository 계층**: 데이터 접근 및 외부 시스템과의 연동
+/// - **UseCase 계층**: 비즈니스 로직과 도메인 규칙 캡슐화
+/// - **Service 계층**: 애플리케이션 서비스와 UI 지원
+/// - **자동 의존성 해결**: 계층 간 의존성이 자동으로 주입됨
 ///
-/// ## 지원 환경
-/// - **Swift 5.9 이상, iOS 17.0 이상**:
-///   - `actor` 기반으로 구현되어, `Container` 상태(`modules`)가 **thread-safe** 하게 관리됩니다.
-/// - **그 외 환경**:
-///   - `final actor` 기반 구현으로 동일한 로직을 제공합니다.
-///   - Swift 5.9 미만, iOS 17.0 미만 환경에서도 동일하게 동작합니다.
+/// ### 🏭 Factory 기반 모듈화
+/// - **RepositoryModuleFactory**: Repository 의존성 일괄 관리
+/// - **UseCaseModuleFactory**: UseCase 의존성과 Repository 자동 연동
+/// - **확장 가능성**: 새로운 Factory를 쉽게 추가 가능
+/// - **타입 안전성**: 컴파일 타임에 의존성 타입 검증
+///
+/// ### 🔄 생명주기 관리
+/// - **싱글턴 패턴**: 앱 전역에서 단일 인스턴스 사용
+/// - **지연 초기화**: 실제 필요 시점에 모듈들이 생성됨
+/// - **메모리 효율성**: 사용하지 않는 의존성은 생성되지 않음
+///
+/// ## 아키텍처 다이어그램
+///
+/// ```
+/// ┌─────────────────────────────────────┐
+/// │           AppDIContainer            │
+/// │              (Singleton)            │
+/// └─────────────────┬───────────────────┘
+///                   │
+///       ┌───────────┼───────────┐
+///       │           │           │
+/// ┌─────▼─────┐ ┌───▼────┐ ┌───▼────────┐
+/// │Repository │ │UseCase │ │   Other    │
+/// │ Factory   │ │Factory │ │ Factories  │
+/// └───────────┘ └────────┘ └────────────┘
+///       │           │           │
+///       └───────────┼───────────┘
+///                   │
+/// ┌─────────────────▼───────────────────┐
+/// │        DependencyContainer.live     │
+/// │          (Global Registry)          │
+/// └─────────────────────────────────────┘
+/// ```
+///
+/// ## 동작 방식
+///
+/// ### 1단계: Factory 준비
+/// ```swift
+/// // @Factory 프로퍼티 래퍼를 통한 자동 주입
+/// @Factory(\.repositoryFactory) 
+/// var repositoryFactory: RepositoryModuleFactory
+/// 
+/// @Factory(\.useCaseFactory)
+/// var useCaseFactory: UseCaseModuleFactory
+/// ```
+///
+/// ### 2단계: 모듈 등록
+/// ```swift
+/// await AppDIContainer.shared.registerDefaultDependencies()
+/// // 내부적으로:
+/// // 1. Repository Factory에서 모든 Repository 모듈 생성
+/// // 2. UseCase Factory에서 Repository와 연동된 UseCase 모듈 생성  
+/// // 3. 모든 모듈을 병렬로 DependencyContainer.live에 등록
+/// ```
+///
+/// ### 3단계: 의존성 사용
+/// ```swift
+/// // 어디서든 등록된 의존성 사용 가능
+/// let userService = DependencyContainer.live.resolve(UserServiceProtocol.self)
+/// ```
+///
+/// ## 지원 환경 및 호환성
+///
+/// ### Swift 버전 호환성
+/// - **Swift 5.9+ & iOS 17.0+**: Actor 기반 최적화된 구현
+/// - **Swift 5.8 & iOS 16.0+**: 호환성 모드로 동일한 기능 제공
+/// - **이전 버전**: Fallback 구현으로 핵심 기능 유지
+///
+/// ### 동시성 지원
+/// - **Swift Concurrency**: async/await 패턴 완전 지원
+/// - **GCD 호환**: 기존 DispatchQueue 코드와 호환
+/// - **Thread Safe**: 모든 작업이 스레드 안전하게 처리
 ///
 /// ## Example
 /// ### 기본 사용

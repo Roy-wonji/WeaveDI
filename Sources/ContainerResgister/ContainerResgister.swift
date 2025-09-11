@@ -9,29 +9,320 @@ import Foundation
 
 // MARK: - ContainerRegister
 
-/// 전역 ``DependencyContainer``에서 의존성을 주입하는 프로퍼티 래퍼입니다.
-///
-/// `ContainerRegister`는 전역 의존성 컨테이너에서 KeyPath 기반의 의존성 주입을
-/// 선언적으로 수행할 수 있도록 하는 프로퍼티 래퍼입니다. 타입 안전성을 보장하며,
-/// 기본 팩토리가 제공된 경우 자동 등록 기능을 제공합니다.
-///
 /// ## 개요
+/// 
+/// `ContainerRegister`는 Swift의 프로퍼티 래퍼(Property Wrapper) 기능을 활용하여
+/// 의존성 주입을 선언적이고 타입 안전하게 수행할 수 있도록 하는 핵심 컴포넌트입니다.
+/// 
+/// 이 프로퍼티 래퍼는 전역 `DependencyContainer.live`와 KeyPath를 사용하여
+/// 컴파일 타임 타입 체크와 런타임 안전성을 모두 보장합니다.
 ///
-/// 이 프로퍼티 래퍼는 전역 컨테이너(`DependencyContainer.live`)에서 KeyPath를
-/// 기반으로 의존성을 해결합니다. 의존성이 등록되지 않았고 기본 팩토리가 제공되지
-/// 않은 경우, 의존성 구성 문제를 조기에 발견할 수 있도록 애플리케이션을 즉시 종료합니다.
+/// ## 핵심 특징
 ///
-/// ### 스레드 안전성
+/// ### 🎯 선언적 의존성 주입
+/// - **간결한 구문**: `@ContainerRegister(\.service)` 한 줄로 의존성 주입 완료
+/// - **타입 안전**: 컴파일 타임에 타입 불일치 검출
+/// - **KeyPath 기반**: 문자열이 아닌 타입 안전한 키 사용
 ///
-/// `DependencyContainer`가 스레드 안전하게 설계되었으므로, `ContainerRegister`는
-/// 동시성 컨텍스트에서 안전하게 접근할 수 있습니다. 다만, 의존성들은 동시 접근이
-/// 발생하기 전인 애플리케이션 초기화 시점에 등록되어야 합니다.
+/// ### 🔒 안전한 폴백 메커니즘  
+/// - **기본 팩토리**: 의존성 누락 시 자동으로 기본 구현체 등록
+/// - **조기 오류 검출**: 설정 문제를 런타임 초기에 발견
+/// - **명확한 오류 메시지**: 문제 해결을 위한 상세한 가이드 제공
 ///
-/// ### 자동 등록
+/// ### ⚡ 성능 최적화
+/// - **지연 초기화**: 실제 사용 시점에만 의존성 해결
+/// - **스레드 안전**: 동시성 환경에서 안전한 접근
+/// - **메모리 효율**: 불필요한 인스턴스 생성 방지
 ///
-/// `defaultFactory`와 함께 초기화될 때, `ContainerRegister`는 누락된 의존성을
-/// 자동으로 등록할 수 있어서 옵셔널하거나 모킹된 의존성에 대한 폴백 메커니즘을
-/// 제공합니다.
+/// ## 기본 사용 패턴
+///
+/// ### 1단계: DependencyContainer 확장 정의
+/// ```swift
+/// extension DependencyContainer {
+///     /// 사용자 서비스 의존성
+///     var userService: UserServiceProtocol? {
+///         resolve(UserServiceProtocol.self)
+///     }
+///     
+///     /// 네트워크 서비스 의존성  
+///     var networkService: NetworkServiceProtocol? {
+///         resolve(NetworkServiceProtocol.self)
+///     }
+///     
+///     /// 로거 의존성
+///     var logger: LoggerProtocol? {
+///         resolve(LoggerProtocol.self)
+///     }
+/// }
+/// ```
+///
+/// ### 2단계: 의존성 등록 (부트스트랩 시)
+/// ```swift
+/// await DependencyContainer.bootstrap { container in
+///     container.register(UserServiceProtocol.self) {
+///         UserService()
+///     }
+///     
+///     container.register(NetworkServiceProtocol.self) {
+///         NetworkService(baseURL: URL(string: "https://api.example.com")!)
+///     }
+///     
+///     container.register(LoggerProtocol.self) {
+///         ConsoleLogger()
+///     }
+/// }
+/// ```
+///
+/// ### 3단계: 프로퍼티 래퍼를 통한 의존성 주입
+/// ```swift
+/// class UserViewModel: ObservableObject {
+///     @ContainerRegister(\.userService)
+///     private var userService: UserServiceProtocol
+///     
+///     @ContainerRegister(\.networkService)  
+///     private var networkService: NetworkServiceProtocol
+///     
+///     @ContainerRegister(\.logger)
+///     private var logger: LoggerProtocol
+///     
+///     func loadUser(id: String) async {
+///         logger.info("사용자 로딩 시작: \(id)")
+///         
+///         do {
+///             let user = try await userService.getUser(id: id)
+///             logger.info("사용자 로딩 성공: \(user.name)")
+///             // UI 업데이트...
+///         } catch {
+///             logger.error("사용자 로딩 실패: \(error)")
+///         }
+///     }
+/// }
+/// ```
+///
+/// ## 고급 사용 패턴
+///
+/// ### 기본 팩토리를 활용한 안전한 주입
+/// ```swift
+/// class WeatherService {
+///     // 프로덕션 환경에서는 실제 서비스, 개발/테스트에서는 Mock 사용
+///     @ContainerRegister(\.locationService, defaultFactory: { 
+///         MockLocationService() 
+///     })
+///     private var locationService: LocationServiceProtocol
+///     
+///     // 네트워크 실패 시 로컬 캐시 사용
+///     @ContainerRegister(\.weatherDataSource, defaultFactory: { 
+///         LocalWeatherDataSource() 
+///     })
+///     private var weatherDataSource: WeatherDataSourceProtocol
+///     
+///     func getCurrentWeather() async throws -> Weather {
+///         let location = try await locationService.getCurrentLocation()
+///         return try await weatherDataSource.getWeather(for: location)
+///     }
+/// }
+/// ```
+///
+/// ### 테스트에서의 활용
+/// ```swift
+/// class UserViewModelTests: XCTestCase {
+///     
+///     override func setUp() async throws {
+///         await super.setUp()
+///         
+///         // 테스트용 의존성 등록
+///         await DependencyContainer.resetForTesting()
+///         await DependencyContainer.bootstrap { container in
+///             container.register(UserServiceProtocol.self) {
+///                 MockUserService(shouldFail: false)
+///             }
+///             container.register(LoggerProtocol.self) {
+///                 MockLogger()
+///             }
+///         }
+///     }
+///     
+///     func testLoadUserSuccess() async throws {
+///         let viewModel = UserViewModel()
+///         
+///         await viewModel.loadUser(id: "123")
+///         
+///         // 검증 로직...
+///     }
+///     
+///     func testLoadUserFailure() async throws {
+///         // 실패 시나리오를 위한 Mock 교체
+///         await DependencyContainer.update { container in
+///             container.register(UserServiceProtocol.self) {
+///                 MockUserService(shouldFail: true)
+///             }
+///         }
+///         
+///         let viewModel = UserViewModel()
+///         await viewModel.loadUser(id: "123")
+///         
+///         // 에러 처리 검증...
+///     }
+/// }
+/// ```
+///
+/// ### 조건부 의존성 주입
+/// ```swift
+/// class AnalyticsManager {
+///     @ContainerRegister(\.analyticsService, defaultFactory: {
+///         #if DEBUG
+///         return MockAnalyticsService()
+///         #else
+///         return FirebaseAnalyticsService()
+///         #endif
+///     })
+///     private var analyticsService: AnalyticsServiceProtocol
+///     
+///     func trackEvent(_ event: String, parameters: [String: Any] = [:]) {
+///         analyticsService.track(event, parameters: parameters)
+///     }
+/// }
+/// ```
+///
+/// ## 동작 원리
+///
+/// ### 의존성 해결 순서
+/// 1. **KeyPath 조회**: 지정된 KeyPath로 `DependencyContainer.live`에서 조회
+/// 2. **등록된 의존성 확인**: 타입이 이미 등록되어 있는지 확인  
+/// 3. **기본 팩토리 실행**: 미등록 상태이고 `defaultFactory`가 제공된 경우 실행
+/// 4. **자동 등록**: 기본 팩토리로 생성된 인스턴스를 컨테이너에 등록
+/// 5. **인스턴스 반환**: 해결된 의존성 인스턴스 반환
+///
+/// ### 오류 처리 메커니즘
+/// ```swift
+/// // 등록되지 않았고 기본 팩토리도 없는 경우
+/// @ContainerRegister(\.missingService)
+/// private var missingService: MissingServiceProtocol
+/// // ↓ 접근 시 fatalError 발생
+/// // "MissingServiceProtocol 타입의 등록된 의존성을 찾을 수 없으며, 기본 팩토리도 제공되지 않았습니다."
+/// ```
+///
+/// ### 스레드 안전성 보장
+/// - `DependencyContainer`의 동시성 안전 큐를 통한 스레드 안전 접근
+/// - 여러 스레드에서 동시에 같은 의존성에 접근해도 안전
+/// - 기본 팩토리 실행 중 다른 스레드의 접근을 적절히 직렬화
+///
+/// ## 베스트 프랙티스
+///
+/// ### ✅ 권장 사용법
+/// ```swift
+/// class GoodService {
+///     // 프로토콜 타입으로 의존성 선언
+///     @ContainerRegister(\.userRepository)
+///     private var userRepository: UserRepositoryProtocol
+///     
+///     // 기본 구현체 제공으로 안전성 확보
+///     @ContainerRegister(\.logger, defaultFactory: { ConsoleLogger() })
+///     private var logger: LoggerProtocol
+///     
+///     // private 접근 제어로 캡슐화
+///     private init() {}
+/// }
+/// ```
+///
+/// ### ❌ 피해야 할 패턴  
+/// ```swift
+/// class BadService {
+///     // 구체 타입에 직접 의존 - 테스트 어려움
+///     @ContainerRegister(\.userRepository)
+///     private var userRepository: ConcreteUserRepository
+///     
+///     // public으로 노출 - 캡슐화 위반
+///     @ContainerRegister(\.logger)
+///     public var logger: LoggerProtocol
+///     
+///     // 기본 팩토리 없이 사용 - 런타임 크래시 위험
+///     @ContainerRegister(\.optionalService)
+///     private var optionalService: OptionalServiceProtocol
+/// }
+/// ```
+///
+/// ## 성능 고려사항
+///
+/// ### 메모리 사용량
+/// - **프로퍼티 래퍼 오버헤드**: 거의 없음 (KeyPath와 옵셔널 클로저만 저장)
+/// - **지연 해결**: 실제 사용 시점까지 인스턴스 생성 지연
+/// - **인스턴스 재사용**: 등록된 의존성은 컨테이너에서 관리
+///
+/// ### 성능 최적화 팁
+/// ```swift
+/// class OptimizedService {
+///     // 자주 사용되는 의존성은 생성자에서 해결
+///     private let criticalService: CriticalServiceProtocol
+///     
+///     // 가끔 사용되는 의존성은 프로퍼티 래퍼로 지연 해결
+///     @ContainerRegister(\.optionalService, defaultFactory: { DefaultOptionalService() })
+///     private var optionalService: OptionalServiceProtocol
+///     
+///     init() {
+///         self.criticalService = DependencyContainer.live.resolve(CriticalServiceProtocol.self)!
+///     }
+/// }
+/// ```
+///
+/// ## 문제 해결 가이드
+///
+/// ### 일반적인 오류와 해결방법
+///
+/// #### 1. 키패스 타입 불일치
+/// ```swift
+/// // ❌ 오류: 타입 불일치
+/// extension DependencyContainer {
+///     var userService: UserServiceProtocol? {
+///         resolve(AnotherServiceProtocol.self) // 잘못된 타입
+///     }
+/// }
+/// 
+/// // ✅ 해결: 일치하는 타입 사용
+/// extension DependencyContainer {
+///     var userService: UserServiceProtocol? {
+///         resolve(UserServiceProtocol.self) // 올바른 타입
+///     }
+/// }
+/// ```
+///
+/// #### 2. 순환 의존성 문제
+/// ```swift
+/// // ❌ 문제: 순환 참조
+/// class ServiceA {
+///     @ContainerRegister(\.serviceB)
+///     private var serviceB: ServiceBProtocol
+/// }
+///
+/// class ServiceB {
+///     @ContainerRegister(\.serviceA) 
+///     private var serviceA: ServiceAProtocol
+/// }
+///
+/// // ✅ 해결: 인터페이스 분리
+/// protocol ServiceADelegate: AnyObject {
+///     func handleEvent()
+/// }
+///
+/// class ServiceA: ServiceADelegate {
+///     @ContainerRegister(\.serviceB)
+///     private var serviceB: ServiceBProtocol
+///     
+///     func handleEvent() {
+///         // 처리 로직
+///     }
+/// }
+///
+/// class ServiceB {
+///     weak var delegate: ServiceADelegate?
+/// }
+/// ```
+///
+/// ## 관련 API
+/// 
+/// - ``DependencyContainer``: 의존성 컨테이너 본체
+/// - ``RegisterModule``: 모듈 기반 의존성 등록
+/// - ``Container``: 배치 등록용 컨테이너
 ///
 /// ## 사용법
 ///

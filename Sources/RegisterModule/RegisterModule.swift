@@ -8,20 +8,42 @@
 import Foundation
 
 
-/// `RegisterModule`은 Repository 및 UseCase 모듈을 생성하고,
-/// 의존성을 DI 컨테이너에 등록하는 공통 로직을 제공합니다.
+/// ## 개요
+/// 
+/// `RegisterModule`은 Clean Architecture에서 Repository와 UseCase 계층의 의존성을 
+/// 체계적으로 관리하기 위한 핵심 헬퍼 구조체입니다. 이 구조체는 복잡한 의존성 그래프를
+/// 간단하고 선언적인 방식으로 구성할 수 있도록 도와줍니다.
 ///
-/// ## 주요 기능
-/// 1. **특정 타입의 `Module` 인스턴스 생성**
-///    - [`makeModule(_:factory:)`](#makemoduletypefactory)
-/// 2. **프로토콜 타입 기반 `Module` 클로저 생성**
-///    - [`makeDependency(_:factory:)`](#makedependencytypefactory)
-/// 3. **Repository 자동 주입을 통한 UseCase 생성**
-///    - [`makeUseCaseWithRepository(_:repositoryProtocol:repositoryFallback:factory:)`](#makeusecasewithrepository)
-/// 4. **DI 컨테이너 조회 또는 기본값 반환**
-///    - [`resolveOrDefault(_:default:)`](#resolveordefault)
-/// 5. **타입별 기본 인스턴스 반환**
-///    - [`defaultInstance(for:fallback:)`](#defaultinstance)
+/// ## 핵심 철학
+///
+/// ### 🏗️ 계층별 분리
+/// - **Repository 계층**: 데이터 접근 로직 캡슐화
+/// - **UseCase 계층**: 비즈니스 로직과 Repository 조합
+/// - **자동 의존성 주입**: UseCase가 필요한 Repository를 자동으로 주입받음
+///
+/// ### 📦 모듈화된 등록
+/// - **타입 안전성**: 컴파일 타임에 의존성 타입 검증
+/// - **지연 생성**: 실제 필요 시점에 Module 인스턴스 생성
+/// - **Factory 패턴**: 재사용 가능한 의존성 생성 로직
+///
+/// ### 🔄 유연한 폴백
+/// - **기본 구현체**: Repository 미등록 시 fallback 제공
+/// - **조건부 등록**: 의존성 상태에 따른 선택적 등록
+/// - **테스트 지원**: Mock 객체 쉬운 교체 가능
+///
+/// ## 주요 기능 개요
+///
+/// ### 1. 🏭 기본 모듈 생성
+/// - **`makeModule(_:factory:)`**: 단순한 타입-팩토리 쌍 모듈 생성
+/// - **`makeDependency(_:factory:)`**: 프로토콜 타입 기반 모듈 클로저 생성
+///
+/// ### 2. 🔗 자동 의존성 주입  
+/// - **`makeUseCaseWithRepository(_:repositoryProtocol:repositoryFallback:factory:)`**: UseCase에 Repository 자동 주입
+/// - **`makeUseCaseWithRepositoryOrNil(_:repositoryProtocol:repositoryFallback:missing:factory:)`**: 조건부 UseCase 생성
+///
+/// ### 3. 🔍 의존성 조회 헬퍼
+/// - **`resolveOrDefault(_:default:)`**: 안전한 의존성 조회
+/// - **`defaultInstance(for:fallback:)`**: 기본 인스턴스 제공
 ///
 /// ## 역할 및 주요 메서드
 ///
@@ -245,12 +267,63 @@ public struct RegisterModule: Sendable {
 
   // MARK: - Module 생성
 
-  /// 주어진 타입 `T`와 팩토리 클로저를 이용해 `Module` 인스턴스를 생성합니다.
+  /// 타입과 팩토리 클로저로부터 Module 인스턴스를 생성하는 기본 메서드입니다.
+  ///
+  /// 이 메서드는 가장 단순하고 직접적인 모듈 생성 방법을 제공합니다. 
+  /// 주어진 타입에 대한 인스턴스 생성 로직을 캡슐화하여 재사용 가능한 Module로 변환합니다.
+  ///
+  /// ## 사용 방법
+  ///
+  /// ### 기본 서비스 등록
+  /// ```swift
+  /// let loggerModule = registerModule.makeModule(LoggerProtocol.self) {
+  ///     ConsoleLogger(level: .info)
+  /// }
+  /// 
+  /// // 컨테이너에 등록
+  /// await container.register(loggerModule)
+  /// ```
+  ///
+  /// ### 설정이 필요한 서비스
+  /// ```swift
+  /// let networkModule = registerModule.makeModule(NetworkServiceProtocol.self) {
+  ///     let config = NetworkConfig(
+  ///         baseURL: URL(string: "https://api.example.com")!,
+  ///         timeout: 30.0,
+  ///         retryCount: 3
+  ///     )
+  ///     return NetworkService(config: config)
+  /// }
+  /// ```
+  ///
+  /// ### 복잡한 초기화 로직
+  /// ```swift
+  /// let databaseModule = registerModule.makeModule(DatabaseProtocol.self) {
+  ///     let connectionString = ProcessInfo.processInfo.environment["DB_CONNECTION"] 
+  ///                         ?? "sqlite:///default.db"
+  ///     
+  ///     let database = SQLiteDatabase(connectionString: connectionString)
+  ///     database.configure(poolSize: 10, maxConnections: 20)
+  ///     
+  ///     return database
+  /// }
+  /// ```
+  ///
+  /// ## 동작 원리
+  /// 
+  /// 1. **타입 등록**: 주어진 메타타입 `T.Type`을 Module의 키로 사용
+  /// 2. **팩토리 캡슐화**: 전달받은 클로저를 Module 내부에 저장  
+  /// 3. **지연 실행**: Module이 실제로 등록될 때 팩토리 클로저 실행
+  /// 4. **인스턴스 반환**: 생성된 인스턴스를 DI 컨테이너에 제공
   ///
   /// - Parameters:
-  ///   - type: 생성할 의존성의 프로토콜 타입 (예: `AuthRepositoryProtocol.self`)
-  ///   - factory: 해당 타입 인스턴스를 생성하는 클로저 (`@Sendable`)
-  /// - Returns: DI 컨테이너에 등록할 `Module` 인스턴스
+  ///   - type: 등록할 의존성의 타입 메타정보 (예: `UserServiceProtocol.self`)
+  ///   - factory: 해당 타입의 인스턴스를 생성하는 `@Sendable` 클로저
+  /// - Returns: DI 컨테이너에 등록 가능한 `Module` 인스턴스
+  /// 
+  /// - Note: 팩토리 클로저는 Module 등록 시점이 아닌 실제 인스턴스 요청 시점에 실행됩니다.
+  /// - Important: 팩토리 클로저는 `@Sendable`이므로 동시성 안전해야 합니다.
+  /// - Warning: 팩토리 내부에서 동일한 타입을 resolve하면 순환 참조가 발생할 수 있습니다.
   public func makeModule<T>(
     _ type: T.Type,
     factory: @Sendable @escaping () -> T
