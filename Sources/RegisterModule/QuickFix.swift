@@ -13,10 +13,7 @@ public struct QuickFix {
     
     /// 앱 시작 시 호출해서 BookListInterface 문제 해결
     public static func setupBookList() {
-        AutoRegister.add(BookListInterface.self) {
-            BookListRepositoryImpl()
-        }
-        #logInfo("✅ QuickFix: BookListInterface registered")
+        
     }
     
     /// 모든 일반적인 타입들을 한번에 설정

@@ -9,13 +9,6 @@ import Foundation
 
 // MARK: - 자동 생성되는 기본 구현체들
 
-/// BookListInterface의 자동 기본 구현체
-private struct DefaultBookListImpl: BookListInterface {
-    func fetchBooks() async throws -> [String] {
-        return ["Auto Book 1", "Auto Book 2", "Auto Book 3"]
-    }
-}
-
 // MARK: - ContainerRegister
 
 /// ## 개요
@@ -510,49 +503,23 @@ public struct ContainerRegister<T: Sendable> {
     }
     
     /// 타입 이름을 기반으로 자동 구현체 생성 시도
-    private static func createAutoImplementation() -> T? {
-        let typeName = String(describing: T.self)
-        print("🔍 [AUTO] Trying to create auto implementation for: \(typeName)")
-        
-        // BookListInterface 직접 처리
-        if typeName == "BookListInterface" {
-            print("✅ [AUTO] Found BookListInterface - creating DefaultBookListImpl")
-            let impl = DefaultBookListImpl()
-            if let result = impl as? T {
-                print("✅ [AUTO] Successfully cast DefaultBookListImpl to \(typeName)")
-                return result
-            } else {
-                print("❌ [AUTO] Failed to cast DefaultBookListImpl to \(typeName)")
-            }
-        }
-        
-        // Interface -> RepositoryImpl 패턴 (일반적인 경우)
-        if typeName.hasSuffix("Interface") {
-            let baseName = String(typeName.dropLast("Interface".count))
-            print("🔍 [AUTO] Interface pattern detected. BaseName: \(baseName)")
-            
-            // 알려진 타입들에 대한 직접 매핑
-            switch baseName {
-            case "BookList":
-                print("✅ [AUTO] BookList pattern matched - creating DefaultBookListImpl")
-                return DefaultBookListImpl() as? T
-            default:
-                print("❌ [AUTO] No specific mapping for: \(baseName)")
-                break
-            }
-        }
-        
-        // Protocol -> Impl 패턴
-        if typeName.hasSuffix("Protocol") {
-            let baseName = String(typeName.dropLast("Protocol".count))
-            print("🔍 [AUTO] Protocol pattern detected. BaseName: \(baseName)")
-            // 필요시 여기에 Protocol 타입들 추가
-        }
-        
-        print("❌ [AUTO] No auto implementation found for: \(typeName)")
-        return nil
-    }
-    
+  /// 타입 이름을 기반으로 자동 구현체 생성 시도
+  /// - Note: 하드코딩 매핑 제거. 레지스트리에 등록된 팩토리만 사용.
+  private static func createAutoImplementation() -> T? {
+      let typeName = String(describing: T.self)
+      print("🔍 [AUTO] Looking up auto implementation for: \(typeName)")
+
+      // AutoRegistrationRegistry에 등록된 팩토리로 시도
+      if let instance: T = AutoRegistrationRegistry.shared.createInstance(for: T.self) {
+          print("✅ [AUTO] Resolved \(typeName) from AutoRegistrationRegistry")
+          return instance
+      }
+
+      // 더 이상 이름 기반/하드코딩 생성은 하지 않음
+      print("❌ [AUTO] No registered auto implementation for: \(typeName)")
+      return nil
+  }
+
     /// 타입 이름을 기반으로 제안하는 구현체 이름을 생성합니다.
     private static func getSuggestedImplementationName(for typeName: String) -> String {
         if typeName.hasSuffix("Interface") {

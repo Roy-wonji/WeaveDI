@@ -31,7 +31,7 @@ public final class AutoRegistrationRegistry: @unchecked Sendable {
     /// - Parameters:
     ///   - protocolType: 인터페이스/프로토콜 타입
     ///   - factory: 구현체 인스턴스를 생성하는 팩토리 클로저
-    public func register<T>(_ protocolType: T.Type, factory: @escaping () -> T) {
+    public func register<T>(_ protocolType: T.Type, factory: @Sendable @escaping () -> T) {
         let typeName = String(describing: protocolType)
         
         queue.async(flags: .barrier) {
@@ -106,7 +106,7 @@ public struct TypeRegistrationBuilder {
 public struct TypeRegistration {
     private let registerFunc: (AutoRegistrationRegistry) -> Void
     
-    public init<T>(_ type: T.Type, factory: @escaping () -> T) {
+    public init<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) {
         self.registerFunc = { registry in
             registry.register(type, factory: factory)
         }
