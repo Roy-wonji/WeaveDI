@@ -430,7 +430,8 @@ public struct ContainerRegister<T: Sendable> {
     /// ```
     public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
         self.keyPath = keyPath
-        self.defaultFactory = nil
+        // 자동으로 AutoRegistrationRegistry에서 팩토리 찾기
+        self.defaultFactory = Self.createAutoFactory()
     }
     
     /// KeyPath를 사용하여 자동 등록 기능이 있는 의존성 주입 프로퍼티 래퍼를 생성합니다.
@@ -475,24 +476,81 @@ public struct ContainerRegister<T: Sendable> {
                 return instance
             }
             
-            // 2. 등록되지 않은 경우 도움말 메시지와 함께 실패
+            // 2. 등록되지 않은 경우 자동으로 타입별 기본 구현체 시도
             let typeName = String(describing: T.self)
+            
+            // 2.1. 일반적인 패턴 기반 자동 등록 시도
+            if let autoInstance = Self.tryAutoRegisterCommonTypes() {
+                return autoInstance
+            }
+            
+            // 2.2. 그래도 없으면 타입 이름 기반으로 구현체 추론 시도
+            if let inferredInstance = Self.tryInferImplementation() {
+                // 추론된 구현체를 AutoRegistrationRegistry에 등록
+                AutoRegistrationRegistry.shared.register(T.self) { inferredInstance }
+                return inferredInstance
+            }
+            
+            // 2.3. 모든 시도 실패 시 도움말 메시지
             let suggestedImplementationName = Self.getSuggestedImplementationName(for: typeName)
             
             fatalError("""
-                [DI Auto-Register] No registered factory found for \(typeName).
+                \(typeName) 타입의 등록된 의존성을 찾을 수 없으며, 자동 추론도 실패했습니다.
                 
-                💡 To fix this, add to your app startup:
+                다음 중 하나를 시도해보세요:
+                1. AutoRegister.setup() 호출 후 사용
+                2. 수동 등록: AutoRegister.add(\(typeName).self) { \(suggestedImplementationName)() }
                 
-                AutoRegistrationRegistry.shared.register(\(typeName).self) {
-                    \(suggestedImplementationName)()
-                }
-                
-                Or use setupAutoRegistration() and add your types there.
-                
-                Currently registered types: \(AutoRegistrationRegistry.shared.registeredCount)
+                현재 등록된 타입 수: \(AutoRegistrationRegistry.shared.registeredCount)
                 """)
         }
+    }
+    
+    /// 일반적인 타입들을 자동으로 등록 시도
+    private static func tryAutoRegisterCommonTypes() -> T? {
+        let typeName = String(describing: T.self)
+        
+        // BookListInterface 자동 등록
+        if typeName == "BookListInterface" {
+            AutoRegistrationRegistry.shared.register(T.self) {
+                // BookListRepositoryImpl을 T로 캐스팅
+                BookListRepositoryImpl() as! T
+            }
+            return AutoRegistrationRegistry.shared.createInstance(for: T.self)
+        }
+        
+        // 다른 일반적인 타입들도 여기에 추가 가능
+        // UserServiceProtocol, NetworkServiceProtocol 등...
+        
+        return nil
+    }
+    
+    /// 타입 이름을 기반으로 구현체를 추론 시도
+    private static func tryInferImplementation() -> T? {
+        let typeName = String(describing: T.self)
+        
+        // Interface -> RepositoryImpl 패턴
+        if typeName.hasSuffix("Interface") {
+            let baseName = String(typeName.dropLast("Interface".count))
+            let implName = "\(baseName)RepositoryImpl"
+            
+            // 리플렉션으로 구현체 클래스 찾기 (간단한 시도)
+            if let implClass = NSClassFromString(implName) as? NSObject.Type {
+                return implClass.init() as? T
+            }
+        }
+        
+        // Protocol -> Impl 패턴
+        if typeName.hasSuffix("Protocol") {
+            let baseName = String(typeName.dropLast("Protocol".count))
+            let implName = "\(baseName)Impl"
+            
+            if let implClass = NSClassFromString(implName) as? NSObject.Type {
+                return implClass.init() as? T
+            }
+        }
+        
+        return nil
     }
     
     /// 타입 이름을 기반으로 제안하는 구현체 이름을 생성합니다.

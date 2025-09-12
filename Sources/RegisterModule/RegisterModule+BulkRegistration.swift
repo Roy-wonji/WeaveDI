@@ -59,7 +59,7 @@ public extension RegisterModule {
     ///     await container.register(moduleFactory())
     /// }
     /// ```
-     func interface<Interface>(
+    func interface<Interface>(
         _ interfaceType: Interface.Type,
         repository repositoryFactory: @Sendable @escaping () -> Interface,
         useCase useCaseFactory: @Sendable @escaping (Interface) -> Interface,
