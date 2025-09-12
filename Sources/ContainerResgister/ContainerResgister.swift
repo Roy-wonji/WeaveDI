@@ -570,12 +570,17 @@ public struct ContainerRegister<T: Sendable> {
             let suggestedImplementationName = Self.getSuggestedImplementationName(for: typeName)
             
             fatalError("""
-                \(typeName) 타입의 자동 구현체를 생성할 수 없습니다.
+                ❌ [DI] No registered dependency found for \(typeName)
                 
-                다음 중 하나를 시도해보세요:
-                1. 구현체 클래스를 만드세요: \(suggestedImplementationName)
-                2. 수동 등록: AutoRegister.add(\(typeName).self) { YourImplementation() }
-                3. 기본 팩토리: @ContainerRegister(\\.dependency, defaultFactory: { YourImpl() })
+                💡 해결 방법:
+                1. 앱 시작 시 등록: AutoRegister().add(\(typeName).self) { \(suggestedImplementationName)() }
+                2. 기본 팩토리 사용: @ContainerRegister(\\.dependency, defaultFactory: { YourImpl() })
+                
+                💡 예시:
+                // AppDelegate나 App.swift에서
+                AutoRegister().add(\(typeName).self) { 
+                    \(suggestedImplementationName)() 
+                }
                 
                 현재 등록된 타입 수: \(AutoRegistrationRegistry.shared.registeredCount)
                 """)
@@ -594,25 +599,10 @@ public struct ContainerRegister<T: Sendable> {
           return instance
       }
 
-      // 2. SimpleAutoRegister로 기본 구현체들 자동 등록 시도
-      #logDebug("🔧 [AUTO] Running SimpleAutoRegister.registerDefaults()")
-      SimpleAutoRegister.registerDefaults()
+      // 2. 자동 등록 제안 - 사용자에게 가이드 제공
+      #logInfo("💡 [AUTO] \(typeName) not registered. You need to register it manually.")
+      #logInfo("💡 [AUTO] Add this to your app startup: AutoRegister.add(\(typeName).self) { YourImplementation() }")
       
-      if let instance: T = AutoRegistrationRegistry.shared.createInstance(for: T.self) {
-          #logDebug("✅ [AUTO] Resolved \(typeName) after SimpleAutoRegister")
-          return instance
-      }
-      
-      // 3. GlobalAutoRegister로 사용자 구현체 찾기 시도 (백업)
-      #logDebug("🔧 [AUTO] Trying GlobalAutoRegister.tryAutoRegister for \(typeName)")
-      if GlobalAutoRegister.tryAutoRegister(for: T.self) {
-          if let instance: T = AutoRegistrationRegistry.shared.createInstance(for: T.self) {
-              #logDebug("✅ [AUTO] Resolved \(typeName) after GlobalAutoRegister")
-              return instance
-          }
-      }
-
-      #logDebug("❌ [AUTO] No auto implementation found for: \(typeName)")
       return nil
   }
 

@@ -54,10 +54,15 @@ public struct AutoRegister {
         #logInfo("✅ AutoRegister setup - ContainerRegister now works automatically")
     }
     
-    /// 개별 타입 등록
-  public func add<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) {
+    /// 개별 타입 등록 (static 메서드)
+    public static func add<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) {
         AutoRegistrationRegistry.shared.register(type, factory: factory)
         #logInfo("✅ \(String(describing: type)) registered")
+    }
+    
+    /// 개별 타입 등록 (인스턴스 메서드)
+    public func add<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) {
+        AutoRegister.add(type, factory: factory)
     }
     
     /// 앱 시작 시 자동으로 설정되는 싱글톤 (선택적)
