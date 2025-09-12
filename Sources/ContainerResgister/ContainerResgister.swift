@@ -32,7 +32,7 @@ public class GlobalAutoRegister {
                     AutoRegistrationRegistry.shared.register(type) {
                         implType.init() as! T
                     }
-                    print("✅ [GlobalAutoRegister] Found \(candidate) for \(typeName)")
+                    #logInfo("✅ [GlobalAutoRegister] Found \(candidate) for \(typeName)")
                     return true
                 }
             }
@@ -51,28 +51,38 @@ public class GlobalAutoRegister {
                     AutoRegistrationRegistry.shared.register(type) {
                         implType.init() as! T
                     }
-                    print("✅ [GlobalAutoRegister] Found \(candidate) for \(typeName)")
+                    #logInfo("✅ [GlobalAutoRegister] Found \(candidate) for \(typeName)")
                     return true
                 }
             }
         }
         
-        print("❌ [GlobalAutoRegister] No implementation found for \(typeName)")
+        #logError("❌ [GlobalAutoRegister] No implementation found for \(typeName)")
         return false
     }
     
     private static func lookupType(_ name: String) -> NSObject.Type? {
         // 여러 모듈명으로 시도
+        let bundleId = Bundle.main.bundleIdentifier ?? "UnknownBundle"
         let candidates = [
             name,
-            Bundle.main.bundleIdentifier.map { "\($0).\(name)" } ?? name
+            "\(bundleId).\(name)",
+            "Main.\(name)",
+            "_TtC\(name.count)\(name)", // Swift mangled name 패턴
         ]
         
+        #logDebug("🔍 [Lookup] Searching for class: \(name)")
+        #logDebug("🔍 [Lookup] Bundle identifier: \(bundleId)")
+        
         for candidate in candidates {
+            #logDebug("🔍 [Lookup] Trying: \(candidate)")
             if let type = NSClassFromString(candidate) as? NSObject.Type {
+                #logDebug("✅ [Lookup] Found class: \(candidate)")
                 return type
             }
         }
+        
+        #logDebug("❌ [Lookup] No class found for: \(name)")
         return nil
     }
 }
@@ -584,7 +594,16 @@ public struct ContainerRegister<T: Sendable> {
           return instance
       }
 
-      // 2. 글로벌 자동 등록 시스템으로 사용자 구현체 찾기 시도
+      // 2. SimpleAutoRegister로 기본 구현체들 자동 등록 시도
+      #logDebug("🔧 [AUTO] Running SimpleAutoRegister.registerDefaults()")
+      SimpleAutoRegister.registerDefaults()
+      
+      if let instance: T = AutoRegistrationRegistry.shared.createInstance(for: T.self) {
+          #logDebug("✅ [AUTO] Resolved \(typeName) after SimpleAutoRegister")
+          return instance
+      }
+      
+      // 3. GlobalAutoRegister로 사용자 구현체 찾기 시도 (백업)
       #logDebug("🔧 [AUTO] Trying GlobalAutoRegister.tryAutoRegister for \(typeName)")
       if GlobalAutoRegister.tryAutoRegister(for: T.self) {
           if let instance: T = AutoRegistrationRegistry.shared.createInstance(for: T.self) {
