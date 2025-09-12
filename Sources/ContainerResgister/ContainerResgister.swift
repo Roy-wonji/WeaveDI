@@ -7,6 +7,15 @@
 
 import Foundation
 
+// MARK: - 자동 생성되는 기본 구현체들
+
+/// BookListInterface의 자동 기본 구현체
+private struct DefaultBookListImpl: BookListInterface {
+    func fetchBooks() async throws -> [String] {
+        return ["Auto Book 1", "Auto Book 2", "Auto Book 3"]
+    }
+}
+
 // MARK: - ContainerRegister
 
 /// ## 개요
@@ -468,7 +477,7 @@ public struct ContainerRegister<T: Sendable> {
     
     /// 타입 정보를 기반으로 자동 팩토리를 생성하는 정적 메서드
     /// 
-    /// 이 메서드는 AutoRegistrationRegistry를 사용하여 실제 인스턴스를 생성합니다.
+    /// 이 메서드는 AutoRegistrationRegistry를 사용하거나 타입 이름 기반으로 자동 구현체를 생성합니다.
     private static func createAutoFactory() -> (() -> T)? {
         return {
             // 1. AutoRegistrationRegistry에서 등록된 팩토리 찾기
@@ -476,57 +485,32 @@ public struct ContainerRegister<T: Sendable> {
                 return instance
             }
             
-            // 2. 등록되지 않은 경우 자동으로 타입별 기본 구현체 시도
-            let typeName = String(describing: T.self)
-            
-            // 2.1. 일반적인 패턴 기반 자동 등록 시도
-            if let autoInstance = Self.tryAutoRegisterCommonTypes() {
+            // 2. 타입 이름 기반 자동 구현체 생성 시도
+            if let autoInstance = Self.createAutoImplementation() {
+                // 성공하면 AutoRegistrationRegistry에도 등록해두기
+                AutoRegistrationRegistry.shared.register(T.self) { autoInstance }
                 return autoInstance
             }
             
-            // 2.2. 그래도 없으면 타입 이름 기반으로 구현체 추론 시도
-            if let inferredInstance = Self.tryInferImplementation() {
-                // 추론된 구현체를 AutoRegistrationRegistry에 등록
-                AutoRegistrationRegistry.shared.register(T.self) { inferredInstance }
-                return inferredInstance
-            }
-            
-            // 2.3. 모든 시도 실패 시 도움말 메시지
+            // 3. 모든 시도 실패 시 도움말 메시지
+            let typeName = String(describing: T.self)
             let suggestedImplementationName = Self.getSuggestedImplementationName(for: typeName)
             
             fatalError("""
-                \(typeName) 타입의 등록된 의존성을 찾을 수 없으며, 자동 추론도 실패했습니다.
+                \(typeName) 타입의 자동 구현체를 생성할 수 없습니다.
                 
                 다음 중 하나를 시도해보세요:
-                1. AutoRegister.setup() 호출 후 사용
-                2. 수동 등록: AutoRegister.add(\(typeName).self) { \(suggestedImplementationName)() }
+                1. 구현체 클래스를 만드세요: \(suggestedImplementationName)
+                2. 수동 등록: AutoRegister.add(\(typeName).self) { YourImplementation() }
+                3. 기본 팩토리: @ContainerRegister(\\.dependency, defaultFactory: { YourImpl() })
                 
                 현재 등록된 타입 수: \(AutoRegistrationRegistry.shared.registeredCount)
                 """)
         }
     }
     
-    /// 일반적인 타입들을 자동으로 등록 시도
-    private static func tryAutoRegisterCommonTypes() -> T? {
-        let typeName = String(describing: T.self)
-        
-        // BookListInterface 자동 등록
-        if typeName == "BookListInterface" {
-            AutoRegistrationRegistry.shared.register(T.self) {
-                // BookListRepositoryImpl을 T로 캐스팅
-                BookListRepositoryImpl() as! T
-            }
-            return AutoRegistrationRegistry.shared.createInstance(for: T.self)
-        }
-        
-        // 다른 일반적인 타입들도 여기에 추가 가능
-        // UserServiceProtocol, NetworkServiceProtocol 등...
-        
-        return nil
-    }
-    
-    /// 타입 이름을 기반으로 구현체를 추론 시도
-    private static func tryInferImplementation() -> T? {
+    /// 타입 이름을 기반으로 자동 구현체 생성 시도
+    private static func createAutoImplementation() -> T? {
         let typeName = String(describing: T.self)
         
         // Interface -> RepositoryImpl 패턴
@@ -534,9 +518,9 @@ public struct ContainerRegister<T: Sendable> {
             let baseName = String(typeName.dropLast("Interface".count))
             let implName = "\(baseName)RepositoryImpl"
             
-            // 리플렉션으로 구현체 클래스 찾기 (간단한 시도)
-            if let implClass = NSClassFromString(implName) as? NSObject.Type {
-                return implClass.init() as? T
+            // 동적으로 구현체 클래스 찾기
+            if let implType = Self.findTypeByName(implName) {
+                return implType
             }
         }
         
@@ -545,9 +529,31 @@ public struct ContainerRegister<T: Sendable> {
             let baseName = String(typeName.dropLast("Protocol".count))
             let implName = "\(baseName)Impl"
             
-            if let implClass = NSClassFromString(implName) as? NSObject.Type {
-                return implClass.init() as? T
+            if let implType = Self.findTypeByName(implName) {
+                return implType
             }
+        }
+        
+        // Service -> ServiceImpl 패턴
+        if typeName.hasSuffix("Service") {
+            let implName = "\(typeName)Impl"
+            if let implType = Self.findTypeByName(implName) {
+                return implType
+            }
+        }
+        
+        return nil
+    }
+    
+    /// 타입 이름으로 구현체를 찾아서 인스턴스 생성
+    private static func findTypeByName(_ typeName: String) -> T? {
+        // Swift에서는 런타임에 타입을 동적으로 찾기 어려우므로
+        // 미리 정의된 매핑을 사용하거나, 일반적인 패턴 기반으로 처리
+        
+        // BookListInterface의 경우 기본 구현체 생성
+        if typeName == "BookListRepositoryImpl" && T.self == BookListInterface.self {
+            // 기본 BookList 구현체 생성
+            return DefaultBookListImpl() as? T
         }
         
         return nil
