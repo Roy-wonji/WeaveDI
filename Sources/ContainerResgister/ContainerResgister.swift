@@ -683,28 +683,53 @@ public struct ContainerRegister<T: Sendable> {
             return value
         }
 
-        // 등록되지 않은 경우, 기본 팩토리 사용 시도
-        guard let factory = defaultFactory else {
-            fatalError("""
-            \(T.self) 타입의 등록된 의존성을 찾을 수 없으며, 기본 팩토리도 제공되지 않았습니다.
+        // Bootstrap 타이밍 문제 해결: 잠시 기다려보면서 시도
+        return resolveWithBootstrapWait()
+    }
+    
+    /// Bootstrap 완료를 기다리면서 의존성 해결을 시도합니다 (병렬 안전)
+    private func resolveWithBootstrapWait() -> T {
+        let maxRetries = 10
+        let baseDelay: UInt32 = 50_000 // 0.05초 (microseconds)
+        
+        for attempt in 1...maxRetries {
+            // 1. 등록된 의존성 재확인
+            if let value = DependencyContainer.live[keyPath: keyPath] {
+                #logDebug("✅ [DI-Timing] \(T.self) resolved after \(attempt) attempts")
+                return value
+            }
             
-            사용하기 전에 이 의존성을 등록해 주세요:
-            DependencyContainer.live.register(\(T.self).self) { YourImplementation() }
+            // 2. 자동 팩토리 시도 (병렬 안전)
+            if let factory = defaultFactory {
+                let instance = factory()
+                DependencyContainer.live.register(T.self, instance: instance)
+                
+                // 등록 후 재확인
+                if let registeredValue = DependencyContainer.live[keyPath: keyPath] {
+                    #logInfo("🔧 [DI-Auto] \(T.self) auto-registered successfully")
+                    return registeredValue
+                }
+            }
             
-            또는 기본 팩토리를 제공해 주세요:
-            @ContainerRegister(\\.yourDependency, defaultFactory: { DefaultImplementation() })
+            // 3. 마지막 시도가 아니면 대기 (지수 백오프)
+            if attempt < maxRetries {
+                let delay = baseDelay * UInt32(attempt)
+                #logDebug("⏳ [DI-Timing] Waiting for \(T.self) (\(attempt)/\(maxRetries)), delay: \(delay/1000)ms")
+                usleep(delay)
+            }
+        }
+        
+        // 모든 시도 실패
+        let typeName = String(describing: T.self)
+        fatalError("""
+            ❌ [DI-Timing] Failed to resolve \(typeName) after \(maxRetries) attempts
+            
+            💡 Bootstrap 타이밍 문제일 수 있습니다. 해결책:
+            1. 앱 시작 시 등록: AutoRegister.add(\(typeName).self) { YourImpl() }
+            2. 기본 팩토리: @ContainerRegister(\\.dep, defaultFactory: { YourImpl() })
+            3. Bootstrap 완료 후 사용: await DependencyContainer.ensureBootstrapped()
+            
+            현재 등록된 타입 수: \(AutoRegistrationRegistry.shared.registeredCount)
             """)
-        }
-
-        // 기본 인스턴스를 생성하고 등록
-        let instance = factory()
-        DependencyContainer.live.register(T.self, instance: instance)
-
-        // 새로 등록된 인스턴스 반환
-        guard let registeredValue = DependencyContainer.live[keyPath: keyPath] else {
-            fatalError("\(T.self) 의존성 등록에 실패했습니다. 이는 심각한 컨테이너 문제를 나타냅니다.")
-        }
-
-        return registeredValue
     }
 }

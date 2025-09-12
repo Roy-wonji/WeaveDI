@@ -39,9 +39,23 @@ public enum QuickStartGuide {
     /// 사용자는 이것을 참고해서 자신의 타입들을 등록하면 됩니다.
     public static func registerCommonDependencies() {
         #logInfo("📝 [QuickStart] 이것은 예제입니다. 사용자의 실제 타입으로 바꿔주세요:")
+        
+        // 방법 1: 개별 등록
         #logInfo("📝 [QuickStart] AutoRegister.add(YourInterface.self) { YourImplementation() }")
         
-        // 사용자는 실제 의존성을 여기에 등록하면 됩니다:
+        // 방법 2: 병렬 일괄 등록 (권장)
+        #logInfo("📝 [QuickStart] AutoRegister.addMany { ... }")
+        
+        // 실제 사용 예시 (주석 해제해서 사용):
+        /*
+        AutoRegister.addMany {
+            Registration(BookListInterface.self) { BookListRepositoryImpl() }
+            Registration(UserServiceInterface.self) { UserServiceImpl() }
+            Registration(NetworkInterface.self) { NetworkServiceImpl() }
+        }
+        */
+        
+        // 또는 개별 등록:
         // AutoRegister.add(BookListInterface.self) { BookListRepositoryImpl() }
         // AutoRegister.add(UserServiceInterface.self) { UserServiceImpl() }
     }
