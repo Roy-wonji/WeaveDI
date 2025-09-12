@@ -34,6 +34,7 @@ import Foundation
 /// ## Topics
 /// - ``repositoryFactory``
 /// - ``useCaseFactory``
+/// - ``scopeFactory``
 /// - ``current``
 ///
 /// - Example: 기본 사용
@@ -77,6 +78,11 @@ public struct FactoryValues {
   /// 기본 UseCase 팩토리 인스턴스입니다. 필요 시 런타임에 교체할 수 있습니다.
   public var useCaseFactory: UseCaseModuleFactory
   
+  /// The default instance of dependency-scope factory.
+  ///
+  /// 기본 DependencyScope 팩토리 인스턴스입니다. 필요 시 런타임에 교체할 수 있습니다.
+  public var scopeFactory: ScopeModuleFactory
+  
   // MARK: Init
   
   /// Creates a new set of factory values.
@@ -84,12 +90,15 @@ public struct FactoryValues {
   /// - Parameters:
   ///   - repositoryFactory: 기본 Repository 모듈 팩토리. 기본값은 `RepositoryModuleFactory()`.
   ///   - useCaseFactory: 기본 UseCase 모듈 팩토리. 기본값은 `UseCaseModuleFactory()`.
+  ///   - scopeFactory: 기본 DependencyScope 모듈 팩토리. 기본값은 `ScopeModuleFactory()`.
   public init(
     repositoryFactory: RepositoryModuleFactory = RepositoryModuleFactory(),
-    useCaseFactory: UseCaseModuleFactory = UseCaseModuleFactory()
+    useCaseFactory: UseCaseModuleFactory = UseCaseModuleFactory(),
+    scopeFactory: ScopeModuleFactory = ScopeModuleFactory()
   ) {
     self.repositoryFactory = repositoryFactory
     self.useCaseFactory = useCaseFactory
+    self.scopeFactory = scopeFactory
   }
   
   // MARK: Global Singleton

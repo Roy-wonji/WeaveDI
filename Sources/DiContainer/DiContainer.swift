@@ -298,15 +298,13 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
 
   // MARK: - Stored Properties
 
-  /// 등록된 의존성(또는 팩토리 클로저)을 저장하는 딕셔너리입니다.
-  /// 키는 `String(describing: Type.self)`입니다.
-  private var registry = [String: Any]()
-
-  /// 등록 해제를 위한 핸들러 저장소입니다.
-  private var releaseHandlers = [String: () -> Void]()
+  /// 타입 안전한 의존성 저장소입니다.
+  /// 기존 String 키 방식 대신 타입 안전한 키를 사용합니다.
+  private let typeSafeRegistry = TypeSafeRegistry()
 
   /// 읽기/쓰기를 동기화하는 concurrent 큐입니다.
-  /// - Important: 쓰기 작업은 `.barrier` 플래그로 보호됩니다.
+  /// - Important: TypeSafeRegistry가 내부적으로 동기화를 처리하므로 
+  ///   현재는 주로 하위 호환성을 위해 유지됩니다.
   private let syncQueue = DispatchQueue(label: "com.diContainer.syncQueue", attributes: .concurrent)
 
   // MARK: - Init
@@ -373,26 +371,11 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
     _ type: T.Type,
     build: @escaping () -> T
   ) -> () -> Void {
-    let key = String(describing: type)
-
-    syncQueue.sync(flags: .barrier) {
-      self.registry[key] = build
-    }
-
-    Log.debug("Registered", key)
-
-    let releaseHandler: () -> Void = { [weak self] in
-      self?.syncQueue.sync(flags: .barrier) {
-        self?.registry[key] = nil
-        self?.releaseHandlers[key] = nil
-      }
-      Log.debug("Released", key)
-    }
-
-    syncQueue.sync(flags: .barrier) {
-      self.releaseHandlers[key] = releaseHandler
-    }
-
+    // 타입 안전한 레지스트리 사용
+    let releaseHandler = typeSafeRegistry.register(type, factory: build)
+    
+    Log.debug("Registered (TypeSafe)", String(describing: type))
+    
     return releaseHandler
   }
 
@@ -445,14 +428,14 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
   /// - Important: 이 메서드는 스레드 안전합니다. 여러 스레드에서 동시에 호출 가능합니다.
   /// - Warning: 등록되지 않은 타입에 대해 강제 언래핑(`!`) 사용 시 크래시가 발생합니다.
   public func resolve<T>(_ type: T.Type) -> T? {
-    let key = String(describing: type)
-    return syncQueue.sync {
-      guard let factory = self.registry[key] as? () -> T else {
-        Log.error("No registered dependency found for \(String(describing: T.self))")
-        return nil
-      }
-      return factory()
+    // 타입 안전한 레지스트리에서 조회
+    if let result = typeSafeRegistry.resolve(type) {
+      Log.debug("Resolved (TypeSafe)", String(describing: type))
+      return result
     }
+    
+    Log.error("No registered dependency found for \(String(describing: T.self))")
+    return nil
   }
 
   /// 주어진 타입의 의존성을 조회하거나, 없으면 **기본값**을 반환합니다.
@@ -475,10 +458,9 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
   /// - Parameter type: 해제할 타입
   /// - Note: 등록 시 반환된 클로저를 호출한 것과 동일합니다.
   public func release<T>(_ type: T.Type) {
-    let key = String(describing: type)
-    syncQueue.async(flags: .barrier) {
-      self.releaseHandlers[key]?()
-    }
+    // 타입 안전한 레지스트리에서 해제
+    typeSafeRegistry.release(type)
+    Log.debug("Released", String(describing: type))
   }
 
   // MARK: - KeyPath-based Access
@@ -505,11 +487,9 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
     _ type: T.Type,
     instance: T
   ) {
-    let key = String(describing: type)
-    syncQueue.sync(flags: .barrier) {
-      self.registry[key] = { instance }
-    }
-    Log.debug("Registered instance for", key)
+    // 타입 안전한 레지스트리에 인스턴스 등록
+    typeSafeRegistry.register(type, instance: instance)
+    Log.debug("Registered instance (TypeSafe) for", String(describing: type))
   }
 }
 

@@ -223,6 +223,11 @@ public final actor AppDIContainer {
   @Factory(\.useCaseFactory)
   public var useCaseFactory: UseCaseModuleFactory
 
+  /// DependencyScope 기반 모듈(팩토리) 인스턴스를
+  /// ``FactoryValues`` 내 정의된 경로에서 자동으로 주입받습니다.
+  @Factory(\.scopeFactory)
+  public var scopeFactory: ScopeModuleFactory
+
   /// 앱 전역에서 사용할 수 있는 싱글턴 인스턴스입니다.
   public static let shared: AppDIContainer = .init()
 
