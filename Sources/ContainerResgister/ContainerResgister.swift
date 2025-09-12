@@ -8,7 +8,74 @@
 import Foundation
 import LogMacro
 
-// MARK: - 자동 구현체 찾기
+// MARK: - 자동 구현체 등록 시스템
+
+/// 글로벌 자동 등록 시스템
+public class GlobalAutoRegister {
+    
+    /// 특정 타입에 대해 자동 구현체 찾기 시도
+    public static func tryAutoRegister<T>(for type: T.Type) -> Bool {
+        let typeName = String(describing: type)
+        
+        // Interface -> RepositoryImpl 패턴
+        if typeName.hasSuffix("Interface") {
+            let baseName = String(typeName.dropLast("Interface".count))
+            let candidates = [
+                "\(baseName)RepositoryImpl",
+                "\(baseName)Impl",
+                "\(baseName)Implementation"
+            ]
+            
+            for candidate in candidates {
+                if let implType = lookupType(candidate) {
+                    // Any 타입으로 등록해서 나중에 캐스팅
+                    AutoRegistrationRegistry.shared.register(type) {
+                        implType.init() as! T
+                    }
+                    print("✅ [GlobalAutoRegister] Found \(candidate) for \(typeName)")
+                    return true
+                }
+            }
+        }
+        
+        // Protocol -> Impl 패턴  
+        if typeName.hasSuffix("Protocol") {
+            let baseName = String(typeName.dropLast("Protocol".count))
+            let candidates = [
+                "\(baseName)Impl",
+                "\(baseName)Implementation"
+            ]
+            
+            for candidate in candidates {
+                if let implType = lookupType(candidate) {
+                    AutoRegistrationRegistry.shared.register(type) {
+                        implType.init() as! T
+                    }
+                    print("✅ [GlobalAutoRegister] Found \(candidate) for \(typeName)")
+                    return true
+                }
+            }
+        }
+        
+        print("❌ [GlobalAutoRegister] No implementation found for \(typeName)")
+        return false
+    }
+    
+    private static func lookupType(_ name: String) -> NSObject.Type? {
+        // 여러 모듈명으로 시도
+        let candidates = [
+            name,
+            Bundle.main.bundleIdentifier.map { "\($0).\(name)" } ?? name
+        ]
+        
+        for candidate in candidates {
+            if let type = NSClassFromString(candidate) as? NSObject.Type {
+                return type
+            }
+        }
+        return nil
+    }
+}
 
 // MARK: - ContainerRegister
 
@@ -517,80 +584,18 @@ public struct ContainerRegister<T: Sendable> {
           return instance
       }
 
-      // 2. 타입 이름 기반으로 사용자의 실제 구현체 자동 찾기
-      if let foundImplementation = Self.findUserImplementation(for: typeName) {
-          #logDebug("✅ [AUTO] Found user implementation for \(typeName)")
-          return foundImplementation
+      // 2. 글로벌 자동 등록 시스템으로 사용자 구현체 찾기 시도
+      #logDebug("🔧 [AUTO] Trying GlobalAutoRegister.tryAutoRegister for \(typeName)")
+      if GlobalAutoRegister.tryAutoRegister(for: T.self) {
+          if let instance: T = AutoRegistrationRegistry.shared.createInstance(for: T.self) {
+              #logDebug("✅ [AUTO] Resolved \(typeName) after GlobalAutoRegister")
+              return instance
+          }
       }
 
       #logDebug("❌ [AUTO] No auto implementation found for: \(typeName)")
       return nil
   }
-  
-    /// 사용자가 만든 실제 구현체를 자동으로 찾습니다.
-    private static func findUserImplementation(for typeName: String) -> T? {
-        #logDebug("🔍 [AUTO] Searching for user implementation of \(typeName)")
-        
-        // Interface -> RepositoryImpl 패턴
-        if typeName.hasSuffix("Interface") {
-            let baseName = String(typeName.dropLast("Interface".count))
-            let candidates = [
-                "\(baseName)RepositoryImpl",
-                "\(baseName)Impl",
-                "\(baseName)Implementation"
-            ]
-            
-            for candidate in candidates {
-                if let impl = Self.tryCreateType(named: candidate) {
-                    #logDebug("✅ [AUTO] Found \(candidate) for \(typeName)")
-                    return impl
-                }
-            }
-        }
-        
-        // Protocol -> Impl 패턴
-        if typeName.hasSuffix("Protocol") {
-            let baseName = String(typeName.dropLast("Protocol".count))
-            let candidates = [
-                "\(baseName)Impl",
-                "\(baseName)Implementation"
-            ]
-            
-            for candidate in candidates {
-                if let impl = Self.tryCreateType(named: candidate) {
-                    #logDebug("✅ [AUTO] Found \(candidate) for \(typeName)")
-                    return impl
-                }
-            }
-        }
-        
-        #logDebug("❌ [AUTO] No user implementation found for \(typeName)")
-        return nil
-    }
-    
-    /// 타입 이름으로 실제 클래스/구조체를 찾아서 인스턴스 생성 시도
-    private static func tryCreateType(named typeName: String) -> T? {
-        // Swift는 런타임에 타입 이름으로 클래스를 찾기 어려우므로
-        // NSClassFromString을 사용하거나, 미리 알려진 타입들을 매핑
-        
-        // NSClassFromString을 통한 클래스 찾기 (Objective-C 런타임 필요)
-        if let objcClass = NSClassFromString(typeName) as? NSObject.Type {
-            let instance = objcClass.init()
-            return instance as? T
-        }
-        
-        // Swift 타입들은 모듈 이름이 필요할 수 있음
-        let moduleNames = ["", Bundle.main.bundleIdentifier ?? "", "DiContainer"]
-        for moduleName in moduleNames {
-            let fullTypeName = moduleName.isEmpty ? typeName : "\(moduleName).\(typeName)"
-            if let swiftClass = NSClassFromString(fullTypeName) as? NSObject.Type {
-                let instance = swiftClass.init()
-                return instance as? T
-            }
-        }
-        
-        return nil
-    }
 
     /// 타입 이름을 기반으로 제안하는 구현체 이름을 생성합니다.
     private static func getSuggestedImplementationName(for typeName: String) -> String {
