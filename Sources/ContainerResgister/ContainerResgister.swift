@@ -6,8 +6,9 @@
 //
 
 import Foundation
+import LogMacro
 
-// MARK: - 자동 생성되는 기본 구현체들
+// MARK: - 자동 구현체 찾기
 
 // MARK: - ContainerRegister
 
@@ -480,7 +481,9 @@ public struct ContainerRegister<T: Sendable> {
             
             // 2. 타입 이름 기반 자동 구현체 생성 시도
             if let autoInstance = Self.createAutoImplementation() {
-                // 성공하면 AutoRegistrationRegistry에도 등록해두기
+                // 성공하면 AutoRegistrationRegistry에도 등록해두기 (한번만)
+                let typeName = String(describing: T.self)
+                #logInfo("🔧 [AUTO] Auto-registering \(typeName) for future use")
                 AutoRegistrationRegistry.shared.register(T.self) { autoInstance }
                 return autoInstance
             }
@@ -504,19 +507,20 @@ public struct ContainerRegister<T: Sendable> {
     
     /// 타입 이름을 기반으로 자동 구현체 생성 시도
   /// 타입 이름을 기반으로 자동 구현체 생성 시도
-  /// - Note: 하드코딩 매핑 제거. 레지스트리에 등록된 팩토리만 사용.
   private static func createAutoImplementation() -> T? {
       let typeName = String(describing: T.self)
-      print("🔍 [AUTO] Looking up auto implementation for: \(typeName)")
+      #logDebug("🔍 [AUTO] Looking up auto implementation for: \(typeName)")
 
-      // AutoRegistrationRegistry에 등록된 팩토리로 시도
+      // 1. AutoRegistrationRegistry에 등록된 팩토리로 시도
       if let instance: T = AutoRegistrationRegistry.shared.createInstance(for: T.self) {
-          print("✅ [AUTO] Resolved \(typeName) from AutoRegistrationRegistry")
+          #logDebug("✅ [AUTO] Resolved \(typeName) from AutoRegistrationRegistry")
           return instance
       }
 
-      // 더 이상 이름 기반/하드코딩 생성은 하지 않음
-      print("❌ [AUTO] No registered auto implementation for: \(typeName)")
+      // 2. 사용자가 만든 구현체를 찾으려 시도
+      // 여기서는 실제 구현체를 찾지 못하므로 실패로 처리
+
+      #logDebug("❌ [AUTO] No auto implementation found for: \(typeName)")
       return nil
   }
 

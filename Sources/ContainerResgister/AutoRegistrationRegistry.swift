@@ -35,6 +35,13 @@ public final class AutoRegistrationRegistry: @unchecked Sendable {
         let typeName = String(describing: protocolType)
         
         queue.async(flags: .barrier) {
+            // 중복 등록 체크
+            if self.typeFactories[typeName] != nil {
+                #logError("⚠️ [AutoRegistry] Type \(typeName) is already registered. Overriding...")
+            } else {
+                #logInfo("✅ [AutoRegistry] Registered type: \(typeName)")
+            }
+            
             self.typeFactories[typeName] = factory
         }
     }
