@@ -517,12 +517,80 @@ public struct ContainerRegister<T: Sendable> {
           return instance
       }
 
-      // 2. 사용자가 만든 구현체를 찾으려 시도
-      // 여기서는 실제 구현체를 찾지 못하므로 실패로 처리
+      // 2. 타입 이름 기반으로 사용자의 실제 구현체 자동 찾기
+      if let foundImplementation = Self.findUserImplementation(for: typeName) {
+          #logDebug("✅ [AUTO] Found user implementation for \(typeName)")
+          return foundImplementation
+      }
 
       #logDebug("❌ [AUTO] No auto implementation found for: \(typeName)")
       return nil
   }
+  
+    /// 사용자가 만든 실제 구현체를 자동으로 찾습니다.
+    private static func findUserImplementation(for typeName: String) -> T? {
+        #logDebug("🔍 [AUTO] Searching for user implementation of \(typeName)")
+        
+        // Interface -> RepositoryImpl 패턴
+        if typeName.hasSuffix("Interface") {
+            let baseName = String(typeName.dropLast("Interface".count))
+            let candidates = [
+                "\(baseName)RepositoryImpl",
+                "\(baseName)Impl",
+                "\(baseName)Implementation"
+            ]
+            
+            for candidate in candidates {
+                if let impl = Self.tryCreateType(named: candidate) {
+                    #logDebug("✅ [AUTO] Found \(candidate) for \(typeName)")
+                    return impl
+                }
+            }
+        }
+        
+        // Protocol -> Impl 패턴
+        if typeName.hasSuffix("Protocol") {
+            let baseName = String(typeName.dropLast("Protocol".count))
+            let candidates = [
+                "\(baseName)Impl",
+                "\(baseName)Implementation"
+            ]
+            
+            for candidate in candidates {
+                if let impl = Self.tryCreateType(named: candidate) {
+                    #logDebug("✅ [AUTO] Found \(candidate) for \(typeName)")
+                    return impl
+                }
+            }
+        }
+        
+        #logDebug("❌ [AUTO] No user implementation found for \(typeName)")
+        return nil
+    }
+    
+    /// 타입 이름으로 실제 클래스/구조체를 찾아서 인스턴스 생성 시도
+    private static func tryCreateType(named typeName: String) -> T? {
+        // Swift는 런타임에 타입 이름으로 클래스를 찾기 어려우므로
+        // NSClassFromString을 사용하거나, 미리 알려진 타입들을 매핑
+        
+        // NSClassFromString을 통한 클래스 찾기 (Objective-C 런타임 필요)
+        if let objcClass = NSClassFromString(typeName) as? NSObject.Type {
+            let instance = objcClass.init()
+            return instance as? T
+        }
+        
+        // Swift 타입들은 모듈 이름이 필요할 수 있음
+        let moduleNames = ["", Bundle.main.bundleIdentifier ?? "", "DiContainer"]
+        for moduleName in moduleNames {
+            let fullTypeName = moduleName.isEmpty ? typeName : "\(moduleName).\(typeName)"
+            if let swiftClass = NSClassFromString(fullTypeName) as? NSObject.Type {
+                let instance = swiftClass.init()
+                return instance as? T
+            }
+        }
+        
+        return nil
+    }
 
     /// 타입 이름을 기반으로 제안하는 구현체 이름을 생성합니다.
     private static func getSuggestedImplementationName(for typeName: String) -> String {
