@@ -42,43 +42,6 @@ public extension RegisterModule {
         return [repositoryModule, useCaseModule]
     }
     
-    /// 사용자의 기존 패턴과 완전히 동일한 한번에 등록
-    /// 
-    /// ## 사용법 (사용자의 기존 코드와 1:1 대응):
-    /// ```swift
-    /// // 기존 코드를 이렇게 변환:
-    /// let modules = registerModule.interface(
-    ///     AuthInterface.self,
-    ///     repository: { AuthRepositoryImpl() },
-    ///     useCase: { repo in AuthUseCaseImpl(repository: repo) },
-    ///     fallback: { DefaultAuthRepositoryImpl() }
-    /// )
-    /// 
-    /// // 등록
-    /// for moduleFactory in modules {
-    ///     await container.register(moduleFactory())
-    /// }
-    /// ```
-    func interface<Interface>(
-        _ interfaceType: Interface.Type,
-        repository repositoryFactory: @Sendable @escaping () -> Interface,
-        useCase useCaseFactory: @Sendable @escaping (Interface) -> Interface,
-        fallback fallbackFactory: @Sendable @escaping () -> Interface
-    ) -> [() -> Module] {
-        
-        return [
-            // Repository 모듈 (기존 authRepositoryImplModule과 동일)
-            makeDependency(interfaceType, factory: repositoryFactory),
-            
-            // UseCase 모듈 (기존 authUseCaseImplModule과 동일)
-            makeUseCaseWithRepository(
-                interfaceType,
-                repositoryProtocol: interfaceType,
-                repositoryFallback: fallbackFactory(),
-                factory: useCaseFactory
-            )
-        ]
-    }
     
     /// 여러 인터페이스를 한번에 등록하는 시스템
     /// 
