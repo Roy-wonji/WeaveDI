@@ -512,50 +512,44 @@ public struct ContainerRegister<T: Sendable> {
     /// 타입 이름을 기반으로 자동 구현체 생성 시도
     private static func createAutoImplementation() -> T? {
         let typeName = String(describing: T.self)
+        print("🔍 [AUTO] Trying to create auto implementation for: \(typeName)")
         
-        // Interface -> RepositoryImpl 패턴
+        // BookListInterface 직접 처리
+        if typeName == "BookListInterface" {
+            print("✅ [AUTO] Found BookListInterface - creating DefaultBookListImpl")
+            let impl = DefaultBookListImpl()
+            if let result = impl as? T {
+                print("✅ [AUTO] Successfully cast DefaultBookListImpl to \(typeName)")
+                return result
+            } else {
+                print("❌ [AUTO] Failed to cast DefaultBookListImpl to \(typeName)")
+            }
+        }
+        
+        // Interface -> RepositoryImpl 패턴 (일반적인 경우)
         if typeName.hasSuffix("Interface") {
             let baseName = String(typeName.dropLast("Interface".count))
-            let implName = "\(baseName)RepositoryImpl"
+            print("🔍 [AUTO] Interface pattern detected. BaseName: \(baseName)")
             
-            // 동적으로 구현체 클래스 찾기
-            if let implType = Self.findTypeByName(implName) {
-                return implType
+            // 알려진 타입들에 대한 직접 매핑
+            switch baseName {
+            case "BookList":
+                print("✅ [AUTO] BookList pattern matched - creating DefaultBookListImpl")
+                return DefaultBookListImpl() as? T
+            default:
+                print("❌ [AUTO] No specific mapping for: \(baseName)")
+                break
             }
         }
         
         // Protocol -> Impl 패턴
         if typeName.hasSuffix("Protocol") {
             let baseName = String(typeName.dropLast("Protocol".count))
-            let implName = "\(baseName)Impl"
-            
-            if let implType = Self.findTypeByName(implName) {
-                return implType
-            }
+            print("🔍 [AUTO] Protocol pattern detected. BaseName: \(baseName)")
+            // 필요시 여기에 Protocol 타입들 추가
         }
         
-        // Service -> ServiceImpl 패턴
-        if typeName.hasSuffix("Service") {
-            let implName = "\(typeName)Impl"
-            if let implType = Self.findTypeByName(implName) {
-                return implType
-            }
-        }
-        
-        return nil
-    }
-    
-    /// 타입 이름으로 구현체를 찾아서 인스턴스 생성
-    private static func findTypeByName(_ typeName: String) -> T? {
-        // Swift에서는 런타임에 타입을 동적으로 찾기 어려우므로
-        // 미리 정의된 매핑을 사용하거나, 일반적인 패턴 기반으로 처리
-        
-        // BookListInterface의 경우 기본 구현체 생성
-        if typeName == "BookListRepositoryImpl" && T.self == BookListInterface.self {
-            // 기본 BookList 구현체 생성
-            return DefaultBookListImpl() as? T
-        }
-        
+        print("❌ [AUTO] No auto implementation found for: \(typeName)")
         return nil
     }
     
