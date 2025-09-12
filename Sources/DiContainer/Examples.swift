@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - 사용 예시
 
@@ -29,7 +30,7 @@ public struct DIExamples {
             
             // 타입 안전한 키가 내부적으로 사용됨
             let service: NetworkServiceProtocol? = container.resolve(NetworkServiceProtocol.self)
-            print("Network service resolved: \(service != nil)")
+            #logDebug("Network service resolved: \(service != nil)")
         }
     }
     
@@ -61,8 +62,8 @@ public struct DIExamples {
         let networkScopeValid = MyNetworkScope.validate()
         let userScopeValid = MyUserScope.validate()
         
-        print("Network scope valid: \(networkScopeValid)")
-        print("User scope valid: \(userScopeValid)")
+        #logDebug("Network scope valid: \(networkScopeValid)")
+        #logDebug("User scope valid: \(userScopeValid)")
     }
     
     // MARK: - 3. 개선된 에러 처리 예시

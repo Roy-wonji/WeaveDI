@@ -432,6 +432,84 @@ public struct ContainerRegister<T: Sendable> {
         self.keyPath = keyPath
         self.defaultFactory = nil
     }
+    
+    /// KeyPath를 사용하여 자동 등록 기능이 있는 의존성 주입 프로퍼티 래퍼를 생성합니다.
+    ///
+    /// 이 초기화자는 Needle 스타일의 자동 등록을 제공합니다.
+    /// 의존성이 등록되지 않은 경우, 타입 정보를 기반으로 자동으로 기본 구현체를 등록하려고 시도합니다.
+    ///
+    /// - Parameter keyPath: 주입할 의존성을 나타내는 `DependencyContainer`의
+    ///   `T?` 프로퍼티를 가리키는 KeyPath입니다.
+    /// - Parameter autoRegister: 자동 등록 활성화 여부 (기본값: true)
+    ///
+    /// ## 예시
+    ///
+    /// ```swift
+    /// final class UserService {
+    ///     @ContainerRegister(\.bookListInterface, autoRegister: true)
+    ///     private var repository: BookListInterface
+    ///
+    ///     func getBooks() async throws -> [Book] {
+    ///         return try await repository.fetchBooks()
+    ///     }
+    /// }
+    /// ```
+    public init(_ keyPath: KeyPath<DependencyContainer, T?>, autoRegister: Bool = true) {
+        self.keyPath = keyPath
+        
+        if autoRegister {
+            // 자동 등록 로직: 타입 정보를 기반으로 기본 팩토리 생성 시도
+            self.defaultFactory = Self.createAutoFactory()
+        } else {
+            self.defaultFactory = nil
+        }
+    }
+    
+    /// 타입 정보를 기반으로 자동 팩토리를 생성하는 정적 메서드
+    /// 
+    /// 이 메서드는 AutoRegistrationRegistry를 사용하여 실제 인스턴스를 생성합니다.
+    private static func createAutoFactory() -> (() -> T)? {
+        return {
+            // 1. AutoRegistrationRegistry에서 등록된 팩토리 찾기
+            if let instance = AutoRegistrationRegistry.shared.createInstance(for: T.self) {
+                return instance
+            }
+            
+            // 2. 등록되지 않은 경우 도움말 메시지와 함께 실패
+            let typeName = String(describing: T.self)
+            let suggestedImplementationName = Self.getSuggestedImplementationName(for: typeName)
+            
+            fatalError("""
+                [DI Auto-Register] No registered factory found for \(typeName).
+                
+                💡 To fix this, add to your app startup:
+                
+                AutoRegistrationRegistry.shared.register(\(typeName).self) {
+                    \(suggestedImplementationName)()
+                }
+                
+                Or use setupAutoRegistration() and add your types there.
+                
+                Currently registered types: \(AutoRegistrationRegistry.shared.registeredCount)
+                """)
+        }
+    }
+    
+    /// 타입 이름을 기반으로 제안하는 구현체 이름을 생성합니다.
+    private static func getSuggestedImplementationName(for typeName: String) -> String {
+        if typeName.hasSuffix("Interface") {
+            // BookListInterface → BookListRepositoryImpl
+            let baseName = String(typeName.dropLast("Interface".count))
+            return "\(baseName)RepositoryImpl"
+        } else if typeName.hasSuffix("Protocol") {
+            // UserServiceProtocol → UserServiceImpl
+            let baseName = String(typeName.dropLast("Protocol".count))
+            return "\(baseName)Impl"
+        } else {
+            // 기본 규칙: MyService → MyServiceImpl
+            return "\(typeName)Impl"
+        }
+    }
 
     /// 자동 등록 폴백 기능을 가진 의존성 주입 프로퍼티 래퍼를 생성합니다.
     ///
