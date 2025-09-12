@@ -91,7 +91,7 @@ public struct RegisterModule: Sendable {
   ///     await container.register(moduleFactory())
   /// }
   /// ```
-  func interface<Interface>(
+  public func interface<Interface>(
       _ interfaceType: Interface.Type,
       repository repositoryFactory: @Sendable @escaping () -> Interface,
       useCase useCaseFactory: @Sendable @escaping (Interface) -> Interface,
