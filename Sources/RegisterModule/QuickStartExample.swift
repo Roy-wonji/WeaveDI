@@ -14,23 +14,23 @@ import LogMacro
 /// 
 /// 1. 앱 시작 시 (AppDelegate 또는 App.swift):
 /// ```swift
-/// // 의존성 등록
-/// AutoRegister.add(BookListInterface.self) { BookListRepositoryImpl() }
-/// AutoRegister.add(UserServiceInterface.self) { UserServiceImpl() }
+/// // 의존성 등록 - 사용자가 정의한 인터페이스 사용
+/// AutoRegister.add(MyServiceProtocol.self) { MyServiceImpl() }
+/// AutoRegister.add(DataRepositoryInterface.self) { DatabaseRepository() }
 /// ```
 ///
 /// 2. 어디서든 사용:
 /// ```swift
-/// @ContainerRegister(\.bookListInterface)
-/// private var repository: BookListInterface
+/// @ContainerRegister(\.myService)
+/// private var service: MyServiceProtocol
 ///
 /// // 또는
-/// let repository = ContainerRegister(\.bookListInterface).wrappedValue
+/// let service = ContainerRegister(\.myService).wrappedValue
 /// ```
 ///
 /// ## 권장 패턴:
-/// - Interface 접미사를 가진 프로토콜 사용
-/// - Impl 접미사를 가진 구현체 사용
+/// - 사용자가 직접 프로토콜/인터페이스 정의
+/// - 구현체는 Protocol, Interface 등의 접미사에 따라 Impl, Implementation 등으로 명명
 /// - 앱 시작 시 한번에 모든 의존성 등록
 
 public enum QuickStartGuide {
@@ -41,7 +41,7 @@ public enum QuickStartGuide {
         #logInfo("📝 [QuickStart] 이것은 예제입니다. 사용자의 실제 타입으로 바꿔주세요:")
         
         // 방법 1: 개별 등록
-        #logInfo("📝 [QuickStart] AutoRegister.add(YourInterface.self) { YourImplementation() }")
+        #logInfo("📝 [QuickStart] AutoRegister.add(YourProtocol.self) { YourImplementation() }")
         
         // 방법 2: 병렬 일괄 등록 (권장)
         #logInfo("📝 [QuickStart] AutoRegister.addMany { ... }")
@@ -49,14 +49,14 @@ public enum QuickStartGuide {
         // 실제 사용 예시 (주석 해제해서 사용):
         /*
         AutoRegister.addMany {
-            Registration(BookListInterface.self) { BookListRepositoryImpl() }
-            Registration(UserServiceInterface.self) { UserServiceImpl() }
-            Registration(NetworkInterface.self) { NetworkServiceImpl() }
+            Registration(MyServiceProtocol.self) { MyServiceImpl() }
+            Registration(DataRepositoryInterface.self) { DatabaseRepository() }
+            Registration(NetworkServiceProtocol.self) { NetworkServiceImpl() }
         }
         */
         
         // 또는 개별 등록:
-        // AutoRegister.add(BookListInterface.self) { BookListRepositoryImpl() }
-        // AutoRegister.add(UserServiceInterface.self) { UserServiceImpl() }
+        // AutoRegister.add(MyServiceProtocol.self) { MyServiceImpl() }
+        // AutoRegister.add(DataRepositoryInterface.self) { DatabaseRepository() }
     }
 }

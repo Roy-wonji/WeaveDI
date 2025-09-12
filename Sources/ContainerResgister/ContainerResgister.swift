@@ -689,47 +689,57 @@ public struct ContainerRegister<T: Sendable> {
     
     /// Bootstrap 완료를 기다리면서 의존성 해결을 시도합니다 (병렬 안전)
     private func resolveWithBootstrapWait() -> T {
-        let maxRetries = 10
-        let baseDelay: UInt32 = 50_000 // 0.05초 (microseconds)
+        let typeName = String(describing: T.self)
+        let maxRetries = 15  // 더 많은 재시도
+        let baseDelay: UInt32 = 30_000 // 0.03초 (더 짧은 간격)
         
         for attempt in 1...maxRetries {
-            // 1. 등록된 의존성 재확인
+            // 1. DependencyContainer에서 등록된 의존성 재확인
             if let value = DependencyContainer.live[keyPath: keyPath] {
-                #logDebug("✅ [DI-Timing] \(T.self) resolved after \(attempt) attempts")
+                #logDebug("✅ [DI-Timing] \(typeName) resolved after \(attempt) attempts")
                 return value
             }
             
-            // 2. 자동 팩토리 시도 (병렬 안전)
+            // 2. AutoRegistrationRegistry에서 직접 확인 (더 빠름)
+            if let instance = AutoRegistrationRegistry.shared.createInstance(for: T.self) {
+                // 찾았으면 DependencyContainer에도 등록
+                DependencyContainer.live.register(T.self, instance: instance)
+                #logDebug("✅ [DI-Fast] \(typeName) found in AutoRegistrationRegistry")
+                return instance
+            }
+            
+            // 3. 기본 팩토리 시도
             if let factory = defaultFactory {
                 let instance = factory()
                 DependencyContainer.live.register(T.self, instance: instance)
                 
-                // 등록 후 재확인
                 if let registeredValue = DependencyContainer.live[keyPath: keyPath] {
-                    #logInfo("🔧 [DI-Auto] \(T.self) auto-registered successfully")
+                    #logInfo("🔧 [DI-Auto] \(typeName) auto-registered successfully")
                     return registeredValue
                 }
             }
             
-            // 3. 마지막 시도가 아니면 대기 (지수 백오프)
-            if attempt < maxRetries {
-                let delay = baseDelay * UInt32(attempt)
-                #logDebug("⏳ [DI-Timing] Waiting for \(T.self) (\(attempt)/\(maxRetries)), delay: \(delay/1000)ms")
+            // 4. 첫 3번 시도는 대기 없이, 이후부터 대기
+            if attempt > 3 && attempt < maxRetries {
+                let delay = baseDelay * UInt32(min(attempt - 3, 5))
+                #logDebug("⏳ [DI-Timing] Waiting for \(typeName) (\(attempt)/\(maxRetries))")
                 usleep(delay)
             }
         }
         
         // 모든 시도 실패
-        let typeName = String(describing: T.self)
         fatalError("""
-            ❌ [DI-Timing] Failed to resolve \(typeName) after \(maxRetries) attempts
+            ❌ [DI] Could not resolve \(typeName) after \(maxRetries) attempts
             
-            💡 Bootstrap 타이밍 문제일 수 있습니다. 해결책:
-            1. 앱 시작 시 등록: AutoRegister.add(\(typeName).self) { YourImpl() }
-            2. 기본 팩토리: @ContainerRegister(\\.dep, defaultFactory: { YourImpl() })
-            3. Bootstrap 완료 후 사용: await DependencyContainer.ensureBootstrapped()
+            💡 해결책:
+            1. 앱 시작 시 등록: AutoRegister.add(\(typeName).self) { YourImplementation() }
+            2. 기본 팩토리: @ContainerRegister(\\.yourProperty, defaultFactory: { YourImpl() })
             
-            현재 등록된 타입 수: \(AutoRegistrationRegistry.shared.registeredCount)
+            💡 예시 (AppDelegate.swift):
+            AutoRegister.add(\(typeName).self) { 
+                // 여기에 실제 구현체 생성 코드
+                YourImplementationClass() 
+            }
             """)
     }
 }

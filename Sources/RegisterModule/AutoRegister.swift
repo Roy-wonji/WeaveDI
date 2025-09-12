@@ -46,9 +46,9 @@ public struct AutoRegister {
     /// ## 사용법:
     /// ```swift
     /// AutoRegister.addMany {
-    ///     (BookListInterface.self, { BookListRepositoryImpl() })
-    ///     (UserServiceInterface.self, { UserServiceImpl() })
-    ///     (NetworkInterface.self, { NetworkServiceImpl() })
+    ///     Registration(MyServiceProtocol.self) { MyServiceImpl() }
+    ///     Registration(DataRepositoryInterface.self) { DatabaseRepository() }
+    ///     Registration(NetworkServiceProtocol.self) { NetworkServiceImpl() }
     /// }
     /// ```
     public static func addMany(@RegistrationBuilder _ registrations: () -> [Registration]) {
