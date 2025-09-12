@@ -72,45 +72,51 @@ public struct RegisterModule: Sendable {
         }
         return fallback()
     }
-    
+
+
+  /// 사용자의 기존 패턴과 완전히 동일한 한번에 등록
+  ///
+  /// ## 사용법 (사용자의 기존 코드와 1:1 대응):
+  /// ```swift
+  /// // 기존 코드를 이렇게 변환:
+  /// let modules = registerModule.interface(
+  ///     AuthInterface.self,
+  ///     repository: { AuthRepositoryImpl() },
+  ///     useCase: { repo in AuthUseCaseImpl(repository: repo) },
+  ///     fallback: { DefaultAuthRepositoryImpl() }
+  /// )
+  ///
+  /// // 등록
+  /// for moduleFactory in modules {
+  ///     await container.register(moduleFactory())
+  /// }
+  /// ```
+  func interface<Interface>(
+      _ interfaceType: Interface.Type,
+      repository repositoryFactory: @Sendable @escaping () -> Interface,
+      useCase useCaseFactory: @Sendable @escaping (Interface) -> Interface,
+      fallback fallbackFactory: @Sendable @escaping () -> Interface
+  ) -> [() -> Module] {
+
+      return [
+          // Repository 모듈 (기존 authRepositoryImplModule과 동일)
+          makeDependency(interfaceType, factory: repositoryFactory),
+
+          // UseCase 모듈 (기존 authUseCaseImplModule과 동일)
+          makeUseCaseWithRepository(
+              interfaceType,
+              repositoryProtocol: interfaceType,
+              repositoryFallback: fallbackFactory(),
+              factory: useCaseFactory
+          )
+      ]
+  }
+
     /// 기본 인스턴스를 제공합니다.
     public func defaultInstance<T>(
         for type: T.Type,
         fallback: @Sendable @autoclosure @escaping () -> T
     ) -> T {
         return resolveOrDefault(for: type, fallback: fallback())
-    }
-}
-
-// MARK: - BookList 예시 적용
-
-public extension RegisterModule {
-    
-    /// 🔥 새로운 방식: BookList 인터페이스를 한번에 등록
-    var bookListModules: [() -> Module] {
-        return interface(
-            BookListInterface.self,
-            repository: { BookListRepositoryImpl() },
-            useCase: { repo in BookListUseCaseImpl(repository: repo) },
-            fallback: { DefaultBookListRepositoryImpl() }
-        )
-    }
-
-    /// 기존 방식 (하위 호환성 유지)
-    var bookListUseCaseImplModule: () -> Module {
-        makeUseCaseWithRepository(
-            BookListInterface.self,
-            repositoryProtocol: BookListInterface.self,
-            repositoryFallback: DefaultBookListRepositoryImpl(),
-            factory: { repo in
-                BookListUseCaseImpl(repository: repo)
-            }
-        )
-    }
-
-    var bookListRepositoryImplModule: () -> Module {
-        makeDependency(BookListInterface.self) {
-            BookListRepositoryImpl()
-        }
     }
 }
