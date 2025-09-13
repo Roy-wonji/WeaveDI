@@ -15,7 +15,7 @@ import LogMacro
 /// extension BookListUseCaseImpl: DependencyKey {
 ///     public static var liveValue: BookListInterface = {
 ///         // 🚨 이런 식으로 사용하면 안됨
-///         let repository = ContainerRegister.register(\.bookListInterface) { ... }
+///         let repository = SimpleKeyPathRegistry.register(\.bookListInterface) { ... }
 ///         return BookListUseCaseImpl(repository: repository as! BookListInterface)
 ///     }()
 /// }
@@ -29,7 +29,7 @@ public enum SafeDependencyKeyPatterns {
     // AppDelegate 또는 App.swift에서
     func setupDependencies() {
         // 🔒 먼저 의존성들을 등록
-        ContainerRegister.register(\\.bookListInterface) {
+        SimpleKeyPathRegistry.register(\\.bookListInterface) {
             BookListRepositoryImpl()
         }
     }
@@ -80,7 +80,7 @@ public enum SafeDependencyKeyPatterns {
         public static var liveValue: BookListInterface = {
             // ✅ 비동기로 등록하고 기본값 반환
             Task {
-                await ContainerRegister.registerAsync(\\.bookListInterface) {
+                await SimpleKeyPathRegistry.registerAsync(\\.bookListInterface) {
                     BookListRepositoryImpl()
                 }
             }
@@ -104,20 +104,22 @@ public enum SafeDependencyRegister {
         #logInfo("🔧 Setting up dependencies for DependencyKey patterns...")
         
         // 일반적인 의존성들을 미리 등록
-        ContainerRegister.registerMany {
-            // 예시: 실제 프로젝트에 맞게 수정
-            // (\.bookListInterface, { BookListRepositoryImpl() })
-            // (\.userService, { UserServiceImpl() })
-        }
+        // 예시: 실제 프로젝트에 맞게 수정
+        // SimpleKeyPathRegistry.registerMany {
+        //     (\.bookListInterface, { BookListRepositoryImpl() })
+        //     (\.userService, { UserServiceImpl() })
+        // }
         
         #logInfo("✅ DependencyKey dependencies setup complete")
     }
     
     /// KeyPath로 안전하게 의존성 해결
     public static func safeResolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T? {
-        let keyPathName = ContainerRegister.extractKeyPathName(keyPath)
+        let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
         
-        if let resolved = DependencyContainer.shared[keyPath: keyPath] {
+        // 임시로 주석 처리 - container가 private이므로 다른 방법 필요
+        // if let resolved = AppDIContainer.shared.container[keyPath: keyPath] {
+        if let resolved: T = nil { // TODO: 적절한 resolve 방법 구현 필요
             #logInfo("✅ [SafeDependencyRegister] Resolved \(keyPathName): \(type(of: resolved))")
             return resolved
         } else {
@@ -135,7 +137,7 @@ public enum SafeDependencyRegister {
             return resolved
         } else {
             let fallbackInstance = fallback()
-            let keyPathName = ContainerRegister.extractKeyPathName(keyPath)
+            let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
             #logInfo("🔄 [SafeDependencyRegister] Using fallback for \(keyPathName): \(type(of: fallbackInstance))")
             return fallbackInstance
         }
@@ -147,7 +149,8 @@ public enum SafeDependencyRegister {
 extension DependencyContainer {
     /// DependencyKey 지원을 위한 안전한 resolver
     func resolveSafely<T>(_ type: T.Type) -> T? {
-        if isTypeRegistered(type) {
+        // TODO: isTypeRegistered 메서드가 없으므로 임시로 true 반환
+        if true { // self.isTypeRegistered(type) {
             return resolve(type)
         } else {
             #logInfo("⚠️ [DependencyContainer] Type \(type) not registered")
@@ -170,7 +173,7 @@ public enum DependencyKeyMigrationGuide {
         ║                                                                               ║
         ║ extension BookListUseCaseImpl: DependencyKey {                               ║
         ║   public static var liveValue: BookListInterface = {                        ║
-        ║     let repository = ContainerRegister.register(\\.bookListInterface) {      ║
+        ║     let repository = SimpleKeyPathRegistry.register(\\.bookListInterface) {      ║
         ║       BookListRepositoryImpl()                                               ║
         ║     }                                                                        ║
         ║     return BookListUseCaseImpl(repository: repository as! BookListInterface) ║
@@ -188,7 +191,7 @@ public enum DependencyKeyMigrationGuide {
         ║                                                                               ║
         ║ // 1. AppDelegate에서 사전 등록                                              ║
         ║ func setupDependencies() {                                                   ║
-        ║   ContainerRegister.register(\\.bookListInterface) {                         ║
+        ║   SimpleKeyPathRegistry.register(\\.bookListInterface) {                         ║
         ║     BookListRepositoryImpl()                                                 ║
         ║   }                                                                          ║
         ║ }                                                                            ║
