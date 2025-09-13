@@ -498,12 +498,41 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
 public extension DependencyContainer {
   /// 애플리케이션 전역에서 사용하는 **라이브 컨테이너**입니다.
   ///
-  /// - Important: 부트스트랩 후 교체되며, `nonisolated(unsafe)`로 표시되어 있습니다.
-  ///   쓰기 경로는 부트스트랩 로직에서만 이루어지도록 유지하세요.
-  nonisolated(unsafe) static var live = DependencyContainer()
+  /// Thread-safe live container with proper synchronization
+  private static let liveContainerLock = NSLock()
+  // Use nonisolated(unsafe) but with proper locking for backward compatibility
+  nonisolated(unsafe) private static var _liveContainer = DependencyContainer()
+  
+  /// Thread-safe access to live container
+  static var live: DependencyContainer {
+    get {
+      liveContainerLock.lock()
+      defer { liveContainerLock.unlock() }
+      return _liveContainer
+    }
+    set {
+      liveContainerLock.lock()
+      defer { liveContainerLock.unlock() }
+      _liveContainer = newValue
+    }
+  }
 
-  /// 부트스트랩 완료 여부입니다.
-  nonisolated(unsafe) static var didBootstrap = false
+  /// Thread-safe bootstrap status with proper synchronization
+  private static let bootstrapLock = NSLock()
+  nonisolated(unsafe) private static var _didBootstrap = false
+  
+  static var didBootstrap: Bool {
+    get {
+      bootstrapLock.lock()
+      defer { bootstrapLock.unlock() }
+      return _didBootstrap
+    }
+    set {
+      bootstrapLock.lock()
+      defer { bootstrapLock.unlock() }
+      _didBootstrap = newValue
+    }
+  }
 
   /// 부트스트랩 과정을 직렬화하는 **코디네이터 액터**입니다.
   ///

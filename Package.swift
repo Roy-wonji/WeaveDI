@@ -22,6 +22,12 @@ let package = Package(
               .product(name: "LogMacro", package: "LogMacro"),
             ],
             path: "Sources"
+        ),
+        .testTarget(
+            name: "DiContainerTests",
+            dependencies: [
+                "DiContainer"
+            ]
         )
     ],
 )

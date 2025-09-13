@@ -105,7 +105,21 @@ public struct FactoryValues {
   
   /// The global, mutable set of factory values.
   ///
-  /// 액터 격리 제약 없이 접근하기 위해 `nonisolated(unsafe)`로 정의되어 있습니다.
-  /// 스레드 안전성은 호출자가 보장해야 합니다.
-  nonisolated(unsafe) public static var current = FactoryValues()
+  /// Thread-safe access to current factory values with proper synchronization
+  private static let currentLock = NSLock()
+  nonisolated(unsafe) private static var _current = FactoryValues()
+  
+  /// Thread-safe access to the current factory values
+  public static var current: FactoryValues {
+    get {
+      currentLock.lock()
+      defer { currentLock.unlock() }
+      return _current
+    }
+    set {
+      currentLock.lock()
+      defer { currentLock.unlock() }
+      _current = newValue
+    }
+  }
 }
