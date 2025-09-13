@@ -1,19 +1,102 @@
 //
-//  AutoRegistrationRegistry.swift
+//  TypeRegistry.swift
 //  DiContainer
 //
-//  Created by Wonji Suh on 3/24/25.
+//  Created by OpenAI on 2025-09-14.
 //
 
 import Foundation
 import LogMacro
 
-// MARK: - Auto Registration Registry
+// MARK: - AsyncTypeRegistry
+
+/// Actor-based async registry for DIAsync.
+/// Stores async factories and singleton instances without using GCD/locks.
+public actor AsyncTypeRegistry {
+    // Type-erased, sendable box to safely move values across concurrency domains
+    public struct AnySendableBox: @unchecked Sendable {
+        public let value: Any
+        public init(_ v: Any) { self.value = v }
+    }
+
+    private var asyncFactories: [AnyTypeIdentifier: (@Sendable () async -> AnySendableBox)] = [:]
+    private var singletons: [AnyTypeIdentifier: AnySendableBox] = [:]
+
+    public init() {}
+
+    // MARK: Register
+
+    /// Register an async factory for a type (transient resolution)
+    public func register<T>(
+        _ type: T.Type,
+        factory: @Sendable @escaping () async -> T
+    ) {
+        let key = AnyTypeIdentifier(type)
+        asyncFactories[key] = { AnySendableBox(await factory()) }
+    }
+
+    /// Register a singleton instance for a type
+    public func registerInstance<T>(
+        _ type: T.Type,
+        instance: T
+    ) {
+        let key = AnyTypeIdentifier(type)
+        singletons[key] = AnySendableBox(instance)
+    }
+
+    /// Register a pre-boxed singleton instance (avoid sending non-Sendable across boundary)
+    public func registerInstanceBoxed<T>(
+        _ type: T.Type,
+        boxed: AnySendableBox
+    ) {
+        let key = AnyTypeIdentifier(type)
+        singletons[key] = boxed
+    }
+
+    // MARK: Resolve
+
+    /// Resolve a type and return a sendable box
+    public func resolveBox<T>(_ type: T.Type) async -> AnySendableBox? {
+        let key = AnyTypeIdentifier(type)
+        if let box = singletons[key] { return box }
+        if let maker = asyncFactories[key] {
+            let box = await maker()
+            return box
+        }
+        return nil
+    }
+
+    /// Get an existing singleton box, or create/store one using the provided factory
+    public func getOrCreateBox<T>(
+        _ type: T.Type,
+        orMake make: @Sendable () async -> AnySendableBox
+    ) async -> AnySendableBox {
+        let key = AnyTypeIdentifier(type)
+        if let box = singletons[key] { return box }
+        let newBox = await make()
+        singletons[key] = newBox
+        return newBox
+    }
+
+    // MARK: Maintenance
+
+    /// Release a registration (singleton and factory)
+    public func release<T>(_ type: T.Type) {
+        let key = AnyTypeIdentifier(type)
+        singletons[key] = nil
+        asyncFactories[key] = nil
+    }
+
+    /// Clear all registrations (test-only recommended)
+    public func clearAll() {
+        singletons.removeAll()
+        asyncFactories.removeAll()
+    }
+}
+
+// MARK: - AutoRegistrationRegistry
 
 /// Needle 스타일의 자동 등록을 위한 타입 매핑 레지스트리입니다.
-/// 
-/// 이 레지스트리는 인터페이스/프로토콜 타입을 구체적인 구현체와 연결하여
-/// ContainerRegister가 자동으로 의존성을 생성할 수 있게 해줍니다.
 public final class AutoRegistrationRegistry: @unchecked Sendable {
     public static let shared = AutoRegistrationRegistry()
 
@@ -23,17 +106,12 @@ public final class AutoRegistrationRegistry: @unchecked Sendable {
     private init() {}
 
     /// 타입과 그 구현체를 등록합니다.
-    /// - Parameters:
-    ///   - protocolType: 인터페이스/프로토콜 타입
-    ///   - factory: 구현체 인스턴스를 생성하는 팩토리 클로저
     public func register<T>(_ protocolType: T.Type, factory: @Sendable @escaping () -> T) {
         _ = registry.register(protocolType, factory: factory)
         #logInfo("✅ [AutoRegistry] Registered type: \(String(describing: protocolType))")
     }
 
     /// 등록된 타입에 대한 인스턴스를 생성합니다.
-    /// - Parameter type: 생성할 타입
-    /// - Returns: 생성된 인스턴스 (등록되지 않은 경우 nil)
     public func createInstance<T>(for type: T.Type) -> T? {
         registry.resolve(type)
     }
@@ -56,22 +134,8 @@ public final class AutoRegistrationRegistry: @unchecked Sendable {
     public func getAllRegisteredTypeNames() -> [String] {
         registry.allTypeNames()
     }
-}
 
-// MARK: - Convenience Registration Extensions
-
-public extension AutoRegistrationRegistry {
-    
     /// 여러 타입을 한번에 등록하는 편의 메서드입니다.
-    /// 
-    /// ## 사용 예시:
-    /// ```swift
-    /// AutoRegistrationRegistry.shared.registerTypes {
-    ///   (BookListInterface.self, { BookListRepositoryImpl() })
-    ///   (UserServiceProtocol.self, { UserServiceImpl() })
-    ///   (NetworkServiceProtocol.self, { DefaultNetworkService() })
-    /// }
-    /// ```
     func registerTypes(@TypeRegistrationBuilder _ builder: () -> [TypeRegistration]) {
         let registrations = builder()
         for registration in registrations {
@@ -93,13 +157,13 @@ public struct TypeRegistrationBuilder {
 /// 개별 타입 등록을 나타내는 구조체입니다.
 public struct TypeRegistration {
     private let registerFunc: (AutoRegistrationRegistry) -> Void
-    
+
     public init<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) {
         self.registerFunc = { registry in
             registry.register(type, factory: factory)
         }
     }
-    
+
     func register(in registry: AutoRegistrationRegistry) {
         registerFunc(registry)
     }
