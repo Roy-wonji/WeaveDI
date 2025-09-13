@@ -53,18 +53,25 @@ public struct AutoRegister {
     /// ```
     public static func addMany(@RegistrationBuilder _ registrations: () -> [Registration]) {
         let allRegistrations = registrations()
-        
         #logInfo("🔧 [AutoRegister] Batch registering \(allRegistrations.count) dependencies")
-        
-        // 병렬로 등록 (AutoRegistrationRegistry는 이미 thread-safe)
-        DispatchQueue.global(qos: .userInitiated).async {
+
+        // Swift Concurrency로 백그라운드 작업 실행
+        Task.detached(priority: .userInitiated) {
             for registration in allRegistrations {
                 registration.execute()
             }
-            DispatchQueue.main.async {
+            await MainActor.run {
                 #logInfo("✅ [AutoRegister] Batch registration completed: \(allRegistrations.count) types")
             }
         }
+    }
+
+    /// async/await 친화적 버전 (필요 시 호출부에서 await)
+    public static func addManyAsync(@RegistrationBuilder _ registrations: () -> [Registration]) async {
+        let allRegistrations = registrations()
+        #logInfo("🔧 [AutoRegister] (async) Batch registering \(allRegistrations.count) dependencies")
+        for registration in allRegistrations { registration.execute() }
+        #logInfo("✅ [AutoRegister] (async) Batch registration completed: \(allRegistrations.count) types")
     }
     
     /// 개별 타입 등록 (static 메서드)
@@ -107,5 +114,4 @@ public struct Registration: @unchecked Sendable {
         executeBlock()
     }
 }
-
 

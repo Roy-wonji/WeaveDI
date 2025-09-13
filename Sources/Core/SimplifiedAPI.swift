@@ -38,7 +38,7 @@ public enum DI {
     ///   - factory: 인스턴스를 생성하는 클로저
     /// - Returns: 등록 해제 핸들러
     @discardableResult
-    public static func register<T: Sendable>(
+    public static func register<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
     ) -> () -> Void {
@@ -51,7 +51,7 @@ public enum DI {
     ///   - factory: 인스턴스를 생성하는 클로저
     /// - Returns: 생성된 인스턴스 (동시에 DI 컨테이너에 싱글톤으로 등록됨)
     @discardableResult
-    public static func register<T: Sendable>(
+    public static func register<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         factory: @escaping @Sendable () -> T
     ) -> T {
@@ -64,7 +64,7 @@ public enum DI {
     /// - Parameters:
     ///   - type: 등록할 타입
     ///   - instance: 공유할 인스턴스
-    public static func registerSingleton<T: Sendable>(
+    public static func registerSingleton<T>(
         _ type: T.Type,
         instance: T
     ) {
@@ -73,7 +73,7 @@ public enum DI {
 
     /// KeyPath 기반 싱글톤 등록
     @discardableResult
-    public static func registerSingleton<T: Sendable>(
+    public static func registerSingleton<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         instance: T
     ) -> T {
@@ -88,7 +88,7 @@ public enum DI {
     ///   - factory: 인스턴스를 생성하는 클로저
     ///   - fallback: 조건이 false일 때 사용할 팩토리
     @discardableResult
-    public static func registerIf<T: Sendable>(
+    public static func registerIf<T>(
         _ type: T.Type,
         condition: Bool,
         factory: @escaping @Sendable () -> T,
@@ -103,7 +103,7 @@ public enum DI {
 
     /// KeyPath 기반 조건부 등록 (등록과 동시에 인스턴스 반환)
     @discardableResult
-    public static func registerIf<T: Sendable>(
+    public static func registerIf<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         condition: Bool,
         factory: @escaping @Sendable () -> T,
@@ -181,13 +181,13 @@ public struct DIRegistrationBuilder {
 public struct DIRegistration {
     private let registerAction: () -> Void
     
-    public init<T: Sendable>(_ type: T.Type, factory: @escaping @Sendable () -> T) {
+    public init<T>(_ type: T.Type, factory: @escaping @Sendable () -> T) {
         self.registerAction = {
             DI.register(type, factory: factory)
         }
     }
     
-    public init<T: Sendable>(_ type: T.Type, singleton instance: T) {
+    public init<T>(_ type: T.Type, singleton instance: T) {
         self.registerAction = {
             DI.registerSingleton(type, instance: instance)
         }

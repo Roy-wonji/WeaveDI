@@ -302,10 +302,7 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
   /// 기존 String 키 방식 대신 타입 안전한 키를 사용합니다.
   private let typeSafeRegistry = TypeSafeRegistry()
 
-  /// 읽기/쓰기를 동기화하는 concurrent 큐입니다.
-  /// - Important: TypeSafeRegistry가 내부적으로 동기화를 처리하므로 
-  ///   현재는 주로 하위 호환성을 위해 유지됩니다.
-  private let syncQueue = DispatchQueue(label: "com.diContainer.syncQueue", attributes: .concurrent)
+  // NOTE: 동기화는 TypeSafeRegistry가 담당하므로 별도의 GCD 큐는 사용하지 않습니다.
 
   // MARK: - Init
 
