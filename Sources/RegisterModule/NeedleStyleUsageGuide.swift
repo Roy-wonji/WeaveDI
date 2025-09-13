@@ -50,13 +50,17 @@ public enum NeedleStyleUsageGuide {
         // @ContainerRegister(\\.bookListInterface, defaultFactory: { BookListRepositoryImpl() })
         // private var repository: BookListInterface
         
-        // 🚀 NEW: 간편한 방식
-        @ContainerRegister(\\.bookListInterface)
-        private var repository: BookListInterface
+        // 🚀 NEW: 안전한 방식 (크래시 방지)
+        @ContainerInject(\\.bookListInterface)
+        private var repository: BookListInterface?
         
         func loadBooks() async {
+            guard let repository = repository else {
+                print("⚠️ BookListInterface not registered - skipping")
+                return
+            }
             let books = try await repository.fetchBooks()
-            // 자동으로 BookListRepositoryImpl이 주입됨!
+            // 안전하게 BookListRepositoryImpl이 주입됨!
         }
     }
     """
@@ -230,15 +234,21 @@ public enum NeedleStyleUsageGuide {
     
     // 실제 사용
     class BookListViewController {
-        // 🔥 간편한 자동 주입
-        @ContainerRegister(\\.bookListInterface)
-        private var repository: BookListInterface
+        // 🛡️ 안전한 자동 주입 (크래시 방지)
+        @ContainerInject(\\.bookListInterface)
+        private var repository: BookListInterface?
         
-        @ContainerRegister(\\.userService) 
-        private var userService: UserServiceProtocol
+        @ContainerInject(\\.userService) 
+        private var userService: UserServiceProtocol?
         
         func loadData() async {
-            // 자동으로 주입된 의존성들 사용
+            // 안전한 옵셔널 체이닝으로 크래시 방지
+            guard let repository = repository,
+                  let userService = userService else {
+                print("⚠️ Required services not registered")
+                return
+            }
+            
             let books = try await repository.fetchBooks()
             let user = await userService.getCurrentUser()
             
@@ -265,8 +275,8 @@ public enum NeedleStyleUsageGuide {
         }
     }
     
-    @ContainerRegister(\\.bookListInterface, defaultFactory: { BookListRepositoryImpl() })
-    private var repository: BookListInterface
+    @ContainerInject(\\.bookListInterface, defaultFactory: { BookListRepositoryImpl() })
+    private var repository: BookListInterface?
     
     // === AFTER (Needle 스타일) ===
     
@@ -275,9 +285,9 @@ public enum NeedleStyleUsageGuide {
         BookListRepositoryImpl()
     }
     
-    // 2. 간편한 의존성 주입
-    @ContainerRegister(\\.bookListInterface)
-    private var repository: BookListInterface
+    // 2. 안전한 의존성 주입 (크래시 방지)
+    @ContainerInject(\\.bookListInterface)
+    private var repository: BookListInterface?
     
     // 3. Component 스타일 (선택적)
     class AuthComponent: RootComponent {

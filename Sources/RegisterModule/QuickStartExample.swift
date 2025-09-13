@@ -21,11 +21,12 @@ import LogMacro
 ///
 /// 2. 어디서든 사용:
 /// ```swift
-/// @ContainerRegister(\.myService)
-/// private var service: MyServiceProtocol
+/// @ContainerInject(\.myService)
+/// private var service: MyServiceProtocol?
 ///
-/// // 또는
-/// let service = ContainerRegister(\.myService).wrappedValue
+/// // 또는 (필수 의존성인 경우)
+/// @RequiredDependency(\.myService)
+/// private var service: MyServiceProtocol
 /// ```
 ///
 /// ## 권장 패턴:

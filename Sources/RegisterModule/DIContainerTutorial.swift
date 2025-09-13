@@ -206,25 +206,29 @@ public enum DIContainerTutorial {
     /// // @ContainerRegister(\.authInterface, defaultFactory: { AuthRepositoryImpl() })
     /// // private var authService: AuthInterface
     /// 
-    /// // 🚀 새로운: 간편한 방식
-    /// @ContainerRegister(\.authInterface)
-    /// private var authService: AuthInterface
+    /// // 🛡️ 새로운: 안전한 방식 (크래시 방지)
+    /// @ContainerInject(\.authInterface)
+    /// private var authService: AuthInterface?
     /// 
-    /// @ContainerRegister(\.userInterface)
-    /// private var userService: UserInterface
+    /// @ContainerInject(\.userInterface)
+    /// private var userService: UserInterface?
     /// 
-    /// @ContainerRegister(\.paymentInterface)
-    /// private var paymentService: PaymentInterface
+    /// @ContainerInject(\.paymentInterface)
+    /// private var paymentService: PaymentInterface?
     /// ```
     /// 
     /// ### 4-3. 실제 사용 예시
     /// ```swift
     /// class BookListViewController {
-    ///     // 자동으로 AuthRepositoryImpl이 주입됨
-    ///     @ContainerRegister(\.authInterface)
-    ///     private var authService: AuthInterface
+    ///     // 안전하게 AuthRepositoryImpl이 주입됨
+    ///     @ContainerInject(\.authInterface)
+    ///     private var authService: AuthInterface?
     ///     
     ///     func login() async {
+    ///         guard let authService = authService else {
+    ///             print("⚠️ AuthInterface not registered")
+    ///             return
+    ///         }
     ///         do {
     ///             await authService.login(email: "user@example.com", password: "password")
     ///             // 로그인 성공 처리
@@ -444,12 +448,12 @@ public enum DIContainerTutorial {
     /// ### 7-2. ViewController에서 사용
     /// ```swift
     /// class AuthViewController: UIViewController {
-    ///     // 자동 주입
-    ///     @ContainerRegister(\.authInterface)
-    ///     private var authService: AuthInterface
+    ///     // 안전한 자동 주입
+    ///     @ContainerInject(\.authInterface)
+    ///     private var authService: AuthInterface?
     ///     
-    ///     @ContainerRegister(\.userInterface)
-    ///     private var userService: UserInterface
+    ///     @ContainerInject(\.userInterface)
+    ///     private var userService: UserInterface?
     ///     
     ///     override func viewDidLoad() {
     ///         super.viewDidLoad()
