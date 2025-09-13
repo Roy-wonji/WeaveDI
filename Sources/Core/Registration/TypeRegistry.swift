@@ -116,6 +116,16 @@ public final class AutoRegistrationRegistry: @unchecked Sendable {
         registry.resolve(type)
     }
 
+    /// 타입이 등록되어 있는지 확인합니다.
+    public func isRegistered<T>(_ type: T.Type) -> Bool {
+        return registry.resolve(type) != nil
+    }
+
+    /// 등록된 타입에 대한 인스턴스를 해결합니다.
+    public func resolve<T>(_ type: T.Type) -> T? {
+        return registry.resolve(type)
+    }
+
     /// 모든 등록된 타입을 출력합니다 (디버깅용)
     public func debugPrintRegisteredTypes() {
         let names = registry.allTypeNames()

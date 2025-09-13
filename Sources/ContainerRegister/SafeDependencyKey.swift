@@ -117,9 +117,8 @@ public enum SafeDependencyRegister {
     public static func safeResolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T? {
         let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
         
-        // 임시로 주석 처리 - container가 private이므로 다른 방법 필요
-        // if let resolved = AppDIContainer.shared.container[keyPath: keyPath] {
-        if let resolved: T = nil { // TODO: 적절한 resolve 방법 구현 필요
+        // DependencyContainer를 통해 의존성 해결
+        if let resolved: T = DependencyContainer.live[keyPath: keyPath] {
             #logInfo("✅ [SafeDependencyRegister] Resolved \(keyPathName): \(type(of: resolved))")
             return resolved
         } else {
@@ -149,13 +148,14 @@ public enum SafeDependencyRegister {
 extension DependencyContainer {
     /// DependencyKey 지원을 위한 안전한 resolver
     func resolveSafely<T>(_ type: T.Type) -> T? {
-        // TODO: isTypeRegistered 메서드가 없으므로 임시로 true 반환
-        if true { // self.isTypeRegistered(type) {
-            return resolve(type)
+        // 등록 여부 확인 후 안전하게 해결
+        let resolved = resolve(type)
+        if resolved != nil {
+            #logInfo("✅ [DependencyContainer] Successfully resolved \(type)")
         } else {
             #logInfo("⚠️ [DependencyContainer] Type \(type) not registered")
-            return nil
         }
+        return resolved
     }
 }
 

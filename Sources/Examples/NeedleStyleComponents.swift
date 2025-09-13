@@ -115,6 +115,7 @@ public struct NeedleComponentBuilder {
 /// 타입 소거를 위한 ComponentProtocol
 private protocol NeedleComponentProtocol {
     func register(in container: Container) async
+    func makeModule() -> Module
 }
 
 /// Component를 래핑하는 구조체
@@ -127,6 +128,12 @@ private struct ComponentWrapper<T: Dependency>: NeedleComponentProtocol {
     
     func register(in container: Container) async {
         await component.register(in: container)
+    }
+
+    func makeModule() -> Module {
+        let modules = component.makeAllModules()
+        // 첫 번째 모듈을 반환하거나, 필요에 따라 로직 수정
+        return modules.first ?? Module(Any.self, factory: { () as Any })
     }
 }
 
@@ -146,12 +153,16 @@ public extension RegisterModule {
     }
     
     /// 여러 컴포넌트를 한번에 통합하는 메서드입니다.
-    /// 
+    ///
     /// - Parameter components: 등록할 컴포넌트들
     /// - Returns: 모든 컴포넌트의 모듈을 생성하는 클로저 배열
     fileprivate func makeMultipleComponentModules(_ components: [any NeedleComponentProtocol]) -> [() -> Module] {
-        // TODO: 실제 구현 시 타입 안전성 개선 필요
-        return []
+        return components.map { component in
+            // 타입 안전성 개선: 각 컴포넌트의 makeModule 메서드 사용
+            return {
+                component.makeModule()
+            }
+        }
     }
 }
 

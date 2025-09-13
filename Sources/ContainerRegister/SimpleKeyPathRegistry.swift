@@ -118,8 +118,8 @@ public enum SimpleKeyPathRegistry {
     public static func isRegistered<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> Bool {
         let keyPathName = extractKeyPathName(keyPath)
         #logInfo("🔍 [SimpleKeyPathRegistry] Checking registration for \(keyPathName)")
-        // TODO: AutoRegistrationRegistry에 isRegistered 메서드 추가 필요
-        return false // 임시로 false 반환
+        // AutoRegistrationRegistry의 isRegistered 메서드 사용
+        return AutoRegistrationRegistry.shared.isRegistered(T.self)
     }
     
     /// KeyPath에서 이름 추출
@@ -146,8 +146,8 @@ public enum SimpleSafeDependencyRegister {
     public static func safeResolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T? {
         let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
         
-        // TODO: AutoRegistrationRegistry에 resolve 메서드 추가 필요
-        if let resolved: T = nil { // 임시로 nil
+        // AutoRegistrationRegistry의 resolve 메서드 사용
+        if let resolved: T = AutoRegistrationRegistry.shared.resolve(T.self) {
             #logInfo("✅ [SimpleSafeDependencyRegister] Resolved \(keyPathName): \(type(of: resolved))")
             return resolved
         } else {
