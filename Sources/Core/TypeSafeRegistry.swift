@@ -92,6 +92,7 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
     ///   - type: 등록할 타입
     ///   - factory: 인스턴스를 생성하는 팩토리 클로저 (@Sendable)
     /// - Returns: 해제 핸들러 클로저
+    /// - Note: 메모리 안전성을 위해 weak reference 사용
     func register<T>(
         _ type: T.Type,
         factory: @Sendable @escaping () -> T
@@ -103,10 +104,21 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
             self.factories[key] = factory
         }
 
-        // 해제 핸들러는 호출 시점에 단일 배리어로 정리
+        // 🛡️ 메모리 안전성: weak self로 retain cycle 방지
         let releaseHandler: () -> Void = { [weak self] in
-            self?.syncQueue.sync(flags: .barrier) {
-                self?.factories[key] = nil
+            // weak self가 이미 deallocated된 경우 gracefully return
+            guard let strongSelf = self else { 
+                #if DEBUG
+                print("⚠️ [TypeSafeRegistry] Registry deallocated, skipping release for \(type)")
+                #endif
+                return 
+            }
+            
+            strongSelf.syncQueue.sync(flags: .barrier) {
+                strongSelf.factories[key] = nil
+                #if DEBUG
+                print("🗑️ [TypeSafeRegistry] Released registration for \(type)")
+                #endif
             }
         }
         return releaseHandler
@@ -146,9 +158,13 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
     /// - Parameters:
     ///   - type: 등록할 타입
     ///   - instance: 등록할 인스턴스
+    /// - Note: 싱글톤 패턴으로 같은 인스턴스를 반환
     func register<T>(_ type: T.Type, instance: T) {
         let key = AnyTypeIdentifier(type)
+        
+        // 🔒 인스턴스를 클로저로 감싸서 메모리 안전성 확보
         syncQueue.sync(flags: .barrier) {
+            // 인스턴스를 약한 참조가 아닌 값 복사로 저장하여 안전성 확보
             self.factories[key] = { instance }
         }
     }

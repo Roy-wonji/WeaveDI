@@ -114,11 +114,34 @@ public enum DI {
     
     // MARK: - Resolution
     
-    /// 등록된 의존성을 해결합니다
+    /// 등록된 의존성을 해결합니다 (옵셔널 반환)
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
     public static func resolve<T>(_ type: T.Type) -> T? {
         return DependencyContainer.live.resolve(type)
+    }
+    
+    /// 등록된 의존성을 Result로 해결합니다 (에러 처리)
+    /// - Parameter type: 해결할 타입
+    /// - Returns: 성공 시 인스턴스, 실패 시 DIError
+    public static func resolveResult<T>(_ type: T.Type) -> Result<T, DIError> {
+        if let resolved = DependencyContainer.live.resolve(type) {
+            return .success(resolved)
+        } else {
+            return .failure(.dependencyNotFound(type, hint: "Call DI.register(\(type).self) { ... } first"))
+        }
+    }
+    
+    /// 등록된 의존성을 해결하고 실패 시 throws
+    /// - Parameter type: 해결할 타입
+    /// - Returns: 해결된 인스턴스
+    /// - Throws: DIError.dependencyNotFound
+    public static func resolveThrows<T>(_ type: T.Type) throws -> T {
+        if let resolved = DependencyContainer.live.resolve(type) {
+            return resolved
+        } else {
+            throw DIError.dependencyNotFound(type, hint: "Call DI.register(\(type).self) { ... } first")
+        }
     }
     
     /// 등록된 의존성을 해결하거나 기본값을 반환합니다
@@ -133,9 +156,10 @@ public enum DI {
     /// 필수 의존성을 해결합니다 (실패 시 fatalError)
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스
+    /// - Warning: 개발 중에만 사용하세요. 프로덕션에서는 resolveThrows() 사용 권장
     public static func requireResolve<T>(_ type: T.Type) -> T {
         guard let resolved = DependencyContainer.live.resolve(type) else {
-            fatalError("Required dependency \(T.self) not found. Did you forget to register it?")
+            fatalError("🚨 Required dependency '\(T.self)' not found. Register it using: DI.register(\(T.self).self) { ... }")
         }
         return resolved
     }
@@ -149,10 +173,21 @@ public enum DI {
     }
     
     /// 모든 등록된 의존성을 해제합니다 (테스트 용도)
+    /// - Warning: 메인 스레드에서만 호출하세요
+    @MainActor
     public static func releaseAll() {
         // Implementation would need to be added to DependencyContainer
         // For now, create a new container
         DependencyContainer.live = DependencyContainer()
+        
+        #if DEBUG
+        print("🧹 [DI] All registrations released - container reset")
+        #endif
+    }
+    
+    /// 비동기 환경에서 모든 등록을 해제합니다
+    public static func releaseAllAsync() async {
+        await DIActorGlobalAPI.releaseAll()
     }
     
     // MARK: - Bulk Registration
@@ -226,8 +261,21 @@ public struct Inject<T> {
                 // Optional 타입이면 nil을 반환 (크래시 없음)
                 return Optional<Any>.none as! T
             } else {
-                // Non-optional 타입이면 fatalError
-                fatalError("Required dependency \(T.self) not found at keyPath \(keyPath). Register it using DI.register(\(T.self).self) { ... }")
+                // Non-optional 타입이면 더 친화적인 에러 메시지와 함께 fatalError
+                let typeName = String(describing: T.self)
+                let suggestion = "DI.register(\(typeName).self) { YourImplementation() }"
+                
+                fatalError("""
+                🚨 [DI] Required dependency not found!
+                
+                Type: \(typeName)
+                KeyPath: \(keyPath)
+                
+                💡 Fix by adding this to your app startup:
+                   \(suggestion)
+                
+                🔍 Make sure you called this before accessing the @Inject property.
+                """)
             }
         }
     }
