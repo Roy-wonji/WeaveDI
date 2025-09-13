@@ -29,7 +29,6 @@ import LogMacro
 /// let sharedCache = CacheServiceImpl()
 /// ContainerRegister.registerInstance(\.cacheService, instance: sharedCache)
 /// ```
-@MainActor
 public enum ContainerRegister {
     
     // MARK: - Core Registration Methods
@@ -38,7 +37,7 @@ public enum ContainerRegister {
     /// - Parameters:
     ///   - keyPath: 의존성을 식별하는 KeyPath
     ///   - factory: 인스턴스를 생성하는 팩토리 클로저
-    public static func register<T>(
+    nonisolated public static func register<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         factory: @escaping @Sendable () -> T,
         file: String = #fileID,
@@ -71,7 +70,7 @@ public enum ContainerRegister {
     ///   - keyPath: 의존성을 식별하는 KeyPath
     ///   - condition: 등록 조건 (true일 때만 등록)
     ///   - factory: 인스턴스를 생성하는 팩토리 클로저
-    public static func registerIf<T>(
+    nonisolated public static func registerIf<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         condition: Bool,
         factory: @escaping @Sendable () -> T,
@@ -124,7 +123,7 @@ public enum ContainerRegister {
     /// - Parameters:
     ///   - keyPath: 의존성을 식별하는 KeyPath
     ///   - instance: 등록할 인스턴스
-    public static func registerInstance<T>(
+    nonisolated public static func registerInstance<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         instance: T,
         file: String = #fileID,
@@ -154,7 +153,7 @@ public enum ContainerRegister {
     // MARK: - Batch Registration
     
     /// 여러 의존성을 한 번에 등록
-    public static func registerMany(@RegistrationBuilder _ registrations: () -> [RegistrationItem]) {
+    nonisolated public static func registerMany(@RegistrationBuilder _ registrations: () -> [RegistrationItem]) {
         #logInfo("📦 [ContainerRegister] Starting batch registration...")
         let items = registrations()
         
@@ -169,21 +168,21 @@ public enum ContainerRegister {
     // MARK: - Debugging and Utilities
     
     /// 등록된 모든 KeyPath 의존성 디버깅 정보 출력
-    public static func debugPrintRegistrations() {
+    nonisolated public static func debugPrintRegistrations() {
         Task {
             await DependencyContainer.shared.debugPrintKeyPathRegistrations()
         }
     }
     
     /// 특정 KeyPath의 등록 상태 확인
-    public static func isRegistered<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> Bool {
+    nonisolated public static func isRegistered<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> Bool {
         let keyPathName = extractKeyPathName(keyPath)
         #logInfo("🔍 [ContainerRegister] Checking registration for \(keyPathName)")
         return DependencyContainer.shared.isTypeRegistered(T.self)
     }
     
     /// KeyPath에서 이름 추출
-    private static func extractKeyPathName<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> String {
+    nonisolated private static func extractKeyPathName<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> String {
         let keyPathString = String(describing: keyPath)
         
         // KeyPath 문자열에서 프로퍼티 이름 추출

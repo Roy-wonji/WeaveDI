@@ -15,7 +15,7 @@ extension ContainerRegister {
     // MARK: - Environment-based Registration
     
     /// Debug 환경에서만 등록
-    public static func registerIfDebug<T>(
+    nonisolated public static func registerIfDebug<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         factory: @escaping @Sendable () -> T,
         file: String = #fileID,
@@ -33,7 +33,7 @@ extension ContainerRegister {
     }
     
     /// Release 환경에서만 등록
-    public static func registerIfRelease<T>(
+    nonisolated public static func registerIfRelease<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         factory: @escaping @Sendable () -> T,
         file: String = #fileID,
@@ -53,7 +53,7 @@ extension ContainerRegister {
     // MARK: - Conditional Registration with Predicates
     
     /// 플랫폼별 조건부 등록
-    public static func registerIf<T>(
+    nonisolated public static func registerIf<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         platform: SupportedPlatform,
         factory: @escaping @Sendable () -> T,
@@ -74,7 +74,7 @@ extension ContainerRegister {
     }
     
     /// 사용자 정의 조건으로 등록
-    public static func registerWhen<T>(
+    nonisolated public static func registerWhen<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         condition: @autoclosure () -> Bool,
         factory: @escaping @Sendable () -> T,
@@ -88,7 +88,7 @@ extension ContainerRegister {
     // MARK: - Lazy Registration
     
     /// 지연 등록 (첫 번째 접근 시까지 팩토리 실행 지연)
-    public static func registerLazy<T>(
+    nonisolated public static func registerLazy<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         factory: @escaping @Sendable () -> T,
         file: String = #fileID,
@@ -109,7 +109,7 @@ extension ContainerRegister {
     // MARK: - Singleton Registration
     
     /// 싱글톤 등록 (한 번만 생성, 이후 재사용)
-    public static func registerSingleton<T>(
+    nonisolated public static func registerSingleton<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         factory: @escaping @Sendable () -> T,
         file: String = #fileID,
@@ -183,7 +183,7 @@ private final class SingletonFactory<T>: @unchecked Sendable {
 
 extension ContainerRegister {
     /// DSL 스타일 등록
-    public static func configure(@RegistrationConfigBuilder _ configuration: () -> [RegistrationConfig]) {
+    nonisolated public static func configure(@RegistrationConfigBuilder _ configuration: () -> [RegistrationConfig]) {
         let configs = configuration()
         
         #logInfo("⚙️ [ContainerRegister] Starting DSL configuration (\(configs.count) items)...")
@@ -242,7 +242,7 @@ public enum RegistrationConfigBuilder {
 
 extension ContainerRegister {
     /// KeyPath에서 이름 추출 (내부 사용을 위해 public으로 노출)
-    public static func extractKeyPathName<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> String {
+    nonisolated public static func extractKeyPathName<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> String {
         let keyPathString = String(describing: keyPath)
         
         // KeyPath 문자열에서 프로퍼티 이름 추출
