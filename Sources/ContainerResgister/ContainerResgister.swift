@@ -569,21 +569,11 @@ public struct ContainerRegister<T: Sendable> {
             let typeName = String(describing: T.self)
             let suggestedImplementationName = Self.getSuggestedImplementationName(for: typeName)
             
-            fatalError("""
-                ❌ [DI] No registered dependency found for \(typeName)
-                
-                💡 해결 방법:
-                1. 앱 시작 시 등록: AutoRegister().add(\(typeName).self) { \(suggestedImplementationName)() }
-                2. 기본 팩토리 사용: @ContainerRegister(\\.dependency, defaultFactory: { YourImpl() })
-                
-                💡 예시:
-                // AppDelegate나 App.swift에서
-                AutoRegister().add(\(typeName).self) { 
-                    \(suggestedImplementationName)() 
-                }
-                
-                현재 등록된 타입 수: \(AutoRegistrationRegistry.shared.registeredCount)
-                """)
+            Self.generateDetailedDebugError(
+                typeName: typeName,
+                suggestedImplementationName: suggestedImplementationName,
+                context: .immediateResolution
+            )
         }
     }
     
@@ -727,19 +717,180 @@ public struct ContainerRegister<T: Sendable> {
             }
         }
         
-        // 모든 시도 실패
-        fatalError("""
-            ❌ [DI] Could not resolve \(typeName) after \(maxRetries) attempts
+        // 모든 시도 실패 - 상세한 디버깅 정보 제공
+        Self.generateDetailedDebugError(
+            typeName: typeName,
+            suggestedImplementationName: Self.getSuggestedImplementationName(for: typeName),
+            context: .retryTimeout(attempts: maxRetries)
+        )
+    }
+    
+    // MARK: - Detailed Debug Information
+    
+    /// 디버깅 컨텍스트 정보
+    private enum DebugContext {
+        case immediateResolution
+        case retryTimeout(attempts: Int)
+    }
+    
+    /// 상세한 디버깅 정보와 함께 에러를 발생시킵니다
+    private static func generateDetailedDebugError(
+        typeName: String,
+        suggestedImplementationName: String,
+        context: DebugContext
+    ) -> Never {
+        
+        let debugInfo = collectDebugInformation(typeName: typeName)
+        let contextMessage = getContextMessage(for: context)
+        let resolutionGuide = generateResolutionGuide(
+            typeName: typeName,
+            suggestedImplementationName: suggestedImplementationName
+        )
+        
+        let fullErrorMessage = """
+        ═══════════════════════════════════════════════════════════════
+        ❌ [DI ERROR] Dependency Resolution Failed
+        ═══════════════════════════════════════════════════════════════
+        
+        🎯 TYPE: \(typeName)
+        📍 CONTEXT: \(contextMessage)
+        
+        \(debugInfo)
+        
+        \(resolutionGuide)
+        
+        ═══════════════════════════════════════════════════════════════
+        💡 Need Help? Check: github.com/your-repo/DiContainer/issues
+        ═══════════════════════════════════════════════════════════════
+        """
+        
+        #logError("🚨 [DI] Fatal dependency resolution error for \(typeName)")
+        #logError("📊 [DI] Debug info: \(debugInfo)")
+        
+        fatalError(fullErrorMessage)
+    }
+    
+    /// 현재 DI 시스템 상태 정보 수집
+    private static func collectDebugInformation(typeName: String) -> String {
+        let autoRegistryCount = AutoRegistrationRegistry.shared.registeredCount
+        
+        // 비슷한 이름의 등록된 타입 찾기
+        let similarTypes = findSimilarRegisteredTypes(to: typeName)
+        
+        var debugInfo = """
+        📊 SYSTEM STATE:
+        ├─ AutoRegistrationRegistry: \(autoRegistryCount) types registered
+        ├─ Bundle identifier: \(Bundle.main.bundleIdentifier ?? "Unknown")
+        └─ Main thread: \(Thread.isMainThread)
+        """
+        
+        if !similarTypes.isEmpty {
+            debugInfo += """
             
-            💡 해결책:
-            1. 앱 시작 시 등록: AutoRegister.add(\(typeName).self) { YourImplementation() }
-            2. 기본 팩토리: @ContainerRegister(\\.yourProperty, defaultFactory: { YourImpl() })
-            
-            💡 예시 (AppDelegate.swift):
-            AutoRegister.add(\(typeName).self) { 
-                // 여기에 실제 구현체 생성 코드
-                YourImplementationClass() 
+            🔍 SIMILAR REGISTERED TYPES:
+            \(similarTypes.map { "├─ \($0)" }.joined(separator: "\n"))
+            """
+        }
+        
+        // 시스템 환경 정보
+        debugInfo += """
+        
+        🖥️  ENVIRONMENT:
+        ├─ iOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
+        ├─ App Version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
+        └─ Build: \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown")
+        """
+        
+        return debugInfo
+    }
+    
+    /// 컨텍스트에 따른 메시지 생성
+    private static func getContextMessage(for context: DebugContext) -> String {
+        switch context {
+        case .immediateResolution:
+            return "Immediate resolution without retry logic"
+        case .retryTimeout(let attempts):
+            return "Resolution failed after \(attempts) retry attempts with exponential backoff"
+        }
+    }
+    
+    /// 해결 가이드 생성
+    private static func generateResolutionGuide(
+        typeName: String,
+        suggestedImplementationName: String
+    ) -> String {
+        let guide = """
+        🔧 RESOLUTION GUIDE:
+        
+        1️⃣ REGISTER THE DEPENDENCY:
+           AutoRegister.add(\(typeName).self) { \(suggestedImplementationName)() }
+        
+        2️⃣ USE DEFAULT FACTORY:
+           @ContainerRegister(\\.yourProperty, defaultFactory: { DefaultImpl() })
+        
+        3️⃣ CHECK REGISTRATION TIMING:
+           // Ensure registration happens before first usage
+           // In AppDelegate.application(_:didFinishLaunchingWithOptions:)
+        
+        💻 COMPLETE EXAMPLE:
+        ```swift
+        // 1. In AppDelegate.swift or App.swift
+        AutoRegister.addMany {
+            Registration(\(typeName).self) { \(suggestedImplementationName)() }
+        }
+        
+        // 2. Usage anywhere
+        @ContainerRegister(\\.yourProperty)
+        private var dependency: \(typeName)
+        ```
+        
+        📝 DEBUGGING TIPS:
+        ├─ Check if your implementation class exists and is accessible
+        ├─ Verify registration happens before first DI usage
+        ├─ Ensure your class has a public initializer
+        └─ Check for circular dependencies
+        """
+        
+        return guide
+    }
+    
+    /// 유사한 이름의 등록된 타입들 찾기
+    private static func findSimilarRegisteredTypes(to typeName: String) -> [String] {
+        let allRegisteredTypes = AutoRegistrationRegistry.shared.getAllRegisteredTypeNames()
+        
+        return allRegisteredTypes.compactMap { registeredType in
+            let similarity = calculateStringSimilarity(typeName, registeredType)
+            if similarity > 0.6 { // 60% 이상 유사한 경우
+                return "\(registeredType) (similarity: \(String(format: "%.1f", similarity * 100))%)"
             }
-            """)
+            return nil
+        }
+    }
+    
+    /// 문자열 유사도 계산 (간단한 버전)
+    private static func calculateStringSimilarity(_ string1: String, _ string2: String) -> Double {
+        let longer = string1.count > string2.count ? string1 : string2
+        let shorter = string1.count > string2.count ? string2 : string1
+        
+        if longer.isEmpty { return 1.0 }
+        
+        let editDistance = levenshteinDistance(longer, shorter)
+        return (Double(longer.count) - Double(editDistance)) / Double(longer.count)
+    }
+    
+    /// 레벤슈타인 거리 계산
+    private static func levenshteinDistance(_ string1: String, _ string2: String) -> Int {
+        let empty = [Int](repeating: 0, count: string2.count)
+        var last = [Int](0...string2.count)
+        
+        for (i, char1) in string1.enumerated() {
+            var current = [i + 1] + empty
+            for (j, char2) in string2.enumerated() {
+                current[j + 1] = char1 == char2 ? last[j] : Swift.min(last[j], last[j + 1], current[j]) + 1
+            }
+            last = current
+        }
+        
+        return last.last!
     }
 }

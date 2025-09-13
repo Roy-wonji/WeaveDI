@@ -75,6 +75,11 @@ public final class AutoRegistrationRegistry: @unchecked Sendable {
     public var registeredCount: Int {
         queue.sync { typeFactories.count }
     }
+    
+    /// 등록된 모든 타입 이름을 반환합니다 (디버깅용)
+    public func getAllRegisteredTypeNames() -> [String] {
+        queue.sync { Array(typeFactories.keys).sorted() }
+    }
 }
 
 // MARK: - Convenience Registration Extensions
