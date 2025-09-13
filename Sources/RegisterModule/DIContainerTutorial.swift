@@ -61,7 +61,7 @@ public enum DIContainerTutorial {
     /// }
     /// 
     /// // 사용
-    /// @ContainerRegister(\.networkService, defaultFactory: { DefaultNetworkService() })
+    /// @ContainerRegisterWrapper(\.networkService, defaultFactory: { DefaultNetworkService() })
     /// private var networkService: NetworkServiceProtocol
     /// ```
     public static let basicUsage = """
@@ -203,7 +203,7 @@ public enum DIContainerTutorial {
     /// ### 4-2. 간편한 사용
     /// ```swift
     /// // ✅ 기존: 복잡한 방식
-    /// // @ContainerRegister(\.authInterface, defaultFactory: { AuthRepositoryImpl() })
+    /// // @ContainerRegisterWrapper(\.authInterface, defaultFactory: { AuthRepositoryImpl() })
     /// // private var authService: AuthInterface
     /// 
     /// // 🛡️ 새로운: 안전한 방식 (크래시 방지)

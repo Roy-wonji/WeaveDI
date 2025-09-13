@@ -22,7 +22,7 @@ import Foundation
 /// 
 /// ## 권장 방법 (향후):
 /// ```swift 
-/// @ContainerRegister(\.authUseCase)   // 올바른 스펠링
+/// @ContainerRegisterWrapper(\.authUseCase)   // 올바른 스펠링
 /// private var authUseCase: AuthInterface
 /// ```
 /// 

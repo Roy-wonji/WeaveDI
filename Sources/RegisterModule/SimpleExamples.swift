@@ -121,7 +121,7 @@ public enum SimpleExamples {
     /// }
     /// 
     /// // 2. 이후 간편하게 사용
-    /// @ContainerRegister(\.authInterface)
+    /// @ContainerRegisterWrapper(\.authInterface)
     /// private var authService: AuthInterface
     /// ```
     public static func autoRegistrationUsage() {
@@ -136,7 +136,7 @@ public enum SimpleExamples {
         }
         
         #logInfo("✅ Auto registration setup complete!")
-        #logInfo("Now you can use: @ContainerRegister(\\.authInterface) without defaultFactory")
+        #logInfo("Now you can use: @ContainerRegisterWrapper(\\.authInterface) without defaultFactory")
     }
     
     /// ## 🏗️ RegisterModule Extension 활용법

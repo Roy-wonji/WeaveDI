@@ -105,7 +105,7 @@ public class GlobalAutoRegister {
 /// ## 핵심 특징
 ///
 /// ### 🎯 선언적 의존성 주입
-/// - **간결한 구문**: `@ContainerRegister(\.service)` 한 줄로 의존성 주입 완료
+/// - **간결한 구문**: `@ContainerRegisterWrapper(\.service)` 한 줄로 의존성 주입 완료
 /// - **타입 안전**: 컴파일 타임에 타입 불일치 검출
 /// - **KeyPath 기반**: 문자열이 아닌 타입 안전한 키 사용
 ///
@@ -161,13 +161,13 @@ public class GlobalAutoRegister {
 /// ### 3단계: 프로퍼티 래퍼를 통한 의존성 주입
 /// ```swift
 /// class UserViewModel: ObservableObject {
-///     @ContainerRegister(\.userService)
+///     @ContainerRegisterWrapper(\.userService)
 ///     private var userService: UserServiceProtocol
 ///     
-///     @ContainerRegister(\.networkService)  
+///     @ContainerRegisterWrapper(\.networkService)  
 ///     private var networkService: NetworkServiceProtocol
 ///     
-///     @ContainerRegister(\.logger)
+///     @ContainerRegisterWrapper(\.logger)
 ///     private var logger: LoggerProtocol
 ///     
 ///     func loadUser(id: String) async {
@@ -190,13 +190,13 @@ public class GlobalAutoRegister {
 /// ```swift
 /// class WeatherService {
 ///     // 프로덕션 환경에서는 실제 서비스, 개발/테스트에서는 Mock 사용
-///     @ContainerRegister(\.locationService, defaultFactory: { 
+///     @ContainerRegisterWrapper(\.locationService, defaultFactory: { 
 ///         MockLocationService() 
 ///     })
 ///     private var locationService: LocationServiceProtocol
 ///     
 ///     // 네트워크 실패 시 로컬 캐시 사용
-///     @ContainerRegister(\.weatherDataSource, defaultFactory: { 
+///     @ContainerRegisterWrapper(\.weatherDataSource, defaultFactory: { 
 ///         LocalWeatherDataSource() 
 ///     })
 ///     private var weatherDataSource: WeatherDataSourceProtocol
@@ -254,7 +254,7 @@ public class GlobalAutoRegister {
 /// ### 조건부 의존성 주입
 /// ```swift
 /// class AnalyticsManager {
-///     @ContainerRegister(\.analyticsService, defaultFactory: {
+///     @ContainerRegisterWrapper(\.analyticsService, defaultFactory: {
 ///         #if DEBUG
 ///         return MockAnalyticsService()
 ///         #else
@@ -281,7 +281,7 @@ public class GlobalAutoRegister {
 /// ### 오류 처리 메커니즘
 /// ```swift
 /// // 등록되지 않았고 기본 팩토리도 없는 경우
-/// @ContainerRegister(\.missingService)
+/// @ContainerRegisterWrapper(\.missingService)
 /// private var missingService: MissingServiceProtocol
 /// // ↓ 접근 시 fatalError 발생
 /// // "MissingServiceProtocol 타입의 등록된 의존성을 찾을 수 없으며, 기본 팩토리도 제공되지 않았습니다."
@@ -298,11 +298,11 @@ public class GlobalAutoRegister {
 /// ```swift
 /// class GoodService {
 ///     // 프로토콜 타입으로 의존성 선언
-///     @ContainerRegister(\.userRepository)
+///     @ContainerRegisterWrapper(\.userRepository)
 ///     private var userRepository: UserRepositoryProtocol
 ///     
 ///     // 기본 구현체 제공으로 안전성 확보
-///     @ContainerRegister(\.logger, defaultFactory: { ConsoleLogger() })
+///     @ContainerRegisterWrapper(\.logger, defaultFactory: { ConsoleLogger() })
 ///     private var logger: LoggerProtocol
 ///     
 ///     // private 접근 제어로 캡슐화
@@ -314,15 +314,15 @@ public class GlobalAutoRegister {
 /// ```swift
 /// class BadService {
 ///     // 구체 타입에 직접 의존 - 테스트 어려움
-///     @ContainerRegister(\.userRepository)
+///     @ContainerRegisterWrapper(\.userRepository)
 ///     private var userRepository: ConcreteUserRepository
 ///     
 ///     // public으로 노출 - 캡슐화 위반
-///     @ContainerRegister(\.logger)
+///     @ContainerRegisterWrapper(\.logger)
 ///     public var logger: LoggerProtocol
 ///     
 ///     // 기본 팩토리 없이 사용 - 런타임 크래시 위험
-///     @ContainerRegister(\.optionalService)
+///     @ContainerRegisterWrapper(\.optionalService)
 ///     private var optionalService: OptionalServiceProtocol
 /// }
 /// ```
@@ -341,7 +341,7 @@ public class GlobalAutoRegister {
 ///     private let criticalService: CriticalServiceProtocol
 ///     
 ///     // 가끔 사용되는 의존성은 프로퍼티 래퍼로 지연 해결
-///     @ContainerRegister(\.optionalService, defaultFactory: { DefaultOptionalService() })
+///     @ContainerRegisterWrapper(\.optionalService, defaultFactory: { DefaultOptionalService() })
 ///     private var optionalService: OptionalServiceProtocol
 ///     
 ///     init() {
@@ -375,12 +375,12 @@ public class GlobalAutoRegister {
 /// ```swift
 /// // ❌ 문제: 순환 참조
 /// class ServiceA {
-///     @ContainerRegister(\.serviceB)
+///     @ContainerRegisterWrapper(\.serviceB)
 ///     private var serviceB: ServiceBProtocol
 /// }
 ///
 /// class ServiceB {
-///     @ContainerRegister(\.serviceA) 
+///     @ContainerRegisterWrapper(\.serviceA) 
 ///     private var serviceA: ServiceAProtocol
 /// }
 ///
@@ -390,7 +390,7 @@ public class GlobalAutoRegister {
 /// }
 ///
 /// class ServiceA: ServiceADelegate {
-///     @ContainerRegister(\.serviceB)
+///     @ContainerRegisterWrapper(\.serviceB)
 ///     private var serviceB: ServiceBProtocol
 ///     
 ///     func handleEvent() {
@@ -444,10 +444,10 @@ public class GlobalAutoRegister {
 ///
 /// ```swift
 /// final class APIClient {
-///     @ContainerRegister(\.networkService)
+///     @ContainerRegisterWrapper(\.networkService)
 ///     private var networkService: NetworkServiceProtocol
 ///
-///     @ContainerRegister(\.authRepository)
+///     @ContainerRegisterWrapper(\.authRepository)
 ///     private var authRepository: AuthRepositoryProtocol
 ///
 ///     func performAuthenticatedRequest() async throws -> Data {
@@ -463,7 +463,7 @@ public class GlobalAutoRegister {
 ///
 /// ```swift
 /// final class TestableService {
-///     @ContainerRegister(\.networkService, defaultFactory: { MockNetworkService() })
+///     @ContainerRegisterWrapper(\.networkService, defaultFactory: { MockNetworkService() })
 ///     private var networkService: NetworkServiceProtocol
 ///
 ///     // 실제 구현체가 등록되지 않은 경우 MockNetworkService를 사용합니다
@@ -480,7 +480,7 @@ public class GlobalAutoRegister {
 /// - ``wrappedValue``
 ///
 @propertyWrapper
-public struct ContainerRegister<T: Sendable> {
+public struct ContainerRegisterWrapper<T: Sendable> {
 
     // MARK: - 프로퍼티
 
@@ -505,7 +505,7 @@ public struct ContainerRegister<T: Sendable> {
     ///
     /// ```swift
     /// final class UserService {
-    ///     @ContainerRegister(\.authRepository)
+    ///     @ContainerRegisterWrapper(\.authRepository)
     ///     private var authRepository: AuthRepositoryProtocol
     ///
     ///     func getCurrentUser() async throws -> User {
@@ -532,7 +532,7 @@ public struct ContainerRegister<T: Sendable> {
     ///
     /// ```swift
     /// final class UserService {
-    ///     @ContainerRegister(\.bookListInterface, autoRegister: true)
+    ///     @ContainerRegisterWrapper(\.bookListInterface, autoRegister: true)
     ///     private var repository: BookListInterface
     ///
     ///     func getBooks() async throws -> [Book] {
@@ -632,7 +632,7 @@ public struct ContainerRegister<T: Sendable> {
     ///
     /// ```swift
     /// final class WeatherService {
-    ///     @ContainerRegister(\.locationService, defaultFactory: { MockLocationService() })
+    ///     @ContainerRegisterWrapper(\.locationService, defaultFactory: { MockLocationService() })
     ///     private var locationService: LocationServiceProtocol
     ///
     ///     func getCurrentWeather() async throws -> Weather {
@@ -846,7 +846,7 @@ public struct ContainerRegister<T: Sendable> {
            AutoRegister.add(\(typeName).self) { \(suggestedImplementationName)() }
         
         2️⃣ USE DEFAULT FACTORY:
-           @ContainerRegister(\\.yourProperty, defaultFactory: { DefaultImpl() })
+           @ContainerRegisterWrapper(\\.yourProperty, defaultFactory: { DefaultImpl() })
         
         3️⃣ CHECK REGISTRATION TIMING:
            // Ensure registration happens before first usage
@@ -860,7 +860,7 @@ public struct ContainerRegister<T: Sendable> {
         }
         
         // 2. Usage anywhere
-        @ContainerRegister(\\.yourProperty)
+        @ContainerRegisterWrapper(\\.yourProperty)
         private var dependency: \(typeName)
         ```
         

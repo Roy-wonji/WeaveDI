@@ -16,10 +16,10 @@ import LogMacro
 // AutoRegister.setup()
 //
 // // 2. 이후 어디서든 간편하게 사용
-// @ContainerRegister(\.bookListInterface)
+// @ContainerRegisterWrapper(\.bookListInterface)
 // private var repository: BookListInterface
 //
-// @ContainerRegister(\.userService)
+// @ContainerRegisterWrapper(\.userService)
 // private var userService: UserServiceProtocol
 //
 // // 또는

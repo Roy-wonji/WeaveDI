@@ -22,7 +22,7 @@ public enum CrashFreeGuide {
         ║                                                                               ║
         ║  🚨 HIGH RISK - Can Crash:                                                   ║
         ║  ────────────────────────────                                               ║
-        ║  @ContainerRegister(\\.service)                                              ║
+        ║  @ContainerRegisterWrapper(\\.service)                                              ║
         ║  private var service: ServiceProtocol                                        ║
         ║                                                                               ║
         ║  ❌ Crashes if service not registered                                        ║
@@ -69,7 +69,7 @@ public enum CrashFreeGuide {
         ║                                                                               ║
         ║  🔒 CORE/REQUIRED (80%):                                                    ║
         ║  // BEFORE (risky)                                                           ║
-        ║  @ContainerRegister(\\.userRepository)                                       ║
+        ║  @ContainerRegisterWrapper(\\.userRepository)                                       ║
         ║  private var userRepository: UserRepositoryProtocol                          ║
         ║                                                                               ║
         ║  // AFTER (safe with clear errors)                                           ║
@@ -78,7 +78,7 @@ public enum CrashFreeGuide {
         ║                                                                               ║
         ║  🛡️ OPTIONAL/FEATURES (20%):                                               ║
         ║  // BEFORE (risky)                                                           ║
-        ║  @ContainerRegister(\\.analyticsService)                                     ║
+        ║  @ContainerRegisterWrapper(\\.analyticsService)                                     ║
         ║  private var analytics: AnalyticsServiceProtocol                             ║
         ║                                                                               ║
         ║  // AFTER (crash-free)                                                       ║

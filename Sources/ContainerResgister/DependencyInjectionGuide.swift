@@ -38,7 +38,7 @@ public enum DependencyInjectionGuide {
         ║  • More complex but handles edge cases                                       ║
         ║                                                                               ║
         ║  Example:                                                                     ║
-        ║  @ContainerRegister(\\.optionalService)                                      ║
+        ║  @ContainerRegisterWrapper(\\.optionalService)                                      ║
         ║  private var service: ServiceProtocol                                        ║
         ║                                                                               ║
         ╠═══════════════════════════════════════════════════════════════════════════════╣

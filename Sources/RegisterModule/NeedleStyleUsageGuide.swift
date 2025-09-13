@@ -47,7 +47,7 @@ public enum NeedleStyleUsageGuide {
     // 2. 이제 간편하게 사용 가능!
     class MyViewController {
         // ✅ 기존: 복잡한 방식
-        // @ContainerRegister(\\.bookListInterface, defaultFactory: { BookListRepositoryImpl() })
+        // @ContainerRegisterWrapper(\\.bookListInterface, defaultFactory: { BookListRepositoryImpl() })
         // private var repository: BookListInterface
         
         // 🚀 NEW: 안전한 방식 (크래시 방지)
