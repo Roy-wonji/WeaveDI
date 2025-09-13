@@ -461,6 +461,7 @@ public actor Container {
   public func build() async {
     // 1) actor 내부 배열을 스냅샷 -> task 생성 중 불필요한 actor hop 방지
     let snapshot = modules
+    let processedCount = snapshot.count
 
     // 2) 병렬 실행 + 전체 완료 대기
     await withTaskGroup(of: Void.self) { group in
@@ -470,6 +471,13 @@ public actor Container {
         }
       }
       await group.waitForAll()
+    }
+
+    // 3) 처리된 모듈 제거 (스냅샷 개수만큼만 제거하여 그 사이 추가된 모듈은 보존)
+    if modules.count >= processedCount {
+      modules.removeFirst(processedCount)
+    } else {
+      modules.removeAll()
     }
   }
 }

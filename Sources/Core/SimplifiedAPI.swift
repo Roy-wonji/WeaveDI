@@ -44,6 +44,21 @@ public enum DI {
     ) -> () -> Void {
         return DependencyContainer.live.register(type, build: factory)
     }
+
+    /// KeyPath 기반으로 의존성을 등록하고 생성된 인스턴스를 즉시 반환합니다
+    /// - Parameters:
+    ///   - keyPath: `DependencyContainer` 내의 의존성 위치(해결 시 사용), 단순한 식별 용도
+    ///   - factory: 인스턴스를 생성하는 클로저
+    /// - Returns: 생성된 인스턴스 (동시에 DI 컨테이너에 싱글톤으로 등록됨)
+    @discardableResult
+    public static func register<T: Sendable>(
+        _ keyPath: KeyPath<DependencyContainer, T?>,
+        factory: @escaping @Sendable () -> T
+    ) -> T {
+        let instance = factory()
+        DependencyContainer.live.register(T.self, instance: instance)
+        return instance
+    }
     
     /// 의존성을 싱글톤으로 등록합니다
     /// - Parameters:
@@ -54,6 +69,16 @@ public enum DI {
         instance: T
     ) {
         DependencyContainer.live.register(type, instance: instance)
+    }
+
+    /// KeyPath 기반 싱글톤 등록
+    @discardableResult
+    public static func registerSingleton<T: Sendable>(
+        _ keyPath: KeyPath<DependencyContainer, T?>,
+        instance: T
+    ) -> T {
+        DependencyContainer.live.register(T.self, instance: instance)
+        return instance
     }
     
     /// 의존성을 조건부로 등록합니다
@@ -74,6 +99,17 @@ public enum DI {
         } else {
             return register(type, factory: fallback)
         }
+    }
+
+    /// KeyPath 기반 조건부 등록 (등록과 동시에 인스턴스 반환)
+    @discardableResult
+    public static func registerIf<T: Sendable>(
+        _ keyPath: KeyPath<DependencyContainer, T?>,
+        condition: Bool,
+        factory: @escaping @Sendable () -> T,
+        fallback: @escaping @Sendable () -> T
+    ) -> T {
+        return condition ? register(keyPath, factory: factory) : register(keyPath, factory: fallback)
     }
     
     // MARK: - Resolution

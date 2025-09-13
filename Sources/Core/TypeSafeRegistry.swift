@@ -77,69 +77,66 @@ public struct AnyTypeIdentifier: Hashable, Sendable {
 internal final class TypeSafeRegistry: @unchecked Sendable {
     /// 타입별 팩토리 저장소
     private var factories = [AnyTypeIdentifier: Any]()
-    
-    /// 해제 핸들러 저장소
-    private var releaseHandlers = [AnyTypeIdentifier: () -> Void]()
-    
+
     /// 스레드 안전성을 위한 동기화 큐
     private let syncQueue = DispatchQueue(label: "com.diContainer.typeSafeRegistry", attributes: .concurrent)
-    
+
     /// 타입과 팩토리 클로저를 등록합니다.
-    /// 
+    ///
     /// - Parameters:
     ///   - type: 등록할 타입
-    ///   - factory: 인스턴스를 생성하는 팩토리 클로저
+    ///   - factory: 인스턴스를 생성하는 팩토리 클로저 (@Sendable)
     /// - Returns: 해제 핸들러 클로저
     func register<T>(
         _ type: T.Type,
-        factory: @escaping () -> T
+        factory: @Sendable @escaping () -> T
     ) -> () -> Void {
         let key = AnyTypeIdentifier(type)
-        
+
+        // 등록은 배리어로 보호
         syncQueue.sync(flags: .barrier) {
             self.factories[key] = factory
         }
-        
+
+        // 해제 핸들러는 호출 시점에 단일 배리어로 정리
         let releaseHandler: () -> Void = { [weak self] in
             self?.syncQueue.sync(flags: .barrier) {
                 self?.factories[key] = nil
-                self?.releaseHandlers[key] = nil
             }
         }
-        
-        syncQueue.sync(flags: .barrier) {
-            self.releaseHandlers[key] = releaseHandler
-        }
-        
         return releaseHandler
     }
-    
+
     /// 타입에 해당하는 인스턴스를 조회합니다.
-    /// 
+    ///
     /// - Parameter type: 조회할 타입
     /// - Returns: 해당 타입의 인스턴스 또는 nil
     func resolve<T>(_ type: T.Type) -> T? {
         let key = AnyTypeIdentifier(type)
-        return syncQueue.sync {
-            guard let factory = self.factories[key] as? () -> T else {
-                return nil
-            }
-            return factory()
+
+        // 1) 클로저 참조만 읽기 락으로 가져오고
+        let anyFactory: Any? = syncQueue.sync {
+            self.factories[key]
         }
+        // 2) 락 밖에서 실행 (무거운 초기화/재귀 호출 시 교착 방지)
+        guard let factory = anyFactory as? () -> T else {
+            return nil
+        }
+        return factory()
     }
-    
+
     /// 특정 타입의 등록을 해제합니다.
-    /// 
+    ///
     /// - Parameter type: 해제할 타입
     func release<T>(_ type: T.Type) {
         let key = AnyTypeIdentifier(type)
-        syncQueue.async(flags: .barrier) {
-            self.releaseHandlers[key]?()
+        syncQueue.sync(flags: .barrier) {
+            self.factories[key] = nil
         }
     }
-    
+
     /// 인스턴스를 직접 등록합니다.
-    /// 
+    ///
     /// - Parameters:
     ///   - type: 등록할 타입
     ///   - instance: 등록할 인스턴스

@@ -163,7 +163,7 @@ public actor Module {
   /// 이때 생성된 클로저는 외부에 노출되지 않으며, `register()` 메서드를 통해 실행됩니다.
   public init<T>(
     _ type: T.Type,
-    factory: @escaping () -> T
+    factory: @Sendable @escaping () -> T
   ) {
     // registrationClosure 내부에서는 반드시 `DependencyContainer.live`를 사용하여
     // 비동기로 의존성을 등록하도록 구현합니다.

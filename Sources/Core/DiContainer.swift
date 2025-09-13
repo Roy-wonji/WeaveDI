@@ -369,7 +369,7 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
   @discardableResult
   public func register<T>(
     _ type: T.Type,
-    build: @escaping () -> T
+    build: @Sendable @escaping () -> T
   ) -> () -> Void {
     // 타입 안전한 레지스트리 사용
     let releaseHandler = typeSafeRegistry.register(type, factory: build)
