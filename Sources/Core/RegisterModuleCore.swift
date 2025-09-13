@@ -46,16 +46,17 @@ public struct RegisterModule: Sendable {
         repositoryFallback: @Sendable @autoclosure @escaping () -> Repo,
         factory: @Sendable @escaping (Repo) -> UseCase
     ) -> @Sendable () -> Module {
-        
-        return {
-            // Repository 조회
-            let repository: Repo = self.resolveOrDefault(
-                for: repositoryProtocol,
-                fallback: repositoryFallback()
-            )
-            
-            return Module(useCaseProtocol, factory: {
-                factory(repository)
+        // Note: repository를 미리 캡처하지 않고, Module의 factory 내부에서 resolve하여
+        //       비-Sendable 타입 캡처로 인한 컴파일 오류를 방지합니다.
+        return { [repositoryProtocol] in
+            Module(useCaseProtocol, factory: {
+                // 팩토리 실행 시점에 Repo를 조회/생성
+                if let repo: Repo = DependencyContainer.live.resolve(repositoryProtocol) {
+                    return factory(repo)
+                } else {
+                    let fallbackRepo = repositoryFallback()
+                    return factory(fallbackRepo)
+                }
             })
         }
     }
