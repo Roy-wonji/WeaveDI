@@ -44,8 +44,8 @@ public enum RegisterAndReturn {
         #logInfo("✅ [RegisterAndReturn] Created instance for \(keyPathName): \(type(of: instance))")
         
         // 2. AutoRegister 시스템에 등록 (나중에 다른 곳에서 재사용 가능)
-        AutoRegister.add(T.self) { instance }
-        
+      DI.register(T.self) { instance }
+
         // 3. 생성된 인스턴스 반환
         return instance
     }
@@ -71,7 +71,7 @@ public enum RegisterAndReturn {
         #logInfo("✅ [RegisterAndReturn] Created async instance for \(keyPathName): \(type(of: instance))")
         
         // 2. AutoRegister 시스템에 등록
-        AutoRegister.add(T.self) { instance }
+      DI.register(T.self) { instance }
         
         // 3. 생성된 인스턴스 반환
         return instance
@@ -160,55 +160,33 @@ public enum RegisterAndReturn {
     
     /// 등록된 의존성 확인
     public static func isRegistered<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> Bool {
-        let keyPathName = extractKeyPathName(keyPath)
-        return SingletonRegistry.shared.hasSingleton(for: keyPathName)
+        // DI 컨테이너에 인스턴스가 등록되어 있는지 확인
+        return DependencyContainer.live.resolve(T.self) != nil
     }
     
     // MARK: - Private Singleton Management
     
     private static func getSingleton<T>(for keyPath: String, type: T.Type) -> T? {
-        return SingletonRegistry.shared.getSingleton(for: keyPath) as? T
+        // 싱글톤은 컨테이너 인스턴스 등록으로 대체합니다.
+        return DependencyContainer.live.resolve(T.self)
     }
     
     private static func setSingleton<T>(for keyPath: String, instance: T) {
-        SingletonRegistry.shared.setSingleton(for: keyPath, instance: instance)
+        // 컨테이너 인스턴스 등록을 통해 싱글톤을 보장합니다.
+        DependencyContainer.live.register(T.self, instance: instance)
     }
 }
 
 // MARK: - Singleton Registry
 
 /// 싱글톤 인스턴스들을 관리하는 레지스트리
-private final class SingletonRegistry: @unchecked Sendable {
-    static let shared = SingletonRegistry()
-    
+actor KeyPathSingletonRegistry {
+    static let shared = KeyPathSingletonRegistry()
     private var singletons: [String: Any] = [:]
-    private let lock = NSLock()
-    
-    private init() {}
-    
-    func getSingleton(for keyPath: String) -> Any? {
-        lock.lock()
-        defer { lock.unlock() }
-        return singletons[keyPath]
-    }
-    
-    func setSingleton(for keyPath: String, instance: Any) {
-        lock.lock()
-        defer { lock.unlock() }
-        singletons[keyPath] = instance
-    }
-    
-    func hasSingleton(for keyPath: String) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return singletons[keyPath] != nil
-    }
-    
-    func clearAllSingletons() {
-        lock.lock()
-        defer { lock.unlock() }
-        singletons.removeAll()
-    }
+    func getSingleton(for keyPath: String) -> Any? { singletons[keyPath] }
+    func setSingleton(for keyPath: String, instance: Any) { singletons[keyPath] = instance }
+    func hasSingleton(for keyPath: String) -> Bool { singletons[keyPath] != nil }
+    func clearAllSingletons() { singletons.removeAll() }
 }
 
 // MARK: - Environment Extensions

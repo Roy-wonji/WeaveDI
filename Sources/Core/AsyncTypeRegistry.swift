@@ -63,6 +63,18 @@ public actor AsyncTypeRegistry {
     return nil
   }
 
+  /// Get an existing singleton box, or create/store one using the provided factory
+  public func getOrCreateBox<T>(
+    _ type: T.Type,
+    orMake make: @Sendable () async -> AnySendableBox
+  ) async -> AnySendableBox {
+    let key = AnyTypeIdentifier(type)
+    if let box = singletons[key] { return box }
+    let newBox = await make()
+    singletons[key] = newBox
+    return newBox
+  }
+
   // MARK: Maintenance
 
   /// Release a registration (singleton and factory)

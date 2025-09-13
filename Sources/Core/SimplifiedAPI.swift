@@ -200,29 +200,50 @@ public struct DIRegistration {
 
 // MARK: - Simplified Inject Property Wrapper
 
-/// 단순화된 의존성 주입 프로퍼티 래퍼
+/// 단순화된 의존성 주입 프로퍼티 래퍼 
 /// 
 /// ## 사용법:
 /// ```swift
-/// @Inject(\.service) var service: ServiceProtocol?         // 옵셔널
-/// @Inject(\.service) var service: ServiceProtocol          // 필수 (런타임 체크)
+/// @Inject(\.service) var service: ServiceProtocol?         // 옵셔널 - 크래시 없음
+/// @Inject(\.service) var service: ServiceProtocol          // 필수 - 없으면 fatalError
 /// ```
+///
+/// ## 동작 방식:
+/// - **Optional 타입**: 의존성이 없으면 nil 반환 (크래시 없음)  
+/// - **Non-optional 타입**: 의존성이 없으면 fatalError (개발 중 빠른 발견)
 @propertyWrapper
 public struct Inject<T> {
     private let keyPath: KeyPath<DependencyContainer, T?>
     
     public var wrappedValue: T {
         get {
-            guard let resolved = DependencyContainer.live[keyPath: keyPath] else {
-                fatalError("Dependency \(T.self) not found at keyPath \(keyPath). Did you forget to register it?")
+            if let resolved = DependencyContainer.live[keyPath: keyPath] {
+                return resolved
             }
-            return resolved
+            
+            // T가 Optional 타입인지 확인
+            if T.self is OptionalProtocol.Type {
+                // Optional 타입이면 nil을 반환 (크래시 없음)
+                return Optional<Any>.none as! T
+            } else {
+                // Non-optional 타입이면 fatalError
+                fatalError("Required dependency \(T.self) not found at keyPath \(keyPath). Register it using DI.register(\(T.self).self) { ... }")
+            }
         }
     }
     
     public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
         self.keyPath = keyPath
     }
+}
+
+/// Optional 타입 감지를 위한 내부 프로토콜
+private protocol OptionalProtocol {
+    static var wrappedType: Any.Type { get }
+}
+
+extension Optional: OptionalProtocol {
+    static var wrappedType: Any.Type { return Wrapped.self }
 }
 
 // MARK: - Migration Aliases (for backward compatibility)

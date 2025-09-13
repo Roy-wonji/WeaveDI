@@ -36,7 +36,7 @@ public enum SimpleKeyPathRegistry {
         #logInfo("📝 [SimpleKeyPathRegistry] Registering \(keyPathName) -> \(T.self)")
         
         // AutoRegister 시스템 사용
-        AutoRegister.add(T.self, factory: factory)
+        DI.register(T.self, factory: factory)
     }
     
     /// KeyPath 기반 조건부 등록
@@ -71,7 +71,7 @@ public enum SimpleKeyPathRegistry {
         #logInfo("📦 [SimpleKeyPathRegistry] Registering instance \(keyPathName) -> \(type(of: instance))")
         
         // AutoRegister 시스템 사용
-        AutoRegister.add(T.self) { instance }
+      DI.register(T.self) { instance }
     }
     
     // MARK: - Environment-based Registration

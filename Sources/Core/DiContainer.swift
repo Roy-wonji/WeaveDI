@@ -495,40 +495,13 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
 public extension DependencyContainer {
   /// 애플리케이션 전역에서 사용하는 **라이브 컨테이너**입니다.
   ///
-  /// Thread-safe live container with proper synchronization
-  private static let liveContainerLock = NSLock()
-  // Use nonisolated(unsafe) but with proper locking for backward compatibility
+  /// 내부 레지스트리가 동시성 안전하므로 별도의 락 없이 보관합니다.
   nonisolated(unsafe) private static var _liveContainer = DependencyContainer()
-  
-  /// Thread-safe access to live container
-  static var live: DependencyContainer {
-    get {
-      liveContainerLock.lock()
-      defer { liveContainerLock.unlock() }
-      return _liveContainer
-    }
-    set {
-      liveContainerLock.lock()
-      defer { liveContainerLock.unlock() }
-      _liveContainer = newValue
-    }
-  }
 
-  /// Thread-safe bootstrap status with proper synchronization
-  private static let bootstrapLock = NSLock()
-  nonisolated(unsafe) private static var _didBootstrap = false
-  
-  static var didBootstrap: Bool {
-    get {
-      bootstrapLock.lock()
-      defer { bootstrapLock.unlock() }
-      return _didBootstrap
-    }
-    set {
-      bootstrapLock.lock()
-      defer { bootstrapLock.unlock() }
-      _didBootstrap = newValue
-    }
+  /// 현재 라이브 컨테이너. 부트스트랩 완료 시 코디네이터를 통해 교체됩니다.
+  static var live: DependencyContainer {
+    get { _liveContainer }
+    set { _liveContainer = newValue }
   }
 
   /// 부트스트랩 과정을 직렬화하는 **코디네이터 액터**입니다.
@@ -635,7 +608,9 @@ public extension DependencyContainer {
       let result = try await coordinator.bootstrapIfNotAlready(configure)
       if result.success {
         self.live = result.container
-        self.didBootstrap = true
+        // authoritative state is managed by coordinator
+        _ = await coordinator.isBootstrapped() // touch to ensure actor initialized
+        await coordinator.setBootstrapped(true)
         Log.info("DependencyContainer bootstrapped synchronously")
       } else {
         Log.error("DependencyContainer is already bootstrapped")
@@ -684,7 +659,7 @@ public extension DependencyContainer {
 
       if result.success {
         self.live = result.container
-        self.didBootstrap = true
+        await coordinator.setBootstrapped(true)
         let duration = CFAbsoluteTimeGetCurrent() - startTime
         Log.info("DependencyContainer bootstrapped successfully in \(String(format: "%.3f", duration))s")
         return true
@@ -802,7 +777,7 @@ public extension DependencyContainer {
 
       if result.success {
         self.live = result.container
-        self.didBootstrap = true
+        await coordinator.setBootstrapped(true)
         Log.info("DependencyContainer bootstrapped with mixed dependencies")
       }
     } catch {
@@ -915,7 +890,6 @@ public extension DependencyContainer {
     #if DEBUG
     await coordinator.resetForTesting()
     live = DependencyContainer()
-    didBootstrap = false
     Log.error("DependencyContainer reset for testing")
     #else
     assertionFailure("resetForTesting() should only be called in DEBUG builds")

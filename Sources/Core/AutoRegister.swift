@@ -31,6 +31,24 @@ import LogMacro
 
 /// 자동 등록 설정
 /// 이제 ContainerRegister(\.keyPath)만 사용해도 자동으로 등록된 타입을 찾습니다.
+///
+/// **⚠️ DEPRECATED**: Use `DI` enum instead for simplified API
+/// 
+/// ## Migration Guide:
+/// ```swift
+/// // OLD:
+/// AutoRegister.add(ServiceProtocol.self) { ServiceImpl() }
+/// AutoRegister.addMany {
+///     Registration(ServiceProtocol.self) { ServiceImpl() }
+/// }
+/// 
+/// // NEW:
+/// DI.register(ServiceProtocol.self) { ServiceImpl() }
+/// DI.registerMany {
+///     DIRegistration(ServiceProtocol.self) { ServiceImpl() }
+/// }
+/// ```
+@available(*, deprecated, message: "Use DI enum for simplified API. This will be removed in a future version.")
 public struct AutoRegister {
     
     /// 앱에서 자주 사용하는 인터페이스들을 미리 등록

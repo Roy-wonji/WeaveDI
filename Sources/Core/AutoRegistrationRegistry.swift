@@ -15,70 +15,46 @@ import LogMacro
 /// 이 레지스트리는 인터페이스/프로토콜 타입을 구체적인 구현체와 연결하여
 /// ContainerRegister가 자동으로 의존성을 생성할 수 있게 해줍니다.
 public final class AutoRegistrationRegistry: @unchecked Sendable {
-    
     public static let shared = AutoRegistrationRegistry()
-    
-    /// 타입 이름을 키로 하고 팩토리 클로저를 값으로 하는 매핑
-    private var typeFactories: [String: () -> Any] = [:]
-    
-    /// 스레드 안전을 위한 큐
-    private let queue = DispatchQueue(label: "AutoRegistrationRegistry", attributes: .concurrent)
-    
+
+    // 내부적으로 타입-안전 레지스트리를 사용하여 GCD 의존 제거
+    private let registry = TypeSafeRegistry()
+
     private init() {}
-    
+
     /// 타입과 그 구현체를 등록합니다.
-    /// 
     /// - Parameters:
     ///   - protocolType: 인터페이스/프로토콜 타입
     ///   - factory: 구현체 인스턴스를 생성하는 팩토리 클로저
     public func register<T>(_ protocolType: T.Type, factory: @Sendable @escaping () -> T) {
-        let typeName = String(describing: protocolType)
-        
-        queue.async(flags: .barrier) {
-            // 중복 등록 체크
-            if self.typeFactories[typeName] != nil {
-                #logError("⚠️ [AutoRegistry] Type \(typeName) is already registered. Overriding...")
-            } else {
-                #logInfo("✅ [AutoRegistry] Registered type: \(typeName)")
-            }
-            
-            self.typeFactories[typeName] = factory
-        }
+        _ = registry.register(protocolType, factory: factory)
+        #logInfo("✅ [AutoRegistry] Registered type: \(String(describing: protocolType))")
     }
-    
+
     /// 등록된 타입에 대한 인스턴스를 생성합니다.
-    /// 
     /// - Parameter type: 생성할 타입
     /// - Returns: 생성된 인스턴스 (등록되지 않은 경우 nil)
     public func createInstance<T>(for type: T.Type) -> T? {
-        let typeName = String(describing: type)
-        
-        return queue.sync {
-            guard let factory = typeFactories[typeName] else {
-                return nil
-            }
-            return factory() as? T
-        }
+        registry.resolve(type)
     }
-    
+
     /// 모든 등록된 타입을 출력합니다 (디버깅용)
     public func debugPrintRegisteredTypes() {
-        queue.sync {
-            #logDebug("🔍 AutoRegistrationRegistry - Registered Types:")
-            for (index, typeName) in typeFactories.keys.sorted().enumerated() {
-                #logDebug("   [\(index + 1)] \(typeName)")
-            }
+        let names = registry.allTypeNames()
+        #logDebug("🔍 AutoRegistrationRegistry - Registered Types:")
+        for (index, typeName) in names.enumerated() {
+            #logDebug("   [\(index + 1)] \(typeName)")
         }
     }
-    
+
     /// 등록된 타입 개수를 반환합니다.
     public var registeredCount: Int {
-        queue.sync { typeFactories.count }
+        registry.registeredCount()
     }
-    
+
     /// 등록된 모든 타입 이름을 반환합니다 (디버깅용)
     public func getAllRegisteredTypeNames() -> [String] {
-        queue.sync { Array(typeFactories.keys).sorted() }
+        registry.allTypeNames()
     }
 }
 
@@ -138,4 +114,3 @@ public func setupAutoRegistration() {
     //     TypeRegistration(NetworkServiceProtocol.self) { DefaultNetworkService() }
     // }
 }
-
