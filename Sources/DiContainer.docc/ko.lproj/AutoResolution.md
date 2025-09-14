@@ -6,7 +6,7 @@ DiContainer의 강력한 자동 의존성 해결 시스템을 활용하여 리�
 
 DiContainer의 자동 의존성 해결 시스템은 Swift의 Mirror API를 활용하여 런타임에 객체의 프로퍼티를 분석하고, `@Inject` 프로퍼티 래퍼가 적용된 의존성들을 자동으로 해결합니다. 이를 통해 복잡한 의존성 그래프도 간단한 어노테이션만으로 관리할 수 있습니다.
 
-## <doc:AutoResolvable> 프로토콜
+## [AutoResolvable](<doc:DiContainer/AutoResolvable>) 프로토콜
 
 ### 기본 개념
 
@@ -102,7 +102,7 @@ class NotificationManager: AutoResolvable {
 }
 ```
 
-## <doc:AutoDependencyResolver> - 핵심 해결자
+## [AutoDependencyResolver](<doc:DiContainer/AutoDependencyResolver>) - 핵심 해결자
 
 ### 기본 해결 방법
 
@@ -189,7 +189,7 @@ class AutoResolutionManager {
 }
 ```
 
-## <doc:AutoInjectible> 프로토콜 - 수동 주입 인터페이스
+## [AutoInjectible](<doc:DiContainer/AutoInjectible>) 프로토콜 - 수동 주입 인터페이스
 
 ### 기본 사용법
 

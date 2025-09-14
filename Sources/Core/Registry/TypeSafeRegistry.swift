@@ -57,6 +57,15 @@ public struct AnyTypeIdentifier: Hashable, Sendable {
         self.typeName = String(describing: type)
     }
     
+    /// 런타임 메타타입(Any.Type)으로부터 생성합니다.
+    ///
+    /// UnifiedRegistry의 `resolveAny(_:)` 등에서 사용되는 `Any.Type` 인자를
+    /// 제네릭 추론 없이 안전하게 처리하기 위한 전용 이니셜라이저입니다.
+    public init(_ type: Any.Type) {
+        self.identifier = ObjectIdentifier(type)
+        self.typeName = String(describing: type)
+    }
+    
     /// Hashable 구현
     public func hash(into hasher: inout Hasher) {
         hasher.combine(identifier)
