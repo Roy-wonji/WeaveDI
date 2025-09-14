@@ -36,6 +36,11 @@ public struct Module: Sendable {
         self.debugFile = String(describing: file)
         self.debugFunction = String(describing: function)
         self.debugLine = Int(line)
+
+        // Graph: record node
+        Task.detached { @Sendable in
+            await DependencyGraph.shared.addNode(T.self)
+        }
     }
 
     public func register() async { await registrationClosure() }
@@ -77,6 +82,11 @@ public struct RegisterModule: Sendable {
         repositoryFallback: @Sendable @autoclosure @escaping () -> Repo,
         factory: @Sendable @escaping (Repo) -> UseCase
     ) -> @Sendable () -> Module {
+        // Graph: record edge UseCase -> Repository
+        Task.detached { @Sendable in
+            await DependencyGraph.shared.addEdge(from: useCaseProtocol, to: repositoryProtocol, label: "uses")
+        }
+
         return { [repositoryProtocol] in
             Module(useCaseProtocol, factory: {
                 if let repo: Repo = DependencyContainer.live.resolve(repositoryProtocol) {

@@ -202,14 +202,15 @@ import Foundation
 /// - `AppDIContainer`는 단일 진입점(single entry point) 역할을 합니다.
 /// - 앱 초기화 시점에 모듈을 한꺼번에 등록해두면, 런타임에서 빠르고 안정적으로
 ///   의존성 객체를 생성·조회할 수 있습니다.
-/// - 모듈 등록 순서가 중요한 경우에는 ``BatchModule/batch`` 값을 활용하여
-///   **우선순위 기반 순차 실행**을 보장할 수 있습니다.
+/// - 내부 ``Container``가 등록된 모든 모듈을 **병렬로 실행**하여 성능을 최적화합니다.
+/// - Factory 패턴을 통해 Repository, UseCase, Scope 계층을 체계적으로 관리합니다.
 ///
 /// ## See Also
 /// - ``Container``: 실제 모듈 등록 및 병렬 실행 담당
-/// - ``BatchModule``: 모듈 단위 정의
+/// - ``Module``: 모듈 단위 정의
 /// - ``Factory``: 자동 주입 프로퍼티 래퍼
-/// - ``ContainerResgister``: 전역 DI 조회 프로퍼티 래퍼
+/// - ``RepositoryModuleFactory``: Repository 계층 팩토리
+/// - ``UseCaseModuleFactory``: UseCase 계층 팩토리
 public final actor AppDIContainer {
   // MARK: - 프로퍼티
 

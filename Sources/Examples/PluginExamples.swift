@@ -99,7 +99,7 @@ public final class LoggingPlugin: BasePlugin, RegistrationPlugin, ResolutionPlug
 // MARK: - Performance Monitoring Plugin
 
 /// 성능 모니터링 플러그인: DI 성능 메트릭스를 추적
-public final class PerformanceMonitoringPlugin: BasePlugin, ResolutionPlugin, MonitoringPlugin {
+public final class PerformanceMonitoringPlugin: BasePlugin, ResolutionPlugin, MonitoringPlugin, @unchecked Sendable {
 
     private var resolutionTimes: [String: [TimeInterval]] = [:]
     private var resolutionCounts: [String: Int] = [:]
@@ -211,7 +211,7 @@ public final class PerformanceMonitoringPlugin: BasePlugin, ResolutionPlugin, Mo
 // MARK: - Validation Plugin
 
 /// 검증 플러그인: 의존성 등록/해결을 검증
-public final class DependencyValidationPlugin: BasePlugin, ValidationPlugin {
+public final class DependencyValidationPlugin: BasePlugin, ValidationPlugin, @unchecked Sendable {
 
     private let rules: [ValidationRule]
 
@@ -291,7 +291,7 @@ public struct SingletonValidationRule: ValidationRule {
 // MARK: - Auto-Discovery Plugin
 
 /// 자동 탐지 플러그인: 특정 패키지에서 자동으로 의존성을 탐지하고 등록
-public final class AutoDiscoveryPlugin: BasePlugin, RegistrationPlugin {
+public final class AutoDiscoveryPlugin: BasePlugin, RegistrationPlugin, @unchecked Sendable {
 
     private let packagePrefixes: [String]
     private let excludedTypes: Set<String>
@@ -355,7 +355,7 @@ public final class AutoDiscoveryPlugin: BasePlugin, RegistrationPlugin {
 // MARK: - Configuration Plugin
 
 /// 설정 기반 플러그인: 설정 파일을 기반으로 의존성을 관리
-public final class ConfigurationPlugin: BasePlugin, RegistrationPlugin, LifecyclePlugin {
+public final class ConfigurationPlugin: BasePlugin, RegistrationPlugin, LifecyclePlugin, @unchecked Sendable {
 
     private let configurationPath: String
     private var configuration: [String: String] = [:]
