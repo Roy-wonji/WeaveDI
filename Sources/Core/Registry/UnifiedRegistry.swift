@@ -128,7 +128,7 @@ public actor UnifiedRegistry {
     ///   - type: 등록할 타입
     ///   - factory: 인스턴스를 생성하는 동기 클로저
     /// - Returns: 등록 해제 핸들러
-    @discardableResult
+  
     public func register<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
