@@ -24,10 +24,10 @@ public extension DependencyContainer {
         do {
             let result = try await coordinator.bootstrapIfNotAlready(configure)
             if result.success {
-                self.live = result.container
-                // authoritative state is managed by coordinator
-                _ = await coordinator.isBootstrapped() // touch to ensure actor initialized
+                // Coordinator owns the truth. Update coordinator first, then snapshot to live.
+                await coordinator.setLiveContainer(result.container)
                 await coordinator.setBootstrapped(true)
+                self.live = await coordinator.getLiveContainer()
                 Log.info("DependencyContainer bootstrapped synchronously")
             } else {
                 Log.error("DependencyContainer is already bootstrapped")
@@ -54,8 +54,9 @@ public extension DependencyContainer {
             let result = try await coordinator.asyncBootstrapIfNotAlready(configure)
 
             if result.success {
-                self.live = result.container
+                await coordinator.setLiveContainer(result.container)
                 await coordinator.setBootstrapped(true)
+                self.live = await coordinator.getLiveContainer()
                 let duration = CFAbsoluteTimeGetCurrent() - startTime
                 Log.info("DependencyContainer bootstrapped successfully in \(String(format: "%.3f", duration))s")
                 return true
@@ -124,8 +125,9 @@ public extension DependencyContainer {
             }
 
             if result.success {
-                self.live = result.container
+                await coordinator.setLiveContainer(result.container)
                 await coordinator.setBootstrapped(true)
+                self.live = await coordinator.getLiveContainer()
                 Log.info("DependencyContainer bootstrapped with mixed dependencies")
             }
         } catch {
@@ -181,7 +183,7 @@ public extension DependencyContainer {
     static func resetForTesting() async {
         #if DEBUG
         await coordinator.resetForTesting()
-        live = DependencyContainer()
+        live = await coordinator.getLiveContainer()
         Log.error("DependencyContainer reset for testing")
         #else
         assertionFailure("resetForTesting() should only be called in DEBUG builds")

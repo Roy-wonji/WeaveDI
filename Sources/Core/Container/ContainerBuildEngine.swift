@@ -80,6 +80,31 @@ public extension Container {
         }
     }
 
+    /// Throwing variant of build using a throwing task group.
+    /// Currently `Module.register()` is non-throwing; this method prepares for
+    /// future throwing registrations and mirrors the same cleanup semantics.
+    func buildThrowing() async throws {
+        let snapshot = modules
+        let processedCount = snapshot.count
+
+        guard !snapshot.isEmpty else { return }
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for module in snapshot {
+                group.addTask { @Sendable in
+                    try await module.registerThrowing()
+                }
+            }
+            try await group.waitForAll()
+        }
+
+        if modules.count >= processedCount {
+            modules.removeFirst(processedCount)
+        } else {
+            modules.removeAll()
+        }
+    }
+
     /// 성능 메트릭과 함께 빌드를 실행합니다 (디버깅/프로파일링용).
     /// - Returns: 빌드 실행 통계
     func buildWithMetrics() async -> BuildMetrics {
@@ -134,6 +159,46 @@ public extension Container {
 
         progressHandler(1.0) // 최종 완료 확실히
     }
+
+    /// 빌드 결과를 상세히 수집합니다(성공/실패, 에러 원인 등)
+    /// - Returns: 처리 결과 리포트
+    func buildWithResults() async -> BuildResult {
+        let snapshot = modules
+        let processedCount = snapshot.count
+        guard !snapshot.isEmpty else { return BuildResult(processed: 0, failures: []) }
+
+        let failureStore = FailureStore()
+
+        await withTaskGroup(of: Void.self) { group in
+            for (index, module) in snapshot.enumerated() {
+                group.addTask { @Sendable in
+                    do {
+                        try await module.registerThrowing()
+                    } catch {
+                        let failure = BuildResult.Failure(
+                            index: index,
+                            typeName: module.debugTypeName,
+                            file: module.debugFile,
+                            function: module.debugFunction,
+                            line: module.debugLine,
+                            underlying: String(describing: error)
+                        )
+                        await failureStore.add(failure)
+                    }
+                }
+            }
+            await group.waitForAll()
+        }
+
+        if modules.count >= processedCount {
+            modules.removeFirst(processedCount)
+        } else {
+            modules.removeAll()
+        }
+
+        let failures = await failureStore.list()
+        return BuildResult(processed: processedCount, failures: failures)
+    }
 }
 
 // MARK: - Build Metrics
@@ -158,6 +223,48 @@ public struct BuildMetrics {
         - Rate: \(String(format: "%.1f", modulesPerSecond)) modules/sec
         """
     }
+}
+
+// MARK: - Build Result (detailed)
+
+/// 개별 모듈 실패와 함께 상세 리포트를 제공
+public struct BuildResult: Sendable {
+    public struct Failure: Sendable {
+        public let index: Int
+        public let typeName: String
+        public let file: String
+        public let function: String
+        public let line: Int
+        public let underlying: String
+    }
+
+    /// 시도된 모듈 개수
+    public let processed: Int
+    /// 실패 목록
+    public let failures: [Failure]
+
+    /// 성공 개수
+    public var succeeded: Int { processed - failures.count }
+
+    /// 요약 문자열
+    public var summary: String {
+        if failures.isEmpty { return "BuildResult: succeeded=\(succeeded), processed=\(processed)" }
+        let lines = failures.prefix(5).map { f in
+            "[#\(f.index)] \(f.typeName) @ \(f.file):\(f.line) — \(f.underlying)"
+        }.joined(separator: "\n")
+        return """
+        BuildResult: succeeded=\(succeeded), failed=\(failures.count), processed=\(processed)
+        Failures (first 5):
+        \(lines)
+        """
+    }
+}
+
+/// 실패 수집용 경량 액터
+private actor FailureStore {
+    private var items: [BuildResult.Failure] = []
+    func add(_ failure: BuildResult.Failure) { items.append(failure) }
+    func list() -> [BuildResult.Failure] { items }
 }
 
 // MARK: - Progress Counter

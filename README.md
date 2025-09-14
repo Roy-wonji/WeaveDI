@@ -17,9 +17,23 @@ DiContainer는 Swift 애플리케이션에서 의존성 주입(Dependency Inject
 ✅ **타입 안전성**: Swift의 타입 시스템을 활용하여 컴파일 타임에 의존성 오류를 방지합니다.  
 ✅ **동시성 안전**: Swift Concurrency를 기반으로 한 스레드 안전한 의존성 관리를 제공합니다.  
 ✅ **선언적 API**: 직관적이고 간결한 코드 작성이 가능합니다.  
-✅ **프로퍼티 래퍼**: `@ContainerRegister`를 통한 편리한 의존성 주입을 지원합니다.  
+✅ **프로퍼티 래퍼**: `@Inject`(옵셔널/필수), `@RequiredDependency`(필수)로 간단하고 안전한 주입을 지원합니다.  
 ✅ **TCA 통합**: The Composable Architecture와 원활한 연동을 제공합니다.  
 ✅ **테스트 지원**: 의존성 모킹과 테스트를 위한 완벽한 지원을 제공합니다.  
+
+## 비개발자용 한눈 요약
+
+- 이 라이브러리는 “앱에서 서로 의존하는 것들”을 한 곳에서 안전하게 관리합니다.
+- 개발자는 앱 시작 시 필요한 것들을 등록하고, 각 화면/기능에서는 “필요한 것을” 간단히 꺼내 씁니다.
+- 등록이 빠지면 개발 단계에서 바로 오류로 알려주기 때문에, 릴리즈 후 문제를 줄여줍니다.
+- 간단히 말해: “필요한 부품을 제자리에 꽂아넣고, 필요할 때 꺼내 쓰는 도구”입니다.
+
+## 2.0.0 변경 요약 및 마이그레이션
+
+- 단일 진입점 `UnifiedDI` 제공: 등록/해결을 한 타입에서 일관되게 사용
+- 여전히 `DI`/`DIAsync`도 제공되며, 필요 시 직접 사용 가능
+- 프로퍼티 래퍼는 `@Inject`/`@RequiredDependency`로 단순화
+- 자세한 전환 방법은 `MIGRATION-2.0.0.md` 참고
 
 ## 설치
 
@@ -29,7 +43,7 @@ DiContainer는 Swift 애플리케이션에서 의존성 주입(Dependency Inject
 let package = Package(
     name: "YourProject",
     dependencies: [
-        .package(url: "https://github.com/Roy-wonji/DiContainer.git", from: "1.0.7")
+        .package(url: "https://github.com/Roy-wonji/DiContainer.git", from: "2.0.0")
     ],
     targets: [
         .target(
@@ -44,7 +58,7 @@ let package = Package(
 
 ### 1단계: 의존성 부트스트랩
 
-앱 시작 시 의존성을 등록해야 합니다. 다양한 부트스트랩 방법을 제공합니다:
+앱 시작 시 의존성을 원자적으로 등록합니다. 부트스트랩 단계에서는 UnifiedDI 대신 `container.register`를 사용하세요:
 
 #### SwiftUI
 
@@ -57,7 +71,7 @@ struct MyApp: App {
     init() {
         Task {
             await DependencyContainer.bootstrap { container in
-                // 동기 의존성 등록
+                // 동기 의존성 등록 (부트스트랩 단계에서는 container.register 사용)
                 container.register(LoggerProtocol.self) { ConsoleLogger() }
                 container.register(ConfigProtocol.self) { AppConfig() }
             }
@@ -86,7 +100,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     ) -> Bool {
         Task {
             await DependencyContainer.bootstrapAsync { container in
-                // 동기 의존성
+                // 동기 의존성 (부트스트랩 단계에서는 container.register 사용)
                 container.register(UserRepositoryProtocol.self) { UserRepository() }
                 
                 // 비동기 의존성 (예: 데이터베이스 초기화)
@@ -97,6 +111,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
 }
+```
+
+부트스트랩 이후, 런타임(필요 시)에는 UnifiedDI로 추가 등록이 가능합니다.
+
+```swift
+// 런타임 시 추가 등록 예시(선택)
+UnifiedDI.register(AnalyticsProtocol.self) { FirebaseAnalytics() }
+let repo = UnifiedDI.register(\.userRepository) { UserRepositoryImpl() }
 ```
 
 ### 2단계: 의존성 컨테이너 확장
@@ -132,11 +154,11 @@ extension DependencyContainer {
 import DiContainer
 
 final class UserService {
-    @ContainerRegister(\.userRepository)
-    private var userRepository: UserRepositoryProtocol
+    @Inject(\.userRepository)
+    var userRepository: UserRepositoryProtocol
     
-    @ContainerRegister(\.logger)
-    private var logger: LoggerProtocol
+    @Inject(\.logger)
+    var logger: LoggerProtocol
     
     func getUser(id: String) async throws -> User {
         logger.debug("사용자 조회 시작: \(id)")
@@ -155,8 +177,8 @@ final class AuthenticationService {
     private let logger: LoggerProtocol
     
     init() {
-        self.networkService = DependencyContainer.live.resolve(NetworkServiceProtocol.self)!
-        self.logger = DependencyContainer.live.resolve(LoggerProtocol.self)!
+        self.networkService = UnifiedDI.requireResolve(NetworkServiceProtocol.self)
+        self.logger = UnifiedDI.requireResolve(LoggerProtocol.self)
     }
     
     func authenticate(credentials: Credentials) async throws -> AuthToken {
@@ -166,6 +188,39 @@ final class AuthenticationService {
         return token
     }
 }
+```
+
+### 4단계: 등록 여부 확인 (Introspection)
+
+등록 여부를 빠르게 확인할 수 있습니다.
+
+```swift
+// UnifiedDI를 통한 등록 여부 확인(존재 여부 검사)
+let exists = (UnifiedDI.resolve(NetworkServiceProtocol.self) != nil)
+let exists2 = (UnifiedDI.resolve(\.networkService) != nil)
+```
+
+## 컨테이너 배치 빌드와 리포트
+
+`Container`는 수집된 모듈을 병렬로 등록합니다. 비-throwing, 메트릭, 리포트 API를 제공합니다.
+
+```swift
+let container = Container()
+// 모듈 수집 …
+
+// 1) 기본 빌드(비-throwing)
+await container.build()
+
+// 2) 메트릭 수집
+let metrics = await container.buildWithMetrics()
+print(metrics.summary)
+
+// 3) 상세 리포트(성공/실패 목록)
+let result = await container.buildWithResults()
+print(result.summary)
+
+// 4) throwing 변형(향후 throwing 등록 지원 대비)
+try await container.buildThrowing()
 ```
 
 ## 고급 사용법
@@ -222,21 +277,74 @@ await DependencyContainer.updateAsync { container in
 }
 ```
 
-### 기본 팩토리를 활용한 안전한 주입
+### Module 시스템 확장(설계 개요)
+
+향후 모듈 시스템은 다음을 목표로 확장됩니다.
+
+- 자동 의존성 해결(Reflection 기반)
+  - 등록된 타입 그래프를 스캔하고, 생성자 시그니처를 반사(reflection)로 분석하여 자동 주입을 시도합니다.
+  - 실패 시 `DI.resolveThrows`/`resolveResult`로 정밀한 피드백을 제공합니다.
+- 플러그인 시스템(확장 가능한 아키텍처)
+  - “Module 플러그인”이 특정 규칙(이름/어트리뷰트/애노테이션)을 기준으로 모듈을 자동 수집/등록합니다.
+  - 예: `@AutoModule`가 붙은 타입 자동 등록, 특정 네임스페이스 스캔 등.
+
+현재도 `RegisterModule` + `Factory` 조합으로 선언적 구성이 가능하며, 위 기능은 선택적으로 레이어를 더하는 형태로 제공될 예정입니다.
+
+### Factory Property Wrapper
+
+`@Factory`를 통해 `FactoryValues.current`에 저장된 팩토리를 간단히 주입할 수 있습니다.
 
 ```swift
+final class MyVM {
+  @Factory(\.repositoryFactory) var repositoryFactory: RepositoryModuleFactory
+  @Factory(\.useCaseFactory)     var useCaseFactory: UseCaseModuleFactory
+}
+```
+
+## Concurrency 메모: actor hop 최소화
+
+actor hop은 서로 다른 actor 격리로 이동하면서 발생하는 스케줄링 비용을 의미합니다. 
+`Container.build()`는 내부 상태 배열을 스냅샷한 뒤 TaskGroup에서 작업을 생성하여, 
+작업 생성 중 불필요한 actor hop을 줄입니다(스냅샷 → 병렬 실행 → 정리 순서).
+
+```swift
+let snapshot = modules  // hop 최소화용 스냅샷
+await withTaskGroup(of: Void.self) { group in
+  for module in snapshot {
+    group.addTask { await module.register() }
+  }
+  await group.waitForAll()
+}
+```
+
+## 왜 부트스트랩을 쓰나요?
+
+- 원자적 초기화: “컨테이너 교체 + 상태 플래그”를 한 번에 처리하여 반쪽 상태를 방지합니다.
+- 초기 접근 보호: 앱 시작 전에 `resolve`가 호출되는 상황을 피하고, 필요한 비동기 준비(DB, 원격 설정 등)를 보장합니다.
+- 동시성 안전: `BootstrapCoordinator`(actor)가 초기화 경합을 직렬화합니다.
+- 테스트 용이성: `resetForTesting`으로 상태를 명확히 리셋하고, 각 테스트에서 독립적으로 등록/해결할 수 있습니다.
+
+### 기본값(디폴트) 전략으로 안전한 주입
+
+```swift
+// 패턴 1) 옵셔널 주입 + 디폴트 구현
 final class WeatherService {
-    // 기본 구현체를 제공하여 의존성 누락 시에도 안전하게 동작
-    @ContainerRegister(\.locationService, defaultFactory: { MockLocationService() })
-    private var locationService: LocationServiceProtocol
-    
-    @ContainerRegister(\.networkService, defaultFactory: { MockNetworkService() })
-    private var networkService: NetworkServiceProtocol
+    @Inject(\.locationService) var locationService: LocationServiceProtocol?
+    @Inject(\.networkService) var networkService: NetworkServiceProtocol?
     
     func getCurrentWeather() async throws -> Weather {
-        let location = try await locationService.getCurrentLocation()
-        return try await networkService.fetchWeather(for: location)
+        let locationSvc = locationService ?? MockLocationService()
+        let network = networkService ?? MockNetworkService()
+        
+        let location = try await locationSvc.getCurrentLocation()
+        return try await network.fetchWeather(for: location)
     }
+}
+
+// 패턴 2) UnifiedDI.resolve(default:) 사용
+final class WeatherService2 {
+    private let network: NetworkServiceProtocol =
+        UnifiedDI.resolve(NetworkServiceProtocol.self, default: MockNetworkService())
 }
 ```
 
@@ -336,9 +444,10 @@ import DiContainer
 
 extension UserUseCase: DependencyKey {
     public static var liveValue: UserUseCaseProtocol = {
-        let repository = ContainerRegister(\.userRepository, defaultFactory: { 
-            DefaultUserRepository() 
-        }).wrappedValue
+        // 등록되어 있으면 resolve, 없으면 기본 구현을 등록하며 사용
+        let repository = ContainerRegister.register(\.userRepository) {
+            DefaultUserRepository()
+        }
         return UserUseCase(repository: repository)
     }()
 }
@@ -402,6 +511,18 @@ struct UserFeature {
 
 ## API 레퍼런스
 
+### UnifiedDI
+
+- `register<T>(_:factory:)` 타입 기반 등록(지연 생성)
+- `register<T>(_:factory:)` KeyPath 등록(생성과 동시에 싱글톤 등록)
+- `registerIf<T>(_:condition:factory:fallback:)` 조건부 등록
+- `resolve<T>(_: ) -> T?` 옵셔널 해결
+- `requireResolve<T>(_: ) -> T` 필수 해결(fatalError)
+- `resolveThrows<T>(_: ) throws -> T` 안전한 해결(throws)
+- `resolve<T>(_:default:) -> T` 기본값 포함 해결
+- `registerMany { … }` 일괄 등록 Result Builder
+- `release<T>(_: )` 특정 타입 해제, `releaseAll()` 전체 해제(테스트 용)
+
 ### DependencyContainer
 
 #### 등록 메서드
@@ -427,13 +548,21 @@ struct UserFeature {
 - `ensureBootstrapped()`: 부트스트랩 보장
 - `resetForTesting()`: 테스트용 초기화 (DEBUG 전용)
 
-### ContainerRegister
+### Inject
 
-타입 안전한 의존성 주입을 위한 프로퍼티 래퍼입니다.
+타입 안전한 의존성 주입을 위한 프로퍼티 래퍼입니다. 변수의 옵셔널 여부에 따라 동작이 달라집니다.
 
-#### 초기화자
-- `init(_:)`: KeyPath로 의존성 주입
-- `init(_:defaultFactory:)`: 기본 팩토리와 함께 의존성 주입
+- Optional 타입으로 선언: 미등록 시 `nil` 반환(크래시 없음)
+- Non-Optional 타입으로 선언: 미등록 시 친화적인 메시지와 함께 `fatalError`
+
+예시
+
+```swift
+@Inject(\.logger) var logger: LoggerProtocol         // 필수
+@Inject(\.analytics) var analytics: AnalyticsProtocol? // 선택
+```
+
+필수 의존성만 허용하고 싶다면 `@RequiredDependency(\.keyPath)`를 사용하세요.
 
 ### RegisterModule
 
@@ -459,11 +588,8 @@ final class UserListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    @ContainerRegister(\.userUseCase)
-    private var userUseCase: UserUseCaseProtocol
-    
-    @ContainerRegister(\.logger)
-    private var logger: LoggerProtocol
+    @Inject(\.userUseCase) var userUseCase: UserUseCaseProtocol
+    @Inject(\.logger)     var logger: LoggerProtocol
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -507,11 +633,8 @@ protocol UserRepositoryProtocol {
 
 // Implementation
 struct UserUseCase: UserUseCaseProtocol {
-    @ContainerRegister(\.userRepository)
-    private var repository: UserRepositoryProtocol
-    
-    @ContainerRegister(\.logger)
-    private var logger: LoggerProtocol
+    @Inject(\.userRepository) var repository: UserRepositoryProtocol
+    @Inject(\.logger)        var logger: LoggerProtocol
     
     func getUser(id: String) async throws -> User {
         logger.debug("사용자 조회: \(id)")
@@ -701,7 +824,7 @@ class SomeViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         // 뷰가 로드될 때 의존성을 등록하는 것은 좋지 않습니다
-        DependencyContainer.live.register(ServiceProtocol.self) { Service() }
+        UnifiedDI.register(ServiceProtocol.self) { Service() }
     }
 }
 ```
@@ -716,8 +839,7 @@ protocol UserServiceProtocol {
 }
 
 class UserService: UserServiceProtocol {
-    @ContainerRegister(\.userRepository)
-    private var repository: UserRepositoryProtocol
+    @Inject(\.userRepository) var repository: UserRepositoryProtocol
     
     func getUser(id: String) async throws -> User {
         return try await repository.findUser(by: id)
@@ -729,27 +851,22 @@ container.register(UserServiceProtocol.self) { UserService() }
 
 // ❌ 피해야 할 예시: 구체 타입에 의존
 class BadUserService {
-    @ContainerRegister(\.userRepository)
-    private var repository: UserRepository // 구체 타입에 직접 의존
+    @Inject(\.userRepository) var repository: UserRepository // 구체 타입에 직접 의존
 }
 ```
 
-### 3. 기본 팩토리 활용
+### 3. 기본값(디폴트) 전략
 
 ```swift
-// ✅ 좋은 예시: 기본 구현체 제공으로 안전성 확보
+// ✅ 좋은 예시: 옵셔널 주입 + 기본값
 final class WeatherService {
-    @ContainerRegister(\.locationService, defaultFactory: { MockLocationService() })
-    private var locationService: LocationServiceProtocol
-    
-    @ContainerRegister(\.networkService, defaultFactory: { MockNetworkService() })
-    private var networkService: NetworkServiceProtocol
+    @Inject(\.locationService) var locationService: LocationServiceProtocol?
+    @Inject(\.networkService) var networkService: NetworkServiceProtocol?
 }
 
-// ❌ 피해야 할 예시: 기본값 없이 사용
+// ❌ 피해야 할 예시: 기본값 없이 Non-Optional만 사용(등록 누락 시 크래시)
 final class RiskyWeatherService {
-    @ContainerRegister(\.locationService) // 등록되지 않았을 때 크래시
-    private var locationService: LocationServiceProtocol
+    @Inject(\.locationService) var locationService: LocationServiceProtocol
 }
 ```
 
@@ -759,29 +876,23 @@ final class RiskyWeatherService {
 // ✅ 좋은 예시: 계층별로 명확히 분리
 // Presentation Layer
 class UserViewController {
-    @ContainerRegister(\.userUseCase) // UseCase에만 의존
-    private var userUseCase: UserUseCaseProtocol
+    @Inject(\.userUseCase) var userUseCase: UserUseCaseProtocol // UseCase에만 의존
 }
 
 // Domain Layer (UseCase)
 class UserUseCase: UserUseCaseProtocol {
-    @ContainerRegister(\.userRepository) // Repository에만 의존
-    private var repository: UserRepositoryProtocol
+    @Inject(\.userRepository) var repository: UserRepositoryProtocol // Repository에만 의존
 }
 
 // Data Layer (Repository)
 class UserRepository: UserRepositoryProtocol {
-    @ContainerRegister(\.networkService) // 인프라스트럭처 서비스에만 의존
-    private var networkService: NetworkServiceProtocol
+    @Inject(\.networkService) var networkService: NetworkServiceProtocol // 인프라스트럭처 서비스에만 의존
 }
 
 // ❌ 피해야 할 예시: 계층 건너뛰기
 class BadUserViewController {
-    @ContainerRegister(\.userRepository) // Repository에 직접 의존 (UseCase 건너뜀)
-    private var repository: UserRepositoryProtocol
-    
-    @ContainerRegister(\.networkService) // 인프라 계층에 직접 의존
-    private var networkService: NetworkServiceProtocol
+    @Inject(\.userRepository) var repository: UserRepositoryProtocol // Repository에 직접 의존 (UseCase 건너뜀)
+    @Inject(\.networkService) var networkService: NetworkServiceProtocol // 인프라 계층에 직접 의존
 }
 ```
 
@@ -859,11 +970,11 @@ Fatal error: AuthRepositoryProtocol 타입의 등록된 의존성을 찾을 수 
 
 ```swift
 // 방법 1: 의존성 등록
-DependencyContainer.live.register(AuthRepositoryProtocol.self) { AuthRepository() }
+UnifiedDI.register(AuthRepositoryProtocol.self) { AuthRepository() }
 
-// 방법 2: 기본 팩토리 제공
-@ContainerRegister(\.authRepository, defaultFactory: { MockAuthRepository() })
-private var authRepository: AuthRepositoryProtocol
+// 방법 2: 기본값 사용 패턴
+@Inject(\.authRepository) var authRepository: AuthRepositoryProtocol?
+let repo = authRepository ?? MockAuthRepository()
 ```
 
 #### 3. 순환 의존성 오류
@@ -873,13 +984,11 @@ private var authRepository: AuthRepositoryProtocol
 ```swift
 // ❌ 문제 상황: A → B → A 순환 참조
 class ServiceA {
-    @ContainerRegister(\.serviceB)
-    private var serviceB: ServiceBProtocol // A가 B에 의존
+    @Inject(\.serviceB) var serviceB: ServiceBProtocol // A가 B에 의존
 }
 
 class ServiceB {
-    @ContainerRegister(\.serviceA) 
-    private var serviceA: ServiceAProtocol // B가 A에 의존
+    @Inject(\.serviceA) var serviceA: ServiceAProtocol // B가 A에 의존
 }
 ```
 
@@ -892,8 +1001,7 @@ protocol ServiceADelegate {
 }
 
 class ServiceA: ServiceADelegate {
-    @ContainerRegister(\.serviceB)
-    private var serviceB: ServiceBProtocol
+    @Inject(\.serviceB) var serviceB: ServiceBProtocol
     
     func handleEvent(_ event: String) {
         // 이벤트 처리
@@ -914,13 +1022,11 @@ class EventBus {
 }
 
 class ServiceA {
-    @ContainerRegister(\.eventBus)
-    private var eventBus: EventBus
+    @Inject(\.eventBus) var eventBus: EventBus
 }
 
 class ServiceB {
-    @ContainerRegister(\.eventBus)
-    private var eventBus: EventBus
+    @Inject(\.eventBus) var eventBus: EventBus
 }
 ```
 
@@ -935,8 +1041,7 @@ class ExpensiveService {
         return HeavyComponent()
     }()
     
-    @ContainerRegister(\.networkService)
-    private var networkService: NetworkServiceProtocol
+    @Inject(\.networkService) var networkService: NetworkServiceProtocol
 }
 ```
 

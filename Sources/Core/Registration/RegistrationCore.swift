@@ -14,21 +14,34 @@ import LogMacro
 ///
 /// 이 타입을 사용하면, 특정 타입의 인스턴스를 `DependencyContainer`에
 /// **비동기적으로 등록**하는 작업을 하나의 객체로 캡슐화할 수 있습니다.
-public actor Module {
-    private let registrationClosure: () async -> Void
+public struct Module: Sendable {
+    private let registrationClosure: @Sendable () async -> Void
+    // Debug metadata for diagnostics and reporting
+    internal let debugTypeName: String
+    internal let debugFile: String
+    internal let debugFunction: String
+    internal let debugLine: Int
 
     public init<T>(
         _ type: T.Type,
-        factory: @Sendable @escaping () -> T
+        factory: @Sendable @escaping () -> T,
+        file: StaticString = #fileID,
+        function: StaticString = #function,
+        line: UInt = #line
     ) {
         self.registrationClosure = {
             DependencyContainer.live.register(type, build: factory)
         }
+        self.debugTypeName = String(describing: T.self)
+        self.debugFile = String(describing: file)
+        self.debugFunction = String(describing: function)
+        self.debugLine = Int(line)
     }
 
-    public func register() async {
-        await registrationClosure()
-    }
+    public func register() async { await registrationClosure() }
+
+    /// Throwing variant kept for future expandability
+    public func registerThrowing() async throws { await registrationClosure() }
 }
 
 // MARK: - RegisterModule

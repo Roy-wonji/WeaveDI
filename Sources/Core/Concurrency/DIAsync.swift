@@ -140,7 +140,7 @@ public enum DIAsync {
     let items = registrations()
     await withTaskGroup(of: Void.self) { group in
       for item in items {
-        group.addTask { [item] in await item.register() }
+        group.addTask { @Sendable in await item.register() }
       }
       await group.waitForAll()
     }
