@@ -294,7 +294,7 @@ public actor UnifiedRegistry {
     /// - Parameter type: 해결할 런타임 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
     public func resolveAny(_ type: Any.Type) -> Any? {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(anyType: type)
 
         // 1) 싱글톤 캐시
         if let box = singletonInstances[key] {
@@ -315,7 +315,7 @@ public actor UnifiedRegistry {
     /// - Parameter type: 해결할 런타임 타입
     /// - Returns: ValueBox(@unchecked Sendable)에 담긴 값 (없으면 nil)
     public func resolveAnyBox(_ type: Any.Type) -> ValueBox? {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(anyType: type)
 
         if let box = singletonInstances[key] { return box }
         if let factory = syncFactories[key] { return factory() }
@@ -326,7 +326,7 @@ public actor UnifiedRegistry {
     /// - Parameter type: 해결할 런타임 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
     public func resolveAnyAsync(_ type: Any.Type) async -> Any? {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(anyType: type)
 
         if let box = singletonInstances[key] { return box.value }
         if let asyncFactory = asyncFactories[key] { return (await asyncFactory()).value }
@@ -338,7 +338,7 @@ public actor UnifiedRegistry {
     /// - Parameter type: 해결할 런타임 타입
     /// - Returns: ValueBox(@unchecked Sendable)에 담긴 값 (없으면 nil)
     public func resolveAnyAsyncBox(_ type: Any.Type) async -> ValueBox? {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(anyType: type)
         if let box = singletonInstances[key] { return box }
         if let asyncFactory = asyncFactories[key] { return await asyncFactory() }
         if let syncFactory = syncFactories[key] { return syncFactory() }

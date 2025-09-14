@@ -61,7 +61,7 @@ public struct AnyTypeIdentifier: Hashable, Sendable {
     ///
     /// UnifiedRegistry의 `resolveAny(_:)` 등에서 사용되는 `Any.Type` 인자를
     /// 제네릭 추론 없이 안전하게 처리하기 위한 전용 이니셜라이저입니다.
-    public init(_ type: Any.Type) {
+    public init(anyType type: Any.Type) {
         self.identifier = ObjectIdentifier(type)
         self.typeName = String(describing: type)
     }
