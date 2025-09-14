@@ -121,32 +121,35 @@ public enum UnifiedDI {
         return DependencyContainer.live.register(type, build: factory)
     }
 
-    /// KeyPath를 사용하여 의존성을 등록합니다 (DI.register 스타일)
+    /// KeyPath를 사용하여 의존성을 등록하고 인스턴스를 반환합니다 (DI.register 스타일)
     ///
     /// DependencyContainer의 KeyPath를 사용하여 타입 안전한 방식으로
-    /// 의존성을 등록합니다. 기존 `DI.register(\.keyPath)` 스타일과 호환됩니다.
+    /// 의존성을 등록하고 동시에 생성된 인스턴스를 반환합니다.
+    /// 기존 `DI.register(\.keyPath)` 스타일과 호환되면서 더 편리합니다.
     ///
     /// - Parameters:
     ///   - keyPath: DependencyContainer 내의 KeyPath
     ///   - factory: 인스턴스를 생성하는 팩토리 클로저
-    /// - Returns: 등록 해제 핸들러
+    /// - Returns: 생성된 인스턴스
     ///
     /// ### 사용 예시:
     /// ```swift
     /// let repository = UnifiedDI.register(\.summaryPersistenceInterface) {
     ///     SummaryPersistenceRepositoryImpl()
     /// }
+    /// return SummaryPersistenceUseCaseImpl(repository: repository)
     ///
     /// let service = UnifiedDI.register(\.userService) {
     ///     UserServiceImpl()
     /// }
     /// ```
-    @discardableResult
     public static func register<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         factory: @escaping @Sendable () -> T
-    ) -> () -> Void {
-        return DependencyContainer.live.register(T.self, build: factory)
+    ) -> T {
+        let instance = factory()
+        DependencyContainer.live.register(T.self, instance: instance)
+        return instance
     }
 
     /// 싱글톤으로 의존성을 등록합니다
@@ -190,6 +193,7 @@ public enum UnifiedDI {
     ) {
         DependencyContainer.live.register(T.self, instance: instance)
     }
+
 
     /// 조건에 따라 다른 구현체를 등록합니다
     ///
