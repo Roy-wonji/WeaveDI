@@ -133,7 +133,7 @@ public actor UnifiedRegistry {
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
     ) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         let syncFactory: SyncFactory = { ValueBox(factory()) }
 
         syncFactories[key] = syncFactory
@@ -150,7 +150,7 @@ public actor UnifiedRegistry {
         _ type: T.Type,
         instance: T
     ) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         let box = ValueBox(instance)
 
         singletonInstances[key] = box
@@ -170,7 +170,7 @@ public actor UnifiedRegistry {
         _ type: T.Type,
         factory: @escaping @Sendable () async -> T
     ) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         let asyncFactory: AsyncFactory = { ValueBox(await factory()) }
 
         asyncFactories[key] = asyncFactory
@@ -187,7 +187,7 @@ public actor UnifiedRegistry {
         _ type: T.Type,
         factory: @escaping @Sendable () async -> T
     ) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
 
         // 단순화된 접근: 첫 호출에서만 생성하고 이후는 캐시된 것 사용
         let cachedFactory: AsyncFactory = {
@@ -248,7 +248,7 @@ public actor UnifiedRegistry {
         factory: @escaping @Sendable () -> T
     ) {
         let keyPathString = String(describing: keyPath)
-        let typeKey = AnyTypeIdentifier(T.self)
+        let typeKey = AnyTypeIdentifier(type: T.self)
 
         // KeyPath 매핑 저장
         keyPathMappings[keyPathString] = typeKey
@@ -265,7 +265,7 @@ public actor UnifiedRegistry {
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
     public func resolve<T>(_ type: T.Type) -> T? {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
 
         // 1. 싱글톤 캐시에서 확인
         if let box = singletonInstances[key] {
@@ -349,7 +349,7 @@ public actor UnifiedRegistry {
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
     public func resolveAsync<T>(_ type: T.Type) async -> T? {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
 
         // 1. 싱글톤 캐시에서 확인
         if let box = singletonInstances[key] {
@@ -404,7 +404,7 @@ public actor UnifiedRegistry {
     /// 특정 타입의 등록을 해제합니다
     /// - Parameter type: 해제할 타입
     public func release<T>(_ type: T.Type) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
 
         syncFactories.removeValue(forKey: key)
         asyncFactories.removeValue(forKey: key)
@@ -446,7 +446,7 @@ public actor UnifiedRegistry {
     /// - Parameter type: 확인할 타입
     /// - Returns: 등록 여부
     public func isRegistered<T>(_ type: T.Type) -> Bool {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         return syncFactories[key] != nil ||
                asyncFactories[key] != nil ||
                singletonInstances[key] != nil

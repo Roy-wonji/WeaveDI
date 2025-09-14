@@ -31,7 +31,7 @@ public actor AsyncTypeRegistry {
         _ type: T.Type,
         factory: @Sendable @escaping () async -> T
     ) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         asyncFactories[key] = { AnySendableBox(await factory()) }
     }
 
@@ -40,7 +40,7 @@ public actor AsyncTypeRegistry {
         _ type: T.Type,
         instance: T
     ) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         singletons[key] = AnySendableBox(instance)
     }
 
@@ -49,7 +49,7 @@ public actor AsyncTypeRegistry {
         _ type: T.Type,
         boxed: AnySendableBox
     ) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         singletons[key] = boxed
     }
 
@@ -57,7 +57,7 @@ public actor AsyncTypeRegistry {
 
     /// Resolve a type and return a sendable box
     public func resolveBox<T>(_ type: T.Type) async -> AnySendableBox? {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         if let box = singletons[key] { return box }
         if let maker = asyncFactories[key] {
             let box = await maker()
@@ -71,7 +71,7 @@ public actor AsyncTypeRegistry {
         _ type: T.Type,
         orMake make: @Sendable () async -> AnySendableBox
     ) async -> AnySendableBox {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         if let box = singletons[key] { return box }
         let newBox = await make()
         singletons[key] = newBox
@@ -82,7 +82,7 @@ public actor AsyncTypeRegistry {
 
     /// Release a registration (singleton and factory)
     public func release<T>(_ type: T.Type) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         singletons[key] = nil
         asyncFactories[key] = nil
     }

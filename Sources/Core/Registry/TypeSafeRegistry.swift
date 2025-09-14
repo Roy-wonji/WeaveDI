@@ -46,13 +46,13 @@ public struct AnyTypeIdentifier: Hashable, Sendable {
     internal let typeName: String
     
     /// TypeIdentifier로부터 AnyTypeIdentifier를 생성합니다.
-    public init<T>(_ typeId: TypeIdentifier<T>) {
+    public init<T>(typeIdentifier typeId: TypeIdentifier<T>) {
         self.identifier = typeId.identifier
         self.typeName = typeId.typeName
     }
-    
+
     /// 타입을 직접 받아 AnyTypeIdentifier를 생성합니다.
-    public init<T>(_ type: T.Type) {
+    public init<T>(type: T.Type) {
         self.identifier = ObjectIdentifier(type)
         self.typeName = String(describing: type)
     }
@@ -106,7 +106,7 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
         _ type: T.Type,
         factory: @Sendable @escaping () -> T
     ) -> @Sendable () -> Void {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
 
         // 등록은 배리어로 보호
         syncQueue.sync(flags: .barrier) {
@@ -138,7 +138,7 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
     /// - Parameter type: 조회할 타입
     /// - Returns: 해당 타입의 인스턴스 또는 nil
     func resolve<T>(_ type: T.Type) -> T? {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
 
         // 🚀 성능 최적화: 읽기 전용 작업은 concurrent 큐에서 병렬 실행
         let anyFactory: Any? = syncQueue.sync {
@@ -156,7 +156,7 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
     ///
     /// - Parameter type: 해제할 타입
     func release<T>(_ type: T.Type) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         syncQueue.sync(flags: .barrier) {
             self.factories[key] = nil
         }
@@ -169,7 +169,7 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
     ///   - instance: 등록할 인스턴스
     /// - Note: 싱글톤 패턴으로 같은 인스턴스를 반환
     func register<T>(_ type: T.Type, instance: T) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         
         // 🔒 인스턴스를 클로저로 감싸서 메모리 안전성 확보
         syncQueue.sync(flags: .barrier) {

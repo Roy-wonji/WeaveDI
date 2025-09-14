@@ -67,7 +67,7 @@ public actor DIActor {
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
     ) -> @Sendable () async -> Void {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         
         // Actor 내부에서 안전하게 상태 변경
         factories[key] = factory
@@ -94,7 +94,7 @@ public actor DIActor {
     ///   - type: 등록할 타입
     ///   - instance: 등록할 인스턴스
     public func register<T>(_ type: T.Type, instance: T) where T: Sendable {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         
         // Sendable 인스턴스를 클로저로 감싸기
         factories[key] = { instance }
@@ -111,7 +111,7 @@ public actor DIActor {
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 또는 nil
     public func resolve<T>(_ type: T.Type) -> T? where T: Sendable {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         
         guard let anyFactory = factories[key] else {
             #if DEBUG
@@ -165,7 +165,7 @@ public actor DIActor {
     /// 특정 타입의 등록을 해제합니다.
     /// - Parameter type: 해제할 타입
     public func release<T>(_ type: T.Type) {
-        let key = AnyTypeIdentifier(type)
+        let key = AnyTypeIdentifier(type: type)
         
         factories[key] = nil
         registrationTimes[key] = nil
