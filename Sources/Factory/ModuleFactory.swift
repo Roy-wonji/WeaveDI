@@ -116,6 +116,27 @@ public struct ModuleFactoryManager {
     }
 
     /// 모든 모듈을 DI 컨테이너에 등록
+    public func registerAll(to container: Container) async {
+        // Repository 모듈들 등록
+        let repositoryModules = self.repositoryFactory.makeAllModules()
+        for module in repositoryModules {
+            await container.register(module)
+        }
+
+        // UseCase 모듈들 등록
+        let useCaseModules = self.useCaseFactory.makeAllModules()
+        for module in useCaseModules {
+            await container.register(module)
+        }
+
+        // Scope 모듈들 등록
+        let scopeModules = self.scopeFactory.makeAllModules()
+        for module in scopeModules {
+            await container.register(module)
+        }
+    }
+
+    /// 기존 방식 (컨테이너 없이 직접 등록)
     public func registerAll() async {
         let modules = makeAllModules()
         for module in modules {

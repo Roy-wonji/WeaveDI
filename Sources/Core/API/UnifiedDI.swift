@@ -25,7 +25,6 @@ import Foundation
 /// ### 🔄 통합된 등록 방법
 /// - **팩토리 등록**: `register(_:factory:)`
 /// - **KeyPath 등록**: `register(_:factory:)` - KeyPath 기반
-/// - **싱글톤 등록**: `registerSingleton(_:instance:)`
 /// - **조건부 등록**: `registerIf(_:condition:factory:fallback:)`
 /// - **일괄 등록**: `registerMany { ... }`
 ///
@@ -42,7 +41,6 @@ import Foundation
 /// ```swift
 /// // 타입 기반 등록
 /// UnifiedDI.register(ServiceProtocol.self) { ServiceImpl() }
-/// UnifiedDI.registerSingleton(DatabaseProtocol.self, instance: SQLiteDatabase())
 ///
 /// // KeyPath 기반 등록 (DI.register 스타일)
 /// let repository = UnifiedDI.register(\.summaryPersistenceInterface) {
@@ -152,47 +150,6 @@ public enum UnifiedDI {
         return instance
     }
 
-    /// 싱글톤으로 의존성을 등록합니다
-    ///
-    /// 이미 생성된 인스턴스를 등록하며, 이후 모든 `resolve` 호출에서
-    /// 동일한 인스턴스가 반환됩니다.
-    ///
-    /// - Parameters:
-    ///   - type: 등록할 타입
-    ///   - instance: 공유할 인스턴스
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let database = SQLiteDatabase()
-    /// UnifiedDI.registerSingleton(DatabaseProtocol.self, instance: database)
-    /// ```
-    public static func registerSingleton<T>(
-        _ type: T.Type,
-        instance: T
-    ) {
-        DependencyContainer.live.register(type, instance: instance)
-    }
-
-    /// KeyPath를 사용하여 싱글톤으로 의존성을 등록합니다
-    ///
-    /// KeyPath 기반으로 이미 생성된 인스턴스를 싱글톤으로 등록합니다.
-    /// 기존 `DI.register(\.keyPath, instance:)` 스타일과 호환됩니다.
-    ///
-    /// - Parameters:
-    ///   - keyPath: DependencyContainer 내의 KeyPath
-    ///   - instance: 공유할 인스턴스
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let database = SQLiteDatabase()
-    /// UnifiedDI.registerSingleton(\.database, instance: database)
-    /// ```
-    public static func registerSingleton<T>(
-        _ keyPath: KeyPath<DependencyContainer, T?>,
-        instance: T
-    ) {
-        DependencyContainer.live.register(T.self, instance: instance)
-    }
 
 
     /// 조건에 따라 다른 구현체를 등록합니다
@@ -574,14 +531,14 @@ public struct UnifiedRegistration {
     /// 싱글톤 기반 등록
     public init<T>(_ type: T.Type, singleton instance: T) {
         self.registerAction = {
-            UnifiedDI.registerSingleton(type, instance: instance)
+            DependencyContainer.live.register(type, instance: instance)
         }
     }
 
     /// 기본값 포함 등록
     public init<T>(_ type: T.Type, default defaultValue: T) {
         self.registerAction = {
-            UnifiedDI.registerSingleton(type, instance: defaultValue)
+            DependencyContainer.live.register(type, instance: defaultValue)
         }
     }
 
