@@ -46,6 +46,29 @@ public extension AutoResolvable {
 @MainActor
 public final class AutoDependencyResolver {
 
+    // MARK: - Configuration (nonisolated)
+    /// 자동 해석 활성화 플래그 (기본값: true)
+    nonisolated(unsafe) public static var isEnabled: Bool = true
+
+    /// 자동 해석에서 제외할 타입 집합
+    nonisolated(unsafe) private static var excludedTypeIDs: Set<ObjectIdentifier> = []
+
+    /// 자동 해석 비활성화
+    nonisolated public static func disable() { isEnabled = false }
+
+    /// 자동 해석 활성화
+    nonisolated public static func enable() { isEnabled = true }
+
+    /// 특정 타입을 자동 해석에서 제외합니다.
+    nonisolated public static func excludeType<T>(_ type: T.Type) {
+        excludedTypeIDs.insert(ObjectIdentifier(type))
+    }
+
+    /// 특정 타입의 제외를 해제합니다.
+    nonisolated public static func includeType<T>(_ type: T.Type) {
+        excludedTypeIDs.remove(ObjectIdentifier(type))
+    }
+
     // 비-Sendable 참조를 안전하게 다른 실행 컨텍스트로 전달하기 위한 박스
     private final class ObjBox: @unchecked Sendable {
         let obj: AnyObject
@@ -57,6 +80,7 @@ public final class AutoDependencyResolver {
 
     /// 인스턴스의 모든 @Inject 프로퍼티를 자동으로 해결합니다
     public nonisolated static func resolve<T: AutoResolvable>(_ instance: T) {
+        guard isEnabled, !excludedTypeIDs.contains(ObjectIdentifier(T.self)) else { return }
         let box = ObjBox(instance as AnyObject)
         Task { @MainActor in
             if let inst = box.obj as? T {
@@ -67,6 +91,7 @@ public final class AutoDependencyResolver {
 
     /// 비동기 자동 해결
     public nonisolated static func resolveAsync<T: AutoResolvable>(_ instance: T) async {
+        guard isEnabled, !excludedTypeIDs.contains(ObjectIdentifier(T.self)) else { return }
         let box = ObjBox(instance as AnyObject)
         await MainActor.run {
             if let inst = box.obj as? T {
@@ -274,26 +299,8 @@ internal final class TypeNameResolver: @unchecked Sendable {
     }
 
     private static func resolveFromContainer(_ typeName: String) -> Any? {
-        // 일반적인 타입 이름들에 대한 매핑
-        let commonMappings: [String: Any.Type] = [
-            "String": String.self,
-            "Int": Int.self,
-            "Bool": Bool.self,
-            "Double": Double.self,
-            "Float": Float.self,
-            "Data": Data.self,
-            "URL": URL.self,
-            "URLSession": URLSession.self,
-            "UserDefaults": UserDefaults.self,
-            "Bundle": Bundle.self,
-            "ProcessInfo": ProcessInfo.self,
-            "FileManager": FileManager.self
-        ]
-
-        if let type = commonMappings[typeName] {
-            return resolveRegisteredType(type)
-        }
-
+        // 문자열 기반 일반 매핑은 더 이상 사용하지 않습니다.
+        // AutoResolve 또는 명시적 register를 통해 등록된 타입만 해석합니다.
         return nil
     }
 
@@ -318,6 +325,14 @@ extension DependencyContainer {
         }
         sem.wait()
         return box.value?.value
+    }
+
+    /// 타입 객체로 의존성 비동기 해결 (내부 사용)
+    internal func resolveByTypeAsync(_ type: Any.Type) async -> Any? {
+        if let box = await GlobalUnifiedRegistry.resolveAnyAsyncBox(type) {
+            return box.value
+        }
+        return nil
     }
 }
 

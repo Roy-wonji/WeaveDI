@@ -1,0 +1,72 @@
+name: CI (Build, Test, DocC)
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and Test (Strict Concurrency)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.0.0"
+
+      - name: Setup Swift
+        uses: fwal/setup-swift@v2
+        with:
+          swift-version: "6.1.0"
+
+      - name: SwiftPM Build (warnings-as-errors + strict concurrency)
+        run: |
+          swift --version
+          swift build -c debug \
+            -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete
+
+      - name: SwiftPM Test (if any)
+        run: |
+          if [ -d "Tests" ]; then
+            swift test -c debug \
+              -Xswiftc -warnings-as-errors \
+              -Xswiftc -strict-concurrency=complete
+          else
+            echo "No Tests/ directory. Skipping tests."
+          fi
+
+  docc-check:
+    name: DocC Build Check
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.0.0"
+
+      - name: Setup Swift
+        uses: fwal/setup-swift@v2
+        with:
+          swift-version: "6.1.0"
+
+      - name: Build DocC (no deploy)
+        env:
+          SCHEME_NAME: DiContainer
+          DESTINATION: generic/platform=macOS
+          IS_USER_SITE: "false"
+          HOSTING_BASE_PATH: ${{ github.event.repository.name }}
+        run: |
+          chmod +x ./GENERATE_DOCS.sh
+          ./GENERATE_DOCS.sh

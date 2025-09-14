@@ -322,6 +322,29 @@ public actor UnifiedRegistry {
         return nil
     }
 
+    /// 비동기 컨텍스트에서 런타임 타입(Any.Type)으로 의존성을 해결합니다.
+    /// - Parameter type: 해결할 런타임 타입
+    /// - Returns: 해결된 인스턴스 (없으면 nil)
+    public func resolveAnyAsync(_ type: Any.Type) async -> Any? {
+        let key = AnyTypeIdentifier(type)
+
+        if let box = singletonInstances[key] { return box.value }
+        if let asyncFactory = asyncFactories[key] { return (await asyncFactory()).value }
+        if let syncFactory = syncFactories[key] { return syncFactory().value }
+        return nil
+    }
+
+    /// 비동기 컨텍스트에서 런타임 타입(Any.Type)을 Sendable 박스로 해결합니다.
+    /// - Parameter type: 해결할 런타임 타입
+    /// - Returns: ValueBox(@unchecked Sendable)에 담긴 값 (없으면 nil)
+    public func resolveAnyAsyncBox(_ type: Any.Type) async -> ValueBox? {
+        let key = AnyTypeIdentifier(type)
+        if let box = singletonInstances[key] { return box }
+        if let asyncFactory = asyncFactories[key] { return await asyncFactory() }
+        if let syncFactory = syncFactories[key] { return syncFactory() }
+        return nil
+    }
+
     /// 비동기 의존성 해결
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)

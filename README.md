@@ -200,6 +200,23 @@ let exists = (UnifiedDI.resolve(NetworkServiceProtocol.self) != nil)
 let exists2 = (UnifiedDI.resolve(\.networkService) != nil)
 ```
 
+## AutoResolver 옵션
+
+- 메인 액터에서 자동 해석이 동작합니다(리플렉션/주입 안전성 우선).
+- 토글/제외 설정
+
+```swift
+// 전체 활성/비활성
+AutoDependencyResolver.enable()
+AutoDependencyResolver.disable()
+
+// 특정 타입 제외/해제
+AutoDependencyResolver.excludeType(UserService.self)
+AutoDependencyResolver.includeType(UserService.self)
+```
+
+- 문자열 기반 타입 매핑은 사용하지 않습니다. `@AutoResolve` 또는 명시적 등록을 사용하세요.
+
 ## 컨테이너 배치 빌드와 리포트
 
 `Container`는 수집된 모듈을 병렬로 등록합니다. 비-throwing, 메트릭, 리포트 API를 제공합니다.

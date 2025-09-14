@@ -207,6 +207,23 @@ await DIAsync.registerMany {
 5. 비동기/대량 등록은 `DIAsync.registerMany`로 이전
 6. 테스트에서는 `DependencyContainer.resetForTesting()`과 `DI.releaseAll()`/`releaseAllAsync()` 패턴 활용
 
+## AutoResolver 메모와 옵션
+
+- 2.0.0에서는 AutoResolver가 메인 액터에서 동작하여 UI/주입 안전성을 높였습니다.
+- 자동 해석을 전체 끄거나, 특정 타입만 제외할 수 있습니다.
+
+```swift
+// 전체 토글
+AutoDependencyResolver.enable()
+AutoDependencyResolver.disable()
+
+// 타입별 제외/해제
+AutoDependencyResolver.excludeType(UserService.self)
+AutoDependencyResolver.includeType(UserService.self)
+```
+
+- 문자열 기반 공통 타입 매핑은 제거되었습니다. `@AutoResolve` 또는 명시적 등록을 사용해 타입을 알려주세요.
+
 ## TCA 통합 코드 예(업데이트)
 
 ```swift
