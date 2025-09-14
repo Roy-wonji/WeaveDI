@@ -84,7 +84,7 @@ public final class AutoDependencyResolver {
         let box = ObjBox(instance as AnyObject)
         Task { @MainActor in
             if let inst = box.obj as? T {
-                shared.performAutoResolution(on: inst)
+                await shared.performAutoResolution(on: inst)
             }
         }
     }
@@ -95,7 +95,7 @@ public final class AutoDependencyResolver {
         let box = ObjBox(instance as AnyObject)
         await MainActor.run {
             if let inst = box.obj as? T {
-                shared.performAutoResolution(on: inst)
+                Task { @MainActor in await shared.performAutoResolution(on: inst) }
             }
         }
     }
@@ -103,15 +103,15 @@ public final class AutoDependencyResolver {
     /// 타입의 모든 인스턴스에 대해 자동 해결을 수행합니다
     public nonisolated static func resolveAllInstances<T: AutoResolvable>(of type: T.Type) {
         Task { @MainActor in
-            shared.resolveExistingInstances(of: type)
+            await shared.resolveExistingInstances(of: type)
         }
     }
 
-    private func performAutoResolution<T: AutoResolvable>(on instance: T) {
-        performResolutionSync(on: instance)
+    private func performAutoResolution<T: AutoResolvable>(on instance: T) async {
+        await performResolutionAsync(on: instance)
     }
 
-    private func performResolutionSync<T: AutoResolvable>(on instance: T) {
+    private func performResolutionAsync<T: AutoResolvable>(on instance: T) async {
         // 중복 해결 방지
         guard !resolvedInstances.contains(instance) else { return }
 
@@ -123,7 +123,7 @@ public final class AutoDependencyResolver {
 
             // @Inject 프로퍼티 래퍼 감지 및 해결
             if let injectWrapper = detectInjectProperty(child.value) {
-                if resolveInjectProperty(injectWrapper, propertyName: propertyName, on: instance) {
+                if await resolveInjectPropertyAsync(injectWrapper, propertyName: propertyName, on: instance) {
                     resolvedProperties.append(propertyName)
                 }
             }
@@ -155,7 +155,7 @@ public final class AutoDependencyResolver {
         return nil
     }
 
-    private func resolveInjectProperty<T: AutoResolvable>(_ wrapper: Any, propertyName: String, on instance: T) -> Bool {
+    private func resolveInjectPropertyAsync<T: AutoResolvable>(_ wrapper: Any, propertyName: String, on instance: T) async -> Bool {
         // Mirror를 사용하여 wrapper의 내부 상태 확인
         let wrapperMirror = Mirror(reflecting: wrapper)
 
@@ -169,17 +169,17 @@ public final class AutoDependencyResolver {
         }
 
         // Reflection을 통한 해결 시도
-        return attemptResolutionByReflection(wrapper: wrapper, propertyName: propertyName, on: instance)
+        return await attemptResolutionByReflectionAsync(wrapper: wrapper, propertyName: propertyName, on: instance)
     }
 
-    private func attemptResolutionByReflection<T: AutoResolvable>(wrapper: Any, propertyName: String, on instance: T) -> Bool {
+    private func attemptResolutionByReflectionAsync<T: AutoResolvable>(wrapper: Any, propertyName: String, on instance: T) async -> Bool {
         let typeName = String(describing: type(of: wrapper))
 
         // 제네릭 타입 추출 (예: Inject<UserService> -> UserService)
         if let extractedType = extractGenericType(from: typeName) {
             // 타입 이름으로 의존성 해결 시도
-            if let resolved = resolveByTypeName(extractedType) {
-                return injectResolvedValue(resolved, into: wrapper, on: instance, propertyName: propertyName)
+            if let box = await TypeNameResolver.resolveAsyncBox(extractedType) {
+                return injectResolvedValue(box.value, into: wrapper, on: instance, propertyName: propertyName)
             }
         }
 
@@ -196,11 +196,6 @@ public final class AutoDependencyResolver {
         }
 
         return String(typeName[range])
-    }
-
-    private func resolveByTypeName(_ typeName: String) -> Any? {
-        // 등록된 타입들을 문자열 이름으로 매칭하여 해결
-        return TypeNameResolver.resolve(typeName)
     }
 
     private func injectResolvedValue<T: AutoResolvable>(_ value: Any, into wrapper: Any, on instance: T, propertyName: String) -> Bool {
@@ -224,12 +219,12 @@ public final class AutoDependencyResolver {
         return false
     }
 
-    private func resolveExistingInstances<T: AutoResolvable>(of type: T.Type) {
+    private func resolveExistingInstances<T: AutoResolvable>(of type: T.Type) async {
         // 약한 참조로 저장된 인스턴스들 중 해당 타입만 필터링하여 재해결
         let allObjects = resolvedInstances.allObjects
         for object in allObjects {
             if let instance = object as? T {
-                performResolutionSync(on: instance)
+                await performResolutionAsync(on: instance)
             }
         }
     }
@@ -271,31 +266,24 @@ internal final class TypeNameResolver: @unchecked Sendable {
         }
     }
 
+    @available(*, deprecated, message: "Use resolveAsync(_:) instead for Swift 6 concurrency safety")
     static func resolve(_ typeName: String) -> Any? {
-        // 동기 컨텍스트에서 actor 호출을 브리지
-        let resolvedType: Any.Type? = syncAwait({ @Sendable in await registry.resolveType(for: typeName) })
-        guard let resolvedType else {
-            // DependencyContainer에서 직접 해결 시도
-            return resolveFromContainer(typeName)
-        }
-        // 등록된 타입으로 해결
-        return resolveRegisteredType(resolvedType)
+        // Deprecated: avoid sync bridging; returns only fallback mapping
+        return resolveFromContainer(typeName)
     }
 
+    /// Async resolution by type name, returning a sendable box.
+    static func resolveAsyncBox(_ typeName: String) async -> UnifiedRegistry.ValueBox? {
+        if let t = await registry.resolveType(for: typeName) {
+            return await GlobalUnifiedRegistry.resolveAnyAsyncBox(t)
+        }
+        return nil
+    }
+
+    @available(*, deprecated, message: "Synchronous bridging is deprecated. Prefer async APIs.")
     @inline(__always)
     private static func syncAwait<T>(_ operation: @escaping @Sendable () async -> T) -> T {
-        // 비-Sendable 캡처를 피하기 위해 박스 사용
-        let resultBox = MutableBox<T?>(nil)
-        let sem = DispatchSemaphore(value: 0)
-        let semBox = UncheckedSendableBox(sem)
-        Task.detached { @Sendable in
-            let v = await operation()
-            resultBox.value = v
-            semBox.value.signal()
-        }
-        sem.wait()
-        // 강제 언래핑은 논리상 안전 (반드시 signal 이후)
-        return resultBox.value!
+        fatalError("syncAwait is deprecated. Use the async API instead.")
     }
 
     private static func resolveFromContainer(_ typeName: String) -> Any? {
@@ -304,16 +292,14 @@ internal final class TypeNameResolver: @unchecked Sendable {
         return nil
     }
 
-    private static func resolveRegisteredType(_ type: Any.Type) -> Any? {
-        // DependencyContainer를 통한 해결 시도
-        return DependencyContainer.live.resolveByType(type)
-    }
+    // Removed legacy sync registered-type resolution. Use resolveByTypeAsync(_:) instead.
 }
 
 // MARK: - DependencyContainer Extension
 
 extension DependencyContainer {
     /// 타입 객체로 의존성 해결 (내부 사용)
+    @available(*, deprecated, message: "Use resolveByTypeAsync(_:) instead")
     internal func resolveByType(_ type: Any.Type) -> Any? {
         // UnifiedRegistry를 사용하여 런타임 타입으로 해결 (Sendable 박스 경유)
         let sem = DispatchSemaphore(value: 0)
