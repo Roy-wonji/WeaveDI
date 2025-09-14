@@ -9,6 +9,12 @@ import Foundation
 
 // MARK: - DIActor
 
+// 비동기 결과를 동기 브리지할 때 사용할 박스 (파일 스코프)
+private final class _DIActorAsyncBox<T>: @unchecked Sendable {
+    var value: T?
+    init() {}
+}
+
 /// Thread-safe DI operations을 위한 Actor 기반 구현
 /// 
 /// ## 특징:
@@ -76,8 +82,8 @@ public actor DIActor {
             await self?.release(type)
         }
         
-        releaseHandlers[key] = {
-            Task { await releaseHandler() }
+        releaseHandlers[key] = { @Sendable in
+            Task.detached { @Sendable in await releaseHandler() }
         }
         
         return releaseHandler
@@ -286,7 +292,7 @@ public enum DIActorBridge {
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
     ) {
-        Task {
+        Task.detached { @Sendable in
             _ = await DIActor.shared.register(type, factory: factory)
         }
     }
@@ -295,16 +301,13 @@ public enum DIActorBridge {
     /// - Warning: 메인 스레드에서만 사용하세요
     @MainActor
     public static func resolveSync<T>(_ type: T.Type) -> T? where T: Sendable {
-        var result: T?
-        let group = DispatchGroup()
-        
-        group.enter()
-        Task {
-            result = await DIActor.shared.resolve(type)
-            group.leave()
+        let box = _DIActorAsyncBox<T>()
+        let sem = DispatchSemaphore(value: 0)
+        Task.detached { @Sendable in
+            box.value = await DIActor.shared.resolve(type)
+            sem.signal()
         }
-        
-        group.wait()
-        return result
+        sem.wait()
+        return box.value
     }
 }

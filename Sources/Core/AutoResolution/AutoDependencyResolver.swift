@@ -42,56 +42,48 @@ public extension AutoResolvable {
 
 // MARK: - AutoDependencyResolver
 
-/// 자동 의존성 해결을 수행하는 핵심 클래스
-public final class AutoDependencyResolver: @unchecked Sendable {
+/// 자동 의존성 해결을 수행하는 핵심 클래스 (메인 액터 격리)
+@MainActor
+public final class AutoDependencyResolver {
 
-    // 비-Sendable 참조를 안전하게 다른 스레드로 전달하기 위한 박스
-    private final class AnyObjectBox: @unchecked Sendable {
+    // 비-Sendable 참조를 안전하게 다른 실행 컨텍스트로 전달하기 위한 박스
+    private final class ObjBox: @unchecked Sendable {
         let obj: AnyObject
         init(_ o: AnyObject) { self.obj = o }
     }
 
-    private static let shared = AutoDependencyResolver()
+    public static let shared = AutoDependencyResolver()
     private var resolvedInstances: NSHashTable<AnyObject> = NSHashTable.weakObjects()
-    private let resolverQueue = DispatchQueue(label: "auto-dependency-resolver", qos: .userInitiated)
-
-    private init() {}
 
     /// 인스턴스의 모든 @Inject 프로퍼티를 자동으로 해결합니다
-    public static func resolve<T: AutoResolvable>(_ instance: T) {
-        shared.performAutoResolution(on: instance)
+    public nonisolated static func resolve<T: AutoResolvable>(_ instance: T) {
+        let box = ObjBox(instance as AnyObject)
+        Task { @MainActor in
+            if let inst = box.obj as? T {
+                shared.performAutoResolution(on: inst)
+            }
+        }
     }
 
     /// 비동기 자동 해결
-    public static func resolveAsync<T: AutoResolvable>(_ instance: T) async {
-        await shared.performAutoResolutionAsync(on: instance)
+    public nonisolated static func resolveAsync<T: AutoResolvable>(_ instance: T) async {
+        let box = ObjBox(instance as AnyObject)
+        await MainActor.run {
+            if let inst = box.obj as? T {
+                shared.performAutoResolution(on: inst)
+            }
+        }
     }
 
     /// 타입의 모든 인스턴스에 대해 자동 해결을 수행합니다
-    public static func resolveAllInstances<T: AutoResolvable>(of type: T.Type) {
-        shared.resolveExistingInstances(of: type)
+    public nonisolated static func resolveAllInstances<T: AutoResolvable>(of type: T.Type) {
+        Task { @MainActor in
+            shared.resolveExistingInstances(of: type)
+        }
     }
 
     private func performAutoResolution<T: AutoResolvable>(on instance: T) {
-        // 비-Sendable 인스턴스 캡처를 피하기 위해 박스로 감쌉니다
-        let boxed = AnyObjectBox(instance as AnyObject)
-        resolverQueue.async { [weak self] in
-            guard let self = self, let inst = boxed.obj as? T else { return }
-            self.performResolutionSync(on: inst)
-        }
-    }
-
-    private func performAutoResolutionAsync<T: AutoResolvable>(on instance: T) async {
-        // 비-Sendable 인스턴스 캡처를 피하기 위해 박스로 감쌉니다
-        let boxed = AnyObjectBox(instance as AnyObject)
-        return await withCheckedContinuation { continuation in
-            resolverQueue.async { [weak self] in
-                if let self = self, let inst = boxed.obj as? T {
-                    self.performResolutionSync(on: inst)
-                }
-                continuation.resume()
-            }
-        }
+        performResolutionSync(on: instance)
     }
 
     private func performResolutionSync<T: AutoResolvable>(on instance: T) {
@@ -115,16 +107,11 @@ public final class AutoDependencyResolver: @unchecked Sendable {
         // 해결된 인스턴스 추적
         resolvedInstances.add(instance)
 
-        // 해결 완료 콜백 호출 - 비-Sendable 인스턴스를 박스로 전달하여 전송 경고 회피
-        let boxedForMain = AnyObjectBox(instance as AnyObject)
-        DispatchQueue.main.async { [weak boxedForMain] in
-            if let target = boxedForMain?.obj as? T {
-                target.didAutoResolve()
-                #if DEBUG
-                print("🔄 [AutoResolver] Resolved \(resolvedProperties.count) properties for \(type(of: target))")
-                #endif
-            }
-        }
+        // 메인 액터 내에서 직접 콜백 호출
+        instance.didAutoResolve()
+        #if DEBUG
+        print("🔄 [AutoResolver] Resolved \(resolvedProperties.count) properties for \(type(of: instance))")
+        #endif
     }
 
     private func detectInjectProperty(_ value: Any) -> Any? {
@@ -217,7 +204,7 @@ public final class AutoDependencyResolver: @unchecked Sendable {
         let allObjects = resolvedInstances.allObjects
         for object in allObjects {
             if let instance = object as? T {
-                performAutoResolution(on: instance)
+                performResolutionSync(on: instance)
             }
         }
     }
@@ -321,9 +308,16 @@ internal final class TypeNameResolver: @unchecked Sendable {
 extension DependencyContainer {
     /// 타입 객체로 의존성 해결 (내부 사용)
     internal func resolveByType(_ type: Any.Type) -> Any? {
-        // 실제 구현은 복잡하므로 간단한 버전만 제공
-        // 실제로는 TypeRegistry와 연동하여 해결해야 함
-        return nil
+        // UnifiedRegistry를 사용하여 런타임 타입으로 해결 (Sendable 박스 경유)
+        let sem = DispatchSemaphore(value: 0)
+        final class Box: @unchecked Sendable { var value: UnifiedRegistry.ValueBox? = nil }
+        let box = Box()
+        Task.detached { @Sendable in
+            box.value = await GlobalUnifiedRegistry.resolveAnyBox(type)
+            sem.signal()
+        }
+        sem.wait()
+        return box.value?.value
     }
 }
 

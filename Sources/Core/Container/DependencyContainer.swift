@@ -58,11 +58,16 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
     public func register<T>(
         _ type: T.Type,
         build: @Sendable @escaping () -> T
-    ) -> () -> Void {
+    ) -> @Sendable () -> Void {
         // 타입 안전한 레지스트리 사용
         let releaseHandler = typeSafeRegistry.register(type, factory: build)
 
         Log.debug("Registered (TypeSafe)", String(describing: type))
+
+        // 통합 레지스트리에도 동기 팩토리 등록 (비차단)
+        Task.detached { @Sendable in
+            await GlobalUnifiedRegistry.register(type, factory: build)
+        }
 
         return releaseHandler
     }
@@ -108,6 +113,11 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
         // 타입 안전한 레지스트리에서 해제
         typeSafeRegistry.release(type)
         Log.debug("Released", String(describing: type))
+
+        // 통합 레지스트리에서도 해제 (비차단)
+        Task.detached { @Sendable in
+            await GlobalUnifiedRegistry.release(type)
+        }
     }
 
     // MARK: - KeyPath-based Access
@@ -137,5 +147,11 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
         // 타입 안전한 레지스트리에 인스턴스 등록
         typeSafeRegistry.register(type, instance: instance)
         Log.debug("Registered instance (TypeSafe) for", String(describing: type))
+
+        // 통합 레지스트리에 싱글톤으로도 등록 (비차단)
+        let boxed = unsafeSendable(instance)
+        Task.detached { @Sendable in
+            await GlobalUnifiedRegistry.registerSingleton(type, instance: boxed.value)
+        }
     }
 }

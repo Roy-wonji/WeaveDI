@@ -96,7 +96,7 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
     func register<T>(
         _ type: T.Type,
         factory: @Sendable @escaping () -> T
-    ) -> () -> Void {
+    ) -> @Sendable () -> Void {
         let key = AnyTypeIdentifier(type)
 
         // 등록은 배리어로 보호
@@ -105,7 +105,7 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
         }
 
         // 🛡️ 메모리 안전성: weak self로 retain cycle 방지
-        let releaseHandler: () -> Void = { [weak self] in
+        let releaseHandler: @Sendable () -> Void = { [weak self] in
             // weak self가 이미 deallocated된 경우 gracefully return
             guard let strongSelf = self else { 
                 #if DEBUG

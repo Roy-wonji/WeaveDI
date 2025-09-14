@@ -132,7 +132,7 @@ public actor UnifiedRegistry {
     public func register<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
-    ) -> () -> Void {
+    ) {
         let key = AnyTypeIdentifier(type)
         let syncFactory: SyncFactory = { ValueBox(factory()) }
 
@@ -140,10 +140,6 @@ public actor UnifiedRegistry {
         updateRegistrationInfo(key, type: .syncFactory)
 
         Log.debug("✅ [UnifiedRegistry] Registered sync factory for \(String(describing: type))")
-
-        return {
-            // 단순한 no-op 핸들러로 변경 (실제 해제는 별도 메서드 호출로)
-        }
     }
 
     /// 싱글톤 인스턴스 등록
@@ -170,11 +166,10 @@ public actor UnifiedRegistry {
     ///   - type: 등록할 타입
     ///   - factory: 인스턴스를 생성하는 비동기 클로저
     /// - Returns: 등록 해제 핸들러
-    @discardableResult
     public func registerAsync<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () async -> T
-    ) -> () -> Void {
+    ) {
         let key = AnyTypeIdentifier(type)
         let asyncFactory: AsyncFactory = { ValueBox(await factory()) }
 
@@ -182,10 +177,6 @@ public actor UnifiedRegistry {
         updateRegistrationInfo(key, type: .asyncFactory)
 
         Log.debug("✅ [UnifiedRegistry] Registered async factory for \(String(describing: type))")
-
-        return {
-            // 단순한 no-op 핸들러로 변경 (실제 해제는 별도 메서드 호출로)
-        }
     }
 
     /// 비동기 싱글톤 등록 (지연 생성 후 캐싱)
@@ -296,6 +287,38 @@ public actor UnifiedRegistry {
         }
 
         Log.debug("❌ [UnifiedRegistry] Failed to resolve \(String(describing: type))")
+        return nil
+    }
+
+    /// 런타임 타입(Any.Type)으로 의존성을 해결합니다.
+    /// - Parameter type: 해결할 런타임 타입
+    /// - Returns: 해결된 인스턴스 (없으면 nil)
+    public func resolveAny(_ type: Any.Type) -> Any? {
+        let key = AnyTypeIdentifier(type)
+
+        // 1) 싱글톤 캐시
+        if let box = singletonInstances[key] {
+            return box.value
+        }
+
+        // 2) 동기 팩토리
+        if let factory = syncFactories[key] {
+            let box = factory()
+            return box.value
+        }
+
+        // 3) 비동기 팩토리는 여기서 즉시 생성하지 않음 (컨텍스트가 async가 아님)
+        return nil
+    }
+
+    /// 런타임 타입(Any.Type)으로 의존성을 해결하고, Sendable 박스로 반환합니다.
+    /// - Parameter type: 해결할 런타임 타입
+    /// - Returns: ValueBox(@unchecked Sendable)에 담긴 값 (없으면 nil)
+    public func resolveAnyBox(_ type: Any.Type) -> ValueBox? {
+        let key = AnyTypeIdentifier(type)
+
+        if let box = singletonInstances[key] { return box }
+        if let factory = syncFactories[key] { return factory() }
         return nil
     }
 

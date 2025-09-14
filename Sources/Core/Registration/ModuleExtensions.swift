@@ -149,7 +149,7 @@ public struct ModuleGroup: AdvancedModule {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 for module in modules {
                     if module.shouldRegister() {
-                        group.addTask {
+                        group.addTask { @Sendable in
                             try await module.register()
                         }
                     }
@@ -176,7 +176,7 @@ public struct ModuleGroup: AdvancedModule {
     public func validate() async throws {
         try await withThrowingTaskGroup(of: Void.self) { group in
             for module in modules {
-                group.addTask {
+                group.addTask { @Sendable in
                     try await module.validate()
                 }
             }

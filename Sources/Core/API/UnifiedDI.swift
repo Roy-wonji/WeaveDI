@@ -115,7 +115,7 @@ public enum UnifiedDI {
     public static func register<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
-    ) -> () -> Void {
+    ) -> @Sendable () -> Void {
         return DependencyContainer.live.register(type, build: factory)
     }
 
@@ -179,7 +179,7 @@ public enum UnifiedDI {
         condition: Bool,
         factory: @escaping @Sendable () -> T,
         fallback: @escaping @Sendable () -> T
-    ) -> () -> Void {
+    ) -> @Sendable () -> Void {
         if condition {
             return register(type, factory: factory)
         } else {

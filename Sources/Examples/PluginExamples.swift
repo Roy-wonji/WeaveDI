@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Concrete Plugin Implementations
 
 /// 로깅 플러그인: 모든 DI 활동을 로그로 기록
-public final class LoggingPlugin: BasePlugin, RegistrationPlugin, ResolutionPlugin, LifecyclePlugin {
+public final class LoggingPlugin: BasePlugin, RegistrationPlugin, ResolutionPlugin, LifecyclePlugin, @unchecked Sendable {
 
     private let logLevel: LogLevel
     private var registrationCount: Int = 0
