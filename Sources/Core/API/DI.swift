@@ -49,7 +49,7 @@ public enum DI {
     ///   - factory: 인스턴스를 생성하는 클로저
     /// - Returns: 등록 해제 핸들러
     @discardableResult
-    static func register<T>(
+    public static func register<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
     ) -> @Sendable () -> Void {
@@ -58,7 +58,7 @@ public enum DI {
 
     /// 스코프 기반 등록 (동기)
     @discardableResult
-    static func registerScoped<T>(
+    public static func registerScoped<T>(
         _ type: T.Type,
         scope: ScopeKind,
         factory: @escaping @Sendable () -> T
@@ -70,7 +70,7 @@ public enum DI {
     }
 
     /// 스코프 기반 등록 (비동기)
-    static func registerAsyncScoped<T>(
+    public static func registerAsyncScoped<T>(
         _ type: T.Type,
         scope: ScopeKind,
         factory: @escaping @Sendable () async -> T
@@ -86,7 +86,7 @@ public enum DI {
     ///   - factory: 인스턴스를 생성하는 클로저
     /// - Returns: 생성된 인스턴스 (동시에 DI 컨테이너에 등록됨)
     @discardableResult
-    static func register<T>(
+    public static func register<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         factory: @escaping @Sendable () -> T
     ) -> T where T: Sendable {
@@ -102,7 +102,7 @@ public enum DI {
     ///   - factory: 인스턴스를 생성하는 클로저
     ///   - fallback: 조건이 false일 때 사용할 팩토리
     @discardableResult
-    static func registerIf<T>(
+    public static func registerIf<T>(
         _ type: T.Type,
         condition: Bool,
         factory: @escaping @Sendable () -> T,
@@ -117,7 +117,7 @@ public enum DI {
 
     /// KeyPath 기반 조건부 등록 (등록과 동시에 인스턴스 반환)
     @discardableResult
-    static func registerIf<T>(
+    public static func registerIf<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         condition: Bool,
         factory: @escaping @Sendable () -> T,
@@ -131,14 +131,14 @@ public enum DI {
     /// 등록된 의존성을 해결합니다 (옵셔널 반환)
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
-    static func resolve<T>(_ type: T.Type) -> T? {
+    public static func resolve<T>(_ type: T.Type) -> T? {
         return DependencyContainer.live.resolve(type)
     }
 
     /// 등록된 의존성을 Result로 해결합니다 (에러 처리)
     /// - Parameter type: 해결할 타입
     /// - Returns: 성공 시 인스턴스, 실패 시 DIError
-    static func resolveResult<T>(_ type: T.Type) -> Result<T, DIError> {
+    public static func resolveResult<T>(_ type: T.Type) -> Result<T, DIError> {
         if let resolved = DependencyContainer.live.resolve(type) {
             return .success(resolved)
         } else {
@@ -150,7 +150,7 @@ public enum DI {
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스
     /// - Throws: DIError.dependencyNotFound
-    static func resolveThrows<T>(_ type: T.Type) throws -> T {
+    public static func resolveThrows<T>(_ type: T.Type) throws -> T {
         if let resolved = DependencyContainer.live.resolve(type) {
             return resolved
         } else {
@@ -163,7 +163,7 @@ public enum DI {
     ///   - type: 해결할 타입
     ///   - defaultValue: 해결 실패 시 기본값
     /// - Returns: 해결된 인스턴스 또는 기본값
-    static func resolve<T>(_ type: T.Type, default defaultValue: @autoclosure () -> T) -> T {
+    public static func resolve<T>(_ type: T.Type, default defaultValue: @autoclosure () -> T) -> T {
         return DependencyContainer.live.resolve(type) ?? defaultValue()
     }
 
@@ -171,7 +171,7 @@ public enum DI {
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스
     /// - Warning: 개발 중에만 사용하세요. 프로덕션에서는 resolveThrows() 사용 권장
-    static func requireResolve<T>(_ type: T.Type) -> T {
+    public static func requireResolve<T>(_ type: T.Type) -> T {
         guard let resolved = DependencyContainer.live.resolve(type) else {
             fatalError("🚨 Required dependency '\(T.self)' not found. Register it using: DI.register(\(T.self).self) { ... }")
         }
@@ -182,14 +182,14 @@ public enum DI {
 
     /// 등록된 의존성을 해제합니다
     /// - Parameter type: 해제할 타입
-    static func release<T>(_ type: T.Type) {
+    public static func release<T>(_ type: T.Type) {
         DependencyContainer.live.release(type)
     }
 
     /// 모든 등록된 의존성을 해제합니다 (테스트 용도)
     /// - Warning: 메인 스레드에서만 호출하세요
     @MainActor
-    static func releaseAll() {
+    public static func releaseAll() {
         DependencyContainer.live = DependencyContainer()
 
         #if DEBUG
@@ -198,7 +198,7 @@ public enum DI {
     }
 
     /// 비동기 환경에서 모든 등록을 해제합니다
-    static func releaseAllAsync() async {
+    public static func releaseAllAsync() async {
         await DIActorGlobalAPI.releaseAll()
     }
 
@@ -206,7 +206,7 @@ public enum DI {
 
     /// 특정 스코프(kind,id)의 모든 인스턴스를 해제합니다.
     @discardableResult
-    static func releaseScope(_ kind: ScopeKind, id: String) -> Int {
+    public static func releaseScope(_ kind: ScopeKind, id: String) -> Int {
         let sem = DispatchSemaphore(value: 0)
         let box = _IntBox()
         Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScope(kind: kind, id: id); sem.signal() }
@@ -216,7 +216,7 @@ public enum DI {
 
     /// 특정 타입의 스코프 인스턴스를 해제합니다.
     @discardableResult
-    static func releaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
+    public static func releaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
         let sem = DispatchSemaphore(value: 0)
         let box = _BoolBox()
         Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScoped(type, kind: kind, id: id); sem.signal() }
@@ -227,17 +227,17 @@ public enum DI {
     // MARK: - Introspection
 
     /// 타입 기반 등록 여부 확인
-    static func isRegistered<T>(_ type: T.Type) -> Bool {
+    public static func isRegistered<T>(_ type: T.Type) -> Bool {
         DependencyContainer.live.resolve(type) != nil
     }
 
     /// KeyPath 기반 등록 여부 확인
-    static func isRegistered<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> Bool {
+    public static func isRegistered<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> Bool {
         isRegistered(T.self)
     }
 
     /// 현재 컨테이너의 상태 정보를 반환합니다
-    static func getContainerStatus() async -> DIContainerStatus {
+    public static func getContainerStatus() async -> DIContainerStatus {
         return DIContainerStatus(
             isBootstrapped: await DependencyContainer.isBootstrapped,
             registrationCount: getApproximateRegistrationCount(),

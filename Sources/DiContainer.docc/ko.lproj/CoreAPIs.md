@@ -13,6 +13,48 @@ DiContainer 2.0은 세 가지 핵심 패턴을 중심으로 설계되었습니�
 
 ## 등록 API (Registration)
 
+### UnifiedDI 빠른 레퍼런스
+
+```swift
+// 기본 등록
+UnifiedDI.register(Service.self) { ServiceImpl() }
+
+// 조건부 등록
+UnifiedDI.registerIf(Analytics.self, condition: isProd,
+                     factory: { FirebaseAnalytics() },
+                     fallback: { NoOpAnalytics() })
+
+// 스코프 등록 (동기/비동기)
+UnifiedDI.registerScoped(UserService.self, scope: .session) { UserServiceImpl() }
+UnifiedDI.registerAsyncScoped(ProfileCache.self, scope: .screen) { await ProfileCache.make() }
+
+// 해제 (전체/스코프/특정 타입-스코프)
+UnifiedDI.release(Service.self)
+UnifiedDI.releaseScope(.session, id: userID)
+UnifiedDI.releaseScoped(UserService.self, kind: .session, id: userID)
+```
+
+### DI(단순화) 빠른 레퍼런스
+
+```swift
+// 기본 등록
+DI.register(Service.self) { ServiceImpl() }
+
+// 조건부 등록
+DI.registerIf(Service.self, condition: flag,
+              factory: { RealService() },
+              fallback: { MockService() })
+
+// 스코프 등록 (동기/비동기)
+DI.registerScoped(UserService.self, scope: .request) { UserServiceImpl() }
+DI.registerAsyncScoped(RequestContext.self, scope: .request) { await RequestContext.create() }
+
+// 해제 (전체/스코프/특정 타입-스코프)
+DI.release(Service.self)
+DI.releaseScope(.request, id: requestID)
+DI.releaseScoped(UserService.self, kind: .request, id: requestID)
+```
+
 ### DependencyContainer.bootstrap
 
 가장 일반적인 등록 방법입니다:
@@ -438,3 +480,17 @@ class LazyServiceConsumer {
 - <doc:프로퍼티래퍼>에서 고급 프로퍼티 래퍼 활용법
 - <doc:액터홉최적화>에서 성능 최적화 기법
 - <doc:플러그인시스템>에서 확장 가능한 시스템 구축
+### UnifiedDI/DI 사용 요약
+
+```swift
+// UnifiedDI
+let svc1: Service? = UnifiedDI.resolve(Service.self)
+let svc2: Service = UnifiedDI.requireResolve(Service.self)
+let svc3: Service = try UnifiedDI.resolveThrows(Service.self)
+let svc4: Service = UnifiedDI.resolve(Service.self, default: MockService())
+
+// DI(단순화)
+let s1: Service? = DI.resolve(Service.self)
+let s2: Result<Service, DIError> = DI.resolveResult(Service.self)
+let s3: Service = try DI.resolveThrows(Service.self)
+```

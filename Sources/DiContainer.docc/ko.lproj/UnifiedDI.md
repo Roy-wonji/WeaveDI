@@ -35,6 +35,43 @@ UnifiedDI.registerMany {
 }
 ```
 
+#### 스코프 기반 등록/해결(화면/세션/요청)
+```swift
+// 스코프 ID 설정 (예: 로그인 성공 시 세션 스코프 시작)
+ScopeContext.shared.setCurrent(.session, id: user.id)
+
+// 스코프 등록 (동기/비동기)
+UnifiedDI.registerScoped(UserService.self, scope: .session) { UserServiceImpl() }
+UnifiedDI.registerAsyncScoped(ProfileCache.self, scope: .screen) { await ProfileCache.make() }
+
+// 기존과 동일한 방식으로 해결 (현재 스코프 ID가 있으면 스코프 캐시 사용)
+let userService = UnifiedDI.resolve(UserService.self)
+
+// 스코프 해제 (전체/특정 타입)
+UnifiedDI.releaseScope(.session, id: user.id)
+UnifiedDI.releaseScoped(UserService.self, kind: .session, id: user.id)
+```
+
+#### 비동기 싱글톤(최초 1회 생성)
+```swift
+await GlobalUnifiedRegistry.registerAsyncSingleton(RemoteConfig.self) { await RemoteConfig.fetch() }
+
+// 어디서든 사용
+let config: RemoteConfig? = await UnifiedDI.resolveAsync(RemoteConfig.self)
+```
+
+#### 그래프 자동 수집(선택)
+```swift
+// 자동 기록 활성화 (해결 시 상위 컨텍스트 → 대상 타입 간 엣지 기록)
+CircularDependencyDetector.shared.setAutoRecordingEnabled(true)
+
+// 더 정확한 그래프를 원하면 '소유 타입' 컨텍스트에서 begin/end로 감싸주세요
+try? CircularDependencyDetector.shared.beginResolution(HomeViewModel.self)
+defer { CircularDependencyDetector.shared.endResolution(HomeViewModel.self) }
+
+let service = UnifiedDI.resolve(UserService.self)
+```
+
 **사용 시나리오:**
 - 복잡한 앱 아키텍처
 - 고급 DI 기능이 필요한 경우
@@ -156,6 +193,9 @@ await DependencyContainer.bootstrap { container in
 | 성능 추적 | ✅ 내장 | ❌ 미지원 |
 | 배치 등록 | ✅ Result Builder DSL | ❌ 미지원 |
 | KeyPath 등록 | ✅ 지원 | ❌ 미지원 |
+| 스코프(.screen/.session/.request) | ✅ 등록/해결/해제 지원 | ❌ 미지원 |
+| 비동기 싱글톤(초기화 1회 보장) | ✅ 지원(GlobalUnifiedRegistry) | ❌ 미지원 |
+| 그래프 자동 수집 옵션 | ✅ 지원(CircularDependencyDetector) | ❌ 미지원 |
 | 에러 전략 | ✅ 다양함 (throws, default 등) | ✅ 기본만 |
 | 학습 곡선 | 보통 | 낮음 |
 | 메모리 오버헤드 | 낮음 | 매우 낮음 |
@@ -207,3 +247,13 @@ struct MyApp: App {
     }
 }
 ```
+
+## 🔬 참고: “컴파일 타임 절대 보증/초저오버헤드”가 목표라면
+
+본 프레임워크는 런타임 DI(유연성/도구/동시성 최적화) 중심입니다. 만약 Needle 스타일의 **컴파일 타임 보증**과 **초저오버헤드**가 최우선이라면:
+
+- 레지스트리/런타임 조회 대신 코드 생성 기반 정적 바인딩으로 전환
+- 컴포넌트(Dependencies/Provides) 선언 → 빌드 시 wire 코드 생성
+- 프로덕션 핫패스에서 프로퍼티 래퍼/딕셔너리/캐스팅 제거, 생성자 주입/직접 참조로 대체
+
+이 접근은 팀/도메인에 따라 큰 이점을 줄 수 있습니다. 현 레포에서도 점진 전환(디버그=런타임 DI, 릴리즈=코드생성 DI) 전략을 고려할 수 있습니다.

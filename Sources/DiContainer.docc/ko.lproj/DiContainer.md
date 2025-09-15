@@ -209,18 +209,35 @@ class OptimizedViewController {
 
 ### API 참조
 
+- <doc:UnifiedDI-DI-QuickReference>
+
 #### 등록 API
 - ``UnifiedDI/register(_:factory:)``
 - ``UnifiedDI/registerMany(_:)``
+- ``UnifiedDI/registerScoped(_:scope:factory:)``
+- ``UnifiedDI/registerAsyncScoped(_:scope:factory:)``
+- ``DI/register(_:factory:)``
+- ``DI/registerScoped(_:scope:factory:)``
+- ``DI/registerAsyncScoped(_:scope:factory:)``
 
 #### 해결 API
 - ``UnifiedDI/resolve(_:)``
 - ``UnifiedDI/requireResolve(_:)``
 - ``UnifiedDI/resolveThrows(_:)``
 - ``UnifiedDI/resolve(_:default:)``
+- ``DI/resolve(_:)``
+- ``DI/resolveResult(_:)``
+- ``DI/resolveThrows(_:)``
 
 #### 관리 API
 - ``UnifiedDI/release(_:)``
 - ``UnifiedDI/releaseAll()``
+- ``UnifiedDI/releaseScope(_:id:)``
+- ``UnifiedDI/releaseScoped(_:kind:id:)``
+- ``DI/release(_:)``
+- ``DI/releaseAll()``
+- ``DI/releaseAllAsync()``
+- ``DI/releaseScope(_:id:)``
+- ``DI/releaseScoped(_:kind:id:)``
 - ``DependencyContainer/bootstrap(_:)``
 - ``DependencyContainer/resetForTesting()``
