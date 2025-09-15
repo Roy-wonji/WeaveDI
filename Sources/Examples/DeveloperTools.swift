@@ -64,7 +64,7 @@ public struct DeveloperTools {
         if cycles.isEmpty {
             #logInfo("✅ 순환 의존성이 발견되지 않았습니다.")
         } else {
-            #logWarning("⚠️ \(cycles.count)개의 순환 의존성 발견:")
+            #logError("⚠️ \(cycles.count)개의 순환 의존성 발견:")
             for (index, cycle) in cycles.enumerated() {
                 #logDebug("   \(index + 1). \(cycle.description)")
             }
@@ -109,9 +109,11 @@ public struct DeveloperTools {
 
     /// 성능 통계 출력
     public static func printPerformanceStats() {
-        let stats = SimplePerformanceOptimizer.getStats()
-        #logDebug("⚡ 성능 통계:")
-        #logDebug(stats.summary)
+        Task { @MainActor in
+            let stats = SimplePerformanceOptimizer.getStats()
+            #logDebug("⚡ 성능 통계:")
+            #logDebug(stats.summary)
+        }
     }
 
     // MARK: - Quick Access Commands

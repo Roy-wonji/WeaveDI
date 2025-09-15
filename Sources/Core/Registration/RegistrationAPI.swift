@@ -96,7 +96,7 @@ public final class RegistrationToken: @unchecked Sendable {
     public func cancel() {
         guard !isCancelled else {
             #if DEBUG
-            #logWarning("⚠️ [RegistrationToken] Already cancelled: \(typeName)")
+            #logError("⚠️ [RegistrationToken] Already cancelled: \(typeName)")
             #endif
             return
         }

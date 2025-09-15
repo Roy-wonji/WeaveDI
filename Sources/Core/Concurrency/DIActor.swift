@@ -116,7 +116,7 @@ public actor DIActor {
         
         guard let anyFactory = factories[key] else {
             #if DEBUG
-            #logWarning("⚠️ [DIActor] Type \(type) not found")
+            #logError("⚠️ [DIActor] Type \(type) not found")
             #endif
             return nil
         }

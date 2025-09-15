@@ -297,7 +297,7 @@ public enum SafeInjectionMigration {
             return value
         case .failure(let error):
             #if DEBUG
-            #logWarning("⚠️ [Migration] Injection failed: \(error.debugDescription)")
+            #logError("⚠️ [Migration] Injection failed: \(error.debugDescription)")
             #endif
             return nil
         }

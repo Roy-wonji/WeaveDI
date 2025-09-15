@@ -68,7 +68,7 @@ public final class LoggingPlugin: BasePlugin, RegistrationPlugin, ResolutionPlug
                 #logInfo("✅ [LoggingPlugin] Resolved: \(type) (#\(resolutionCount))")
             }
         } else {
-            #logWarning("⚠️ [LoggingPlugin] Failed to resolve: \(type)")
+            #logError("⚠️ [LoggingPlugin] Failed to resolve: \(type)")
         }
     }
 

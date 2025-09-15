@@ -85,7 +85,7 @@ public final class AutoGraphGenerator: @unchecked Sendable {
 
         // 순환 의존성이 발견된 경우 추가 처리
         if !cycles.isEmpty {
-            #logWarning("⚠️  \(cycles.count)개의 순환 의존성 발견!")
+            #logError("⚠️  \(cycles.count)개의 순환 의존성 발견!")
             for (index, cycle) in cycles.enumerated() {
                 #logDebug("   \(index + 1). \(cycle.description)")
             }
@@ -149,6 +149,7 @@ public final class AutoGraphGenerator: @unchecked Sendable {
     }
 
     private func convertDOTToImages(dotFile: URL, outputDirectory: URL) throws {
+        #if os(macOS)
         let dotPath = dotFile.path
         let baseURL = outputDirectory.appendingPathComponent("dependency_graph")
 
@@ -161,9 +162,14 @@ public final class AutoGraphGenerator: @unchecked Sendable {
         _ = try? executeShellCommand(svgCommand)
 
         #logInfo("🖼️  이미지 파일 생성 시도 (Graphviz 필요)")
+        #else
+        // iOS / 다른 플랫폼에서는 외부 프로세스 실행이 불가하므로 스킵
+        #logInfo("ℹ️ Graphviz 이미지 변환은 이 플랫폼에서 지원되지 않습니다. (DOT 파일만 생성)")
+        #endif
     }
 
     private func executeShellCommand(_ command: String) throws -> String {
+        #if os(macOS)
         let process = Process()
         process.launchPath = "/bin/bash"
         process.arguments = ["-c", command]
@@ -176,6 +182,9 @@ public final class AutoGraphGenerator: @unchecked Sendable {
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         return String(data: data, encoding: .utf8) ?? ""
+        #else
+        throw NSError(domain: "AutoGraphGenerator", code: 1, userInfo: [NSLocalizedDescriptionKey: "Shell command execution is not supported on this platform."])
+        #endif
     }
 
     private func generateHTMLDashboard(

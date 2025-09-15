@@ -167,11 +167,11 @@ public struct GraphGenerationExamples {
 
     // MARK: - Private Helpers
 
-    private static func registerSampleDependencies() {
+    static func registerSampleDependencies() {
         // 기본 서비스들 등록
-        UnifiedDI.register(UserServiceProtocol.self) { UserServiceImpl() }
-        UnifiedDI.register(NetworkServiceProtocol.self) { URLSessionNetworkService() }
-        UnifiedDI.register(LoggerProtocol.self) { ConsoleLoggerService() }
+        UnifiedDI.register(UserService.self) { UserServiceImpl() }
+        UnifiedDI.register(NetworkService.self) { URLSessionNetworkService() }
+        UnifiedDI.register(LoggerService.self) { ConsoleLoggerService() }
 
         // 의존성 관계 기록 (그래프 생성용)
         CircularDependencyDetector.shared.recordDependency(
@@ -194,7 +194,7 @@ public struct GraphGenerationExamples {
         CircularDependencyDetector.shared.recordDependency(from: "ServiceB", to: "ServiceC")
         CircularDependencyDetector.shared.recordDependency(from: "ServiceC", to: "ServiceA")
 
-        #logWarning("⚠️  테스트용 순환 의존성이 생성되었습니다: A → B → C → A")
+        #logInfo("⚠️  테스트용 순환 의존성이 생성되었습니다: A → B → C → A")
     }
 }
 
@@ -207,22 +207,22 @@ public struct GraphGenerationDemoRunner {
         #logInfo("🚀 Graph Generation Examples 시작\n")
 
         await GraphGenerationExamples.quickGraphGeneration()
-        #logDebug("\n" + "─".repeating(50) + "\n")
+        #logDebug("\n" + String(repeating: "─", count: 50) + "\n")
 
         GraphGenerationExamples.dependencyTreeConsoleOutput()
-        #logDebug("\n" + "─".repeating(50) + "\n")
+        #logDebug("\n" + String(repeating: "─", count: 50) + "\n")
 
         await GraphGenerationExamples.dotGraphWithImageConversion()
-        #logDebug("\n" + "─".repeating(50) + "\n")
+        #logDebug("\n" + String(repeating: "─", count: 50) + "\n")
 
         GraphGenerationExamples.mermaidGraphGeneration()
-        #logDebug("\n" + "─".repeating(50) + "\n")
+        #logDebug("\n" + String(repeating: "─", count: 50) + "\n")
 
         await GraphGenerationExamples.circularDependencyDetection()
-        #logDebug("\n" + "─".repeating(50) + "\n")
+        #logDebug("\n" + String(repeating: "─", count: 50) + "\n")
 
         await GraphGenerationExamples.multiFormatGraphGeneration()
-        #logDebug("\n" + "─".repeating(50) + "\n")
+        #logDebug("\n" + String(repeating: "─", count: 50) + "\n")
 
         #logInfo("🎉 모든 Graph Generation Examples 완료!")
         #logInfo("\n💡 TIP: 생성된 파일들을 확인해보세요:")
