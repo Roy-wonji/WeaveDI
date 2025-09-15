@@ -234,7 +234,7 @@ public final actor AppDIContainer {
   /// 외부 생성을 막기 위한 `private init()`.
   private init() {
     // Factory들을 DI 컨테이너에 기본 등록
-    setupDefaultFactories()
+//    setupDefaultFactories()
   }
 
   /// 기본 Factory들을 DI 컨테이너에 등록합니다.
