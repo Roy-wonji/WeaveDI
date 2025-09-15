@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - AppDIContainer
 
@@ -114,7 +115,7 @@ import Foundation
 ///             UserUseCaseProtocol.self,
 ///             default: UserUseCase(userRepo: UserRepository())
 ///         )
-///         print("Loaded user profile: \(await useCase.loadUserProfile().displayName)")
+///         #logDebug("Loaded user profile: \(await useCase.loadUserProfile().displayName)")
 ///     }
 /// }
 /// ```

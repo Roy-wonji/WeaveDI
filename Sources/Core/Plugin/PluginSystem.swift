@@ -224,7 +224,7 @@ public final class PluginManager: ObservableObject {
         try await plugin.activate()
         activePlugins.insert(pluginId)
 
-        print("✅ [Plugin] Activated plugin: \(pluginId)")
+        #logInfo("✅ [Plugin] Activated plugin: \(pluginId)")
     }
 
     /// 플러그인 비활성화
@@ -240,7 +240,7 @@ public final class PluginManager: ObservableObject {
         try await plugin.deactivate()
         activePlugins.remove(pluginId)
 
-        print("⏹️ [Plugin] Deactivated plugin: \(pluginId)")
+        #logDebug("⏹️ [Plugin] Deactivated plugin: \(pluginId)")
     }
 
     /// 모든 플러그인 활성화

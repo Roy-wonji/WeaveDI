@@ -136,7 +136,7 @@ public final class AutoDependencyResolver {
         // 메인 액터 내에서 직접 콜백 호출
         instance.didAutoResolve()
         #if DEBUG
-        print("🔄 [AutoResolver] Resolved \(resolvedProperties.count) properties for \(type(of: instance))")
+        #logInfo("🔄 [AutoResolver] Resolved \(resolvedProperties.count) properties for \(type(of: instance))")
         #endif
     }
 
@@ -379,7 +379,7 @@ public extension AutoResolvable {
 #if DEBUG
 public final class AutoResolverDebugger {
     public static func printRegisteredTypes() {
-        print("📋 [AutoResolver] Registered Types:")
+        #logDebug("📋 [AutoResolver] Registered Types:")
         // 실제 구현에서는 TypeNameResolver의 내부 상태를 출력
     }
 

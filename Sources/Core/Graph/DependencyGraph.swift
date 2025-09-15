@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 /// Records dependency relationships and exports them as DOT or Mermaid diagrams.
 ///

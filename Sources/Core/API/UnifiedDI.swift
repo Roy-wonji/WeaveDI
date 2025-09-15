@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Unified DI API
 
@@ -310,7 +311,7 @@ public enum UnifiedDI {
     ///     // 서비스 사용
     /// } catch {
     ///     // 에러 처리
-    ///     print("Service not available: \(error)")
+    ///     #logDebug("Service not available: \(error)")
     /// }
     /// ```
     public static func resolveThrows<T>(_ type: T.Type) throws -> T {
@@ -400,7 +401,7 @@ public enum UnifiedDI {
         SimplePerformanceOptimizer.enableOptimization()
 
         #if DEBUG
-        print("⚡ [UnifiedDI] Performance optimization enabled")
+        #logDebug("⚡ [UnifiedDI] Performance optimization enabled")
         #endif
     }
 
@@ -414,7 +415,7 @@ public enum UnifiedDI {
     /// ### 사용 예시:
     /// ```swift
     /// let stats = await UnifiedDI.getPerformanceStats()
-    /// print(stats.summary)
+    /// #logDebug(stats.summary)
     /// ```
     @MainActor
     public static func getPerformanceStats() -> SimplePerformanceOptimizer.PerformanceStats {
@@ -484,7 +485,7 @@ public enum UnifiedDI {
         DependencyContainer.live = DependencyContainer()
 
         #if DEBUG
-        print("🧹 [UnifiedDI] All registrations released")
+        #logDebug("🧹 [UnifiedDI] All registrations released")
         #endif
     }
 }

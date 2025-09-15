@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Sequence + AsyncForEach
 
@@ -31,7 +32,7 @@ import Foundation
 ///
 /// try await numbers.asyncForEach { number in
 ///     try await Task.sleep(nanoseconds: 100_000_000) // 0.1초 대기
-///     print("처리된 숫자:", number)
+///     #logDebug("처리된 숫자:", number)
 /// }
 /// ```
 ///
@@ -52,7 +53,7 @@ public extension Sequence {
   ///
   /// try await words.asyncForEach { word in
   ///     try await Task.sleep(nanoseconds: 200_000_000) // 0.2초 대기
-  ///     print("단어:", word)
+  ///     #logDebug("단어:", word)
   /// }
   /// ```
   ///

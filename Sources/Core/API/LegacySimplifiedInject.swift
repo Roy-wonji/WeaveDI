@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Legacy Simplified Inject Property Wrapper
 
@@ -192,7 +193,7 @@ public enum LegacySimplifiedDISystem {
 
     /// 마이그레이션 체크리스트
     public static func printMigrationChecklist() {
-        print("""
+        #logInfo("""
         📋 [Legacy Migration Checklist]
         ===============================
 

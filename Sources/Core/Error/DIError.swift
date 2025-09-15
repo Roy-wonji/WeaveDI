@@ -17,9 +17,9 @@ import LogMacro
 /// do {
 ///     let service = try DI.resolve(ServiceProtocol.self)
 /// } catch DIError.dependencyNotFound(let message) {
-///     print("의존성을 찾을 수 없습니다: \(message)")
+///     #logDebug("의존성을 찾을 수 없습니다: \(message)")
 /// } catch {
-///     print("알 수 없는 오류: \(error)")
+///     #logDebug("알 수 없는 오류: \(error)")
 /// }
 /// ```
 public enum DIError: Error, LocalizedError, CustomStringConvertible {

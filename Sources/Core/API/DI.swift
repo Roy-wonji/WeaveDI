@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - DI (Simplified API)
 
@@ -165,7 +166,7 @@ public enum DI {
         DependencyContainer.live = DependencyContainer()
 
         #if DEBUG
-        print("🧹 [DI] All registrations released - container reset")
+        #logDebug("🧹 [DI] All registrations released - container reset")
         #endif
     }
 
@@ -280,7 +281,7 @@ public extension DI {
     /// 디버그 정보를 출력합니다
     static func printDebugInfo() async {
         let status = await getContainerStatus()
-        print("""
+        #logInfo("""
         📊 [DI Debug Info]
         ==================
         Bootstrap: \(status.isBootstrapped ? "✅" : "❌")
@@ -301,7 +302,7 @@ public extension DI {
         let endTime = CFAbsoluteTimeGetCurrent()
         let duration = endTime - startTime
 
-        print("🔬 [DI Performance] \(type): \(duration * 1000)ms for \(iterations) iterations")
+        #logDebug("🔬 [DI Performance] \(type): \(duration * 1000)ms for \(iterations) iterations")
         return duration
     }
 }

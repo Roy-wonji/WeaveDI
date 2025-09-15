@@ -80,14 +80,14 @@ public final class RegistrationToken: @unchecked Sendable {
         self.registrationTime = Date()
 
         #if DEBUG
-        print("🔗 [RegistrationToken] Created for \(typeName) at \(registrationTime)")
+        #logDebug("🔗 [RegistrationToken] Created for \(typeName) at \(registrationTime)")
         #endif
     }
 
     deinit {
         if !isCancelled {
             #if DEBUG
-            print("♻️  [RegistrationToken] Auto-releasing \(typeName) on deinit")
+            #logDebug("♻️  [RegistrationToken] Auto-releasing \(typeName) on deinit")
             #endif
             releaseHandler?()
         }
@@ -96,7 +96,7 @@ public final class RegistrationToken: @unchecked Sendable {
     public func cancel() {
         guard !isCancelled else {
             #if DEBUG
-            print("⚠️ [RegistrationToken] Already cancelled: \(typeName)")
+            #logWarning("⚠️ [RegistrationToken] Already cancelled: \(typeName)")
             #endif
             return
         }
@@ -105,7 +105,7 @@ public final class RegistrationToken: @unchecked Sendable {
         cancellationTime = Date()
 
         #if DEBUG
-        print("🚫 [RegistrationToken] Manually cancelled \(typeName) at \(cancellationTime!)")
+        #logDebug("🚫 [RegistrationToken] Manually cancelled \(typeName) at \(cancellationTime!)")
         #endif
 
         releaseHandler?()

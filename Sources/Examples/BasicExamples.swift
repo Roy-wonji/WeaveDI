@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Quick Start Examples
 
@@ -14,7 +15,7 @@ public enum QuickStartExamples {
 
     /// 간단한 사용법 예제
     public static func basicExample() async {
-        print("🚀 Quick Start - Basic Example")
+        #logDebug("🚀 Quick Start - Basic Example")
 
         // 1. 부트스트랩
         await DependencyContainer.bootstrap { container in
@@ -26,13 +27,13 @@ public enum QuickStartExamples {
         let message = DI.resolve(String.self)
         let number = DI.resolve(Int.self)
 
-        print("Message: \(message ?? "No message")")
-        print("Number: \(number ?? 0)")
+        #logDebug("Message: \(message ?? "No message")")
+        #logDebug("Number: \(number ?? 0)")
     }
 
     /// 서비스 계층 예제
     public static func serviceLayerExample() async {
-        print("🏗️ Service Layer Example")
+        #logDebug("🏗️ Service Layer Example")
 
         // 서비스 등록
         await DependencyContainer.bootstrap { container in
@@ -48,7 +49,7 @@ public enum QuickStartExamples {
 
     /// Property Wrapper 예제
     public static func propertyWrapperExample() async {
-        print("🎯 Property Wrapper Example")
+        #logDebug("🎯 Property Wrapper Example")
 
         // 의존성 등록
         DI.register(ExampleRepository.self) { ExampleRepositoryImpl() }
@@ -61,7 +62,7 @@ public enum QuickStartExamples {
 
     /// 조건부 등록 예제
     public static func conditionalExample() async {
-        print("🔀 Conditional Registration Example")
+        #logDebug("🔀 Conditional Registration Example")
 
         let isProduction = false
 
@@ -84,13 +85,13 @@ public enum QuickStartExamples {
         let apiService = DI.resolve(APIService.self)
         let analyticsService = DI.resolve(AnalyticsService.self)
 
-        print("API Service: \(type(of: apiService))")
-        print("Analytics Service: \(type(of: analyticsService))")
+        #logDebug("API Service: \(type(of: apiService))")
+        #logDebug("Analytics Service: \(type(of: analyticsService))")
     }
 
     /// 배치 등록 예제
     public static func batchRegistrationExample() {
-        print("📦 Batch Registration Example")
+        #logDebug("📦 Batch Registration Example")
 
         DI.registerMany {
             Registration(DatabaseService.self) { SQLiteDatabaseService() }
@@ -106,36 +107,36 @@ public enum QuickStartExamples {
         }
 
         // 등록 확인
-        print("Database registered: \(DI.isRegistered(DatabaseService.self))")
-        print("Cache registered: \(DI.isRegistered(CacheService.self))")
-        print("Config registered: \(DI.isRegistered(ConfigService.self))")
-        print("Email registered: \(DI.isRegistered(EmailService.self))")
+        #logDebug("Database registered: \(DI.isRegistered(DatabaseService.self))")
+        #logDebug("Cache registered: \(DI.isRegistered(CacheService.self))")
+        #logDebug("Config registered: \(DI.isRegistered(ConfigService.self))")
+        #logDebug("Email registered: \(DI.isRegistered(EmailService.self))")
     }
 
     /// KeyPath Factory 사용 예제
     public static func keyPathFactoryExample() async {
-        print("🔗 KeyPath Factory Example")
+        #logDebug("🔗 KeyPath Factory Example")
 
         // AppDIContainer를 통한 Factory 사용
         let appContainer = AppDIContainer.shared
 
         // Repository Factory 사용 (KeyPath 방식)
         let repositoryFactory = await appContainer.repositoryFactory
-        print("✅ Repository Factory 생성됨: \(type(of: repositoryFactory))")
+        #logInfo("✅ Repository Factory 생성됨: \(type(of: repositoryFactory))")
 
         // UseCase Factory 사용 (KeyPath 방식)
         let useCaseFactory = await appContainer.useCaseFactory
-        print("✅ UseCase Factory 생성됨: \(type(of: useCaseFactory))")
+        #logInfo("✅ UseCase Factory 생성됨: \(type(of: useCaseFactory))")
 
         // Scope Factory 사용 (KeyPath 방식)
         let scopeFactory = await appContainer.scopeFactory
-        print("✅ Scope Factory 생성됨: \(type(of: scopeFactory))")
+        #logInfo("✅ Scope Factory 생성됨: \(type(of: scopeFactory))")
 
-        print("🎯 KeyPath Factory 방식의 장점:")
-        print("   - 타입 안전성 보장")
-        print("   - 컴파일 타임 검증")
-        print("   - 자동 완성 지원")
-        print("   - 리팩토링 안전성")
+        #logDebug("🎯 KeyPath Factory 방식의 장점:")
+        #logDebug("   - 타입 안전성 보장")
+        #logDebug("   - 컴파일 타임 검증")
+        #logDebug("   - 자동 완성 지원")
+        #logDebug("   - 리팩토링 안전성")
     }
 }
 
@@ -150,11 +151,11 @@ public class ConsoleLoggerService: LoggerService {
     public init() {}
 
     public func log(_ message: String) {
-        print("📝 LOG: \(message)")
+        #logDebug("📝 LOG: \(message)")
     }
 
     public func error(_ message: String) {
-        print("❌ ERROR: \(message)")
+        #logError("❌ ERROR: \(message)")
     }
 }
 
@@ -222,14 +223,14 @@ public class ExampleComponent {
     public func performTask() {
         guard let repo = repository,
               let validator = validator else {
-            print("❌ Dependencies not available")
+            #logError("❌ Dependencies not available")
             return
         }
 
         let data = repo.getData()
         let isValid = validator.validate(data)
 
-        print("✅ Task completed - Data: \(data), Valid: \(isValid)")
+        #logInfo("✅ Task completed - Data: \(data), Valid: \(isValid)")
     }
 }
 
@@ -256,7 +257,7 @@ public protocol AnalyticsService {
 public class GoogleAnalyticsService: AnalyticsService {
     public init() {}
     public func track(_ event: String) {
-        print("📊 Google Analytics: \(event)")
+        #logInfo("📊 Google Analytics: \(event)")
     }
 }
 
@@ -319,7 +320,7 @@ public class SMTPEmailService: EmailService {
     public init() {}
 
     public func send(to: String, subject: String, body: String) {
-        print("📧 SMTP Email sent to: \(to)")
+        #logDebug("📧 SMTP Email sent to: \(to)")
     }
 }
 
@@ -327,7 +328,7 @@ public class MockEmailService: EmailService {
     public init() {}
 
     public func send(to: String, subject: String, body: String) {
-        print("📧 Mock Email sent to: \(to)")
+        #logDebug("📧 Mock Email sent to: \(to)")
     }
 }
 
@@ -337,27 +338,27 @@ public enum ExampleRunner {
 
     /// 모든 예제를 실행합니다
     public static func runAllExamples() async {
-        print("🎬 Running DiContainer Examples")
-        print("=" * 50)
+        #logDebug("🎬 Running DiContainer Examples")
+        #logDebug("=" * 50)
 
         await QuickStartExamples.basicExample()
-        print("\n" + "-" * 30 + "\n")
+        #logDebug("\n" + "-" * 30 + "\n")
 
         await QuickStartExamples.serviceLayerExample()
-        print("\n" + "-" * 30 + "\n")
+        #logDebug("\n" + "-" * 30 + "\n")
 
         await QuickStartExamples.propertyWrapperExample()
-        print("\n" + "-" * 30 + "\n")
+        #logDebug("\n" + "-" * 30 + "\n")
 
         await QuickStartExamples.conditionalExample()
-        print("\n" + "-" * 30 + "\n")
+        #logDebug("\n" + "-" * 30 + "\n")
 
         QuickStartExamples.batchRegistrationExample()
-        print("\n" + "-" * 30 + "\n")
+        #logDebug("\n" + "-" * 30 + "\n")
 
         await QuickStartExamples.keyPathFactoryExample()
 
-        print("\n🎉 All examples completed!")
+        #logDebug("\n🎉 All examples completed!")
     }
 }
 

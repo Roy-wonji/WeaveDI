@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - DIActor
 
@@ -52,7 +53,7 @@ public actor DIActor {
     
     private init() {
         #if DEBUG
-        print("🎭 [DIActor] Initialized - Swift Concurrency ready")
+        #logDebug("🎭 [DIActor] Initialized - Swift Concurrency ready")
         #endif
     }
     
@@ -74,7 +75,7 @@ public actor DIActor {
         registrationTimes[key] = Date()
         
         #if DEBUG
-        print("✅ [DIActor] Registered \(type) at \(Date())")
+        #logInfo("✅ [DIActor] Registered \(type) at \(Date())")
         #endif
         
         // 해제 핸들러 생성 (Actor 격리 보장)
@@ -101,7 +102,7 @@ public actor DIActor {
         registrationTimes[key] = Date()
         
         #if DEBUG
-        print("✅ [DIActor] Registered instance \(type) at \(Date())")
+        #logInfo("✅ [DIActor] Registered instance \(type) at \(Date())")
         #endif
     }
     
@@ -115,14 +116,14 @@ public actor DIActor {
         
         guard let anyFactory = factories[key] else {
             #if DEBUG
-            print("⚠️ [DIActor] Type \(type) not found")
+            #logWarning("⚠️ [DIActor] Type \(type) not found")
             #endif
             return nil
         }
         
         guard let factory = anyFactory as? () -> T else {
             #if DEBUG
-            print("🚨 [DIActor] Type mismatch for \(type)")
+            #logError("🚨 [DIActor] Type mismatch for \(type)")
             #endif
             return nil
         }
@@ -131,7 +132,7 @@ public actor DIActor {
         let instance = factory()
         
         #if DEBUG
-        print("🔍 [DIActor] Resolved \(type)")
+        #logInfo("🔍 [DIActor] Resolved \(type)")
         #endif
         
         return instance
@@ -172,7 +173,7 @@ public actor DIActor {
         releaseHandlers[key] = nil
         
         #if DEBUG
-        print("🗑️ [DIActor] Released \(type)")
+        #logDebug("🗑️ [DIActor] Released \(type)")
         #endif
     }
     
@@ -185,7 +186,7 @@ public actor DIActor {
         releaseHandlers.removeAll()
         
         #if DEBUG
-        print("🧹 [DIActor] Released all \(count) registrations")
+        #logDebug("🧹 [DIActor] Released all \(count) registrations")
         #endif
     }
     
@@ -203,13 +204,13 @@ public actor DIActor {
     
     /// 등록 상태를 자세히 출력합니다.
     public func printRegistrationStatus() {
-        print("📊 [DIActor] Registration Status:")
-        print("   Total registrations: \(factories.count)")
+        #logInfo("📊 [DIActor] Registration Status:")
+        #logDebug("   Total registrations: \(factories.count)")
         
         let sortedTypes = factories.keys.sorted { $0.typeName < $1.typeName }
         for (index, key) in sortedTypes.enumerated() {
             let time = registrationTimes[key]?.description ?? "unknown"
-            print("   [\(index + 1)] \(key.typeName) (registered: \(time))")
+            #logDebug("   [\(index + 1)] \(key.typeName) (registered: \(time))")
         }
     }
 }
@@ -275,7 +276,7 @@ public enum DIActorBridge {
     public static func migrateToActor() async {
         // 기존 등록들을 Actor로 마이그레이션하는 로직은 
         // 프로젝트별로 커스터마이즈 필요
-        print("🌉 [DIActorBridge] Ready for migration to Actor-based DI")
+        #logDebug("🌉 [DIActorBridge] Ready for migration to Actor-based DI")
     }
     
     /// 기존 코드와 호환성을 위한 동기 래퍼 (과도기용)

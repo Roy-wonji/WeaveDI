@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Enhanced Module System
 
@@ -348,13 +349,13 @@ public final class ModuleRegistry: ObservableObject {
             registrationStatus[module.identifier] = .registered
 
             #if DEBUG
-            print("✅ [ModuleRegistry] Successfully registered module: \(module.identifier)")
+            #logInfo("✅ [ModuleRegistry] Successfully registered module: \(module.identifier)")
             #endif
         } catch {
             registrationStatus[module.identifier] = .failed(error)
 
             #if DEBUG
-            print("❌ [ModuleRegistry] Failed to register module \(module.identifier): \(error)")
+            #logError("❌ [ModuleRegistry] Failed to register module \(module.identifier): \(error)")
             #endif
         }
     }
@@ -364,11 +365,11 @@ public final class ModuleRegistry: ObservableObject {
             do {
                 try await module.validate()
                 #if DEBUG
-                print("✅ [ModuleRegistry] Validation passed for module: \(identifier)")
+                #logInfo("✅ [ModuleRegistry] Validation passed for module: \(identifier)")
                 #endif
             } catch {
                 #if DEBUG
-                print("❌ [ModuleRegistry] Validation failed for module \(identifier): \(error)")
+                #logError("❌ [ModuleRegistry] Validation failed for module \(identifier): \(error)")
                 #endif
                 throw ModuleSystemError.validationFailed(identifier, error)
             }

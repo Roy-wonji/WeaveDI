@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Safe Property Wrappers
 
@@ -27,7 +28,7 @@ import Foundation
 ///             // 안전하게 서비스 사용
 ///         } catch {
 ///             // 에러 처리
-///             print("서비스를 로드할 수 없습니다: \(error)")
+///             #logDebug("서비스를 로드할 수 없습니다: \(error)")
 ///         }
 ///     }
 /// }
@@ -296,7 +297,7 @@ public enum SafeInjectionMigration {
             return value
         case .failure(let error):
             #if DEBUG
-            print("⚠️ [Migration] Injection failed: \(error.debugDescription)")
+            #logWarning("⚠️ [Migration] Injection failed: \(error.debugDescription)")
             #endif
             return nil
         }
@@ -312,11 +313,11 @@ public enum SafeInjectionMigration {
             return value
         case .failure(let error):
             // 로깅 시스템에 에러 기록
-            print("🚨 [SafeInjection] \(error.debugDescription)")
+            #logError("🚨 [SafeInjection] \(error.debugDescription)")
 
             // 복구 가능한 에러라면 fallback 사용
             if error.isRecoverable, let fallback = fallback {
-                print("🔄 [SafeInjection] Using fallback value")
+                #logInfo("🔄 [SafeInjection] Using fallback value")
                 return fallback
             }
 

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Concrete Plugin Implementations
 
@@ -37,26 +38,26 @@ public final class LoggingPlugin: BasePlugin, RegistrationPlugin, ResolutionPlug
 
     public func beforeRegistration<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) async throws {
         if logLevel.rawValue <= LogLevel.debug.rawValue {
-            print("🔧 [LoggingPlugin] Before registration: \(type)")
+            #logDebug("🔧 [LoggingPlugin] Before registration: \(type)")
         }
     }
 
     public func afterRegistration<T>(_ type: T.Type, instance: T) async throws {
         registrationCount += 1
         if logLevel.rawValue <= LogLevel.info.rawValue {
-            print("✅ [LoggingPlugin] Registered: \(type) (#\(registrationCount))")
+            #logInfo("✅ [LoggingPlugin] Registered: \(type) (#\(registrationCount))")
         }
     }
 
     public func onRegistrationFailure<T>(_ type: T.Type, error: Error) async throws {
-        print("❌ [LoggingPlugin] Registration failed for \(type): \(error)")
+        #logError("❌ [LoggingPlugin] Registration failed for \(type): \(error)")
     }
 
     // MARK: - ResolutionPlugin
 
     public func beforeResolution<T>(_ type: T.Type) async throws {
         if logLevel.rawValue <= LogLevel.debug.rawValue {
-            print("🔍 [LoggingPlugin] Before resolution: \(type)")
+            #logInfo("🔍 [LoggingPlugin] Before resolution: \(type)")
         }
     }
 
@@ -64,35 +65,35 @@ public final class LoggingPlugin: BasePlugin, RegistrationPlugin, ResolutionPlug
         resolutionCount += 1
         if let _ = instance {
             if logLevel.rawValue <= LogLevel.info.rawValue {
-                print("✅ [LoggingPlugin] Resolved: \(type) (#\(resolutionCount))")
+                #logInfo("✅ [LoggingPlugin] Resolved: \(type) (#\(resolutionCount))")
             }
         } else {
-            print("⚠️ [LoggingPlugin] Failed to resolve: \(type)")
+            #logWarning("⚠️ [LoggingPlugin] Failed to resolve: \(type)")
         }
     }
 
     public func onResolutionFailure<T>(_ type: T.Type, error: Error) async throws {
-        print("❌ [LoggingPlugin] Resolution failed for \(type): \(error)")
+        #logError("❌ [LoggingPlugin] Resolution failed for \(type): \(error)")
     }
 
     // MARK: - LifecyclePlugin
 
     public func onContainerInitialized() async throws {
-        print("🚀 [LoggingPlugin] DI Container initialized")
+        #logDebug("🚀 [LoggingPlugin] DI Container initialized")
     }
 
     public func beforeContainerReset() async throws {
-        print("🔄 [LoggingPlugin] Container reset starting... (Registered: \(registrationCount), Resolved: \(resolutionCount))")
+        #logInfo("🔄 [LoggingPlugin] Container reset starting... (Registered: \(registrationCount), Resolved: \(resolutionCount))")
     }
 
     public func afterContainerReset() async throws {
         registrationCount = 0
         resolutionCount = 0
-        print("🔄 [LoggingPlugin] Container reset completed")
+        #logInfo("🔄 [LoggingPlugin] Container reset completed")
     }
 
     public func beforeContainerDestroy() async throws {
-        print("🗑️ [LoggingPlugin] Container destruction starting...")
+        #logDebug("🗑️ [LoggingPlugin] Container destruction starting...")
     }
 }
 
@@ -229,7 +230,7 @@ public final class DependencyValidationPlugin: BasePlugin, ValidationPlugin, @un
         for rule in rules {
             let isValid = await rule.validateRegistration(type)
             if !isValid {
-                print("❌ [ValidationPlugin] Registration validation failed for \(type): \(rule.name)")
+                #logError("❌ [ValidationPlugin] Registration validation failed for \(type): \(rule.name)")
                 return false
             }
         }
@@ -238,14 +239,14 @@ public final class DependencyValidationPlugin: BasePlugin, ValidationPlugin, @un
 
     public func validateResolution<T>(_ type: T.Type, instance: T?) async throws -> Bool {
         guard let instance = instance else {
-            print("❌ [ValidationPlugin] Resolution validation failed: instance is nil for \(type)")
+            #logError("❌ [ValidationPlugin] Resolution validation failed: instance is nil for \(type)")
             return false
         }
 
         for rule in rules {
             let isValid = await rule.validateResolution(type, instance: instance)
             if !isValid {
-                print("❌ [ValidationPlugin] Resolution validation failed for \(type): \(rule.name)")
+                #logError("❌ [ValidationPlugin] Resolution validation failed for \(type): \(rule.name)")
                 return false
             }
         }
@@ -316,7 +317,7 @@ public final class AutoDiscoveryPlugin: BasePlugin, RegistrationPlugin, @uncheck
     }
 
     private func performAutoDiscovery() async {
-        print("🔍 [AutoDiscoveryPlugin] Starting auto-discovery for packages: \(packagePrefixes)")
+        #logInfo("🔍 [AutoDiscoveryPlugin] Starting auto-discovery for packages: \(packagePrefixes)")
 
         // 실제 구현에서는 런타임 리플렉션이나 컴파일 타임 코드 생성을 사용
         // 여기서는 간단한 예시만 제공
@@ -329,7 +330,7 @@ public final class AutoDiscoveryPlugin: BasePlugin, RegistrationPlugin, @uncheck
 
         for typeName in discoveredTypes {
             if !excludedTypes.contains(typeName) {
-                print("📦 [AutoDiscoveryPlugin] Discovered type: \(typeName)")
+                #logDebug("📦 [AutoDiscoveryPlugin] Discovered type: \(typeName)")
                 // 실제로는 타입을 등록해야 함
             }
         }
@@ -340,7 +341,7 @@ public final class AutoDiscoveryPlugin: BasePlugin, RegistrationPlugin, @uncheck
     public func beforeRegistration<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) async throws {
         // 자동 탐지된 타입인지 확인
         let typeName = String(describing: type)
-        print("🔍 [AutoDiscoveryPlugin] Checking registration for: \(typeName)")
+        #logInfo("🔍 [AutoDiscoveryPlugin] Checking registration for: \(typeName)")
     }
 
     public func afterRegistration<T>(_ type: T.Type, instance: T) async throws {
@@ -348,7 +349,7 @@ public final class AutoDiscoveryPlugin: BasePlugin, RegistrationPlugin, @uncheck
     }
 
     public func onRegistrationFailure<T>(_ type: T.Type, error: Error) async throws {
-        print("❌ [AutoDiscoveryPlugin] Auto-discovered type registration failed: \(type)")
+        #logError("❌ [AutoDiscoveryPlugin] Auto-discovered type registration failed: \(type)")
     }
 }
 
@@ -378,7 +379,7 @@ public final class ConfigurationPlugin: BasePlugin, RegistrationPlugin, Lifecycl
 
     private func loadConfiguration() async throws {
         // 실제 구현에서는 JSON, YAML 등의 설정 파일을 로드
-        print("📄 [ConfigurationPlugin] Loading configuration from: \(configurationPath)")
+        #logDebug("📄 [ConfigurationPlugin] Loading configuration from: \(configurationPath)")
 
         // 예시 설정 (간단화)
         configuration = [
@@ -396,7 +397,7 @@ public final class ConfigurationPlugin: BasePlugin, RegistrationPlugin, Lifecycl
 
         let config = getConfigurationFor(typeName)
         if !config.isEmpty {
-            print("⚙️ [ConfigurationPlugin] Applying configuration for \(typeName): \(config)")
+            #logDebug("⚙️ [ConfigurationPlugin] Applying configuration for \(typeName): \(config)")
         }
     }
 
@@ -405,17 +406,17 @@ public final class ConfigurationPlugin: BasePlugin, RegistrationPlugin, Lifecycl
     }
 
     public func onRegistrationFailure<T>(_ type: T.Type, error: Error) async throws {
-        print("❌ [ConfigurationPlugin] Configuration-based registration failed for \(type)")
+        #logError("❌ [ConfigurationPlugin] Configuration-based registration failed for \(type)")
     }
 
     // MARK: - LifecyclePlugin
 
     public func onContainerInitialized() async throws {
-        print("📄 [ConfigurationPlugin] Container initialized with configuration")
+        #logDebug("📄 [ConfigurationPlugin] Container initialized with configuration")
     }
 
     public func beforeContainerReset() async throws {
-        print("📄 [ConfigurationPlugin] Saving state before container reset")
+        #logDebug("📄 [ConfigurationPlugin] Saving state before container reset")
     }
 
     public func afterContainerReset() async throws {
@@ -423,7 +424,7 @@ public final class ConfigurationPlugin: BasePlugin, RegistrationPlugin, Lifecycl
     }
 
     public func beforeContainerDestroy() async throws {
-        print("📄 [ConfigurationPlugin] Cleaning up configuration resources")
+        #logDebug("📄 [ConfigurationPlugin] Cleaning up configuration resources")
     }
 
     private func getConfigurationFor(_ typeName: String) -> [String: String] {
@@ -468,7 +469,7 @@ public final class PluginSystemExample {
         try await pluginManager.register(validationPlugin)
         try await pluginManager.activate(validationPlugin.identifier)
 
-        print("✅ Basic plugins setup completed")
+        #logInfo("✅ Basic plugins setup completed")
     }
 
     @MainActor
@@ -488,7 +489,7 @@ public final class PluginSystemExample {
         try await pluginManager.register(configPlugin)
         try await pluginManager.activate(configPlugin.identifier)
 
-        print("✅ Advanced plugins setup completed")
+        #logInfo("✅ Advanced plugins setup completed")
     }
 
     @MainActor
@@ -496,23 +497,23 @@ public final class PluginSystemExample {
         let pluginManager = PluginManager.shared
         let allPlugins = pluginManager.getAllPluginsInfo()
 
-        print("\n📊 Plugin Status Report:")
-        print("========================")
+        #logDebug("\n📊 Plugin Status Report:")
+        #logDebug("========================")
 
         for plugin in allPlugins {
             let status = plugin.isActive ? "✅ Active" : "⏸️ Inactive"
-            print("🔌 \(plugin.identifier) v\(plugin.version) - \(status)")
-            print("   📝 \(plugin.description)")
-            print("   🎯 Priority: \(plugin.priority)")
-            print("   🛠️ Capabilities: \(plugin.capabilities.joined(separator: ", "))")
-            print("")
+            #logDebug("🔌 \(plugin.identifier) v\(plugin.version) - \(status)")
+            #logDebug("   📝 \(plugin.description)")
+            #logDebug("   🎯 Priority: \(plugin.priority)")
+            #logDebug("   🛠️ Capabilities: \(plugin.capabilities.joined(separator: ", "))")
+            #logDebug("")
         }
 
         // 성능 플러그인 리포트
         if let perfPlugin = pluginManager.registeredPlugins["com.dicontainer.performance"] as? PerformanceMonitoringPlugin {
             let report = await perfPlugin.generateStatusReport()
-            print("📈 Performance Report:")
-            print(report.metrics)
+            #logDebug("📈 Performance Report:")
+            #logDebug(report.metrics)
         }
     }
 }

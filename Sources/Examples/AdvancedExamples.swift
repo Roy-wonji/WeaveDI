@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Example Protocols
 
@@ -44,14 +45,14 @@ public class NetworkRepositoryImpl: NetworkRepository, @unchecked Sendable {
 public class UserUseCaseImpl: UserUseCase, @unchecked Sendable {
     public init() {}
     public func execute() async {
-        print("🎯 UserUseCase executed")
+        #logDebug("🎯 UserUseCase executed")
     }
 }
 
 public class NetworkUseCaseImpl: NetworkUseCase, @unchecked Sendable {
     public init() {}
     public func performNetworkOperation() async {
-        print("🌐 NetworkUseCase executed")
+        #logDebug("🌐 NetworkUseCase executed")
     }
 }
 
@@ -62,7 +63,7 @@ public enum AdvancedExamples {
 
     /// Auto Resolution 예제
     public static func autoResolutionExample() async {
-        print("🤖 Auto Resolution Example")
+        #logDebug("🤖 Auto Resolution Example")
 
         // 의존성 등록
         DI.register(DatabaseService.self) { SQLiteDatabaseService() }
@@ -84,7 +85,7 @@ public enum AdvancedExamples {
 
     /// Module Factory 예제
     public static func moduleFactoryExample() async {
-        print("🏭 Module Factory Example")
+        #logDebug("🏭 Module Factory Example")
 
         // Repository Module Factory (simplified example)
         DI.registerMany {
@@ -105,10 +106,10 @@ public enum AdvancedExamples {
 
     /// Plugin System 예제
     public static func pluginSystemExample() async {
-        print("🔌 Plugin System Example")
+        #logDebug("🔌 Plugin System Example")
 
         // Plugin Manager 생성 (simplified example)
-        print("🔌 Plugin system would be initialized here")
+        #logDebug("🔌 Plugin system would be initialized here")
 
         // 플러그인들 생성 및 등록 (simplified)
         let loggingPlugin = ExampleLoggingPlugin(identifier: "logging", version: "1.0.0", description: "Logging plugin")
@@ -120,7 +121,7 @@ public enum AdvancedExamples {
         try? await performancePlugin.activate()
         try? await validationPlugin.activate()
 
-        print("✅ All plugins activated successfully")
+        #logInfo("✅ All plugins activated successfully")
 
         // 플러그인이 적용된 DI 작업 수행
         DI.register(ExampleService.self) { ExampleServiceImpl() }
@@ -130,7 +131,7 @@ public enum AdvancedExamples {
 
     /// Performance Optimization 예제
     public static func performanceOptimizationExample() async {
-        print("⚡ Performance Optimization Example")
+        #logDebug("⚡ Performance Optimization Example")
 
         // 성능 최적화 활성화
         await SimplePerformanceOptimizer.enableOptimization()
@@ -150,20 +151,20 @@ public enum AdvancedExamples {
         let userServiceTime = DI.performanceTest(UserService.self, iterations: 1000)
         let networkServiceTime = DI.performanceTest(NetworkService.self, iterations: 1000)
 
-        print("🔬 Performance Results:")
-        print("   UserService: \(userServiceTime * 1000)ms")
-        print("   NetworkService: \(networkServiceTime * 1000)ms")
+        #logDebug("🔬 Performance Results:")
+        #logDebug("   UserService: \(userServiceTime * 1000)ms")
+        #logDebug("   NetworkService: \(networkServiceTime * 1000)ms")
         #endif
 
         // 통계 확인
         let stats = await SimplePerformanceOptimizer.getStats()
-        print("📊 Performance Stats:")
-        print(stats.summary)
+        #logInfo("📊 Performance Stats:")
+        #logDebug(stats.summary)
     }
 
     /// Async DI 예제
     public static func asyncDIExample() async {
-        print("🚀 Async DI Example")
+        #logDebug("🚀 Async DI Example")
 
         // 비동기 팩토리 등록
         await DIAsync.register(AsyncDatabaseService.self) {
@@ -194,7 +195,7 @@ public enum AdvancedExamples {
 
     /// Needle Style Components 예제
     public static func needleStyleExample() async {
-        print("📦 Needle Style Components Example")
+        #logDebug("📦 Needle Style Components Example")
 
         // Root Component 생성
         let rootComponent = RootComponent()
@@ -250,21 +251,21 @@ public class AutoInjectableUserService: AutoInjectible, AutoResolvable {
 public class ExampleLoggingPlugin: BasePlugin, @unchecked Sendable {
     public override func activate() async throws {
         try await super.activate()
-        print("📝 Logging Plugin activated - All DI operations will be logged")
+        #logDebug("📝 Logging Plugin activated - All DI operations will be logged")
     }
 }
 
 public class ExamplePerformancePlugin: BasePlugin, @unchecked Sendable {
     public override func activate() async throws {
         try await super.activate()
-        print("⚡ Performance Plugin activated - DI performance will be tracked")
+        #logDebug("⚡ Performance Plugin activated - DI performance will be tracked")
     }
 }
 
 public class ExampleValidationPlugin: BasePlugin, @unchecked Sendable {
     public override func activate() async throws {
         try await super.activate()
-        print("✅ Validation Plugin activated - DI registrations will be validated")
+        #logInfo("✅ Validation Plugin activated - DI registrations will be validated")
     }
 }
 
@@ -276,7 +277,7 @@ public class ExampleServiceImpl: ExampleService {
     public init() {}
 
     public func performOperation() {
-        print("🔧 ExampleService operation performed with plugin support")
+        #logDebug("🔧 ExampleService operation performed with plugin support")
     }
 }
 
@@ -286,14 +287,14 @@ public class AsyncDatabaseService {
     public static func initialize() async -> AsyncDatabaseService {
         // 비동기 초기화 시뮬레이션
         try? await Task.sleep(nanoseconds: 100_000_000) // 0.1초
-        print("🗄️ AsyncDatabaseService initialized")
+        #logDebug("🗄️ AsyncDatabaseService initialized")
         return AsyncDatabaseService()
     }
 
     private init() {}
 
     public func performAsyncOperation() async {
-        print("🗄️ Performing async database operation")
+        #logDebug("🗄️ Performing async database operation")
     }
 }
 
@@ -301,7 +302,7 @@ public class AsyncNetworkService {
     public static func create() async -> AsyncNetworkService {
         // 비동기 생성 시뮬레이션
         try? await Task.sleep(nanoseconds: 50_000_000) // 0.05초
-        print("🌐 AsyncNetworkService created")
+        #logDebug("🌐 AsyncNetworkService created")
         return AsyncNetworkService()
     }
 
@@ -310,20 +311,20 @@ public class AsyncNetworkService {
 
 public class AsyncUserService {
     public static func setup() async -> AsyncUserService {
-        print("👤 AsyncUserService setup")
+        #logDebug("👤 AsyncUserService setup")
         return AsyncUserService()
     }
 
     private init() {}
 
     public func handleAsyncTask() async {
-        print("👤 Handling async user task")
+        #logDebug("👤 Handling async user task")
     }
 }
 
 public class AsyncCacheService {
     public init() {
-        print("💾 AsyncCacheService created")
+        #logDebug("💾 AsyncCacheService created")
     }
 }
 
@@ -406,26 +407,26 @@ public enum AdvancedExampleRunner {
 
     /// 모든 고급 예제를 실행합니다
     public static func runAllAdvancedExamples() async {
-        print("🎬 Running Advanced DiContainer Examples")
-        print("=" * 60)
+        #logDebug("🎬 Running Advanced DiContainer Examples")
+        #logDebug("=" * 60)
 
         await AdvancedExamples.autoResolutionExample()
-        print("\n" + "-" * 40 + "\n")
+        #logDebug("\n" + "-" * 40 + "\n")
 
         await AdvancedExamples.moduleFactoryExample()
-        print("\n" + "-" * 40 + "\n")
+        #logDebug("\n" + "-" * 40 + "\n")
 
         await AdvancedExamples.pluginSystemExample()
-        print("\n" + "-" * 40 + "\n")
+        #logDebug("\n" + "-" * 40 + "\n")
 
         await AdvancedExamples.performanceOptimizationExample()
-        print("\n" + "-" * 40 + "\n")
+        #logDebug("\n" + "-" * 40 + "\n")
 
         await AdvancedExamples.asyncDIExample()
-        print("\n" + "-" * 40 + "\n")
+        #logDebug("\n" + "-" * 40 + "\n")
 
         await AdvancedExamples.needleStyleExample()
 
-        print("\n🚀 All advanced examples completed!")
+        #logDebug("\n🚀 All advanced examples completed!")
     }
 }

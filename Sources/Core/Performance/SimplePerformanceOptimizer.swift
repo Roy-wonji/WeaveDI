@@ -40,7 +40,7 @@ import LogMacro
 ///
 /// // 성능 통계 확인
 /// let stats = SimplePerformanceOptimizer.getStats()
-/// print("Average resolution time: \(stats.averageResolutionTime)ms")
+/// #logDebug("Average resolution time: \(stats.averageResolutionTime)ms")
 /// ```
 @MainActor
 public enum SimplePerformanceOptimizer {
