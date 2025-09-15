@@ -101,6 +101,14 @@ public actor UnifiedRegistry {
     /// 비동기 팩토리 저장소 (매번 새 인스턴스 생성)
     private var asyncFactories: [AnyTypeIdentifier: AsyncFactory] = [:]
 
+    /// In-flight async singleton creation tasks (once-only semantics)
+    private var asyncSingletonTasks: [AnyTypeIdentifier: Task<ValueBox, Never>] = [:]
+
+    // Scoped registrations and instances
+    private var scopedFactories: [AnyTypeIdentifier: (ScopeKind, SyncFactory)] = [:]
+    private var scopedAsyncFactories: [AnyTypeIdentifier: (ScopeKind, AsyncFactory)] = [:]
+    private var scopedInstances: [ScopedTypeKey: ValueBox] = [:]
+
 
     /// KeyPath 매핑 (KeyPath String -> TypeIdentifier)
     private var keyPathMappings: [String: AnyTypeIdentifier] = [:]
@@ -156,6 +164,34 @@ public actor UnifiedRegistry {
         Log.debug("✅ [UnifiedRegistry] Registered async factory for \(String(describing: type))")
     }
 
+    /// 비동기 싱글톤 등록 (최초 1회 생성 후 캐시)
+    public func registerAsyncSingleton<T>(
+        _ type: T.Type,
+        factory: @escaping @Sendable () async -> T
+    ) {
+        let key = AnyTypeIdentifier(type: type)
+        let cachedFactory: AsyncFactory = { [weak self] in
+            guard let self = self else { return ValueBox(await factory()) }
+            return await self.getAsyncSingletonBox(for: key, factory: factory)
+        }
+        asyncFactories[key] = cachedFactory
+        updateRegistrationInfo(key, type: .asyncSingleton)
+        Log.debug("✅ [UnifiedRegistry] Registered async singleton for \(String(describing: type))")
+    }
+
+    /// 내부 헬퍼: Async 싱글톤 박스 얻기/생성
+    private func getAsyncSingletonBox<T>(
+        for key: AnyTypeIdentifier,
+        factory: @escaping @Sendable () async -> T
+    ) async -> ValueBox {
+        if let task = asyncSingletonTasks[key] {
+            return await task.value
+        }
+        let task = Task.detached { ValueBox(await factory()) }
+        asyncSingletonTasks[key] = task
+        return await task.value
+    }
+
 
     // MARK: - Conditional Registration
 
@@ -209,6 +245,32 @@ public actor UnifiedRegistry {
         Log.debug("🔗 [UnifiedRegistry] Registered with KeyPath: \(keyPathString) -> \(String(describing: T.self))")
     }
 
+    // MARK: - Scoped Registration
+
+    public func registerScoped<T>(
+        _ type: T.Type,
+        scope: ScopeKind,
+        factory: @escaping @Sendable () -> T
+    ) {
+        let key = AnyTypeIdentifier(type: type)
+        let syncFactory: SyncFactory = { ValueBox(factory()) }
+        scopedFactories[key] = (scope, syncFactory)
+        updateRegistrationInfo(key, type: .scopedFactory)
+        Log.debug("🔒 [UnifiedRegistry] Registered scoped factory (\(scope.rawValue)) for \(String(describing: type))")
+    }
+
+    public func registerAsyncScoped<T>(
+        _ type: T.Type,
+        scope: ScopeKind,
+        factory: @escaping @Sendable () async -> T
+    ) {
+        let key = AnyTypeIdentifier(type: type)
+        let asyncFactory: AsyncFactory = { ValueBox(await factory()) }
+        scopedAsyncFactories[key] = (scope, asyncFactory)
+        updateRegistrationInfo(key, type: .scopedAsyncFactory)
+        Log.debug("🔒 [UnifiedRegistry] Registered async scoped factory (\(scope.rawValue)) for \(String(describing: type))")
+    }
+
     // MARK: - Resolution
 
     /// 동기 의존성 해결
@@ -217,12 +279,29 @@ public actor UnifiedRegistry {
     public func resolve<T>(_ type: T.Type) -> T? {
         let key = AnyTypeIdentifier(type: type)
 
+        // Scoped 팩토리에서 생성/캐시
+        if let (scopeKind, factory) = scopedFactories[key] {
+            if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
+                let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: scopeKind, id: scopeId))
+                if let cached = scopedInstances[sKey], let resolved: T = cached.unwrap() {
+                    return resolved
+                }
+                let box = factory()
+                scopedInstances[sKey] = box
+                if let resolved: T = box.unwrap() { return resolved }
+            } else {
+                let box = factory()
+                if let resolved: T = box.unwrap() { return resolved }
+            }
+        }
+
         // 동기 팩토리에서 생성
         if let factory = syncFactories[key] {
             let box = factory()
             let resolved: T? = box.unwrap()
             if let result = resolved {
                 Log.debug("✅ [UnifiedRegistry] Resolved from sync factory \(String(describing: type))")
+                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
                 return result
             }
         }
@@ -237,9 +316,23 @@ public actor UnifiedRegistry {
     public func resolveAny(_ type: Any.Type) -> Any? {
         let key = AnyTypeIdentifier(anyType: type)
 
+        // Scoped 팩토리
+        if let (scopeKind, factory) = scopedFactories[key] {
+            if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
+                let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: scopeKind, id: scopeId))
+                if let cached = scopedInstances[sKey] { return cached.value }
+                let box = factory()
+                scopedInstances[sKey] = box
+                return box.value
+            } else {
+                return factory().value
+            }
+        }
+
         // 동기 팩토리
         if let factory = syncFactories[key] {
             let box = factory()
+            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
             return box.value
         }
 
@@ -253,7 +346,25 @@ public actor UnifiedRegistry {
     public func resolveAnyBox(_ type: Any.Type) -> ValueBox? {
         let key = AnyTypeIdentifier(anyType: type)
 
-        if let factory = syncFactories[key] { return factory() }
+        if let (scopeKind, factory) = scopedFactories[key] {
+            if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
+                let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: scopeKind, id: scopeId))
+                if let cached = scopedInstances[sKey] { return cached }
+                let box = factory()
+                scopedInstances[sKey] = box
+                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                return box
+            } else {
+                let v = factory()
+                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                return v
+            }
+        }
+        if let factory = syncFactories[key] {
+            let v = factory()
+            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+            return v
+        }
         return nil
     }
 
@@ -263,8 +374,29 @@ public actor UnifiedRegistry {
     public func resolveAnyAsync(_ type: Any.Type) async -> Any? {
         let key = AnyTypeIdentifier(anyType: type)
 
-        if let asyncFactory = asyncFactories[key] { return (await asyncFactory()).value }
-        if let syncFactory = syncFactories[key] { return syncFactory().value }
+        if let (scopeKind, asyncFactory) = scopedAsyncFactories[key] {
+            if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
+                let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: scopeKind, id: scopeId))
+                if let cached = scopedInstances[sKey] { return cached.value }
+                let box = await asyncFactory()
+                scopedInstances[sKey] = box
+                return box.value
+            } else {
+                let v = await asyncFactory()
+                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                return v.value
+            }
+        }
+        if let asyncFactory = asyncFactories[key] {
+            let v = await asyncFactory()
+            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+            return v.value
+        }
+        if let syncFactory = syncFactories[key] {
+            let v = syncFactory()
+            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+            return v.value
+        }
         return nil
     }
 
@@ -273,8 +405,29 @@ public actor UnifiedRegistry {
     /// - Returns: ValueBox(@unchecked Sendable)에 담긴 값 (없으면 nil)
     public func resolveAnyAsyncBox(_ type: Any.Type) async -> ValueBox? {
         let key = AnyTypeIdentifier(anyType: type)
-        if let asyncFactory = asyncFactories[key] { return await asyncFactory() }
-        if let syncFactory = syncFactories[key] { return syncFactory() }
+        if let (scopeKind, asyncFactory) = scopedAsyncFactories[key] {
+            if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
+                let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: scopeKind, id: scopeId))
+                if let cached = scopedInstances[sKey] { return cached }
+                let box = await asyncFactory()
+                scopedInstances[sKey] = box
+                return box
+            } else {
+                let v = await asyncFactory()
+                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                return v
+            }
+        }
+        if let asyncFactory = asyncFactories[key] {
+            let v = await asyncFactory()
+            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+            return v
+        }
+        if let syncFactory = syncFactories[key] {
+            let v = syncFactory()
+            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+            return v
+        }
         return nil
     }
 
@@ -284,22 +437,46 @@ public actor UnifiedRegistry {
     public func resolveAsync<T>(_ type: T.Type) async -> T? {
         let key = AnyTypeIdentifier(type: type)
 
-        // 1. 비동기 팩토리에서 생성
+        // 1. Scoped 비동기 팩토리에서 생성
+        if let (scopeKind, asyncFactory) = scopedAsyncFactories[key] {
+            if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
+                let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: scopeKind, id: scopeId))
+                if let cached = scopedInstances[sKey], let resolved: T = cached.unwrap() {
+                    return resolved
+                }
+                let box = await asyncFactory()
+                scopedInstances[sKey] = box
+                if let resolved: T = box.unwrap() {
+                    CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                    return resolved
+                }
+            } else {
+                let box = await asyncFactory()
+                if let resolved: T = box.unwrap() {
+                    CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                    return resolved
+                }
+            }
+        }
+
+        // 2. 비동기 팩토리에서 생성
         if let factory = asyncFactories[key] {
             let box = await factory()
             let resolved: T? = box.unwrap()
             if let result = resolved {
                 Log.debug("✅ [UnifiedRegistry] Resolved from async factory \(String(describing: type))")
+                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
                 return result
             }
         }
 
-        // 2. 동기 팩토리에서 생성 (fallback)
+        // 3. 동기 팩토리에서 생성 (fallback)
         if let factory = syncFactories[key] {
             let box = factory()
             let resolved: T? = box.unwrap()
             if let result = resolved {
                 Log.debug("✅ [UnifiedRegistry] Resolved from sync factory (async context) \(String(describing: type))")
+                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
                 return result
             }
         }
@@ -332,6 +509,10 @@ public actor UnifiedRegistry {
 
         syncFactories.removeValue(forKey: key)
         asyncFactories.removeValue(forKey: key)
+        asyncSingletonTasks.removeValue(forKey: key)
+        scopedFactories.removeValue(forKey: key)
+        scopedAsyncFactories.removeValue(forKey: key)
+        scopedInstances = scopedInstances.filter { $0.key.type != key }
         registrationStats.removeValue(forKey: key)
 
         // KeyPath 매핑에서도 제거
@@ -346,10 +527,30 @@ public actor UnifiedRegistry {
 
         syncFactories.removeAll()
         asyncFactories.removeAll()
+        asyncSingletonTasks.removeAll()
+        scopedFactories.removeAll()
+        scopedAsyncFactories.removeAll()
+        scopedInstances.removeAll()
         keyPathMappings.removeAll()
         registrationStats.removeAll()
 
         Log.info("🧹 [UnifiedRegistry] Released all registrations (total: \(totalCount))")
+    }
+
+    /// 특정 스코프의 인스턴스들을 모두 해제합니다.
+    /// - Returns: 해제된 개수
+    public func releaseScope(kind: ScopeKind, id: String) -> Int {
+        let before = scopedInstances.count
+        scopedInstances = scopedInstances.filter { $0.key.scope != ScopeID(kind: kind, id: id) }
+        return before - scopedInstances.count
+    }
+
+    /// 특정 타입의 스코프 인스턴스를 해제합니다.
+    /// - Returns: 해제 여부
+    public func releaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
+        let key = AnyTypeIdentifier(type: type)
+        let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: kind, id: id))
+        return scopedInstances.removeValue(forKey: sKey) != nil
     }
 
     // MARK: - Diagnostics
@@ -402,11 +603,17 @@ public actor UnifiedRegistry {
 public enum RegistrationType {
     case syncFactory
     case asyncFactory
+    case asyncSingleton
+    case scopedFactory
+    case scopedAsyncFactory
 
     public var description: String {
         switch self {
         case .syncFactory: return "Sync Factory"
         case .asyncFactory: return "Async Factory"
+        case .asyncSingleton: return "Async Singleton"
+        case .scopedFactory: return "Scoped Factory"
+        case .scopedAsyncFactory: return "Scoped Async Factory"
         }
     }
 }

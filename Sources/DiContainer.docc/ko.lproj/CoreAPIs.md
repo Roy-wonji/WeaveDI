@@ -199,6 +199,51 @@ let result = await DIAsync.resolveResult(UserService.self)
 
 ## 고급 API 패턴
 
+### 스코프 등록과 사용 (.screen / .session / .request)
+
+의존성을 화면/세션/요청 단위로 격리하고 캐시하려면 스코프 API를 사용하세요.
+
+```swift
+// 현재 스코프 설정 (예: 세션 시작 시)
+ScopeContext.shared.setCurrent(.session, id: "user-123")
+
+// 스코프 기반 등록 (동기)
+await DependencyContainer.bootstrap { _ in
+    await GlobalUnifiedRegistry.registerScoped(UserService.self, scope: .session) {
+        UserServiceImpl()
+    }
+}
+
+// 스코프 기반 등록 (비동기)
+await GlobalUnifiedRegistry.registerAsyncScoped(ProfileCache.self, scope: .screen) {
+    await ProfileCache.make()
+}
+
+// 해결은 기존과 동일 (현재 스코프 id가 있으면 스코프 캐시 사용)
+let userService: UserService? = UnifiedDI.resolve(UserService.self)
+
+// 스코프 해제 (예: 화면 종료, 세션 만료 시)
+ScopeContext.shared.clear(.session)
+```
+
+> 팁: View/Screen 진입/이탈 시점에 `.screen` 스코프를 set/clear 하고, 로그인/로그아웃 등 세션 이벤트에 `.session` 스코프를 set/clear 하세요.
+
+### 비동기 싱글톤 등록 (최초 1회 생성 후 재사용)
+
+네트워크/디스크 의존성을 비동기로 안전하게 1회만 초기화하고 이후 재사용합니다.
+
+```swift
+// 최초 1회만 생성, 동시 호출도 1회 생성으로 병합
+await GlobalUnifiedRegistry.registerAsyncSingleton(RemoteConfig.self) {
+    await RemoteConfig.fetch()
+}
+
+// 어디서든 사용
+let config: RemoteConfig? = await UnifiedDI.resolveAsync(RemoteConfig.self)
+```
+
+내부적으로 in-flight Task 캐시를 사용하여 동시 초기화를 방지합니다.
+
 ### 조건부 등록 및 해결
 
 ```swift
@@ -242,6 +287,17 @@ await DependencyContainer.bootstrap { container in
         RequestHandler() // 매번 새로 생성
     }
 }
+```
+
+### 순환 의존성 탐지와 문서화
+
+```swift
+// 탐지 활성화
+CircularDependencyDetector.shared.setDetectionEnabled(true)
+
+// 그래프 산출 (개발/CI에서)
+let dot = DependencyGraphVisualizer.generateDOTGraph(title: "Dependencies")
+let mermaid = DependencyGraphVisualizer.generateMermaidGraph(title: "Dependencies")
 ```
 
 ### 의존성 체인 관리

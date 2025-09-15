@@ -153,6 +153,20 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
             await GlobalUnifiedRegistry.register(type, factory: { instance })
         }
     }
+
+    /// Scoped 등록 (동기)
+    @discardableResult
+    public func registerScoped<T>(
+        _ type: T.Type,
+        scope: ScopeKind,
+        build: @Sendable @escaping () -> T
+    ) -> @Sendable () -> Void {
+        Task.detached { @Sendable in
+            await GlobalUnifiedRegistry.registerScoped(type, scope: scope, factory: build)
+        }
+        // 현재 TypeSafeRegistry에는 스코프 개념이 없으므로 해제 핸들러는 no-op 반환
+        return { }
+    }
 }
 
 // MARK: - Factory KeyPath Extensions

@@ -120,6 +120,31 @@ public enum UnifiedDI {
         return DependencyContainer.live.register(type, build: factory)
     }
 
+    /// 스코프 기반 등록 (동기)
+    @discardableResult
+    public static func registerScoped<T>(
+        _ type: T.Type,
+        scope: ScopeKind,
+        factory: @escaping @Sendable () -> T
+    ) -> @Sendable () -> Void {
+        // TypeSafeRegistry에는 스코프 개념이 없으므로 UnifiedRegistry에 직접 위임
+        Task.detached { @Sendable in
+            await GlobalUnifiedRegistry.registerScoped(type, scope: scope, factory: factory)
+        }
+        return { }
+    }
+
+    /// 스코프 기반 등록 (비동기)
+    public static func registerAsyncScoped<T>(
+        _ type: T.Type,
+        scope: ScopeKind,
+        factory: @escaping @Sendable () async -> T
+    ) {
+        Task.detached { @Sendable in
+            await GlobalUnifiedRegistry.registerAsyncScoped(type, scope: scope, factory: factory)
+        }
+    }
+
     /// KeyPath를 사용하여 의존성을 등록하고 인스턴스를 반환합니다 (DI.register 스타일)
     ///
     /// DependencyContainer의 KeyPath를 사용하여 타입 안전한 방식으로
@@ -488,6 +513,38 @@ public enum UnifiedDI {
         #logDebug("🧹 [UnifiedDI] All registrations released")
         #endif
     }
+
+    // MARK: - Scoped release helpers
+
+    /// 특정 스코프(kind,id)의 모든 인스턴스를 해제합니다.
+    /// - Returns: 해제된 개수
+    @discardableResult
+    public static func releaseScope(_ kind: ScopeKind, id: String) -> Int {
+        syncReleaseScope(kind, id: id)
+    }
+
+    /// 특정 타입의 스코프 인스턴스를 해제합니다.
+    /// - Returns: 해제 여부
+    @discardableResult
+    public static func releaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
+        syncReleaseScoped(type, kind: kind, id: id)
+    }
+
+    private static func syncReleaseScope(_ kind: ScopeKind, id: String) -> Int {
+        let sem = DispatchSemaphore(value: 0)
+        let box = _IntBox()
+        Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScope(kind: kind, id: id); sem.signal() }
+        sem.wait()
+        return box.value
+    }
+
+    private static func syncReleaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
+        let sem = DispatchSemaphore(value: 0)
+        let box = _BoolBox()
+        Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScoped(type, kind: kind, id: id); sem.signal() }
+        sem.wait()
+        return box.value
+    }
 }
 
 // MARK: - Registration Builder
@@ -577,3 +634,6 @@ public typealias SimplifiedDI = UnifiedDI
 // MARK: - Type Aliases for Migration
 
 // Note: Legacy compatibility aliases removed to avoid conflicts with SimplifiedAPI.swift
+    // Sync bridging helpers (Sendable boxes)
+    private final class _IntBox: @unchecked Sendable { var value: Int = 0; init() {} }
+    private final class _BoolBox: @unchecked Sendable { var value: Bool = false; init() {} }

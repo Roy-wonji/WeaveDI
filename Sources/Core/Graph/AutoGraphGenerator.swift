@@ -19,7 +19,7 @@ public final class AutoGraphGenerator: @unchecked Sendable {
 
     // MARK: - Properties
 
-    private let visualizer = DependencyGraphVisualizer.shared
+    // Use static visualizer namespace
     private let detector = CircularDependencyDetector.shared
 
     // MARK: - Initialization
@@ -122,19 +122,19 @@ public final class AutoGraphGenerator: @unchecked Sendable {
         switch format {
         case .dot:
             filename = "dependency_graph.dot"
-            content = visualizer.generateDOTGraph(options: options)
+            content = DependencyGraphVisualizer.generateDOTGraph(options: options)
 
         case .mermaid:
             filename = "dependency_graph.mmd"
-            content = visualizer.generateMermaidGraph(options: options)
+            content = DependencyGraphVisualizer.generateMermaidGraph(options: options)
 
         case .text:
             filename = "dependency_tree.txt"
-            content = visualizer.generateASCIIGraph()
+            content = DependencyGraphVisualizer.generateASCIIGraph()
 
         case .json:
             filename = "dependency_graph.json"
-            content = try visualizer.generateJSONGraph()
+            content = try DependencyGraphVisualizer.generateJSONGraph()
         }
 
         let fileURL = outputDirectory.appendingPathComponent(filename)
@@ -335,7 +335,7 @@ public final class AutoGraphGenerator: @unchecked Sendable {
     ) throws {
         // 순환 의존성만 포함하는 특별한 그래프 생성
         let cycleOptions = GraphVisualizationOptions()
-        let cycleGraph = visualizer.generateDOTGraph(
+        let cycleGraph = DependencyGraphVisualizer.generateDOTGraph(
             title: "Circular Dependencies Only",
             options: cycleOptions
         )

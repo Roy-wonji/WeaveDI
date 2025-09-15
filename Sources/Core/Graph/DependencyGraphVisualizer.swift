@@ -10,30 +10,18 @@ import LogMacro
 
 // MARK: - Dependency Graph Visualization System
 
-/// Needle 스타일의 의존성 그래프 시각화 시스템
-public final class DependencyGraphVisualizer: @unchecked Sendable {
-
-    // MARK: - Shared Instance
-
-    public static let shared = DependencyGraphVisualizer()
-
-    // MARK: - Properties
-
-    private let detector = CircularDependencyDetector.shared
-
-    // MARK: - Initialization
-
-    private init() {}
+/// Needle 스타일의 의존성 그래프 시각화 시스템 (정적 네임스페이스)
+public enum DependencyGraphVisualizer {
 
     // MARK: - DOT Graph Generation
 
     /// DOT 형식의 의존성 그래프 생성 (Graphviz 호환)
-    public func generateDOTGraph(
+    public static func generateDOTGraph(
         title: String = "DiContainer Dependency Graph",
         options: GraphVisualizationOptions = .default
     ) -> String {
-        let statistics = detector.getGraphStatistics()
-        let cycles = detector.detectAllCircularDependencies()
+        let statistics = CircularDependencyDetector.shared.getGraphStatistics()
+        let cycles = CircularDependencyDetector.shared.detectAllCircularDependencies()
 
         var dot = """
         digraph "\(title)" {
@@ -65,12 +53,12 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     }
 
     /// Mermaid 형식의 의존성 그래프 생성
-    public func generateMermaidGraph(
+    public static func generateMermaidGraph(
         title: String = "DiContainer Dependency Graph",
         options: GraphVisualizationOptions = .default
     ) -> String {
-        let statistics = detector.getGraphStatistics()
-        let cycles = detector.detectAllCircularDependencies()
+        let statistics = CircularDependencyDetector.shared.getGraphStatistics()
+        let cycles = CircularDependencyDetector.shared.detectAllCircularDependencies()
 
         var mermaid = """
         graph \(options.direction == .topToBottom ? "TD" : "LR")
@@ -91,17 +79,17 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     // MARK: - Text-based Visualization
 
     /// 텍스트 기반 의존성 트리 생성
-    public func generateDependencyTree<T>(_ rootType: T.Type, maxDepth: Int = 5) -> String {
+    public static func generateDependencyTree<T>(_ rootType: T.Type, maxDepth: Int = 5) -> String {
         let typeName = String(describing: rootType)
         return generateDependencyTree(typeName, maxDepth: maxDepth)
     }
 
     /// 텍스트 기반 의존성 트리 생성 (문자열 타입명)
-    public func generateDependencyTree(_ rootTypeName: String, maxDepth: Int = 5) -> String {
+    public static func generateDependencyTree(_ rootTypeName: String, maxDepth: Int = 5) -> String {
         var result = "📦 \(rootTypeName)\n"
         var visitedNodes: Set<String> = []
 
-        generateTreeRecursive(
+        Self.generateTreeRecursive(
             rootTypeName,
             prefix: "",
             isLast: true,
@@ -115,9 +103,9 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     }
 
     /// ASCII 아트 스타일의 그래프 생성
-    public func generateASCIIGraph(maxWidth: Int = 80) -> String {
-        let statistics = detector.getGraphStatistics()
-        let cycles = detector.detectAllCircularDependencies()
+    public static func generateASCIIGraph(maxWidth: Int = 80) -> String {
+        let statistics = CircularDependencyDetector.shared.getGraphStatistics()
+        let cycles = CircularDependencyDetector.shared.detectAllCircularDependencies()
 
         var ascii = """
         ┌\(String(repeating: "─", count: maxWidth - 2))┐
@@ -147,7 +135,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     // MARK: - Export Functions
 
     /// 그래프를 파일로 내보내기
-    public func exportGraph(
+    public static func exportGraph(
         to url: URL,
         format: GraphExportFormat,
         title: String = "DiContainer Dependency Graph",
@@ -170,9 +158,9 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     }
 
     /// JSON 형식의 그래프 데이터 생성
-    public func generateJSONGraph() throws -> String {
-        let statistics = detector.getGraphStatistics()
-        let cycles = detector.detectAllCircularDependencies()
+    public static func generateJSONGraph() throws -> String {
+        let statistics = CircularDependencyDetector.shared.getGraphStatistics()
+        let cycles = CircularDependencyDetector.shared.detectAllCircularDependencies()
 
         let graphData = GraphJSONData(
             metadata: GraphMetadata(
@@ -227,12 +215,11 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
 
     // MARK: - Private Helpers
 
-    private func generateDOTNodes(
+    private static func generateDOTNodes(
         options: GraphVisualizationOptions,
         cycles: [CircularDependencyPath]
     ) -> String {
         var nodes = "\n    // Nodes\n"
-        let statistics = detector.getGraphStatistics()
 
         // 실제 의존성 그래프에서 노드 데이터 가져오기
         let allTypes = getAllRegisteredTypes()
@@ -265,7 +252,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         return nodes
     }
 
-    private func generateDOTEdges(
+    private static func generateDOTEdges(
         options: GraphVisualizationOptions,
         cycles: [CircularDependencyPath]
     ) -> String {
@@ -296,7 +283,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         return edges
     }
 
-    private func generateCycleHighlights(
+    private static func generateCycleHighlights(
         cycles: [CircularDependencyPath],
         options: GraphVisualizationOptions
     ) -> String {
@@ -309,7 +296,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         return highlights
     }
 
-    private func generateMermaidEdges(
+    private static func generateMermaidEdges(
         cycles: [CircularDependencyPath],
         options: GraphVisualizationOptions
     ) -> String {
@@ -324,10 +311,10 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
 
             // Mermaid 노드 정의 (한 번만)
             if !edges.contains("    \(fromNode)[") {
-                edges += "    \(fromNode)[\"\(getShortTypeName(from))\"]\n"
+                edges += "    \(fromNode)[\"\(Self.getShortTypeName(from))\"]\n"
             }
             if !edges.contains("    \(toNode)[") {
-                edges += "    \(toNode)[\"\(getShortTypeName(to))\"]\n"
+                edges += "    \(toNode)[\"\(Self.getShortTypeName(to))\"]\n"
             }
 
             // 엣지 정의
@@ -338,7 +325,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         return edges
     }
 
-    private func generateMermaidStyles(
+    private static func generateMermaidStyles(
         cycles: [CircularDependencyPath],
         options: GraphVisualizationOptions
     ) -> String {
@@ -351,7 +338,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         return styles
     }
 
-    private func generateTreeRecursive(
+    private static func generateTreeRecursive(
         _ typeName: String,
         prefix: String,
         isLast: Bool,
@@ -363,22 +350,22 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         guard depth < maxDepth else { return }
 
         if visited.contains(typeName) {
-            result += "\(prefix)\(isLast ? "└── " : "├── ")🔄 \(getShortTypeName(typeName)) (순환)\n"
+            result += "\(prefix)\(isLast ? "└── " : "├── ")🔄 \(Self.getShortTypeName(typeName)) (순환)\n"
             return
         }
 
         visited.insert(typeName)
 
         // 실제 의존성 데이터에서 하위 의존성들 가져오기
-        let dependencies = getDirectDependencies(for: typeName)
+        let dependencies = Self.getDirectDependencies(for: typeName)
 
         for (index, dependency) in dependencies.enumerated() {
             let isLastDependency = (index == dependencies.count - 1)
             let newPrefix = prefix + (isLast ? "    " : "│   ")
 
-            result += "\(prefix)\(isLast ? "└── " : "├── ")\(getShortTypeName(dependency))\n"
+            result += "\(prefix)\(isLast ? "└── " : "├── ")\(Self.getShortTypeName(dependency))\n"
 
-            generateTreeRecursive(
+            Self.generateTreeRecursive(
                 dependency,
                 prefix: newPrefix,
                 isLast: isLastDependency,
@@ -392,7 +379,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         visited.remove(typeName)
     }
 
-    private func generateASCIIComponents(maxWidth: Int) -> String {
+    private static func generateASCIIComponents(maxWidth: Int) -> String {
         let ascii = ""
 
         // TODO: 주요 컴포넌트들의 ASCII 표현 생성
@@ -400,7 +387,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         return ascii
     }
 
-    private func centerText(_ text: String, width: Int) -> String {
+    private static func centerText(_ text: String, width: Int) -> String {
         let padding = max(0, width - text.count)
         let leftPadding = padding / 2
         let rightPadding = padding - leftPadding
@@ -410,14 +397,13 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     // MARK: - Data Collection Helpers
 
     /// 등록된 모든 타입명 가져오기
-    private func getAllRegisteredTypes() -> Set<String> {
-        let statistics = detector.getGraphStatistics()
+    private static func getAllRegisteredTypes() -> Set<String> {
 
         // 현재 등록된 의존성들과 실제 컨테이너에서 사용 가능한 타입들을 조합
         var allTypes: Set<String> = []
 
         // 의존성 그래프에서 타입들 추출
-        let analysis = detector.analyzeDependencyChain("Root")
+        let analysis = CircularDependencyDetector.shared.analyzeDependencyChain("Root")
         allTypes.formUnion(analysis.allDependencies)
 
         // 일반적인 DI 타입들 추가 (실제로는 리플렉션이나 런타임 정보를 사용해야 함)
@@ -432,7 +418,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     }
 
     /// 의존성 엣지 데이터 가져오기
-    private func getDependencyEdges() -> [(from: String, to: String)] {
+    private static func getDependencyEdges() -> [(from: String, to: String)] {
         var edges: [(from: String, to: String)] = []
 
         // 실제로는 CircularDependencyDetector에서 내부 dependencyGraph를 접근
@@ -451,7 +437,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     }
 
     /// 순환 의존성 엣지 추출
-    private func getCycleEdges(_ cycles: [CircularDependencyPath]) -> [(from: String, to: String)] {
+    private static func getCycleEdges(_ cycles: [CircularDependencyPath]) -> [(from: String, to: String)] {
         var cycleEdges: [(from: String, to: String)] = []
 
         for cycle in cycles {
@@ -466,7 +452,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     }
 
     /// 특정 타입의 직접 의존성들 가져오기
-    private func getDirectDependencies(for typeName: String) -> [String] {
+    private static func getDirectDependencies(for typeName: String) -> [String] {
         let allEdges = getDependencyEdges()
         return allEdges.compactMap { edge in
             edge.from == typeName ? edge.to : nil
@@ -474,7 +460,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     }
 
     /// 노드 이름 정리 (DOT용)
-    private func sanitizeNodeName(_ name: String) -> String {
+    private static func sanitizeNodeName(_ name: String) -> String {
         return name.replacingOccurrences(of: "<", with: "")
             .replacingOccurrences(of: ">", with: "")
             .replacingOccurrences(of: ".", with: "_")
@@ -483,7 +469,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     }
 
     /// 노드 이름 정리 (Mermaid용)
-    private func sanitizeMermaidNodeName(_ name: String) -> String {
+    private static func sanitizeMermaidNodeName(_ name: String) -> String {
         return name.replacingOccurrences(of: "<", with: "")
             .replacingOccurrences(of: ">", with: "")
             .replacingOccurrences(of: ".", with: "")
@@ -493,7 +479,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     }
 
     /// 짧은 타입명 가져오기
-    private func getShortTypeName(_ fullName: String) -> String {
+    private static func getShortTypeName(_ fullName: String) -> String {
         // "MyApp.UserServiceProtocol" -> "UserService"
         let components = fullName.components(separatedBy: ".")
         let lastName = components.last ?? fullName
@@ -581,7 +567,7 @@ public extension DependencyContainer {
 
     /// 현재 컨테이너의 의존성 그래프를 DOT 형식으로 내보내기
     func exportDependencyGraph(to url: URL, format: GraphExportFormat = .dot) throws {
-        try DependencyGraphVisualizer.shared.exportGraph(
+        try DependencyGraphVisualizer.exportGraph(
             to: url,
             format: format,
             title: "DependencyContainer Graph"
@@ -590,7 +576,7 @@ public extension DependencyContainer {
 
     /// 의존성 트리를 콘솔에 출력
     func printDependencyTree<T>(_ rootType: T.Type, maxDepth: Int = 3) {
-        let tree = DependencyGraphVisualizer.shared.generateDependencyTree(rootType, maxDepth: maxDepth)
+        let tree = DependencyGraphVisualizer.generateDependencyTree(rootType, maxDepth: maxDepth)
         #logDebug(tree)
     }
 }

@@ -187,6 +187,7 @@ class OptimizedViewController {
 - ``SimplePerformanceOptimizer``
 - ``TypeSafeRegistry``
 - ``UnifiedRegistry``
+ - <doc:Scopes>
 
 ### 프로퍼티 래퍼 확장
 

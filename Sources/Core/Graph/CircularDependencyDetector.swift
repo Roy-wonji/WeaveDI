@@ -8,199 +8,135 @@
 import Foundation
 import LogMacro
 
-// MARK: - Circular Dependency Detection System
+// MARK: - Circular Dependency Detection System (Actor + Sync Facade)
 
-/// 순환 의존성 탐지 시스템
-///
-/// 메인 스레드 전용이 아니어도 사용할 수 있도록 내부 동기화 큐로 보호합니다.
-public final class CircularDependencyDetector: @unchecked Sendable {
-
-    // MARK: - Shared Instance
-
-    public static let shared = CircularDependencyDetector()
-
-    // MARK: - Properties
-
-    /// 동시성 안전성을 위한 동기화 큐 (concurrent reads, barrier writes)
-    private let syncQueue = DispatchQueue(label: "com.diContainer.circularDependencyDetector", attributes: .concurrent)
-
-    /// 현재 해결 중인 의존성 스택
+/// 내부 구현: Actor 기반 순환 의존성 탐지기
+actor CircularDependencyDetectorActor {
     private var resolutionStack: [String] = []
-
-    /// 의존성 그래프 (타입 → 의존하는 타입들)
     private var dependencyGraph: [String: Set<String>] = [:]
-
-    /// 탐지된 순환 의존성들
     private var detectedCycles: Set<CircularDependencyPath> = []
-
-    /// 탐지 활성화 여부
     private var isDetectionEnabled: Bool = true
+    private var isAutoRecordingEnabled: Bool = false
 
-    // MARK: - Initialization
-
-    private init() {}
-
-    // MARK: - Public API
-
-    /// 순환 의존성 탐지 활성화/비활성화
-    public func setDetectionEnabled(_ enabled: Bool) {
-        syncQueue.sync(flags: .barrier) {
-            self.isDetectionEnabled = enabled
-            if !enabled {
-                self.resolutionStack.removeAll()
-                self.dependencyGraph.removeAll()
-                self.detectedCycles.removeAll()
-            }
+    // Configuration
+    func setDetectionEnabled(_ enabled: Bool) {
+        isDetectionEnabled = enabled
+        if !enabled {
+            resolutionStack.removeAll()
+            dependencyGraph.removeAll()
+            detectedCycles.removeAll()
         }
     }
 
-    /// 의존성 해결 시작 (스택에 추가)
-    public func beginResolution<T>(_ type: T.Type) throws {
-        let typeName = String(describing: type)
-        try beginResolution(typeName)
+    // Auto recording configuration
+    func setAutoRecordingEnabled(_ enabled: Bool) {
+        isAutoRecordingEnabled = enabled
     }
 
-    /// 의존성 해결 시작 (문자열 타입명)
-    public func beginResolution(_ typeName: String) throws {
-        var errorToThrow: SafeDIError? = nil
-        syncQueue.sync(flags: .barrier) {
-            guard self.isDetectionEnabled else { return }
+    // Resolution tracking
+    func beginResolution<T>(_ type: T.Type) throws {
+        try beginResolution(String(describing: type))
+    }
 
-            if self.resolutionStack.contains(typeName) {
-                let cyclePath = self.createCyclePath(to: typeName)
-                let circularDependency = CircularDependencyPath(path: cyclePath)
-                self.detectedCycles.insert(circularDependency)
-                errorToThrow = .circularDependency(path: cyclePath)
-            } else {
-                self.resolutionStack.append(typeName)
-            }
+    func beginResolution(_ typeName: String) throws {
+        guard isDetectionEnabled else { return }
+        if resolutionStack.contains(typeName) {
+            let cyclePath = createCyclePath(to: typeName)
+            detectedCycles.insert(CircularDependencyPath(path: cyclePath))
+            throw SafeDIError.circularDependency(path: cyclePath)
         }
-        if let e = errorToThrow { throw e }
+        resolutionStack.append(typeName)
     }
 
-    /// 의존성 해결 완료 (스택에서 제거)
-    public func endResolution<T>(_ type: T.Type) {
-        let typeName = String(describing: type)
-        endResolution(typeName)
+    func endResolution<T>(_ type: T.Type) { endResolution(String(describing: type)) }
+
+    func endResolution(_ typeName: String) {
+        guard isDetectionEnabled else { return }
+        if let idx = resolutionStack.lastIndex(of: typeName) { resolutionStack.remove(at: idx) }
     }
 
-    /// 의존성 해결 완료 (문자열 타입명)
-    public func endResolution(_ typeName: String) {
-        syncQueue.sync(flags: .barrier) {
-            guard self.isDetectionEnabled else { return }
-            if let index = self.resolutionStack.lastIndex(of: typeName) {
-                self.resolutionStack.remove(at: index)
-            }
-        }
+    // Graph building
+    func recordDependency<From, To>(from: From.Type, to: To.Type) {
+        recordDependency(from: String(describing: from), to: String(describing: to))
     }
 
-    /// 의존성 관계 기록
-    public func recordDependency<From, To>(from: From.Type, to: To.Type) {
-        let fromTypeName = String(describing: from)
-        let toTypeName = String(describing: to)
-        recordDependency(from: fromTypeName, to: toTypeName)
+    func recordDependency(from: String, to: String) {
+        guard isDetectionEnabled else { return }
+        dependencyGraph[from, default: []].insert(to)
     }
 
-    /// 의존성 관계 기록 (문자열 타입명)
-    public func recordDependency(from: String, to: String) {
-        syncQueue.sync(flags: .barrier) {
-            guard self.isDetectionEnabled else { return }
-            self.dependencyGraph[from, default: []].insert(to)
-        }
+    // Auto edge from current resolving type (top of stack) -> target
+    func recordAutoEdgeIfEnabled(to targetTypeName: String) {
+        guard isDetectionEnabled, isAutoRecordingEnabled else { return }
+        guard let from = resolutionStack.last, from != targetTypeName else { return }
+        dependencyGraph[from, default: []].insert(targetTypeName)
     }
 
-    /// 전체 의존성 그래프에서 순환 의존성 탐지
-    public func detectAllCircularDependencies() -> [CircularDependencyPath] {
-        // 스냅샷 후 외부에서 계산
-        let snapshot: (graph: [String: Set<String>], enabled: Bool) = syncQueue.sync {
-            (self.dependencyGraph, self.isDetectionEnabled)
-        }
-        guard snapshot.enabled else { return [] }
-
+    // Analysis
+    func detectAllCircularDependencies() -> [CircularDependencyPath] {
+        guard isDetectionEnabled else { return [] }
         var allCycles: Set<CircularDependencyPath> = []
-        for startNode in snapshot.graph.keys {
+        let snapshot = dependencyGraph
+        for start in snapshot.keys {
             var visited: Set<String> = []
-            var recursionStack: Set<String> = []
-            var currentPath: [String] = []
-            findCyclesFromNode(
-                startNode,
-                in: snapshot.graph,
-                visited: &visited,
-                recursionStack: &recursionStack,
-                currentPath: &currentPath,
-                allCycles: &allCycles
-            )
+            var stack: Set<String> = []
+            var path: [String] = []
+            findCyclesFromNode(start, in: snapshot, visited: &visited, recursionStack: &stack, currentPath: &path, allCycles: &allCycles)
         }
         return Array(allCycles).sorted { $0.path.count < $1.path.count }
     }
 
-    /// 특정 타입의 의존성 체인 분석
-    public func analyzeDependencyChain<T>(_ type: T.Type) -> DependencyChainAnalysis {
-        let typeName = String(describing: type)
-        return analyzeDependencyChain(typeName)
+    func analyzeDependencyChain<T>(_ type: T.Type) -> DependencyChainAnalysis {
+        analyzeDependencyChain(String(describing: type))
     }
 
-    /// 특정 타입의 의존성 체인 분석 (문자열 타입명)
-    public func analyzeDependencyChain(_ typeName: String) -> DependencyChainAnalysis {
-        // 스냅샷 찍고 계산
-        let snapshot: (graph: [String: Set<String>], cycles: Set<CircularDependencyPath>) = syncQueue.sync {
-            (self.dependencyGraph, self.detectedCycles)
-        }
-        var directDependencies: [String] = []
-        var allDependencies: Set<String> = []
+    func analyzeDependencyChain(_ typeName: String) -> DependencyChainAnalysis {
+        let snapshotGraph = dependencyGraph
+        let snapshotCycles = detectedCycles
+        var direct: [String] = []
+        var all: Set<String> = []
         var maxDepth = 0
-
-        if let direct = snapshot.graph[typeName] {
-            directDependencies = Array(direct)
-        }
-        // 재귀 계산은 별도 헬퍼 사용 (헬퍼는 외부 그래프를 읽지 않도록 변경)
-        collectAllDependencies(typeName, from: snapshot.graph, collected: &allDependencies, depth: 0, maxDepth: &maxDepth)
-
+        if let d = snapshotGraph[typeName] { direct = Array(d) }
+        collectAllDependencies(typeName, from: snapshotGraph, collected: &all, depth: 0, maxDepth: &maxDepth)
         return DependencyChainAnalysis(
             rootType: typeName,
-            directDependencies: directDependencies,
-            allDependencies: Array(allDependencies),
+            directDependencies: direct,
+            allDependencies: Array(all),
             maxDepth: maxDepth,
-            hasCycles: snapshot.cycles.contains { $0.path.contains(typeName) }
+            hasCycles: snapshotCycles.contains { $0.path.contains(typeName) }
         )
     }
 
-    /// 의존성 그래프 통계
-    public func getGraphStatistics() -> DependencyGraphStatistics {
-        let snapshot = syncQueue.sync { (self.dependencyGraph, self.detectedCycles) }
-        let totalTypes = snapshot.0.keys.count
-        let totalDependencies = snapshot.0.values.reduce(0) { $0 + $1.count }
-        let averageDependencies = totalTypes > 0 ? Double(totalDependencies) / Double(totalTypes) : 0
-        let maxDependencies = snapshot.0.values.map { $0.count }.max() ?? 0
-        let typesWithoutDependencies = snapshot.0.values.filter { $0.isEmpty }.count
-
+    func getGraphStatistics() -> DependencyGraphStatistics {
+        let graph = dependencyGraph
+        let cycles = detectedCycles
+        let totalTypes = graph.keys.count
+        let totalDeps = graph.values.reduce(0) { $0 + $1.count }
+        let avg = totalTypes > 0 ? Double(totalDeps) / Double(totalTypes) : 0
+        let maxDeps = graph.values.map { $0.count }.max() ?? 0
+        let without = graph.values.filter { $0.isEmpty }.count
         return DependencyGraphStatistics(
             totalTypes: totalTypes,
-            totalDependencies: totalDependencies,
-            averageDependenciesPerType: averageDependencies,
-            maxDependenciesPerType: maxDependencies,
-            typesWithoutDependencies: typesWithoutDependencies,
-            detectedCycles: snapshot.1.count
+            totalDependencies: totalDeps,
+            averageDependenciesPerType: avg,
+            maxDependenciesPerType: maxDeps,
+            typesWithoutDependencies: without,
+            detectedCycles: cycles.count
         )
     }
 
-    /// 캐시 및 상태 초기화
-    public func clearCache() {
-        syncQueue.sync(flags: .barrier) {
-            self.resolutionStack.removeAll()
-            self.dependencyGraph.removeAll()
-            self.detectedCycles.removeAll()
-        }
+    func clearCache() {
+        resolutionStack.removeAll()
+        dependencyGraph.removeAll()
+        detectedCycles.removeAll()
     }
 
-    // MARK: - Private Helpers
-
-    private func createCyclePath(to typeName: String) -> [String] {
-        guard let startIndex = resolutionStack.firstIndex(of: typeName) else {
-            return resolutionStack + [typeName]
+    // Helpers
+    private func createCyclePath(to name: String) -> [String] {
+        if let start = resolutionStack.firstIndex(of: name) {
+            return Array(resolutionStack[start...]) + [name]
         }
-
-        return Array(resolutionStack[startIndex...]) + [typeName]
+        return resolutionStack + [name]
     }
 
     private func findCyclesFromNode(
@@ -214,28 +150,18 @@ public final class CircularDependencyDetector: @unchecked Sendable {
         visited.insert(node)
         recursionStack.insert(node)
         currentPath.append(node)
-
-        if let dependencies = graph[node] {
-            for dependency in dependencies {
-                if !visited.contains(dependency) {
-                    findCyclesFromNode(
-                        dependency,
-                        in: graph,
-                        visited: &visited,
-                        recursionStack: &recursionStack,
-                        currentPath: &currentPath,
-                        allCycles: &allCycles
-                    )
-                } else if recursionStack.contains(dependency) {
-                    // 순환 발견
-                    if let cycleStartIndex = currentPath.firstIndex(of: dependency) {
-                        let cyclePath = Array(currentPath[cycleStartIndex...]) + [dependency]
+        if let deps = graph[node] {
+            for dep in deps {
+                if !visited.contains(dep) {
+                    findCyclesFromNode(dep, in: graph, visited: &visited, recursionStack: &recursionStack, currentPath: &currentPath, allCycles: &allCycles)
+                } else if recursionStack.contains(dep) {
+                    if let idx = currentPath.firstIndex(of: dep) {
+                        let cyclePath = Array(currentPath[idx...]) + [dep]
                         allCycles.insert(CircularDependencyPath(path: cyclePath))
                     }
                 }
             }
         }
-
         recursionStack.remove(node)
         currentPath.removeLast()
     }
@@ -248,22 +174,63 @@ public final class CircularDependencyDetector: @unchecked Sendable {
         maxDepth: inout Int
     ) {
         maxDepth = max(maxDepth, depth)
-
-        guard let dependencies = graph[typeName] else { return }
-
-        for dependency in dependencies {
-            if !collected.contains(dependency) {
-                collected.insert(dependency)
-                collectAllDependencies(dependency, from: graph, collected: &collected, depth: depth + 1, maxDepth: &maxDepth)
-            }
+        guard let deps = graph[typeName] else { return }
+        for dep in deps where !collected.contains(dep) {
+            collected.insert(dep)
+            collectAllDependencies(dep, from: graph, collected: &collected, depth: depth + 1, maxDepth: &maxDepth)
         }
     }
+}
+
+/// 공개 파사드: 기존 동기 API를 유지하는 래퍼
+public final class CircularDependencyDetector: @unchecked Sendable {
+    public static let shared = CircularDependencyDetector()
+    private let core = CircularDependencyDetectorActor()
+    private init() {}
+
+    // MARK: - Sync bridge helpers
+    private final class _SyncBox<U>: @unchecked Sendable { var value: U?; init() {} }
+    private final class _ErrorBox: @unchecked Sendable { var error: Error? = nil }
+
+    private func sync<T: Sendable>(_ op: @Sendable @escaping () async -> T) -> T {
+        let sem = DispatchSemaphore(value: 0)
+        let box = _SyncBox<T>()
+        Task.detached { @Sendable in box.value = await op(); sem.signal() }
+        sem.wait()
+        return box.value!
+    }
+
+    private func syncThrows<T: Sendable>(_ op: @Sendable @escaping () async throws -> T) throws -> T {
+        let sem = DispatchSemaphore(value: 0)
+        let box = _SyncBox<T>()
+        let ebox = _ErrorBox()
+        Task.detached { @Sendable in do { box.value = try await op() } catch { ebox.error = error }; sem.signal() }
+        sem.wait()
+        if let e = ebox.error { throw e }
+        return box.value!
+    }
+
+    // MARK: - Public sync facade
+    public func setDetectionEnabled(_ enabled: Bool) { sync { [core] in await core.setDetectionEnabled(enabled) } }
+    public func setAutoRecordingEnabled(_ enabled: Bool) { sync { [core] in await core.setAutoRecordingEnabled(enabled) } }
+    public func beginResolution<T>(_ type: T.Type) throws { try syncThrows { [core] in try await core.beginResolution(type) } }
+    public func beginResolution(_ typeName: String) throws { try syncThrows { [core] in try await core.beginResolution(typeName) } }
+    public func endResolution<T>(_ type: T.Type) { sync { [core] in await core.endResolution(type) } }
+    public func endResolution(_ typeName: String) { sync { [core] in await core.endResolution(typeName) } }
+    public func recordDependency<From, To>(from: From.Type, to: To.Type) { sync { [core] in await core.recordDependency(from: from, to: to) } }
+    public func recordDependency(from: String, to: String) { sync { [core] in await core.recordDependency(from: from, to: to) } }
+    public func recordAutoEdgeIfEnabled(for resolvedType: Any.Type) { sync { [core] in await core.recordAutoEdgeIfEnabled(to: String(describing: resolvedType)) } }
+    public func detectAllCircularDependencies() -> [CircularDependencyPath] { sync { [core] in await core.detectAllCircularDependencies() } }
+    public func analyzeDependencyChain<T>(_ type: T.Type) -> DependencyChainAnalysis { sync { [core] in await core.analyzeDependencyChain(type) } }
+    public func analyzeDependencyChain(_ typeName: String) -> DependencyChainAnalysis { sync { [core] in await core.analyzeDependencyChain(typeName) } }
+    public func getGraphStatistics() -> DependencyGraphStatistics { sync { [core] in await core.getGraphStatistics() } }
+    public func clearCache() { sync { [core] in await core.clearCache() } }
 }
 
 // MARK: - Data Structures
 
 /// 순환 의존성 경로
-public struct CircularDependencyPath: Hashable, CustomStringConvertible {
+public struct CircularDependencyPath: Hashable, CustomStringConvertible, Sendable {
     public let path: [String]
 
     public init(path: [String]) {
@@ -276,7 +243,7 @@ public struct CircularDependencyPath: Hashable, CustomStringConvertible {
 }
 
 /// 의존성 체인 분석 결과
-public struct DependencyChainAnalysis {
+public struct DependencyChainAnalysis: Sendable {
     public let rootType: String
     public let directDependencies: [String]
     public let allDependencies: [String]

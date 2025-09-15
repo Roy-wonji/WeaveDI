@@ -52,7 +52,7 @@ public struct DeveloperTools {
     /// 2️⃣ 의존성 트리 출력
     public static func printDependencyTree() {
         #logDebug("🌳 의존성 트리:")
-        let tree = DependencyGraphVisualizer.shared.generateASCIIGraph(maxWidth: 60)
+        let tree = DependencyGraphVisualizer.generateASCIIGraph(maxWidth: 60)
         #logDebug(tree)
     }
 

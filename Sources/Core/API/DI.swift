@@ -37,6 +37,9 @@ import LogMacro
 /// let instance = DI.register(\.userService) { UserServiceImpl() }
 /// ```
 public enum DI {
+    // Sendable boxes for sync bridging
+    private final class _IntBox: @unchecked Sendable { var value: Int = 0; init() {} }
+    private final class _BoolBox: @unchecked Sendable { var value: Bool = false; init() {} }
 
     // MARK: - Registration
 
@@ -51,6 +54,30 @@ public enum DI {
         factory: @escaping @Sendable () -> T
     ) -> @Sendable () -> Void {
         return DependencyContainer.live.register(type, build: factory)
+    }
+
+    /// 스코프 기반 등록 (동기)
+    @discardableResult
+    static func registerScoped<T>(
+        _ type: T.Type,
+        scope: ScopeKind,
+        factory: @escaping @Sendable () -> T
+    ) -> @Sendable () -> Void {
+        Task.detached { @Sendable in
+            await GlobalUnifiedRegistry.registerScoped(type, scope: scope, factory: factory)
+        }
+        return { }
+    }
+
+    /// 스코프 기반 등록 (비동기)
+    static func registerAsyncScoped<T>(
+        _ type: T.Type,
+        scope: ScopeKind,
+        factory: @escaping @Sendable () async -> T
+    ) {
+        Task.detached { @Sendable in
+            await GlobalUnifiedRegistry.registerAsyncScoped(type, scope: scope, factory: factory)
+        }
     }
 
     /// KeyPath 기반으로 의존성을 등록하고 생성된 인스턴스를 즉시 반환합니다
@@ -173,6 +200,28 @@ public enum DI {
     /// 비동기 환경에서 모든 등록을 해제합니다
     static func releaseAllAsync() async {
         await DIActorGlobalAPI.releaseAll()
+    }
+
+    // MARK: - Scoped release helpers
+
+    /// 특정 스코프(kind,id)의 모든 인스턴스를 해제합니다.
+    @discardableResult
+    static func releaseScope(_ kind: ScopeKind, id: String) -> Int {
+        let sem = DispatchSemaphore(value: 0)
+        let box = _IntBox()
+        Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScope(kind: kind, id: id); sem.signal() }
+        sem.wait()
+        return box.value
+    }
+
+    /// 특정 타입의 스코프 인스턴스를 해제합니다.
+    @discardableResult
+    static func releaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
+        let sem = DispatchSemaphore(value: 0)
+        let box = _BoolBox()
+        Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScoped(type, kind: kind, id: id); sem.signal() }
+        sem.wait()
+        return box.value
     }
 
     // MARK: - Introspection

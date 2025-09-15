@@ -104,7 +104,7 @@ public struct GraphGenerationExamples {
 
         // 텍스트 기반 의존성 트리 출력
         #logDebug("\n📦 UserServiceProtocol 의존성 트리:")
-        let tree = DependencyGraphVisualizer.shared.generateDependencyTree(
+        let tree = DependencyGraphVisualizer.generateDependencyTree(
             "UserServiceProtocol",
             maxDepth: 4
         )
@@ -112,7 +112,7 @@ public struct GraphGenerationExamples {
 
         // ASCII 그래프 출력
         #logDebug("\n📊 전체 의존성 그래프:")
-        let asciiGraph = DependencyGraphVisualizer.shared.generateASCIIGraph(maxWidth: 60)
+        let asciiGraph = DependencyGraphVisualizer.generateASCIIGraph(maxWidth: 60)
         #logDebug(asciiGraph)
     }
 
@@ -122,7 +122,7 @@ public struct GraphGenerationExamples {
 
         registerSampleDependencies()
 
-        let dotGraph = DependencyGraphVisualizer.shared.generateDOTGraph(
+        let dotGraph = DependencyGraphVisualizer.generateDOTGraph(
             title: "DiContainer Dependencies",
             options: GraphVisualizationOptions(
                 direction: .topToBottom,
@@ -153,7 +153,7 @@ public struct GraphGenerationExamples {
 
         registerSampleDependencies()
 
-        let mermaidGraph = DependencyGraphVisualizer.shared.generateMermaidGraph(
+        let mermaidGraph = DependencyGraphVisualizer.generateMermaidGraph(
             title: "DiContainer Mermaid Graph"
         )
 
