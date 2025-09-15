@@ -261,30 +261,30 @@ public protocol ValidationRule: Sendable {
     func validateResolution<T>(_ type: T.Type, instance: T) async -> Bool
 }
 
-/// 싱글톤 검증 규칙
-public struct SingletonValidationRule: ValidationRule {
-    public let name = "SingletonValidation"
-    private let singletonTypes: Set<String>
+/// 타입 네이밍 규칙 검증
+public struct TypeNamingValidationRule: ValidationRule {
+    public let name = "TypeNamingValidation"
+    private let requiredSuffixes: Set<String>
 
-    public init(singletonTypes: [String]) {
-        self.singletonTypes = Set(singletonTypes)
+    public init(requiredSuffixes: [String]) {
+        self.requiredSuffixes = Set(requiredSuffixes)
     }
 
     public func validateRegistration<T>(_ type: T.Type) async -> Bool {
-        // 모든 등록은 허용
-        return true
+        let typeName = String(describing: type)
+
+        // 타입 이름이 요구되는 접미사로 끝나는지 검증
+        for suffix in requiredSuffixes {
+            if typeName.hasSuffix(suffix) {
+                return true
+            }
+        }
+        return false
     }
 
     public func validateResolution<T>(_ type: T.Type, instance: T) async -> Bool {
-        let typeName = String(describing: type)
-
-        // 싱글톤 타입인 경우 인스턴스가 동일한지 확인 (간단한 예시)
-        if singletonTypes.contains(typeName) {
-            // 실제 구현에서는 인스턴스 참조를 추적해야 함
-            return true
-        }
-
-        return true
+        // 해결된 인스턴스가 nil이 아닌지 검증
+        return true // 이미 인스턴스가 전달되었으므로 항상 유효
     }
 }
 
@@ -382,7 +382,7 @@ public final class ConfigurationPlugin: BasePlugin, RegistrationPlugin, Lifecycl
 
         // 예시 설정 (간단화)
         configuration = [
-            "UserService_type": "singleton",
+            "UserService_type": "factory",
             "UserService_implementation": "DefaultUserService",
             "NetworkService_type": "factory",
             "NetworkService_implementation": "URLSessionNetworkService"
@@ -462,7 +462,7 @@ public final class PluginSystemExample {
 
         // 검증 플러그인
         let validationRules = [
-            SingletonValidationRule(singletonTypes: ["UserService", "DatabaseService"])
+            TypeNamingValidationRule(requiredSuffixes: ["Service", "Repository"])
         ]
         let validationPlugin = DependencyValidationPlugin(rules: validationRules)
         try await pluginManager.register(validationPlugin)

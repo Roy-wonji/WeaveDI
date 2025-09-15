@@ -217,18 +217,18 @@ public final class DependencyValidationPlugin: BasePlugin, ValidationPlugin {
 }
 
 // 검증 규칙 예시
-public struct SingletonValidationRule: ValidationRule {
+public struct DuplicateRegistrationRule: ValidationRule {
     public func validateRegistration<T>(_ type: T.Type, factory: @escaping () -> T) throws {
-        // 싱글톤 패턴 검증 로직
-        if isSingletonType(type) && hasMultipleRegistrations(type) {
-            throw ValidationError.multipleSingletonRegistration(String(describing: type))
+        // 중복 등록 방지 검증 로직
+        if hasExistingRegistration(type) {
+            throw ValidationError.duplicateRegistration(String(describing: type))
         }
     }
 }
 
 // 사용법
 let validationPlugin = DependencyValidationPlugin(rules: [
-    SingletonValidationRule(),
+    DuplicateRegistrationRule(),
     CircularDependencyRule(),
     ThreadSafetyRule()
 ])
@@ -382,8 +382,8 @@ public final class ConfigurationPlugin: BasePlugin, RegistrationPlugin, Lifecycl
     private func registerDependency(_ dependency: DIConfiguration.Dependency) async {
         // 설정 기반 등록 로직
         switch dependency.scope {
-        case .singleton:
-            // 싱글톤으로 등록
+        case .instance:
+            // 인스턴스로 등록
             break
         case .transient:
             // 매번 새로운 인스턴스로 등록
@@ -405,7 +405,7 @@ struct DIConfiguration: Codable {
         let scope: Scope
 
         enum Scope: String, Codable {
-            case singleton
+            case instance
             case transient
             case scoped
         }

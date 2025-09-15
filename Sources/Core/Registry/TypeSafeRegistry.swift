@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - TypeIdentifier
 
@@ -118,7 +119,7 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
             // weak self가 이미 deallocated된 경우 gracefully return
             guard let strongSelf = self else { 
                 #if DEBUG
-                print("⚠️ [TypeSafeRegistry] Registry deallocated, skipping release for \(type)")
+              #logDebug("⚠️ [TypeSafeRegistry] Registry deallocated, skipping release for \(type)")
                 #endif
                 return 
             }
@@ -126,7 +127,7 @@ internal final class TypeSafeRegistry: @unchecked Sendable {
             strongSelf.syncQueue.sync(flags: .barrier) {
                 strongSelf.factories[key] = nil
                 #if DEBUG
-                print("🗑️ [TypeSafeRegistry] Released registration for \(type)")
+              #logDebug("🗑️ [TypeSafeRegistry] Released registration for \(type)")
                 #endif
             }
         }

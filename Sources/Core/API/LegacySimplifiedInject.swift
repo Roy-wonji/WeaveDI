@@ -102,7 +102,7 @@ public struct LegacyDIHelper {
         _ keyPath: KeyPath<DependencyContainer, T?>,
         type: T.Type,
         factory: @escaping @Sendable () -> T
-    ) {
+    ) where T: Sendable {
         // 현대적 API로 위임
         DI.register(keyPath) {
             factory()

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Auto Dependency Resolution System
 
@@ -207,7 +208,7 @@ public final class AutoDependencyResolver {
         }
 
         #if DEBUG
-        print("⚠️ [AutoResolver] Cannot inject \(propertyName) - instance must conform to AutoInjectible")
+      #logDebug("⚠️ [AutoResolver] Cannot inject \(propertyName) - instance must conform to AutoInjectible")
         #endif
         return false
     }
@@ -421,7 +422,7 @@ public extension AutoDependencyResolver {
         #if DEBUG
         let endTime = CFAbsoluteTimeGetCurrent()
         let duration = endTime - startTime
-        print("🔄 [AutoResolver] Resolution time for \(type(of: instance)): \(String(format: "%.3f", duration))ms")
+      #logDebug("🔄 [AutoResolver] Resolution time for \(type(of: instance)): \(String(format: "%.3f", duration))ms")
         #endif
     }
 }

@@ -21,7 +21,6 @@ import LogMacro
 /// ### 🏗️ 통합된 저장소
 /// - **동기 팩토리**: 즉시 생성되는 의존성
 /// - **비동기 팩토리**: async 컨텍스트에서 생성되는 의존성
-/// - **싱글톤**: 한 번 생성되어 재사용되는 인스턴스
 /// - **KeyPath 매핑**: 타입 안전한 KeyPath 기반 접근
 ///
 /// ### 🔒 동시성 안전성
@@ -31,7 +30,6 @@ import LogMacro
 ///
 /// ### ⚡ 성능 최적화
 /// - **지연 생성**: 실제 사용 시점까지 생성 지연
-/// - **캐싱**: 싱글톤 인스턴스 캐싱
 /// - **타입 추론**: 컴파일 타임 타입 최적화
 /// - **성능 추적**: SimplePerformanceOptimizer 통합
 ///
@@ -43,9 +41,6 @@ import LogMacro
 ///
 /// // 팩토리 등록
 /// await registry.register(NetworkService.self) { DefaultNetworkService() }
-///
-/// // 싱글톤 등록
-/// await registry.registerSingleton(Database.self, instance: SQLiteDatabase())
 ///
 /// // 비동기 팩토리 등록
 /// await registry.registerAsync(CloudService.self) { await CloudServiceImpl() }
@@ -106,8 +101,6 @@ public actor UnifiedRegistry {
     /// 비동기 팩토리 저장소 (매번 새 인스턴스 생성)
     private var asyncFactories: [AnyTypeIdentifier: AsyncFactory] = [:]
 
-    /// 싱글톤 인스턴스 캐시
-    private var singletonInstances: [AnyTypeIdentifier: ValueBox] = [:]
 
     /// KeyPath 매핑 (KeyPath String -> TypeIdentifier)
     private var keyPathMappings: [String: AnyTypeIdentifier] = [:]
@@ -142,22 +135,6 @@ public actor UnifiedRegistry {
         Log.debug("✅ [UnifiedRegistry] Registered sync factory for \(String(describing: type))")
     }
 
-    /// 싱글톤 인스턴스 등록
-    /// - Parameters:
-    ///   - type: 등록할 타입
-    ///   - instance: 공유할 인스턴스
-    public func registerSingleton<T>(
-        _ type: T.Type,
-        instance: T
-    ) {
-        let key = AnyTypeIdentifier(type: type)
-        let box = ValueBox(instance)
-
-        singletonInstances[key] = box
-        updateRegistrationInfo(key, type: .singleton)
-
-        Log.debug("✅ [UnifiedRegistry] Registered singleton for \(String(describing: type))")
-    }
 
     // MARK: - Asynchronous Registration
 
@@ -179,33 +156,6 @@ public actor UnifiedRegistry {
         Log.debug("✅ [UnifiedRegistry] Registered async factory for \(String(describing: type))")
     }
 
-    /// 비동기 싱글톤 등록 (지연 생성 후 캐싱)
-    /// - Parameters:
-    ///   - type: 등록할 타입
-    ///   - factory: 인스턴스를 생성하는 비동기 클로저 (최초 1회만 실행)
-    public func registerAsyncSingleton<T>(
-        _ type: T.Type,
-        factory: @escaping @Sendable () async -> T
-    ) {
-        let key = AnyTypeIdentifier(type: type)
-
-        // 단순화된 접근: 첫 호출에서만 생성하고 이후는 캐시된 것 사용
-        let cachedFactory: AsyncFactory = {
-            // 간단한 캐싱 로직으로 변경
-            let instance = await factory()
-            return ValueBox(instance)
-        }
-
-        asyncFactories[key] = cachedFactory
-        updateRegistrationInfo(key, type: .asyncSingleton)
-
-        Log.debug("✅ [UnifiedRegistry] Registered async singleton for \(String(describing: type))")
-    }
-
-    /// 싱글톤 저장 (내부 헬퍼 메서드)
-    internal func storeSingleton(key: AnyTypeIdentifier, box: ValueBox) {
-        singletonInstances[key] = box
-    }
 
     // MARK: - Conditional Registration
 
@@ -267,16 +217,7 @@ public actor UnifiedRegistry {
     public func resolve<T>(_ type: T.Type) -> T? {
         let key = AnyTypeIdentifier(type: type)
 
-        // 1. 싱글톤 캐시에서 확인
-        if let box = singletonInstances[key] {
-            let resolved: T? = box.unwrap()
-            if let result = resolved {
-                Log.debug("✅ [UnifiedRegistry] Resolved singleton \(String(describing: type))")
-                return result
-            }
-        }
-
-        // 2. 동기 팩토리에서 생성
+        // 동기 팩토리에서 생성
         if let factory = syncFactories[key] {
             let box = factory()
             let resolved: T? = box.unwrap()
@@ -296,12 +237,7 @@ public actor UnifiedRegistry {
     public func resolveAny(_ type: Any.Type) -> Any? {
         let key = AnyTypeIdentifier(anyType: type)
 
-        // 1) 싱글톤 캐시
-        if let box = singletonInstances[key] {
-            return box.value
-        }
-
-        // 2) 동기 팩토리
+        // 동기 팩토리
         if let factory = syncFactories[key] {
             let box = factory()
             return box.value
@@ -317,7 +253,6 @@ public actor UnifiedRegistry {
     public func resolveAnyBox(_ type: Any.Type) -> ValueBox? {
         let key = AnyTypeIdentifier(anyType: type)
 
-        if let box = singletonInstances[key] { return box }
         if let factory = syncFactories[key] { return factory() }
         return nil
     }
@@ -328,7 +263,6 @@ public actor UnifiedRegistry {
     public func resolveAnyAsync(_ type: Any.Type) async -> Any? {
         let key = AnyTypeIdentifier(anyType: type)
 
-        if let box = singletonInstances[key] { return box.value }
         if let asyncFactory = asyncFactories[key] { return (await asyncFactory()).value }
         if let syncFactory = syncFactories[key] { return syncFactory().value }
         return nil
@@ -339,7 +273,6 @@ public actor UnifiedRegistry {
     /// - Returns: ValueBox(@unchecked Sendable)에 담긴 값 (없으면 nil)
     public func resolveAnyAsyncBox(_ type: Any.Type) async -> ValueBox? {
         let key = AnyTypeIdentifier(anyType: type)
-        if let box = singletonInstances[key] { return box }
         if let asyncFactory = asyncFactories[key] { return await asyncFactory() }
         if let syncFactory = syncFactories[key] { return syncFactory() }
         return nil
@@ -351,16 +284,7 @@ public actor UnifiedRegistry {
     public func resolveAsync<T>(_ type: T.Type) async -> T? {
         let key = AnyTypeIdentifier(type: type)
 
-        // 1. 싱글톤 캐시에서 확인
-        if let box = singletonInstances[key] {
-            let resolved: T? = box.unwrap()
-            if let result = resolved {
-                Log.debug("✅ [UnifiedRegistry] Resolved singleton async \(String(describing: type))")
-                return result
-            }
-        }
-
-        // 2. 비동기 팩토리에서 생성
+        // 1. 비동기 팩토리에서 생성
         if let factory = asyncFactories[key] {
             let box = await factory()
             let resolved: T? = box.unwrap()
@@ -370,7 +294,7 @@ public actor UnifiedRegistry {
             }
         }
 
-        // 3. 동기 팩토리에서 생성 (fallback)
+        // 2. 동기 팩토리에서 생성 (fallback)
         if let factory = syncFactories[key] {
             let box = factory()
             let resolved: T? = box.unwrap()
@@ -408,7 +332,6 @@ public actor UnifiedRegistry {
 
         syncFactories.removeValue(forKey: key)
         asyncFactories.removeValue(forKey: key)
-        singletonInstances.removeValue(forKey: key)
         registrationStats.removeValue(forKey: key)
 
         // KeyPath 매핑에서도 제거
@@ -419,11 +342,10 @@ public actor UnifiedRegistry {
 
     /// 모든 등록을 해제합니다
     public func releaseAll() {
-        let totalCount = syncFactories.count + asyncFactories.count + singletonInstances.count
+        let totalCount = syncFactories.count + asyncFactories.count
 
         syncFactories.removeAll()
         asyncFactories.removeAll()
-        singletonInstances.removeAll()
         keyPathMappings.removeAll()
         registrationStats.removeAll()
 
@@ -448,8 +370,7 @@ public actor UnifiedRegistry {
     public func isRegistered<T>(_ type: T.Type) -> Bool {
         let key = AnyTypeIdentifier(type: type)
         return syncFactories[key] != nil ||
-               asyncFactories[key] != nil ||
-               singletonInstances[key] != nil
+               asyncFactories[key] != nil
     }
 
     /// 현재 등록된 모든 타입 이름 반환
@@ -457,7 +378,6 @@ public actor UnifiedRegistry {
     public func getAllRegisteredTypeNames() -> [String] {
         let allKeys = Set(syncFactories.keys)
             .union(Set(asyncFactories.keys))
-            .union(Set(singletonInstances.keys))
 
         return allKeys.map(\.typeName).sorted()
     }
@@ -482,15 +402,11 @@ public actor UnifiedRegistry {
 public enum RegistrationType {
     case syncFactory
     case asyncFactory
-    case singleton
-    case asyncSingleton
 
     public var description: String {
         switch self {
         case .syncFactory: return "Sync Factory"
         case .asyncFactory: return "Async Factory"
-        case .singleton: return "Singleton"
-        case .asyncSingleton: return "Async Singleton"
         }
     }
 }

@@ -1,4 +1,4 @@
-# DiContainer 2.0
+# DiContainer
 
 ![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)
@@ -8,9 +8,11 @@
 
 **현대적인 Swift Concurrency와 Actor 모델을 위한 차세대 의존성 주입 프레임워크**
 
+📖 **[공식 문서](https://roy-wonji.github.io/DiContainer/documentation/dicontainer)** | 🚀 **[빠른 시작](#빠른-시작)** | 🧪 **[API 레퍼런스](#api-레퍼런스)**
+
 ## 🎯 개요
 
-DiContainer 2.0은 Swift의 최신 동시성 모델(async/await, Actor)과 완벽하게 통합된 차세대 의존성 주입 프레임워크입니다. **Actor Hop 최적화**를 통해 의존성 해결 성능을 최대 **10배** 향상시키며, 직관적이고 강력한 API로 모든 규모의 프로젝트에서 활용할 수 있습니다.
+DiContainer는 Swift의 최신 동시성 모델(async/await, Actor)과 완벽하게 통합된 현대적인 의존성 주입 프레임워크입니다. **Actor Hop 최적화**를 통해 의존성 해결 성능을 최대 **10배** 향상시키며, 직관적이고 강력한 API로 모든 규모의 프로젝트에서 활용할 수 있습니다.
 
 ## ⚡ 주요 특징
 
@@ -52,7 +54,7 @@ class ViewController {
     }
 }
 
-// DiContainer 2.0: 최적화된 단일 Hop ✅
+// DiContainer: 최적화된 단일 Hop ✅
 @MainActor
 class OptimizedViewController {
     @Inject var userService: UserService
@@ -68,7 +70,7 @@ class OptimizedViewController {
 
 ### 📊 성능 향상 결과
 
-| 시나리오 | 기존 DI | DiContainer 2.0 | 개선율 |
+| 시나리오 | 기존 DI | DiContainer | 개선율 |
 |---------|--------|----------------|--------|
 | 단일 의존성 해결 | 0.8ms | 0.1ms | **87.5%** |
 | 복잡한 의존성 그래프 | 15.6ms | 1.4ms | **91.0%** |
@@ -83,7 +85,7 @@ class OptimizedViewController {
 - **자동 의존성 해결**: 향상된 `@Inject` property wrapper
 
 ### 🔄 마이그레이션
-자세한 마이그레이션 가이드는 [MIGRATION-2.0.0.md](MIGRATION-2.0.0.md)를 참조하세요.
+자세한 마이그레이션 가이드는 [MIGRATION-2.0.0.md](Sources/DiContainer.docc/ko.lproj/MIGRATION-2.0.0.md)를 참조하세요.
 
 ## 📦 설치
 
@@ -124,9 +126,9 @@ await DependencyContainer.bootstrap { container in
         NetworkService()
     }
 
-    // 싱글톤 등록
-    let logger = Logger.shared
-    container.register(LoggerProtocol.self, instance: logger)
+    container.register(LoggerProtocol.self) {
+        ConsoleLogger()
+    }
 }
 ```
 
@@ -616,7 +618,7 @@ struct UserFeature {
 ### UnifiedDI
 
 - `register<T>(_:factory:)` 타입 기반 등록(지연 생성)
-- `register<T>(_:factory:)` KeyPath 등록(생성과 동시에 싱글톤 등록)
+- `register<T>(_:factory:)` KeyPath 등록(생성과 동시에 인스턴스 등록)
 - `registerIf<T>(_:condition:factory:fallback:)` 조건부 등록
 - `resolve<T>(_: ) -> T?` 옵셔널 해결
 - `requireResolve<T>(_: ) -> T` 필수 해결(fatalError)
@@ -1147,17 +1149,17 @@ class ExpensiveService {
 }
 ```
 
-#### 2. 싱글톤 패턴 적용
+#### 2. 인스턴스 관리 패턴
 
 ```swift
-// 상태를 공유해야 하는 서비스는 싱글톤으로 등록
-container.register(CacheServiceProtocol.self) { 
-    CacheService.shared  // 이미 생성된 싱글톤 인스턴스 사용
-}
-
-// 또는 컨테이너에서 인스턴스 관리
+// 상태를 공유해야 하는 서비스는 인스턴스로 등록
 let cacheService = CacheService()
 container.register(CacheServiceProtocol.self, instance: cacheService)
+
+// 또는 팩토리 패턴으로 관리
+container.register(CacheServiceProtocol.self) {
+    CacheService()
+}
 ```
 
 ## 기여하기

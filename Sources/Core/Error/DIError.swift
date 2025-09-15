@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - DIError
 
@@ -166,9 +167,9 @@ public extension Result where Success: Any, Failure == DIError {
         case .success(let value):
             return value
         case .failure(let error):
-            print("🚨 [DI] \(error.localizedDescription) at \(function) in \(file):\(line)")
+            #logDebug("🚨 [DI] \(error.localizedDescription) at \(function) in \(file):\(line)")
             if let suggestion = error.recoverySuggestion {
-                print("💡 [DI] Suggestion: \(suggestion)")
+              #logDebug("💡 [DI] Suggestion: \(suggestion)")
             }
             return nil
         }

@@ -218,17 +218,4 @@ public extension DI {
         return RegistrationToken(typeName: typeName, releaseHandler: releaseHandler)
     }
 
-    static func registerSingletonWithToken<T>(
-        _ type: T.Type,
-        instance: T
-    ) -> RegistrationToken {
-        DependencyContainer.live.register(type, instance: instance)
-        let typeName = String(describing: type)
-
-        let releaseHandler = {
-            DependencyContainer.live.release(type)
-        }
-
-        return RegistrationToken(typeName: typeName, releaseHandler: releaseHandler)
-    }
 }

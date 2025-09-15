@@ -190,8 +190,8 @@ class UserViewModelTests: XCTestCase {
 
         // Mock 의존성 등록
         UnifiedDI.registerMany {
-            Registration(UserRepository.self, singleton: mockRepository)
-            Registration(LoggerProtocol.self, singleton: mockLogger)
+            Registration(UserRepository.self) { mockRepository }
+            Registration(LoggerProtocol.self) { mockLogger }
         }
 
         // 테스트 대상 생성
@@ -386,11 +386,11 @@ extension UnifiedDI {
             // 요청별로 새 인스턴스 생성
             register(type, factory: factory)
         case .session:
-            // 세션별로 싱글톤
+            // 세션별로 인스턴스 유지
             let instance = factory()
             register(type) { instance }
-        case .singleton:
-            // 앱 전체 싱글톤
+        case .instance:
+            // 앱 전체 인스턴스 유지
             let instance = factory()
             register(type) { instance }
         }
@@ -400,7 +400,7 @@ extension UnifiedDI {
 enum DependencyScope {
     case request
     case session
-    case singleton
+    case instance
 }
 ```
 
@@ -485,7 +485,7 @@ class AppDependencySetup {
             ProductionServiceFactory() : DevelopmentServiceFactory()
 
         UnifiedDI.registerMany {
-            Registration(ServiceFactory.self, singleton: factory)
+            Registration(ServiceFactory.self) { factory }
             Registration(UserService.self) { factory.createUserService() }
             Registration(NetworkService.self) { factory.createNetworkService() }
         }
@@ -543,7 +543,7 @@ extension UnifiedDI {
         let stateMonitor = ServiceStateMonitor()
 
         registerMany {
-            Registration(ServiceStateMonitor.self, singleton: stateMonitor)
+            Registration(ServiceStateMonitor.self) { stateMonitor }
             Registration(ObservableService.self) {
                 let service = ObservableService()
                 service.setObserver(stateMonitor)

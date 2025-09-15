@@ -80,20 +80,20 @@ public enum SimplePerformanceOptimizer {
     /// 성능 최적화 활성화
     public static func enableOptimization() {
         isOptimizationEnabled = true
-        print("✅ [SimplePerformanceOptimizer] Optimization enabled")
+      #logDebug("✅ [SimplePerformanceOptimizer] Optimization enabled")
     }
 
     /// 성능 최적화 비활성화
     public static func disableOptimization() {
         isOptimizationEnabled = false
-        print("🔴 [SimplePerformanceOptimizer] Optimization disabled")
+      #logDebug("🔴 [SimplePerformanceOptimizer] Optimization disabled")
     }
 
     /// 자주 사용되는 타입으로 등록
     public static func markAsFrequentlyUsed<T>(_ type: T.Type) {
         let typeName = getOptimizedTypeName(type)
         frequentlyUsedTypes.insert(typeName)
-        print("⚡ [SimplePerformanceOptimizer] Marked as frequently used: \(typeName)")
+      #logDebug("⚡ [SimplePerformanceOptimizer] Marked as frequently used: \(typeName)")
     }
 
     // MARK: - Optimized Type Resolution
@@ -160,7 +160,7 @@ public enum SimplePerformanceOptimizer {
     // MARK: - Statistics
 
     /// 성능 통계 정보
-    public struct PerformanceStats {
+    public struct PerformanceStats: Sendable {
         public let totalResolutions: Int
         public let averageResolutionTime: TimeInterval
         public let mostUsedTypes: [(String, Int)]
@@ -291,7 +291,7 @@ public enum AutoPerformanceOptimizer {
     /// 공통 타입들을 자주 사용되는 타입으로 등록
     private static func markCommonTypesAsFrequent() {
         // 일반적으로 자주 사용되는 타입 패턴들
-        let commonTypePatterns = [
+        let _ = [
             "UserDefaults",
             "URLSession",
             "UserService",
@@ -314,7 +314,7 @@ public enum AutoPerformanceOptimizer {
         for (typeName, _) in stats.mostUsedTypes.prefix(10) {
             // 실제로는 타입명으로부터 타입을 복원해야 하지만
             // 간단한 구현을 위해 여기서는 로깅만
-            print("⚡ [AutoPerformanceOptimizer] Would mark as frequent: \(typeName)")
+          #logDebug("⚡ [AutoPerformanceOptimizer] Would mark as frequent: \(typeName)")
         }
 
         // 메모리 사용량 최적화

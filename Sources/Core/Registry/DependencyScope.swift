@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - DependencyScope Protocol
 
@@ -40,9 +41,9 @@ public extension DependencyScope {
     static func validate() -> Bool {
         // 컴파일 타임 검증: Dependencies와 Provides 타입 관계 확인
         #if DEBUG
-        print("🔍 [DependencyScope] Validating \(String(describing: Self.self))")
-        print("   Dependencies: \(String(describing: Dependencies.self))")
-        print("   Provides: \(String(describing: Provides.self))")
+      #logDebug("🔍 [DependencyScope] Validating \(String(describing: Self.self))")
+      #logDebug("   Dependencies: \(String(describing: Dependencies.self))")
+      #logDebug("   Provides: \(String(describing: Provides.self))")
         #endif
 
         // 기본적으로 타입이 정의되어 있으면 유효하다고 간주

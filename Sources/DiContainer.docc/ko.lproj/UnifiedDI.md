@@ -26,7 +26,7 @@ let tracked = UnifiedDI.resolveWithTracking(Service.self)
 // 배치 등록
 UnifiedDI.registerMany {
     Registration(NetworkService.self) { NetworkServiceImpl() }
-    Registration(UserService.self, singleton: sharedUserService)
+    Registration(UserService.self) { sharedUserService }
     Registration(AnalyticsService.self, condition: analytics) {
         GoogleAnalytics()
     } fallback: {
@@ -125,7 +125,7 @@ enum NetworkModule {
         UnifiedDI.registerMany {
             Registration(HTTPClient.self) { URLSessionHTTPClient() }
             Registration(APIService.self) { APIServiceImpl() }
-            Registration(NetworkReachability.self, singleton: NetworkReachability.shared)
+            Registration(NetworkReachability.self) { NetworkReachability.shared }
         }
     }
 }
@@ -135,7 +135,7 @@ enum DataModule {
         UnifiedDI.registerMany {
             Registration(DatabaseService.self) { CoreDataService() }
             Registration(CacheService.self) { NSCacheService() }
-            Registration(KeychainService.self, singleton: KeychainService.shared)
+            Registration(KeychainService.self) { KeychainService.shared }
         }
     }
 }

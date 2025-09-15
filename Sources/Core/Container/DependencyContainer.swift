@@ -143,15 +143,40 @@ public final class DependencyContainer: @unchecked Sendable, ObservableObject {
     public func register<T>(
         _ type: T.Type,
         instance: T
-    ) {
+    ) where T: Sendable {
         // 타입 안전한 레지스트리에 인스턴스 등록
         typeSafeRegistry.register(type, instance: instance)
         Log.debug("Registered instance (TypeSafe) for", String(describing: type))
 
-        // 통합 레지스트리에 싱글톤으로도 등록 (비차단)
-        let boxed = unsafeSendable(instance)
+        // 통합 레지스트리에도 등록 (비차단)
         Task.detached { @Sendable in
-            await GlobalUnifiedRegistry.registerSingleton(type, instance: boxed.value)
+            await GlobalUnifiedRegistry.register(type, factory: { instance })
         }
+    }
+}
+
+// MARK: - Factory KeyPath Extensions
+
+/// Factory 타입들을 위한 KeyPath 확장
+public extension DependencyContainer {
+
+    /// Repository 모듈 팩토리 KeyPath
+    var repositoryFactory: RepositoryModuleFactory? {
+        resolve(RepositoryModuleFactory.self)
+    }
+
+    /// UseCase 모듈 팩토리 KeyPath
+    var useCaseFactory: UseCaseModuleFactory? {
+        resolve(UseCaseModuleFactory.self)
+    }
+
+    /// Scope 모듈 팩토리 KeyPath
+    var scopeFactory: ScopeModuleFactory? {
+        resolve(ScopeModuleFactory.self)
+    }
+
+    /// 모듈 팩토리 매니저 KeyPath
+    var moduleFactoryManager: ModuleFactoryManager? {
+        resolve(ModuleFactoryManager.self)
     }
 }

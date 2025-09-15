@@ -33,7 +33,7 @@ public extension ModuleFactory {
 // MARK: - Specialized Factory Types
 
 /// Repository 계층 모듈 팩토리
-public struct RepositoryModuleFactory: ModuleFactory {
+public struct RepositoryModuleFactory: ModuleFactory, @unchecked Sendable {
     public let registerModule = RegisterModule()
     public var definitions: [() -> Module] = []
 
@@ -52,7 +52,7 @@ public struct RepositoryModuleFactory: ModuleFactory {
 }
 
 /// UseCase 계층 모듈 팩토리
-public struct UseCaseModuleFactory: ModuleFactory {
+public struct UseCaseModuleFactory: ModuleFactory, @unchecked Sendable {
     public let registerModule = RegisterModule()
     public var definitions: [() -> Module] = []
 
@@ -78,7 +78,7 @@ public struct UseCaseModuleFactory: ModuleFactory {
 }
 
 /// Scope 계층 모듈 팩토리
-public struct ScopeModuleFactory: ModuleFactory {
+public struct ScopeModuleFactory: ModuleFactory, @unchecked Sendable {
     public let registerModule = RegisterModule()
     public var definitions: [() -> Module] = []
 
@@ -99,7 +99,7 @@ public struct ScopeModuleFactory: ModuleFactory {
 // MARK: - Factory Manager
 
 /// 여러 팩토리를 한 번에 관리하는 매니저
-public struct ModuleFactoryManager {
+public struct ModuleFactoryManager: @unchecked Sendable {
     public var repositoryFactory = RepositoryModuleFactory()
     public var useCaseFactory = UseCaseModuleFactory()
     public var scopeFactory = ScopeModuleFactory()

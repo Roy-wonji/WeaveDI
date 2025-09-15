@@ -29,7 +29,7 @@ DiContainer 2.0.0은 Swift Concurrency를 완전히 수용하고, Actor Hop 최�
 | `DependencyContainer.live.register(T.self) { ... }` | `DI.register(T.self) { ... }` |
 | `DependencyContainer.live.resolve(T.self)` | `DI.resolve(T.self)` 또는 `await DIAsync.resolve(T.self)` |
 | `RegisterAndReturn.register(\.key) { ... }` | `DI.register(\.key) { ... }` 또는 `await DIAsync.register(\.key) { ... }` |
-| 직접 싱글턴 캐시 관리 | `DI.registerSingleton(T.self, instance:)` 사용 |
+| 직접 인스턴스 캐시 관리 | `DI.register(T.self) { ... }` 사용 |
 | GCD 기반 일괄 등록 | `await DIAsync.registerMany { ... }` (TaskGroup 병렬) |
 | 복합 락 + 임시 부트스트랩 | `DependencyContainer.bootstrap(…)`으로 단일 경로 고정 |
 
@@ -62,10 +62,10 @@ extension DependencyContainer {
   var bookListInterface: BookListInterface? { resolve(BookListInterface.self) }
 }
 
-// 동기: 생성과 동시에 싱글톤으로 등록하고 반환
+// 동기: 생성과 동시에 등록하고 반환
 let repo = DI.register(\.bookListInterface) { BookListRepositoryImpl() }
 
-// 비동기: 생성과 동시에 싱글톤으로 등록하고 반환
+// 비동기: 생성과 동시에 등록하고 반환
 let repo2 = await DIAsync.register(\.bookListInterface) { await BookListRepositoryImpl.make() }
 
 // 이미 있으면 재생성하지 않음(idempotent)
@@ -138,7 +138,7 @@ let logger = UnifiedDI.resolve(LoggerProtocol.self, default: ConsoleLogger())
 // 배치 등록
 UnifiedDI.registerMany {
   UnifiedRegistration(NetworkService.self) { DefaultNetworkService() }
-  UnifiedRegistration(UserRepository.self, singleton: UserRepositoryImpl())
+  UnifiedRegistration(UserRepository.self) { UserRepositoryImpl() }
 }
 ```
 

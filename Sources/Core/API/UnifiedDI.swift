@@ -57,7 +57,7 @@ import Foundation
 /// ```swift
 /// UnifiedDI.registerMany {
 ///     Registration(NetworkService.self) { DefaultNetworkService() }
-///     Registration(UserRepository.self, singleton: UserRepositoryImpl())
+///     Registration(UserRepository.self) { UserRepositoryImpl() }
 ///     Registration(AuthService.self, condition: isProduction) {
 ///         ProductionAuthService()
 ///     } fallback: {
@@ -144,7 +144,7 @@ public enum UnifiedDI {
     public static func register<T>(
         _ keyPath: KeyPath<DependencyContainer, T?>,
         factory: @escaping @Sendable () -> T
-    ) -> T {
+    ) -> T where T: Sendable {
         let instance = factory()
         DependencyContainer.live.register(T.self, instance: instance)
         return instance
@@ -434,7 +434,7 @@ public enum UnifiedDI {
     /// ```swift
     /// UnifiedDI.registerMany {
     ///     Registration(NetworkService.self) { DefaultNetworkService() }
-    ///     Registration(UserRepository.self, singleton: UserRepositoryImpl())
+    ///     Registration(UserRepository.self) { UserRepositoryImpl() }
     ///     Registration(LoggerProtocol.self, default: ConsoleLogger())
     /// }
     /// ```
@@ -528,15 +528,8 @@ public struct UnifiedRegistration {
         }
     }
 
-    /// 싱글톤 기반 등록
-    public init<T>(_ type: T.Type, singleton instance: T) {
-        self.registerAction = {
-            DependencyContainer.live.register(type, instance: instance)
-        }
-    }
-
     /// 기본값 포함 등록
-    public init<T>(_ type: T.Type, default defaultValue: T) {
+    public init<T>(_ type: T.Type, default defaultValue: T) where T: Sendable {
         self.registerAction = {
             DependencyContainer.live.register(type, instance: defaultValue)
         }

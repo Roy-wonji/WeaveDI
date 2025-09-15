@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Plugin System Architecture
 
@@ -188,7 +189,7 @@ public final class PluginManager: ObservableObject {
         // 플러그인 타입별 훅 등록
         registerPluginHooks(plugin)
 
-        print("🔌 [Plugin] Registered plugin: \(plugin.identifier) v\(plugin.version)")
+      #logDebug("🔌 [Plugin] Registered plugin: \(plugin.identifier) v\(plugin.version)")
     }
 
     /// 플러그인 등록 해제
@@ -205,7 +206,7 @@ public final class PluginManager: ObservableObject {
         registeredPlugins.removeValue(forKey: pluginId)
         unregisterPluginHooks(plugin)
 
-        print("🔌 [Plugin] Unregistered plugin: \(pluginId)")
+      #logDebug("🔌 [Plugin] Unregistered plugin: \(pluginId)")
     }
 
     // MARK: - Plugin Activation
@@ -426,12 +427,12 @@ open class BasePlugin: @unchecked Sendable, Plugin {
     open func activate() async throws {
         guard !isActive else { return }
         isActive = true
-        print("🔌 [Plugin] BasePlugin \(identifier) activated")
+      #logDebug("🔌 [Plugin] BasePlugin \(identifier) activated")
     }
 
     open func deactivate() async throws {
         guard isActive else { return }
         isActive = false
-        print("🔌 [Plugin] BasePlugin \(identifier) deactivated")
+      #logDebug("🔌 [Plugin] BasePlugin \(identifier) deactivated")
     }
 }

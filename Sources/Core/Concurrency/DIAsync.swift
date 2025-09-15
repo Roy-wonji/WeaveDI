@@ -25,62 +25,40 @@ public enum DIAsync {
     await registry.register(type, factory: factory)
   }
 
-  /// Register a singleton instance
-  public static func registerSingleton<T>(
-    _ type: T.Type,
-    instance: T
-  ) async {
-    // Box before crossing actor boundary to avoid sending non-Sendable across actor isolation
-    let box = AsyncTypeRegistry.AnySendableBox(instance)
-    await registry.registerInstanceBoxed(type, boxed: box)
-    // Interop: also register into sync container for mixed usage
-    DependencyContainer.live.register(T.self, instance: instance)
-  }
 
   // MARK: - Registration (KeyPath convenience)
 
-  /// Register via KeyPath and return the created instance (singleton semantics)
+  /// Register via KeyPath and return the created instance
   @discardableResult
   public static func register<T>(
     _ keyPath: KeyPath<DependencyContainer, T?>,
     factory: @Sendable @escaping () async -> T
-  ) async -> T {
+  ) async -> T where T: Sendable {
     let instance = await factory()
-    let box = AsyncTypeRegistry.AnySendableBox(instance)
-    await registry.registerInstanceBoxed(T.self, boxed: box)
+    await registry.register(T.self, factory: { instance })
     // Interop with sync container
     DependencyContainer.live.register(T.self, instance: instance)
     return instance
   }
 
-  /// Get or create a singleton via KeyPath-style registration (idempotent)
+  /// Get or create via KeyPath-style registration (idempotent)
   @discardableResult
   public static func getOrCreate<T>(
     _ keyPath: KeyPath<DependencyContainer, T?>,
     factory: @Sendable @escaping () async -> T
-  ) async -> T {
-    let box = await registry.getOrCreateBox(T.self) {
-      AsyncTypeRegistry.AnySendableBox(await factory())
+  ) async -> T where T: Sendable {
+    // Check if already registered
+    if let existing = await resolve(T.self) {
+      return existing
     }
-    if let value = box.value as? T {
-      // Interop: ensure sync container can resolve as well
-      DependencyContainer.live.register(T.self, instance: value)
-      return value
-    }
-    fatalError("DIAsync.getOrCreate: Failed to unbox value for \(T.self)")
-  }
 
-  /// Register a singleton instance via KeyPath convenience
-  @discardableResult
-  public static func registerSingleton<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
-    instance: T
-  ) async -> T {
-    let box = AsyncTypeRegistry.AnySendableBox(instance)
-    await registry.registerInstanceBoxed(T.self, boxed: box)
+    // Create and register new instance
+    let instance = await factory()
+    await register(T.self, factory: { instance })
     DependencyContainer.live.register(T.self, instance: instance)
     return instance
   }
+
 
   // MARK: - Resolve
 
@@ -127,7 +105,7 @@ public enum DIAsync {
     condition: Bool,
     factory: @Sendable @escaping () async -> T,
     fallback: @Sendable @escaping () async -> T
-  ) async -> T {
+  ) async -> T where T: Sendable {
     if condition { return await register(keyPath, factory: factory) }
     return await register(keyPath, factory: fallback)
   }
@@ -158,6 +136,13 @@ public enum DIAsync {
   public static func isRegistered<T>(_ keyPath: KeyPath<DependencyContainer, T?>) async -> Bool {
     await isRegistered(T.self)
   }
+
+  // MARK: - Management
+
+  /// Release all async registrations (testing purpose)
+  public static func releaseAll() async {
+    await registry.clearAll()
+  }
 }
 
 // MARK: - Async Registration Builder
@@ -176,9 +161,6 @@ public struct DIAsyncRegistration: Sendable {
     self.action = { @Sendable in await DIAsync.register(type, factory: factory) }
   }
 
-  public init<T>(_ type: T.Type, singleton instance: T) where T: Sendable {
-    self.action = { @Sendable in await DIAsync.registerSingleton(type, instance: instance) }
-  }
 
   public init<T>(
     _ keyPath: KeyPath<DependencyContainer, T?>,

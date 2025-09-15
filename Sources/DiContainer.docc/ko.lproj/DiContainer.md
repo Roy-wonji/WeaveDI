@@ -54,9 +54,10 @@ await DependencyContainer.bootstrap { container in
         NetworkService()
     }
 
-    // 싱글톤 등록
-    let logger = Logger.shared
-    container.register(LoggerProtocol.self, instance: logger)
+    // 로거 등록
+    container.register(LoggerProtocol.self) {
+        Logger()
+    }
 }
 
 // 또는 UnifiedDI 직접 사용
@@ -209,7 +210,6 @@ class OptimizedViewController {
 
 #### 등록 API
 - ``UnifiedDI/register(_:factory:)``
-- ``UnifiedDI/registerSingleton(_:instance:)``
 - ``UnifiedDI/registerMany(_:)``
 
 #### 해결 API

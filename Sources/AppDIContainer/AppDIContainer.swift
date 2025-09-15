@@ -30,7 +30,6 @@ import Foundation
 /// - **타입 안전성**: 컴파일 타임에 의존성 타입 검증
 ///
 /// ### 🔄 생명주기 관리
-/// - **싱글턴 패턴**: 앱 전역에서 단일 인스턴스 사용
 /// - **지연 초기화**: 실제 필요 시점에 모듈들이 생성됨
 /// - **메모리 효율성**: 사용하지 않는 의존성은 생성되지 않음
 ///
@@ -39,7 +38,7 @@ import Foundation
 /// ```
 /// ┌─────────────────────────────────────┐
 /// │           AppDIContainer            │
-/// │              (Singleton)            │
+/// │                                     │
 /// └─────────────────┬───────────────────┘
 ///                   │
 ///       ┌───────────┼───────────┐
@@ -215,17 +214,17 @@ public final actor AppDIContainer {
   // MARK: - 프로퍼티
 
   /// Repository 계층에서 사용할 모듈(팩토리) 인스턴스를
-  /// ``FactoryValues`` 내 정의된 경로에서 자동으로 주입받습니다.
+  /// KeyPath를 통해 자동으로 주입받습니다.
   @Factory(\.repositoryFactory)
   public var repositoryFactory: RepositoryModuleFactory
 
   /// UseCase 계층에서 사용할 모듈(팩토리) 인스턴스를
-  /// ``FactoryValues`` 내 정의된 경로에서 자동으로 주입받습니다.
+  /// KeyPath를 통해 자동으로 주입받습니다.
   @Factory(\.useCaseFactory)
   public var useCaseFactory: UseCaseModuleFactory
 
   /// DependencyScope 기반 모듈(팩토리) 인스턴스를
-  /// ``FactoryValues`` 내 정의된 경로에서 자동으로 주입받습니다.
+  /// KeyPath를 통해 자동으로 주입받습니다.
   @Factory(\.scopeFactory)
   public var scopeFactory: ScopeModuleFactory
 
@@ -233,7 +232,33 @@ public final actor AppDIContainer {
   public static let shared: AppDIContainer = .init()
 
   /// 외부 생성을 막기 위한 `private init()`.
-  private init() {}
+  private init() {
+    // Factory들을 DI 컨테이너에 기본 등록
+    setupDefaultFactories()
+  }
+
+  /// 기본 Factory들을 DI 컨테이너에 등록합니다.
+  nonisolated private func setupDefaultFactories() {
+    // Repository Factory 등록
+    DependencyContainer.live.register(RepositoryModuleFactory.self) {
+      RepositoryModuleFactory()
+    }
+
+    // UseCase Factory 등록
+    DependencyContainer.live.register(UseCaseModuleFactory.self) {
+      UseCaseModuleFactory()
+    }
+
+    // Scope Factory 등록
+    DependencyContainer.live.register(ScopeModuleFactory.self) {
+      ScopeModuleFactory()
+    }
+
+    // 통합 Factory Manager 등록
+    DependencyContainer.live.register(ModuleFactoryManager.self) {
+      ModuleFactoryManager()
+    }
+  }
 
   /// 내부적으로 모듈 등록과 빌드를 수행하는 ``Container`` 인스턴스입니다.
   private let container = Container()

@@ -101,7 +101,7 @@ public actor DIActor {
         registrationTimes[key] = Date()
         
         #if DEBUG
-        print("✅ [DIActor] Registered singleton \(type) at \(Date())")
+        print("✅ [DIActor] Registered instance \(type) at \(Date())")
         #endif
     }
     
@@ -228,13 +228,6 @@ public enum DIActorGlobalAPI {
         return await DIActor.shared.register(type, factory: factory)
     }
     
-    /// Register a singleton using DIActor
-    public static func registerSingleton<T>(
-        _ type: T.Type,
-        instance: T
-    ) async where T: Sendable {
-        await DIActor.shared.register(type, instance: instance)
-    }
     
     /// Resolve a dependency using DIActor
     public static func resolve<T>(_ type: T.Type) async -> T? where T: Sendable {
