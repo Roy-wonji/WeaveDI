@@ -178,18 +178,10 @@ public enum SafeDependencyResolver {
 
     /// 에러와 함께 안전한 해결
     public static func safeResolve<T>(_ type: T.Type) -> SafeResolutionResult<T> {
-        do {
-            if let resolved = DependencyContainer.live.resolve(type) {
-                return .success(resolved)
-            } else {
-                return .failure(.dependencyNotFound(type: String(describing: type), keyPath: nil))
-            }
-        } catch {
-            if let diError = error as? SafeDIError {
-                return .failure(diError)
-            } else {
-                return .failure(.invalidConfiguration(reason: error.localizedDescription))
-            }
+        if let resolved = DependencyContainer.live.resolve(type) {
+            return .success(resolved)
+        } else {
+            return .failure(.dependencyNotFound(type: String(describing: type), keyPath: nil))
         }
     }
 
@@ -201,7 +193,7 @@ public enum SafeDependencyResolver {
         case .success(let value):
             return value
 
-        case .failure(let error):
+        case .failure(_):
             switch strategy {
             case .useDefault(let defaultValue):
                 return defaultValue

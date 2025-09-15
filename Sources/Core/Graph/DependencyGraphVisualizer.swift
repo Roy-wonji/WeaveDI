@@ -230,7 +230,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         options: GraphVisualizationOptions,
         cycles: [CircularDependencyPath]
     ) -> String {
-        var nodes = "\n    // Nodes\n"
+        let nodes = "\n    // Nodes\n"
 
         // TODO: 실제 노드 데이터 처리
         // 현재는 예시 구현
@@ -242,7 +242,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         options: GraphVisualizationOptions,
         cycles: [CircularDependencyPath]
     ) -> String {
-        var edges = "\n    // Edges\n"
+        let edges = "\n    // Edges\n"
 
         // TODO: 실제 엣지 데이터 처리
 
@@ -266,7 +266,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
         cycles: [CircularDependencyPath],
         options: GraphVisualizationOptions
     ) -> String {
-        var edges = ""
+        let edges = ""
 
         // TODO: 실제 Mermaid 엣지 생성
 
@@ -310,7 +310,7 @@ public final class DependencyGraphVisualizer: @unchecked Sendable {
     }
 
     private func generateASCIIComponents(maxWidth: Int) -> String {
-        var ascii = ""
+        let ascii = ""
 
         // TODO: 주요 컴포넌트들의 ASCII 표현 생성
 
