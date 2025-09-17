@@ -5,29 +5,41 @@ import PackageDescription
 
 let package = Package(
     name: "DiContainer",
-    platforms: [.iOS(.v15), .macOS(.v14)],
+    platforms: [
+        .iOS(.v15), 
+        .macOS(.v14), 
+        .watchOS(.v8), 
+        .tvOS(.v15),
+        .visionOS(.v1)
+    ],
     products: [
         .library(
             name: "DiContainer",
-            targets: ["DiContainer"]),
+            targets: ["DiContainer"]
+        ),
     ],
     dependencies: [
-      .package(url: "https://github.com/Roy-wonji/LogMacro.git", exact: "1.1.0"),
-      .package(url: "https://github.com/apple/swift-docc-plugin.git", exact: "1.4.5"),
+        .package(url: "https://github.com/Roy-wonji/LogMacro.git", from: "1.1.0"),
+        .package(url: "https://github.com/apple/swift-docc-plugin.git", from: "1.4.5"),
     ],
     targets: [
         .target(
             name: "DiContainer",
             dependencies: [
-              .product(name: "LogMacro", package: "LogMacro"),
+                .product(name: "LogMacro", package: "LogMacro"),
             ],
-            path: "Sources"
+            path: "Sources",
+            swiftSettings: [
+                .enableUpcomingFeature("StrictConcurrency")
+            ]
         ),
         .testTarget(
             name: "DiContainerTests",
             dependencies: [
                 "DiContainer"
-            ]
+            ],
+            path: "Tests/DiContainerTests"
         )
     ],
+    swiftLanguageModes: [.v6]
 )

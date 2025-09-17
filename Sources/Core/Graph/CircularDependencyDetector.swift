@@ -270,6 +270,17 @@ public struct DependencyGraphStatistics: Codable, Sendable {
     public let typesWithoutDependencies: Int
     public let detectedCycles: Int
 
+    // 추가 속성들
+    public var totalConnections: Int { totalDependencies }
+    public var circularDependencies: Int { detectedCycles }
+    public var averageComplexity: Double { averageDependenciesPerType }
+    public var healthScore: Double {
+        // 간단한 건강도 계산
+        let cycleScore = detectedCycles == 0 ? 50.0 : max(0, 50.0 - Double(detectedCycles) * 10.0)
+        let complexityScore = averageDependenciesPerType <= 3.0 ? 50.0 : max(0, 50.0 - (averageDependenciesPerType - 3.0) * 10.0)
+        return cycleScore + complexityScore
+    }
+
     public var summary: String {
         return """
         의존성 그래프 통계:

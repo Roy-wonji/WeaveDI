@@ -397,7 +397,7 @@ public enum DependencyGraphVisualizer {
     // MARK: - Data Collection Helpers
 
     /// 등록된 모든 타입명 가져오기
-    private static func getAllRegisteredTypes() -> Set<String> {
+    internal static func getAllRegisteredTypes() -> Set<String> {
 
         // 현재 등록된 의존성들과 실제 컨테이너에서 사용 가능한 타입들을 조합
         var allTypes: Set<String> = []
@@ -418,7 +418,7 @@ public enum DependencyGraphVisualizer {
     }
 
     /// 의존성 엣지 데이터 가져오기
-    private static func getDependencyEdges() -> [(from: String, to: String)] {
+    internal static func getDependencyEdges() -> [(from: String, to: String)] {
         var edges: [(from: String, to: String)] = []
 
         // 실제로는 CircularDependencyDetector에서 내부 dependencyGraph를 접근
