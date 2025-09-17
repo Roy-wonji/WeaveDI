@@ -38,8 +38,8 @@ import LogMacro
 /// ```
 public enum DI {
     // Sendable boxes for sync bridging
-    private final class _IntBox: @unchecked Sendable { var value: Int = 0; init() {} }
-    private final class _BoolBox: @unchecked Sendable { var value: Bool = false; init() {} }
+    private final class IntBox: @unchecked Sendable { var value: Int = 0; init() {} }
+    private final class BoolBox: @unchecked Sendable { var value: Bool = false; init() {} }
 
     // MARK: - Registration
 
@@ -208,7 +208,7 @@ public enum DI {
     @discardableResult
     public static func releaseScope(_ kind: ScopeKind, id: String) -> Int {
         let sem = DispatchSemaphore(value: 0)
-        let box = _IntBox()
+        let box = IntBox()
         Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScope(kind: kind, id: id); sem.signal() }
         sem.wait()
         return box.value
@@ -218,7 +218,7 @@ public enum DI {
     @discardableResult
     public static func releaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
         let sem = DispatchSemaphore(value: 0)
-        let box = _BoolBox()
+        let box = BoolBox()
         Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScoped(type, kind: kind, id: id); sem.signal() }
         sem.wait()
         return box.value

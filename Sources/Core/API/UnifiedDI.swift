@@ -117,6 +117,47 @@ public enum UnifiedDI {
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
     ) -> @Sendable () -> Void {
+        // 🤖 자동 의존성 감지
+        Task {
+            await AutoDependencyDetector.shared.detectDependencies(for: type, factory: factory)
+        }
+
+        return DependencyContainer.live.register(type, build: factory)
+    }
+
+    /// 의존성을 명시적으로 지정하여 등록합니다 (자동 감지 + 수동 보완)
+    ///
+    /// 자동 감지로는 찾을 수 없는 의존성을 수동으로 명시할 수 있습니다.
+    /// 자동 감지된 의존성과 수동으로 지정한 의존성이 모두 기록됩니다.
+    ///
+    /// - Parameters:
+    ///   - type: 등록할 타입
+    ///   - dependencies: 이 타입이 의존하는 타입들의 목록
+    ///   - factory: 인스턴스를 생성하는 클로저
+    /// - Returns: 등록 해제 핸들러
+    ///
+    /// ### 사용 예시:
+    /// ```swift
+    /// UnifiedDI.register(
+    ///     UserService.self,
+    ///     dependencies: [NetworkService.self, UserRepository.self, Logger.self]
+    /// ) {
+    ///     UserService()
+    /// }
+    /// ```
+    @discardableResult
+    public static func register<T>(
+        _ type: T.Type,
+        dependencies: [Any.Type],
+        factory: @escaping @Sendable () -> T
+    ) -> @Sendable () -> Void {
+        // 🤖 자동 의존성 감지
+        Task {
+            await AutoDependencyDetector.shared.detectDependencies(for: type, factory: factory)
+            // 📝 수동 의존성 추가
+            await AutoDependencyDetector.shared.recordManualDependency(from: type, to: dependencies)
+        }
+
         return DependencyContainer.live.register(type, build: factory)
     }
 
@@ -447,6 +488,103 @@ public enum UnifiedDI {
         return SimplePerformanceOptimizer.getStats()
     }
 
+    // MARK: - Auto Dependency Detection APIs
+
+    /// 자동 의존성 감지 활성화
+    ///
+    /// 의존성 등록 시 자동으로 의존성 관계를 감지하여 그래프를 생성합니다.
+    /// 앱 시작 시 한 번 호출하는 것을 권장합니다.
+    ///
+    /// ### 사용 예시:
+    /// ```swift
+    /// UnifiedDI.enableAutoDetection()
+    /// ```
+    public static func enableAutoDetection() {
+        Task {
+            await AutoDependencyDetector.shared.enableAutoDetection()
+        }
+    }
+
+    /// 자동 의존성 감지 비활성화
+    public static func disableAutoDetection() {
+        Task {
+            await AutoDependencyDetector.shared.disableAutoDetection()
+        }
+    }
+
+    /// 현재 자동 감지된 의존성 그래프를 반환합니다
+    ///
+    /// 지금까지 등록된 모든 의존성의 자동 감지 결과를 반환합니다.
+    ///
+    /// - Returns: 자동 감지된 그래프 데이터
+    ///
+    /// ### 사용 예시:
+    /// ```swift
+    /// let graph = await UnifiedDI.getAutoDetectedGraph()
+    /// print(graph.generateASCIIGraph())
+    /// ```
+    public static func getAutoDetectedGraph() async -> AutoDetectedGraph {
+        return await AutoDependencyDetector.shared.generateAutoDetectedGraph()
+    }
+
+    /// 자동 감지된 의존성 통계를 반환합니다
+    ///
+    /// 현재까지 감지된 의존성들의 통계 정보를 반환합니다.
+    ///
+    /// - Returns: 의존성 통계
+    ///
+    /// ### 사용 예시:
+    /// ```swift
+    /// let stats = await UnifiedDI.getAutoDetectionStatistics()
+    /// print(stats.summary)
+    /// ```
+    public static func getAutoDetectionStatistics() async -> DependencyStatistics {
+        let graph = await AutoDependencyDetector.shared.generateAutoDetectedGraph()
+        return graph.statistics
+    }
+
+    /// ASCII 형태의 자동 감지된 의존성 그래프를 출력합니다
+    ///
+    /// 콘솔에서 바로 확인할 수 있는 ASCII 그래프를 생성합니다.
+    ///
+    /// ### 사용 예시:
+    /// ```swift
+    /// await UnifiedDI.printAutoDetectedGraph()
+    /// ```
+    public static func printAutoDetectedGraph() async {
+        let graph = await AutoDependencyDetector.shared.generateAutoDetectedGraph()
+        print(graph.generateASCIIGraph())
+    }
+
+    /// Mermaid 형태의 자동 감지된 의존성 그래프를 반환합니다
+    ///
+    /// Mermaid 문법으로 된 그래프를 반환하여 웹에서 시각화할 수 있습니다.
+    ///
+    /// - Returns: Mermaid 형식의 그래프 문자열
+    ///
+    /// ### 사용 예시:
+    /// ```swift
+    /// let mermaidGraph = await UnifiedDI.getAutoDetectedMermaidGraph()
+    /// // 웹 페이지나 도구에서 시각화
+    /// ```
+    public static func getAutoDetectedMermaidGraph() async -> String {
+        let graph = await AutoDependencyDetector.shared.generateAutoDetectedGraph()
+        return graph.generateMermaidGraph()
+    }
+
+    /// 자동 감지 상태를 초기화합니다
+    ///
+    /// 모든 자동 감지된 의존성 정보를 삭제합니다.
+    /// 주로 테스트 환경에서 사용합니다.
+    ///
+    /// ### 사용 예시:
+    /// ```swift
+    /// await UnifiedDI.resetAutoDetection()
+    /// ```
+    public static func resetAutoDetection() async {
+        await AutoDependencyDetector.shared.reset()
+    }
+
     // MARK: - Batch Registration APIs
 
     /// 여러 의존성을 한번에 등록합니다
@@ -532,7 +670,7 @@ public enum UnifiedDI {
 
     private static func syncReleaseScope(_ kind: ScopeKind, id: String) -> Int {
         let sem = DispatchSemaphore(value: 0)
-        let box = _IntBox()
+        let box = IntBox()
         Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScope(kind: kind, id: id); sem.signal() }
         sem.wait()
         return box.value
@@ -540,7 +678,7 @@ public enum UnifiedDI {
 
     private static func syncReleaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
         let sem = DispatchSemaphore(value: 0)
-        let box = _BoolBox()
+        let box = BoolBox()
         Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScoped(type, kind: kind, id: id); sem.signal() }
         sem.wait()
         return box.value
@@ -635,5 +773,5 @@ public typealias SimplifiedDI = UnifiedDI
 
 // Note: Legacy compatibility aliases removed to avoid conflicts with SimplifiedAPI.swift
     // Sync bridging helpers (Sendable boxes)
-    private final class _IntBox: @unchecked Sendable { var value: Int = 0; init() {} }
-    private final class _BoolBox: @unchecked Sendable { var value: Bool = false; init() {} }
+    private final class IntBox: @unchecked Sendable { var value: Int = 0; init() {} }
+    private final class BoolBox: @unchecked Sendable { var value: Bool = false; init() {} }
