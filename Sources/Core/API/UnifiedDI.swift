@@ -94,19 +94,52 @@ public enum UnifiedDI {
 
     // MARK: - Core Registration APIs
 
-    /// 팩토리 패턴으로 의존성을 등록합니다
+    /// 의존성을 등록하고 즉시 생성된 인스턴스를 반환합니다 (권장)
+    ///
+    /// 이 메서드는 팩토리를 즉시 실행하여 인스턴스를 생성하고,
+    /// 해당 인스턴스를 컨테이너에 등록한 후 반환합니다.
+    /// KeyPath 기반 등록과 동일한 동작을 제공합니다.
+    ///
+    /// - Parameters:
+    ///   - type: 등록할 타입
+    ///   - factory: 인스턴스를 생성하는 클로저
+    /// - Returns: 생성된 인스턴스
+    ///
+    /// ### 사용 예시:
+    /// ```swift
+    /// let repository = UnifiedDI.register(BookListInterface.self) {
+    ///     BookListRepositoryImpl()
+    /// }
+    /// // repository는 BookListInterface 인스턴스
+    /// ```
+    public static func register<T>(
+        _ type: T.Type,
+        factory: @escaping @Sendable () -> T
+    ) -> T where T: Sendable {
+        // 🤖 자동 의존성 감지
+        Task {
+            await AutoDependencyDetector.shared.detectDependencies(for: type, factory: factory)
+        }
+
+        let instance = factory()
+        DependencyContainer.live.register(type, instance: instance)
+        return instance
+    }
+
+    /// 지연 생성 패턴으로 의존성을 등록합니다 (해제 핸들러 반환)
     ///
     /// 이 메서드는 지연 생성 패턴을 사용하여 실제 `resolve` 호출 시에만
     /// 팩토리 클로저가 실행됩니다. 매번 새로운 인스턴스가 생성됩니다.
     ///
     /// - Parameters:
     ///   - type: 등록할 타입
+    ///   - lazy: true로 설정하면 지연 등록, false는 즉시 등록
     ///   - factory: 인스턴스를 생성하는 클로저
     /// - Returns: 등록 해제 핸들러 (호출하면 등록 해제)
     ///
     /// ### 사용 예시:
     /// ```swift
-    /// let releaseHandler = UnifiedDI.register(NetworkService.self) {
+    /// let releaseHandler = UnifiedDI.register(NetworkService.self, lazy: true) {
     ///     DefaultNetworkService()
     /// }
     /// // 나중에 해제
@@ -115,6 +148,7 @@ public enum UnifiedDI {
     @discardableResult
     public static func register<T>(
         _ type: T.Type,
+        lazy: Bool,
         factory: @escaping @Sendable () -> T
     ) -> @Sendable () -> Void {
         // 🤖 자동 의존성 감지
@@ -125,32 +159,31 @@ public enum UnifiedDI {
         return DependencyContainer.live.register(type, build: factory)
     }
 
-    /// 의존성을 명시적으로 지정하여 등록합니다 (자동 감지 + 수동 보완)
+    /// 의존성을 명시적으로 지정하여 등록하고 인스턴스를 반환합니다
     ///
-    /// 자동 감지로는 찾을 수 없는 의존성을 수동으로 명시할 수 있습니다.
-    /// 자동 감지된 의존성과 수동으로 지정한 의존성이 모두 기록됩니다.
+    /// 자동 감지로는 찾을 수 없는 의존성을 수동으로 명시하면서
+    /// 즉시 생성된 인스턴스를 반환합니다.
     ///
     /// - Parameters:
     ///   - type: 등록할 타입
     ///   - dependencies: 이 타입이 의존하는 타입들의 목록
     ///   - factory: 인스턴스를 생성하는 클로저
-    /// - Returns: 등록 해제 핸들러
+    /// - Returns: 생성된 인스턴스
     ///
     /// ### 사용 예시:
     /// ```swift
-    /// UnifiedDI.register(
+    /// let service = UnifiedDI.register(
     ///     UserService.self,
     ///     dependencies: [NetworkService.self, UserRepository.self, Logger.self]
     /// ) {
     ///     UserService()
     /// }
     /// ```
-    @discardableResult
     public static func register<T>(
         _ type: T.Type,
         dependencies: [Any.Type],
         factory: @escaping @Sendable () -> T
-    ) -> @Sendable () -> Void {
+    ) -> T where T: Sendable {
         // 🤖 자동 의존성 감지
         Task {
             await AutoDependencyDetector.shared.detectDependencies(for: type, factory: factory)
@@ -158,7 +191,63 @@ public enum UnifiedDI {
             await AutoDependencyDetector.shared.recordManualDependency(from: type, to: dependencies)
         }
 
-        return DependencyContainer.live.register(type, build: factory)
+        let instance = factory()
+        DependencyContainer.live.register(type, instance: instance)
+        return instance
+    }
+
+    /// 의존성을 명시적으로 지정하여 등록합니다 (지연/즉시 선택 가능)
+    ///
+    /// 자동 감지로는 찾을 수 없는 의존성을 수동으로 명시할 수 있습니다.
+    /// 자동 감지된 의존성과 수동으로 지정한 의존성이 모두 기록됩니다.
+    ///
+    /// - Parameters:
+    ///   - type: 등록할 타입
+    ///   - dependencies: 이 타입이 의존하는 타입들의 목록
+    ///   - lazy: true로 설정하면 지연 등록, false는 즉시 등록
+    ///   - factory: 인스턴스를 생성하는 클로저
+    /// - Returns: lazy=true일 때 해제 핸들러, lazy=false일 때 생성된 인스턴스 (Any 타입)
+    ///
+    /// ### 사용 예시:
+    /// ```swift
+    /// // 지연 등록
+    /// let releaseHandler = UnifiedDI.register(
+    ///     UserService.self,
+    ///     dependencies: [NetworkService.self],
+    ///     lazy: true
+    /// ) {
+    ///     UserService()
+    /// } as! () -> Void
+    ///
+    /// // 즉시 등록 및 인스턴스 반환
+    /// let service = UnifiedDI.register(
+    ///     UserService.self,
+    ///     dependencies: [NetworkService.self],
+    ///     lazy: false
+    /// ) {
+    ///     UserService()
+    /// } as! UserService
+    /// ```
+    public static func register<T>(
+        _ type: T.Type,
+        dependencies: [Any.Type],
+        lazy: Bool,
+        factory: @escaping @Sendable () -> T
+    ) -> Any where T: Sendable {
+        // 🤖 자동 의존성 감지
+        Task {
+            await AutoDependencyDetector.shared.detectDependencies(for: type, factory: factory)
+            // 📝 수동 의존성 추가
+            await AutoDependencyDetector.shared.recordManualDependency(from: type, to: dependencies)
+        }
+
+        if lazy {
+            return DependencyContainer.live.register(type, build: factory)
+        } else {
+            let instance = factory()
+            DependencyContainer.live.register(type, instance: instance)
+            return instance
+        }
     }
 
     /// 스코프 기반 등록 (동기)
@@ -219,40 +308,40 @@ public enum UnifiedDI {
 
 
 
-    /// 조건에 따라 다른 구현체를 등록합니다
+    /// 조건에 따라 다른 구현체를 등록하고 인스턴스를 반환합니다
     ///
-    /// 런타임 조건에 따라 서로 다른 팩토리를 사용하여 의존성을 등록합니다.
-    /// A/B 테스트, 환경별 분기, 피처 플래그 등에 유용합니다.
+    /// 런타임 조건에 따라 서로 다른 팩토리를 사용하여 의존성을 등록하고
+    /// 생성된 인스턴스를 반환합니다. A/B 테스트, 환경별 분기, 피처 플래그 등에 유용합니다.
     ///
     /// - Parameters:
     ///   - type: 등록할 타입
     ///   - condition: 등록 조건 (true/false)
     ///   - factory: 조건이 true일 때 사용할 팩토리
     ///   - fallback: 조건이 false일 때 사용할 팩토리
-    /// - Returns: 등록 해제 핸들러
+    /// - Returns: 생성된 인스턴스
     ///
     /// ### 사용 예시:
     /// ```swift
-    /// UnifiedDI.registerIf(
+    /// let analytics = UnifiedDI.registerIf(
     ///     AnalyticsService.self,
     ///     condition: isProduction,
     ///     factory: { FirebaseAnalytics() },
     ///     fallback: { MockAnalytics() }
     /// )
     /// ```
-    @discardableResult
     public static func registerIf<T>(
         _ type: T.Type,
         condition: Bool,
         factory: @escaping @Sendable () -> T,
         fallback: @escaping @Sendable () -> T
-    ) -> @Sendable () -> Void {
+    ) -> T where T: Sendable {
         if condition {
             return register(type, factory: factory)
         } else {
             return register(type, factory: fallback)
         }
     }
+
 
     // MARK: - Core Resolution APIs
 
