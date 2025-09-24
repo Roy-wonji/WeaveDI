@@ -9,7 +9,7 @@ import Foundation
 import LogMacro
 
 /// 안전한 DependencyKey 패턴을 위한 확장
-/// 
+///
 /// ## 문제가 있는 패턴:
 /// ```swift
 /// extension BookListUseCaseImpl: DependencyKey {
@@ -20,12 +20,12 @@ import LogMacro
 ///     }()
 /// }
 /// ```
-/// 
+///
 /// ## ✅ 안전한 패턴들:
 public enum SafeDependencyKeyPatterns {
-    
-    /// 방법 1: 앱 시작 시 사전 등록 + 해결
-    public static let preRegistrationPattern = """
+
+  /// 방법 1: 앱 시작 시 사전 등록 + 해결
+  public static let preRegistrationPattern = """
     // AppDelegate 또는 App.swift에서
     func setupDependencies() {
         // 🔒 먼저 의존성들을 등록
@@ -33,7 +33,7 @@ public enum SafeDependencyKeyPatterns {
             BookListRepositoryImpl()
         }
     }
-
+    
     // DependencyKey 구현
     extension BookListUseCaseImpl: DependencyKey {
         public static var liveValue: BookListInterface = {
@@ -48,15 +48,15 @@ public enum SafeDependencyKeyPatterns {
         public static var testValue: BookListInterface = DefaultBookListRepositoryImpl()
     }
     """
-    
-    /// 방법 2: Factory 지연 초기화 패턴
-    public static let factoryPattern = """
+
+  /// 방법 2: Factory 지연 초기화 패턴
+  public static let factoryPattern = """
     // Factory로 지연 초기화
     extension BookListUseCaseImpl: DependencyKey {
         public static var liveValue: BookListInterface = BookListUseCaseFactory.create()
         public static var testValue: BookListInterface = DefaultBookListRepositoryImpl()
     }
-
+    
     private enum BookListUseCaseFactory {
         static func create() -> BookListInterface {
             // ✅ 안전한 해결
@@ -72,9 +72,9 @@ public enum SafeDependencyKeyPatterns {
         }
     }
     """
-    
-    /// 방법 3: Task 기반 비동기 등록 패턴
-    public static let asyncPattern = """
+
+  /// 방법 3: Task 기반 비동기 등록 패턴
+  public static let asyncPattern = """
     // 비동기 등록 후 사용
     extension BookListUseCaseImpl: DependencyKey {
         public static var liveValue: BookListInterface = {
@@ -98,72 +98,72 @@ public enum SafeDependencyKeyPatterns {
 
 /// 안전한 DependencyKey 등록을 위한 헬퍼
 public enum SafeDependencyRegister {
-    
-    /// 앱 시작 시 DependencyKey용 의존성 등록
-    public static func setupForDependencyKeys() {
-        #logInfo("🔧 Setting up dependencies for DependencyKey patterns...")
-        
-        // 일반적인 의존성들을 미리 등록
-        // 예시: 실제 프로젝트에 맞게 수정
-        // SimpleKeyPathRegistry.registerMany {
-        //     (\.bookListInterface, { BookListRepositoryImpl() })
-        //     (\.userService, { UserServiceImpl() })
-        // }
-        
-        #logInfo("✅ DependencyKey dependencies setup complete")
+
+  /// 앱 시작 시 DependencyKey용 의존성 등록
+  public static func setupForDependencyKeys() {
+    #logInfo("🔧 Setting up dependencies for DependencyKey patterns...")
+
+    // 일반적인 의존성들을 미리 등록
+    // 예시: 실제 프로젝트에 맞게 수정
+    // SimpleKeyPathRegistry.registerMany {
+    //     (\.bookListInterface, { BookListRepositoryImpl() })
+    //     (\.userService, { UserServiceImpl() })
+    // }
+
+    #logInfo("✅ DependencyKey dependencies setup complete")
+  }
+
+  /// KeyPath로 안전하게 의존성 해결
+  public static func safeResolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T? {
+    let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
+
+    // DependencyContainer를 통해 의존성 해결
+    if let resolved: T = DependencyContainer.live[keyPath: keyPath] {
+      #logInfo("✅ [SafeDependencyRegister] Resolved \(keyPathName): \(type(of: resolved))")
+      return resolved
+    } else {
+      #logInfo("⚠️ [SafeDependencyRegister] Failed to resolve \(keyPathName)")
+      return nil
     }
-    
-    /// KeyPath로 안전하게 의존성 해결
-    public static func safeResolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T? {
-        let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
-        
-        // DependencyContainer를 통해 의존성 해결
-        if let resolved: T = DependencyContainer.live[keyPath: keyPath] {
-            #logInfo("✅ [SafeDependencyRegister] Resolved \(keyPathName): \(type(of: resolved))")
-            return resolved
-        } else {
-            #logInfo("⚠️ [SafeDependencyRegister] Failed to resolve \(keyPathName)")
-            return nil
-        }
+  }
+
+  /// KeyPath로 의존성 해결 (기본값 포함)
+  public static func resolveWithFallback<T>(
+    _ keyPath: KeyPath<DependencyContainer, T?>,
+    fallback: @autoclosure () -> T
+  ) -> T {
+    if let resolved = safeResolve(keyPath) {
+      return resolved
+    } else {
+      let fallbackInstance = fallback()
+      let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
+      #logInfo("🔄 [SafeDependencyRegister] Using fallback for \(keyPathName): \(type(of: fallbackInstance))")
+      return fallbackInstance
     }
-    
-    /// KeyPath로 의존성 해결 (기본값 포함)
-    public static func resolveWithFallback<T>(
-        _ keyPath: KeyPath<DependencyContainer, T?>, 
-        fallback: @autoclosure () -> T
-    ) -> T {
-        if let resolved = safeResolve(keyPath) {
-            return resolved
-        } else {
-            let fallbackInstance = fallback()
-            let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
-            #logInfo("🔄 [SafeDependencyRegister] Using fallback for \(keyPathName): \(type(of: fallbackInstance))")
-            return fallbackInstance
-        }
-    }
+  }
 }
 
 // MARK: - DependencyKey 확장
 
 extension DependencyContainer {
-    /// DependencyKey 지원을 위한 안전한 resolver
-    func resolveSafely<T>(_ type: T.Type) -> T? {
-        // 등록 여부 확인 후 안전하게 해결
-        let resolved = resolve(type)
-        if resolved != nil {
-            #logInfo("✅ [DependencyContainer] Successfully resolved \(type)")
-        } else {
-            #logInfo("⚠️ [DependencyContainer] Type \(type) not registered")
-        }
-        return resolved
+  /// DependencyKey 지원을 위한 안전한 resolver
+  func resolveSafely<T>(_ type: T.Type) -> T? {
+    // 등록 여부 확인 후 안전하게 해결
+    let resolved = resolve(type)
+    if resolved != nil {
+      #logInfo("✅ [DependencyContainer] Successfully resolved \(type)")
+    } else {
+      #logInfo("⚠️ [DependencyContainer] Type \(type) not registered")
     }
+    return resolved
+  }
 }
 
 // MARK: - 마이그레이션 가이드
 
 public enum DependencyKeyMigrationGuide {
-    public static func printMigrationSteps() {
-        #logInfo("""
+  public static func printMigrationSteps() {
+    #logInfo("""
         ╔═══════════════════════════════════════════════════════════════════════════════╗
         ║                    🔄 DEPENDENCYKEY MIGRATION GUIDE                          ║
         ╠═══════════════════════════════════════════════════════════════════════════════╣
@@ -217,5 +217,5 @@ public enum DependencyKeyMigrationGuide {
         ║                                                                               ║
         ╚═══════════════════════════════════════════════════════════════════════════════╝
         """)
-    }
+  }
 }
