@@ -2,463 +2,337 @@
 //  PropertyWrappers.swift
 //  DiContainer
 //
-//  Created by Wonja Suh on 3/24/25.
+//  Created by Wonji Suh on 2024.
+//  Copyright © 2024 Wonji Suh. All rights reserved.
 //
 
 import Foundation
 import LogMacro
 
-// MARK: - Core Property Wrappers
+// MARK: - 핵심 Property Wrappers
 
-/// 옵셔널 의존성 주입을 위한 프로퍼티 래퍼
+/// ## 🔧 @Inject - 기본 의존성 주입
 ///
-/// ## 개요
+/// 가장 많이 사용하는 기본 의존성 주입 Property Wrapper입니다.
+/// 옵셔널과 필수 타입을 모두 지원합니다.
 ///
-/// `@Inject`는 DiContainer의 핵심 프로퍼티 래퍼로, 의존성을 자동으로 주입받을 수 있습니다.
-/// 변수 타입이 옵셔널이면 안전한 주입을, Non-optional이면 필수 주입을 수행합니다.
-///
-/// ## 사용 예시
-///
+/// ### 사용법:
 /// ```swift
-/// class UserService {
-///     @Inject var repository: UserRepository?        // 옵셔널 주입
-///     @Inject var logger: Logger                     // 필수 주입 (Non-optional)
-///     @Inject(\.customService) var custom: CustomService?  // KeyPath 주입
+/// class UserViewController {
+///     @Inject var repository: UserRepository?    // 옵셔널 - 없어도 됨
+///     @Inject var logger: Logger                 // 필수 - 반드시 있어야 함
+///     @Inject(\.customService) var custom: CustomService?  // KeyPath 사용
 /// }
 /// ```
 @propertyWrapper
 public struct Inject<T> {
-    private let keyPath: KeyPath<DependencyContainer, T?>?
-    private let type: T.Type?
 
+    // MARK: - Properties
+
+    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let type: T.Type
+
+    // MARK: - Initialization
+
+    /// KeyPath를 사용한 초기화
+    /// - Parameter keyPath: DependencyContainer의 KeyPath
+    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
+        self.keyPath = keyPath
+        self.type = T.self
+    }
+
+    /// 타입 추론을 사용한 기본 초기화
+    public init() {
+        self.keyPath = nil
+        self.type = T.self
+    }
+
+    /// 명시적 타입을 사용한 초기화
+    /// - Parameter type: 주입받을 타입
+    public init(_ type: T.Type) {
+        self.keyPath = nil
+        self.type = type
+    }
+
+    // MARK: - Property Wrapper Implementation
+
+    /// 옵셔널 타입용 wrappedValue
+    /// 의존성이 없어도 nil을 반환하므로 안전합니다.
     public var wrappedValue: T? {
         if let keyPath = keyPath {
             return DependencyContainer.live[keyPath: keyPath]
         }
-
-        if let type = type {
-            return DependencyContainer.live.resolve(type)
-        }
-
-        return nil
-    }
-
-    /// KeyPath 기반 주입 초기화
-    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
-        self.keyPath = keyPath
-        self.type = nil
-    }
-
-    /// 타입 기반 주입 초기화 (타입 추론)
-    public init() {
-        self.keyPath = nil
-        self.type = T.self
-    }
-
-    /// 명시적 타입 기반 주입 초기화
-    public init(_ type: T.Type) {
-        self.keyPath = nil
-        self.type = type
+        return DependencyContainer.live.resolve(type)
     }
 }
 
-/// Non-optional 타입을 위한 특별한 확장
+// MARK: - Non-Optional Type Support
+
 extension Inject where T: AnyObject {
+    /// Non-optional 타입용 wrappedValue
+    /// 의존성이 반드시 있어야 하며, 없으면 명확한 에러와 함께 앱이 종료됩니다.
     public var wrappedValue: T {
         if let keyPath = keyPath {
             guard let resolved = DependencyContainer.live[keyPath: keyPath] else {
-                fatalError("🚨 [Inject] Required dependency not found for keyPath \(keyPath)")
-            }
-            return resolved
-        }
-
-        if let type = type {
-            guard let resolved = DependencyContainer.live.resolve(type) else {
-                fatalError("🚨 [Inject] Required dependency not found: \(type)")
-            }
-            return resolved
-        }
-
-        fatalError("🚨 [Inject] Invalid configuration")
-    }
-}
-
-/// 필수 의존성 주입을 위한 프로퍼티 래퍼
-///
-/// ## 개요
-///
-/// `@RequiredInject`는 의존성이 반드시 등록되어 있어야 하는 경우에 사용합니다.
-/// 등록되지 않은 경우 명확한 에러 메시지와 함께 fatalError를 발생시킵니다.
-///
-/// ## 사용 예시
-///
-/// ```swift
-/// class UserService {
-///     @RequiredInject var database: Database
-///     @RequiredInject(\.logger) var logger: Logger
-/// }
-/// ```
-@propertyWrapper
-public struct RequiredInject<T> {
-    private let keyPath: KeyPath<DependencyContainer, T?>?
-    private let type: T.Type?
-
-    public var wrappedValue: T {
-        if let keyPath = keyPath {
-            guard let resolved = DependencyContainer.live[keyPath: keyPath] else {
-                let suggestion = "Register using: DI.register(\\.keyPath) { YourImplementation() }"
                 fatalError("""
-                🚨 [RequiredInject] Required dependency not found!
+                🚨 [Inject] 필수 의존성을 찾을 수 없습니다!
 
                 KeyPath: \(keyPath)
-                Type: \(T.self)
+                타입: \(T.self)
 
-                💡 Fix by adding this to your app startup:
-                   \(suggestion)
-
-                🔍 Make sure you called this before accessing the @RequiredInject property.
+                💡 해결방법:
+                   UnifiedDI.register(\\.keyPath) { YourImplementation() }
                 """)
             }
             return resolved
         }
 
-        if let type = type {
-            guard let resolved = DependencyContainer.live.resolve(type) else {
-                let suggestion = "DI.register(\(type).self) { YourImplementation() }"
-                fatalError("""
-                🚨 [RequiredInject] Required dependency not found!
-
-                Type: \(type)
-
-                💡 Fix by adding this to your app startup:
-                   \(suggestion)
-
-                🔍 Make sure you called this before accessing the @RequiredInject property.
-                """)
-            }
-            return resolved
-        }
-
-        fatalError("🚨 [RequiredInject] Invalid configuration")
-    }
-
-    /// KeyPath 기반 필수 주입 초기화
-    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
-        self.keyPath = keyPath
-        self.type = nil
-    }
-
-    /// 타입 기반 필수 주입 초기화 (타입 추론)
-    public init() {
-        self.keyPath = nil
-        self.type = T.self
-    }
-
-    /// 명시적 타입 기반 필수 주입 초기화
-    public init(_ type: T.Type) {
-        self.keyPath = nil
-        self.type = type
-    }
-}
-
-// MARK: - Factory Property Wrappers
-
-/// 팩토리 패턴 기반 의존성 주입을 위한 프로퍼티 래퍼
-///
-/// ## 개요
-///
-/// `@Factory`는 매번 새로운 인스턴스를 생성하는 팩토리 기반 주입을 제공합니다.
-/// 상태를 공유하지 않는 독립적인 인스턴스가 필요한 경우에 유용합니다.
-///
-/// ## 사용 예시
-///
-/// ```swift
-/// class ReportService {
-///     @Factory var pdfGenerator: PDFGenerator          // 매번 새로운 인스턴스
-///     @Factory(\.emailSender) var emailSender: EmailSender
-/// }
-/// ```
-@propertyWrapper
-public struct Factory<T> {
-    private let keyPath: KeyPath<DependencyContainer, T?>?
-    private let factory: (() -> T)?
-
-    public var wrappedValue: T {
-        if let keyPath = keyPath {
-            // KeyPath 방식은 등록된 팩토리를 매번 실행
-            if let resolved = DependencyContainer.live[keyPath: keyPath] {
-                return resolved
-            } else {
-                fatalError("🚨 [Factory] Factory not found for keyPath \(keyPath)")
-            }
-        }
-
-        if let factory = factory {
-            return factory()
-        }
-
-        fatalError("🚨 [Factory] Invalid configuration")
-    }
-
-    /// KeyPath 기반 팩토리 초기화
-    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
-        self.keyPath = keyPath
-        self.factory = nil
-    }
-
-    /// 직접 팩토리 초기화
-    public init(factory: @escaping () -> T) {
-        self.keyPath = nil
-        self.factory = factory
-    }
-
-    /// 타입 추론 팩토리 초기화
-    public init() where T: DefaultConstructible {
-        self.keyPath = nil
-        self.factory = { T() }
-    }
-}
-
-/// 기본 생성자를 가진 타입을 위한 프로토콜
-public protocol DefaultConstructible {
-    init()
-}
-
-/// 팩토리 값들을 관리하는 프로퍼티 래퍼
-///
-/// ## 개요
-///
-/// `@FactoryValues`는 여러 관련된 팩토리 값들을 함께 관리할 수 있습니다.
-/// 설정 값, 상수, 환경별 값 등을 관리하는 데 유용합니다.
-///
-/// ## 사용 예시
-///
-/// ```swift
-/// struct APIConfiguration {
-///     @FactoryValues var values: APIValues
-/// }
-///
-/// struct APIValues {
-///     let baseURL: String
-///     let timeout: TimeInterval
-///     let retryCount: Int
-/// }
-/// ```
-@propertyWrapper
-public struct FactoryValues<T> {
-    private let factory: () -> T
-    private var cachedValue: T?
-    private let shouldCache: Bool
-
-    public var wrappedValue: T {
-        mutating get {
-            if shouldCache, let cached = cachedValue {
-                return cached
-            }
-
-            let value = factory()
-            if shouldCache {
-                cachedValue = value
-            }
-            return value
-        }
-    }
-
-    /// 캐싱 팩토리 값 초기화
-    public init(cached: Bool = true, factory: @escaping () -> T) {
-        self.factory = factory
-        self.shouldCache = cached
-        self.cachedValue = nil
-    }
-
-    /// 즉시 실행 팩토리 값 초기화
-    public init(immediate factory: @escaping () -> T) {
-        self.factory = factory
-        self.shouldCache = true
-        self.cachedValue = factory()
-    }
-}
-
-// MARK: - Advanced Property Wrappers
-
-/// 조건부 의존성 주입을 위한 프로퍼티 래퍼
-@propertyWrapper
-public struct ConditionalInject<T> {
-    private let condition: () -> Bool
-    private var primaryInjection: Inject<T>?
-    private var fallbackInjection: Inject<T>?
-    private let primaryFactory: (() -> T)?
-    private let fallbackFactory: (() -> T)?
-
-    public var wrappedValue: T? {
-        mutating get {
-            if condition() {
-              if let primary = primaryInjection {
-                    let result = primary.wrappedValue
-                    primaryInjection = primary
-                    return result
-                } else if let factory = primaryFactory {
-                    return factory()
-                }
-            }
-
-          if let fallback = fallbackInjection {
-                let result = fallback.wrappedValue
-                fallbackInjection = fallback
-                return result
-            } else if let factory = fallbackFactory {
-                return factory()
-            }
-
-            return nil
-        }
-    }
-
-    /// KeyPath 기반 조건부 주입 초기화
-    public init(
-        condition: @escaping () -> Bool,
-        primary: KeyPath<DependencyContainer, T?>,
-        fallback: KeyPath<DependencyContainer, T?>
-    ) {
-        self.condition = condition
-        self.primaryInjection = Inject(primary)
-        self.fallbackInjection = Inject(fallback)
-        self.primaryFactory = nil
-        self.fallbackFactory = nil
-    }
-
-    /// Factory 기반 조건부 주입 초기화
-    public init(
-        condition: @escaping () -> Bool,
-        primaryFactory: @escaping () -> T,
-        fallbackFactory: @escaping () -> T
-    ) {
-        self.condition = condition
-        self.primaryInjection = nil
-        self.fallbackInjection = nil
-        self.primaryFactory = primaryFactory
-        self.fallbackFactory = fallbackFactory
-    }
-}
-
-/// 다중 의존성 주입을 위한 프로퍼티 래퍼
-@propertyWrapper
-public struct MultiInject<T> {
-    private let keyPaths: [KeyPath<DependencyContainer, T?>]
-    private let factories: [() -> T]
-
-    public var wrappedValue: [T] {
-        var results: [T] = []
-
-        // KeyPath 기반 인스턴스들 수집
-        for keyPath in keyPaths {
-            if let instance = DependencyContainer.live[keyPath: keyPath] {
-                results.append(instance)
-            }
-        }
-
-        // Factory 기반 인스턴스들 생성
-        for factory in factories {
-            results.append(factory())
-        }
-
-        return results
-    }
-
-    /// KeyPath 배열 기반 다중 주입 초기화
-    public init(_ keyPaths: [KeyPath<DependencyContainer, T?>]) {
-        self.keyPaths = keyPaths
-        self.factories = []
-    }
-
-    /// Factory 배열 기반 다중 주입 초기화
-    public init(_ factories: [() -> T]) {
-        self.keyPaths = []
-        self.factories = factories
-    }
-
-    /// 혼합 다중 주입 초기화
-    public init(
-        keyPaths: [KeyPath<DependencyContainer, T?>] = [],
-        factories: [() -> T] = []
-    ) {
-        self.keyPaths = keyPaths
-        self.factories = factories
-    }
-}
-
-// MARK: - Required Dependency Register
-
-/// 의존성 등록과 검증을 위한 프로퍼티 래퍼
-///
-/// ## 개요
-///
-/// `@RequiredDependencyRegister`는 특정 의존성이 반드시 등록되어야 하는
-/// 컴포넌트에서 사용됩니다. 컴파일 타임에 의존성 요구사항을 명시하고
-/// 런타임에 검증을 수행합니다.
-@propertyWrapper
-public struct RequiredDependencyRegister<T> {
-    private let keyPath: KeyPath<DependencyContainer, T?>
-    private let errorMessage: String
-
-    public var wrappedValue: T {
-        guard let resolved = DependencyContainer.live[keyPath: keyPath] else {
+        guard let resolved = DependencyContainer.live.resolve(type) else {
             fatalError("""
-            🚨 [RequiredDependencyRegister] \(errorMessage)
+            🚨 [Inject] 필수 의존성을 찾을 수 없습니다!
 
-            KeyPath: \(keyPath)
-            Type: \(T.self)
+            타입: \(type)
 
-            💡 This dependency must be registered before using this component.
+            💡 해결방법:
+               UnifiedDI.register(\(type).self) { YourImplementation() }
             """)
         }
         return resolved
     }
+}
 
-    public init(
-        _ keyPath: KeyPath<DependencyContainer, T?>,
-        errorMessage: String = "Required dependency not registered"
-    ) {
+/// ## 🏭 @Factory - 팩토리 패턴 주입
+///
+/// 매번 새로운 인스턴스를 생성하는 팩토리 패턴 Property Wrapper입니다.
+/// 상태를 공유하지 않는 독립적인 객체가 필요할 때 사용합니다.
+///
+/// ### 사용법:
+/// ```swift
+/// class ReportService {
+///     @Factory var pdfGenerator: PDFGenerator          // 매번 새 인스턴스
+///     @Factory(\.emailSender) var email: EmailSender   // KeyPath로 팩토리
+/// }
+/// ```
+@propertyWrapper
+public struct Factory<T> {
+
+    // MARK: - Properties
+
+    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let directFactory: (() -> T)?
+
+    // MARK: - Initialization
+
+    /// KeyPath를 사용한 팩토리 초기화
+    /// - Parameter keyPath: 팩토리가 등록된 KeyPath
+    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
         self.keyPath = keyPath
-        self.errorMessage = errorMessage
+        self.directFactory = nil
+    }
+
+    /// 직접 팩토리 함수를 제공하는 초기화
+    /// - Parameter factory: 인스턴스를 생성하는 클로저
+    public init(factory: @escaping () -> T) {
+        self.keyPath = nil
+        self.directFactory = factory
+    }
+
+    // MARK: - Property Wrapper Implementation
+
+    /// 매번 새로운 인스턴스를 반환합니다
+    public var wrappedValue: T {
+        // 직접 팩토리가 있으면 실행
+        if let factory = directFactory {
+            return factory()
+        }
+
+        // KeyPath를 통한 팩토리 실행
+        if let keyPath = keyPath {
+            guard let instance = DependencyContainer.live[keyPath: keyPath] else {
+                fatalError("""
+                🚨 [Factory] 팩토리를 찾을 수 없습니다!
+
+                KeyPath: \(keyPath)
+                타입: \(T.self)
+
+                💡 해결방법:
+                   UnifiedDI.register(\\.keyPath) { YourImplementation() }
+                """)
+            }
+            return instance
+        }
+
+        fatalError("🚨 [Factory] 잘못된 설정입니다. KeyPath 또는 직접 팩토리가 필요합니다.")
     }
 }
 
-// MARK: - Convenience Functions
+/// ## 🛡️ @SafeInject - 안전한 의존성 주입
+///
+/// fatalError 대신 에러를 던지는 안전한 의존성 주입 Property Wrapper입니다.
+/// 프로덕션 환경에서 앱이 크래시되지 않도록 안전하게 처리할 수 있습니다.
+///
+/// ### 사용법:
+/// ```swift
+/// class UserService {
+///     @SafeInject var apiClient: APIClient?
+///
+///     func loadData() {
+///         do {
+///             let client = try apiClient.getValue()
+///             // 안전하게 사용
+///         } catch {
+///             // 에러 처리
+///             print("API 클라이언트를 로드할 수 없습니다: \(error)")
+///         }
+///     }
+/// }
+/// ```
+@propertyWrapper
+public struct SafeInject<T> {
 
-/// 환경 변수 기반 조건부 주입을 생성합니다
-public func ConditionalInjectFromEnvironment<T>(
-    _ key: String,
-    expectedValue: String,
-    primary: KeyPath<DependencyContainer, T?>,
-    fallback: KeyPath<DependencyContainer, T?>
-) -> ConditionalInject<T> {
-    return ConditionalInject(
-        condition: {
-            ProcessInfo.processInfo.environment[key] == expectedValue
-        },
-        primary: primary,
-        fallback: fallback
-    )
+    // MARK: - Properties
+
+    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let type: T.Type
+    private var cachedValue: T?
+
+    // MARK: - Initialization
+
+    /// KeyPath를 사용한 안전한 초기화
+    /// - Parameter keyPath: DependencyContainer의 KeyPath
+    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
+        self.keyPath = keyPath
+        self.type = T.self
+    }
+
+    /// 타입 추론을 사용한 기본 초기화
+    public init() {
+        self.keyPath = nil
+        self.type = T.self
+    }
+
+    /// 명시적 타입을 사용한 초기화
+    /// - Parameter type: 주입받을 타입
+    public init(_ type: T.Type) {
+        self.keyPath = nil
+        self.type = type
+    }
+
+    // MARK: - Property Wrapper Implementation
+
+    /// 안전한 결과를 반환합니다 (성공 또는 에러)
+    public var wrappedValue: SafeInjectResult<T> {
+        mutating get {
+            do {
+                let value = try getValue()
+                return .success(value)
+            } catch {
+                return .failure(error as? SafeInjectError ?? .unknown(error))
+            }
+        }
+    }
+
+    /// 값을 안전하게 가져옵니다 (throws)
+    /// - Returns: 해결된 의존성
+    /// - Throws: SafeInjectError
+    public mutating func getValue() throws -> T {
+        // 캐시된 값이 있으면 반환
+        if let cached = cachedValue {
+            return cached
+        }
+
+        let resolved: T?
+
+        if let keyPath = keyPath {
+            resolved = DependencyContainer.live[keyPath: keyPath]
+        } else {
+            resolved = DependencyContainer.live.resolve(type)
+        }
+
+        guard let value = resolved else {
+            throw SafeInjectError.dependencyNotFound(type: String(describing: type))
+        }
+
+        self.cachedValue = value
+        return value
+    }
 }
 
-/// UserDefaults 기반 조건부 주입을 생성합니다
-public func ConditionalInjectFromUserDefault<T>(
-    _ key: String,
-    primary: KeyPath<DependencyContainer, T?>,
-    fallback: KeyPath<DependencyContainer, T?>
-) -> ConditionalInject<T> {
-    return ConditionalInject(
-        condition: {
-            UserDefaults.standard.bool(forKey: key)
-        },
-        primary: primary,
-        fallback: fallback
-    )
+// MARK: - Supporting Types
+
+/// 안전한 주입 결과
+public enum SafeInjectResult<T> {
+    case success(T)
+    case failure(SafeInjectError)
+
+    /// 값을 안전하게 추출
+    public func get() throws -> T {
+        switch self {
+        case .success(let value):
+            return value
+        case .failure(let error):
+            throw error
+        }
+    }
+
+    /// nil 허용 값 추출
+    public var value: T? {
+        switch self {
+        case .success(let value):
+            return value
+        case .failure:
+            return nil
+        }
+    }
 }
 
-// MARK: - Type Aliases
+/// 안전한 주입 에러
+public enum SafeInjectError: Error, LocalizedError {
+    case dependencyNotFound(type: String)
+    case unknown(Error)
 
-/// 레거시 호환성을 위한 타입 별칭들
+    public var errorDescription: String? {
+        switch self {
+        case .dependencyNotFound(let type):
+            return "의존성을 찾을 수 없습니다: \(type)"
+        case .unknown(let error):
+            return "알 수 없는 에러: \(error.localizedDescription)"
+        }
+    }
+}
+
+// MARK: - 편의 확장
+
+public extension SafeInjectResult {
+
+    /// 성공한 경우에만 실행
+    func onSuccess(_ action: (T) throws -> Void) rethrows {
+        if case .success(let value) = self {
+            try action(value)
+        }
+    }
+
+    /// 실패한 경우에만 실행
+    func onFailure(_ action: (SafeInjectError) throws -> Void) rethrows {
+        if case .failure(let error) = self {
+            try action(error)
+        }
+    }
+
+    /// 값 변환
+    func map<U>(_ transform: (T) throws -> U) rethrows -> SafeInjectResult<U> {
+        switch self {
+        case .success(let value):
+            return .success(try transform(value))
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+}
+
+// MARK: - 레거시 호환성
+
+/// 기존 코드와의 호환성을 위한 타입 별칭들
 public typealias InjectOptional<T> = Inject<T>
-public typealias InjectRequired<T> = RequiredInject<T>
+public typealias InjectRequired<T> = Inject<T>
+public typealias RequiredInject<T> = Inject<T>
