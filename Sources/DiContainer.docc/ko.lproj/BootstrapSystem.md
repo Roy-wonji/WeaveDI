@@ -209,7 +209,7 @@ do {
 
     if !success {
         // Fallback 처리
-        print("Bootstrap failed, using fallback configuration")
+        Log.error("Bootstrap failed, using fallback configuration")
     }
 } catch {
     fatalError("Critical bootstrap error: \(error)")

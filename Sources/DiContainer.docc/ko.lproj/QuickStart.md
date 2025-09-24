@@ -1,13 +1,11 @@
 # 빠른 시작 가이드
 
-> Language: 한국어 | English: [Quick Start](QuickStart.md)
-
-DiContainer 2.0을 사용하여 Swift 프로젝트에서 의존성 주입을 시작하는 방법을 단계별로 알아보세요.
+DiContainer 2.1을 사용하여 Swift 프로젝트에서 **자동 최적화 의존성 주입**을 시작하는 방법을 단계별로 알아보세요.
 
 ## 개요
 
-DiContainer 2.0은 Swift Concurrency와 Actor Hop 최적화를 활용한 현대적인 의존성 주입 프레임워크입니다.
-Clean Architecture 패턴을 완벽하게 지원하며, 타입 안전성과 성능을 모두 갖춘 DI 솔루션을 제공합니다.
+DiContainer는 **자동으로 의존성 그래프를 생성하고 성능을 최적화**하는 현대적인 의존성 주입 프레임워크입니다.
+별도 설정 없이 등록/해결만 하면 모든 최적화가 자동으로 실행됩니다.
 
 ## 설치 방법
 
@@ -17,7 +15,7 @@ Clean Architecture 패턴을 완벽하게 지원하며, 타입 안전성과 성�
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/DiContainer", from: "2.0.0")
+    .package(url: "https://github.com/Roy-wonji/DiContainer", from: "2.1.0")
 ]
 ```
 
@@ -25,7 +23,7 @@ dependencies: [
 
 1. File → Add Package Dependencies
 2. URL 입력: `https://github.com/Roy-wonji/DiContainer`
-3. 버전 선택: `2.0.0` 이상
+3. 버전 선택: `2.1.0` 이상
 
 ## 기본 설정
 
@@ -45,17 +43,13 @@ protocol NetworkService {
 // 서비스 구현
 class UserServiceImpl: UserService {
     @Inject var networkService: NetworkService?
-    @RequiredInject var logger: LoggerProtocol
 
     func getCurrentUser() async throws -> User {
-        logger.info("사용자 정보 조회 시작")
-
         guard let network = networkService else {
             throw ServiceError.networkUnavailable
         }
 
         let user: User = try await network.request("/user/current")
-        logger.info("사용자 정보 조회 완료: \(user.name)")
         return user
     }
 
@@ -164,7 +158,7 @@ class UserManager {
         case .success(let service):
             try await service.getCurrentUser()
         case .failure(let error):
-            print("UserService 해결 실패: \(error)")
+            Log.error("UserService 해결 실패: \(error)")
         }
     }
 }
@@ -235,7 +229,7 @@ await DependencyContainer.bootstrap { container in
     }
 
     // 등록 직후 서비스를 바로 사용할 수 있음
-    print("등록된 서비스: \(userService), \(networkService)")
+    Log.debug("등록된 서비스: \(userService), \(networkService)")
 }
 ```
 

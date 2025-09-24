@@ -109,7 +109,7 @@ class HeavyService {
 
 // 성능 통계 확인
 let stats = DI.getPerformanceStats()
-print("ExpensiveService 평균 해결 시간: \(stats.averageResolutionTime(for: ExpensiveServiceProtocol.self))ms")
+Log.debug("ExpensiveService 평균 해결 시간: \(stats.averageResolutionTime(for: ExpensiveServiceProtocol.self))ms")
 ```
 
 ## ``@Factory`` - 팩토리 인스턴스 주입
@@ -385,7 +385,7 @@ class OptimizedService {
 
     func performLightOperation() {
         // heavyService를 사용하지 않으면 의존성 해결이 발생하지 않음
-        print("가벼운 작업 수행")
+        Log.debug("가벼운 작업 수행")
     }
 
     func performHeavyOperation() async {
@@ -519,8 +519,8 @@ class DebuggableService {
     @Inject var service: SomeServiceProtocol? {
         didSet {
             if service == nil {
-                print("⚠️ SomeServiceProtocol이 등록되지 않았습니다.")
-                print("등록된 타입들: \(DI.getRegisteredTypes())")
+                Log.error("⚠️ SomeServiceProtocol이 등록되지 않았습니다.")
+                Log.debug("등록된 타입들: \(DI.getRegisteredTypes())")
             }
         }
     }
@@ -537,7 +537,7 @@ class CircularDependencyDetector {
 
         for type in registeredTypes {
             if let circular = DI.detectCircularDependency(for: type) {
-                print("⚠️ 순환 의존성 감지: \(circular.joined(separator: " -> "))")
+                Log.error("⚠️ 순환 의존성 감지: \(circular.joined(separator: " -> "))")
             }
         }
     }
@@ -555,7 +555,7 @@ class PerformanceOptimizedService {
             // 성능 임계값 초과 시 경고
             let metrics = DI.getLastResolutionMetrics(for: SlowServiceProtocol.self)
             if metrics.resolutionTime > 10.0 {
-                print("⚠️ 의존성 해결이 느림: \(metrics.resolutionTime)ms")
+                Log.error("⚠️ 의존성 해결이 느림: \(metrics.resolutionTime)ms")
             }
         }
     }

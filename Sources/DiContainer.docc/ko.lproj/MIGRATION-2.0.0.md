@@ -319,17 +319,21 @@ await AppDIContainer.shared.registerDependencies { container in
 - 2.0.0에서는 AutoResolver가 메인 액터에서 동작하여 UI/주입 안전성을 높였습니다.
 - 자동 해석을 전체 끄거나, 특정 타입만 제외할 수 있습니다.
 
-```swift
-// 전체 토글
-AutoDependencyResolver.enable()
-AutoDependencyResolver.disable()
+**2.1.0부터 AutoDependencyResolver가 AutoDIOptimizer로 교체되었습니다:**
 
-// 타입별 제외/해제
-AutoDependencyResolver.excludeType(UserService.self)
-AutoDependencyResolver.includeType(UserService.self)
+```swift
+// 자동 최적화 제어 (기본값: 활성화)
+UnifiedDI.setAutoOptimization(true)  // 활성화
+UnifiedDI.setAutoOptimization(false) // 비활성화
+
+// 자동 수집된 정보는 LogMacro를 통해 자동으로 출력됩니다
+// 별도 print 호출 불필요 - 등록/해결 시 자동 로깅:
+// 📊 Auto tracking registration: UserService
+// ⚡ Auto optimized: UserService (10 uses)
+// 📊 [AutoDI] Current stats: {"UserService": 15}
 ```
 
-- 문자열 기반 공통 타입 매핑은 제거되었습니다. `@AutoResolve` 또는 명시적 등록을 사용해 타입을 알려주세요.
+- 자동화가 더욱 간편해졌습니다. 별도 설정 없이 등록/해결만 하면 모든 최적화가 자동으로 실행됩니다.
 
 ## TCA 통합 코드 예(업데이트)
 

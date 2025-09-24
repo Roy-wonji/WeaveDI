@@ -167,13 +167,9 @@ class OptimizedViewController {
 
 ### 고급 기능
 
-#### 자동 해결 시스템
-- <doc:AutoResolution>
-- ``AutoDependencyResolver``
-
-#### 플러그인 시스템
-- <doc:PluginSystem>
-- ``BasePlugin``
+#### 자동 최적화 시스템
+- <doc:AutoDIOptimizer>
+- ``AutoDIOptimizer``
 
 #### 모듈 팩토리
 - ``ModuleFactory``
@@ -183,10 +179,9 @@ class OptimizedViewController {
 
 ### 성능 최적화
 
-- <doc:ActorHop>
-- ``SimplePerformanceOptimizer``
-- ``TypeSafeRegistry``
-- ``UnifiedRegistry``
+- ``AutoDIOptimizer`` - 자동 성능 최적화
+- ``TypeSafeRegistry`` - 타입 안전 레지스트리
+- ``UnifiedRegistry`` - 통합 레지스트리
  - <doc:Scopes>
 
 ### 프로퍼티 래퍼 확장

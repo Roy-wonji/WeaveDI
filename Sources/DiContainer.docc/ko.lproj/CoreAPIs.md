@@ -199,7 +199,7 @@ switch result {
 case .success(let service):
     // 사용
 case .failure(let error):
-    print("해결 실패: \(error)")
+    Log.error("해결 실패: \(error)")
 }
 ```
 
@@ -419,9 +419,9 @@ class AppValidator {
             let result = DI.resolveResult(serviceType)
             switch result {
             case .success:
-                print("✅ \(serviceType) 등록됨")
+                Log.debug("✅ \(serviceType) 등록됨")
             case .failure(let error):
-                print("❌ \(serviceType) 등록 실패: \(error)")
+                Log.error("❌ \(serviceType) 등록 실패: \(error)")
                 assertionFailure("필수 의존성 누락")
             }
         }
