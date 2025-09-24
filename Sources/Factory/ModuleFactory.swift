@@ -16,8 +16,8 @@ public protocol ModuleFactory {
     /// 모듈 생성 시 필요한 의존성 등록 헬퍼
     var registerModule: RegisterModule { get }
 
-    /// 모듈을 생성하는 클로저들의 배열
-    var definitions: [() -> Module] { get set }
+    /// 모듈을 생성하는 클로저들의 배열 (Sendable)
+    var definitions: [@Sendable () -> Module] { get set }
 
     /// 모든 모듈 인스턴스를 생성합니다
     func makeAllModules() -> [Module]
@@ -34,9 +34,9 @@ public extension ModuleFactory {
 // MARK: - Specialized Factory Types
 
 /// Repository 계층 모듈 팩토리
-public struct RepositoryModuleFactory: ModuleFactory, @unchecked Sendable {
+public struct RepositoryModuleFactory: ModuleFactory, Sendable {
     public let registerModule = RegisterModule()
-    public var definitions: [() -> Module] = []
+    public var definitions: [@Sendable () -> Module] = []
 
     public init() {}
 
@@ -44,18 +44,19 @@ public struct RepositoryModuleFactory: ModuleFactory, @unchecked Sendable {
     public mutating func addRepository<T>(
         _ type: T.Type,
         factory: @Sendable @escaping () -> T
-    ) {
+    ) where T: Sendable {
         let helper = registerModule
-        definitions.append {
+        let closure: @Sendable () -> Module = {
             helper.makeModule(type, factory: factory)
         }
+        definitions.append(closure)
     }
 }
 
 /// UseCase 계층 모듈 팩토리
-public struct UseCaseModuleFactory: ModuleFactory, @unchecked Sendable {
+public struct UseCaseModuleFactory: ModuleFactory, Sendable {
     public let registerModule = RegisterModule()
-    public var definitions: [() -> Module] = []
+    public var definitions: [@Sendable () -> Module] = []
 
     public init() {}
 
@@ -65,9 +66,9 @@ public struct UseCaseModuleFactory: ModuleFactory, @unchecked Sendable {
         repositoryType: Repo.Type,
         repositoryFallback: @Sendable @escaping () -> Repo,
         factory: @Sendable @escaping (Repo) -> UseCase
-    ) {
+    ) where UseCase: Sendable {
         let helper = registerModule
-        definitions.append {
+        let closure: @Sendable () -> Module = {
             helper.makeUseCaseWithRepository(
                 useCaseType,
                 repositoryProtocol: repositoryType,
@@ -75,13 +76,14 @@ public struct UseCaseModuleFactory: ModuleFactory, @unchecked Sendable {
                 factory: factory
             )()
         }
+        definitions.append(closure)
     }
 }
 
 /// Scope 계층 모듈 팩토리
 public struct ScopeModuleFactory: ModuleFactory, @unchecked Sendable {
     public let registerModule = RegisterModule()
-    public var definitions: [() -> Module] = []
+    public var definitions: [@Sendable () -> Module] = []
 
     public init() {}
 
@@ -89,11 +91,12 @@ public struct ScopeModuleFactory: ModuleFactory, @unchecked Sendable {
     public mutating func addScoped<T>(
         _ type: T.Type,
         factory: @Sendable @escaping () -> T
-    ) {
+    ) where T: Sendable {
         let helper = registerModule
-        definitions.append {
+        let closure: @Sendable () -> Module = {
             helper.makeModule(type, factory: factory)
         }
+        definitions.append(closure)
     }
 }
 

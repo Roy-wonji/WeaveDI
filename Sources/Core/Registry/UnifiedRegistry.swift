@@ -75,12 +75,12 @@ public actor UnifiedRegistry {
     // MARK: - Storage Types
 
     /// Type-erased, sendable box for storing values safely across concurrency boundaries
-    public struct ValueBox: @unchecked Sendable {
-        public let value: Any
+    public struct ValueBox: Sendable {
+        public let value: any Sendable
         public let typeName: String
 
-        public init<T>(_ value: T) {
-            self.value = value
+        public init<T>(_ value: T) where T: Sendable {
+            self.value = value as any Sendable
             self.typeName = String(describing: T.self)
         }
 
@@ -133,7 +133,7 @@ public actor UnifiedRegistry {
     public func register<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
-    ) {
+    ) where T: Sendable {
         let key = AnyTypeIdentifier(type: type)
         let syncFactory: SyncFactory = { ValueBox(factory()) }
 
@@ -154,7 +154,7 @@ public actor UnifiedRegistry {
     public func registerAsync<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () async -> T
-    ) {
+    ) where T: Sendable {
         let key = AnyTypeIdentifier(type: type)
         let asyncFactory: AsyncFactory = { ValueBox(await factory()) }
 
@@ -168,7 +168,7 @@ public actor UnifiedRegistry {
     public func registerAsyncSingleton<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () async -> T
-    ) {
+    ) where T: Sendable {
         let key = AnyTypeIdentifier(type: type)
         let cachedFactory: AsyncFactory = { [weak self] in
             guard let self = self else { return ValueBox(await factory()) }
@@ -180,7 +180,7 @@ public actor UnifiedRegistry {
     }
 
     /// 내부 헬퍼: Async 싱글톤 박스 얻기/생성
-    private func getAsyncSingletonBox<T>(
+    private func getAsyncSingletonBox<T: Sendable>(
         for key: AnyTypeIdentifier,
         factory: @escaping @Sendable () async -> T
     ) async -> ValueBox {
@@ -201,7 +201,7 @@ public actor UnifiedRegistry {
         condition: Bool,
         factory: @escaping @Sendable () -> T,
         fallback: @escaping @Sendable () -> T
-    ) {
+    ) where T: Sendable {
         let selectedFactory = condition ? factory : fallback
         register(type, factory: selectedFactory)
 
@@ -215,7 +215,7 @@ public actor UnifiedRegistry {
         condition: Bool,
         factory: @escaping @Sendable () async -> T,
         fallback: @escaping @Sendable () async -> T
-    ) {
+    ) where T: Sendable {
         let selectedFactory = condition ? factory : fallback
         registerAsync(type, factory: selectedFactory)
 
@@ -232,7 +232,7 @@ public actor UnifiedRegistry {
     public func register<T>(
         keyPath: KeyPath<DependencyContainer, T?>,
         factory: @escaping @Sendable () -> T
-    ) {
+    ) where T: Sendable {
         let keyPathString = String(describing: keyPath)
         let typeKey = AnyTypeIdentifier(type: T.self)
 
@@ -251,7 +251,7 @@ public actor UnifiedRegistry {
         _ type: T.Type,
         scope: ScopeKind,
         factory: @escaping @Sendable () -> T
-    ) {
+    ) where T: Sendable {
         let key = AnyTypeIdentifier(type: type)
         let syncFactory: SyncFactory = { ValueBox(factory()) }
         scopedFactories[key] = (scope, syncFactory)
@@ -263,7 +263,7 @@ public actor UnifiedRegistry {
         _ type: T.Type,
         scope: ScopeKind,
         factory: @escaping @Sendable () async -> T
-    ) {
+    ) where T: Sendable {
         let key = AnyTypeIdentifier(type: type)
         let asyncFactory: AsyncFactory = { ValueBox(await factory()) }
         scopedAsyncFactories[key] = (scope, asyncFactory)
@@ -273,100 +273,11 @@ public actor UnifiedRegistry {
 
     // MARK: - Resolution
 
-    /// 동기 의존성 해결
-    /// - Parameter type: 해결할 타입
-    /// - Returns: 해결된 인스턴스 (없으면 nil)
-    public func resolve<T>(_ type: T.Type) -> T? {
-        let key = AnyTypeIdentifier(type: type)
+    // (Removed) Sync resolve API. Use resolveAsync(_:) instead.
 
-        // Scoped 팩토리에서 생성/캐시
-        if let (scopeKind, factory) = scopedFactories[key] {
-            if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
-                let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: scopeKind, id: scopeId))
-                if let cached = scopedInstances[sKey], let resolved: T = cached.unwrap() {
-                    return resolved
-                }
-                let box = factory()
-                scopedInstances[sKey] = box
-                if let resolved: T = box.unwrap() { return resolved }
-            } else {
-                let box = factory()
-                if let resolved: T = box.unwrap() { return resolved }
-            }
-        }
+    // (Removed) Sync resolveAny API. Use resolveAnyAsync(_:) instead.
 
-        // 동기 팩토리에서 생성
-        if let factory = syncFactories[key] {
-            let box = factory()
-            let resolved: T? = box.unwrap()
-            if let result = resolved {
-                Log.debug("✅ [UnifiedRegistry] Resolved from sync factory \(String(describing: type))")
-                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
-                return result
-            }
-        }
-
-        Log.debug("❌ [UnifiedRegistry] Failed to resolve \(String(describing: type))")
-        return nil
-    }
-
-    /// 런타임 타입(Any.Type)으로 의존성을 해결합니다.
-    /// - Parameter type: 해결할 런타임 타입
-    /// - Returns: 해결된 인스턴스 (없으면 nil)
-    public func resolveAny(_ type: Any.Type) -> Any? {
-        let key = AnyTypeIdentifier(anyType: type)
-
-        // Scoped 팩토리
-        if let (scopeKind, factory) = scopedFactories[key] {
-            if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
-                let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: scopeKind, id: scopeId))
-                if let cached = scopedInstances[sKey] { return cached.value }
-                let box = factory()
-                scopedInstances[sKey] = box
-                return box.value
-            } else {
-                return factory().value
-            }
-        }
-
-        // 동기 팩토리
-        if let factory = syncFactories[key] {
-            let box = factory()
-            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
-            return box.value
-        }
-
-        // 3) 비동기 팩토리는 여기서 즉시 생성하지 않음 (컨텍스트가 async가 아님)
-        return nil
-    }
-
-    /// 런타임 타입(Any.Type)으로 의존성을 해결하고, Sendable 박스로 반환합니다.
-    /// - Parameter type: 해결할 런타임 타입
-    /// - Returns: ValueBox(@unchecked Sendable)에 담긴 값 (없으면 nil)
-    public func resolveAnyBox(_ type: Any.Type) -> ValueBox? {
-        let key = AnyTypeIdentifier(anyType: type)
-
-        if let (scopeKind, factory) = scopedFactories[key] {
-            if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
-                let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: scopeKind, id: scopeId))
-                if let cached = scopedInstances[sKey] { return cached }
-                let box = factory()
-                scopedInstances[sKey] = box
-                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
-                return box
-            } else {
-                let v = factory()
-                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
-                return v
-            }
-        }
-        if let factory = syncFactories[key] {
-            let v = factory()
-            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
-            return v
-        }
-        return nil
-    }
+    // (Removed) Sync resolveAnyBox API. Use resolveAnyAsyncBox(_:) instead.
 
     /// 비동기 컨텍스트에서 런타임 타입(Any.Type)으로 의존성을 해결합니다.
     /// - Parameter type: 해결할 런타임 타입
@@ -383,18 +294,18 @@ public actor UnifiedRegistry {
                 return box.value
             } else {
                 let v = await asyncFactory()
-                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
                 return v.value
             }
         }
         if let asyncFactory = asyncFactories[key] {
             let v = await asyncFactory()
-            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+            await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
             return v.value
         }
         if let syncFactory = syncFactories[key] {
             let v = syncFactory()
-            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+            await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
             return v.value
         }
         return nil
@@ -414,18 +325,18 @@ public actor UnifiedRegistry {
                 return box
             } else {
                 let v = await asyncFactory()
-                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
                 return v
             }
         }
         if let asyncFactory = asyncFactories[key] {
             let v = await asyncFactory()
-            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+            await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
             return v
         }
         if let syncFactory = syncFactories[key] {
             let v = syncFactory()
-            CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+            await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
             return v
         }
         return nil
@@ -434,7 +345,7 @@ public actor UnifiedRegistry {
     /// 비동기 의존성 해결
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
-    public func resolveAsync<T>(_ type: T.Type) async -> T? {
+    public func resolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
         let key = AnyTypeIdentifier(type: type)
 
         // 1. Scoped 비동기 팩토리에서 생성
@@ -447,13 +358,13 @@ public actor UnifiedRegistry {
                 let box = await asyncFactory()
                 scopedInstances[sKey] = box
                 if let resolved: T = box.unwrap() {
-                    CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                    await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
                     return resolved
                 }
             } else {
                 let box = await asyncFactory()
                 if let resolved: T = box.unwrap() {
-                    CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                    await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
                     return resolved
                 }
             }
@@ -465,7 +376,7 @@ public actor UnifiedRegistry {
             let resolved: T? = box.unwrap()
             if let result = resolved {
                 Log.debug("✅ [UnifiedRegistry] Resolved from async factory \(String(describing: type))")
-                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
                 return result
             }
         }
@@ -476,7 +387,7 @@ public actor UnifiedRegistry {
             let resolved: T? = box.unwrap()
             if let result = resolved {
                 Log.debug("✅ [UnifiedRegistry] Resolved from sync factory (async context) \(String(describing: type))")
-                CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+                await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
                 return result
             }
         }
@@ -485,19 +396,16 @@ public actor UnifiedRegistry {
         return nil
     }
 
-    /// KeyPath를 사용한 해결
-    /// - Parameter keyPath: DependencyContainer 내의 KeyPath
-    /// - Returns: 해결된 인스턴스 (없으면 nil)
-    public func resolve<T>(keyPath: KeyPath<DependencyContainer, T?>) -> T? {
-        let keyPathString = String(describing: keyPath)
+    // (Removed) Sync resolve(keyPath:) API. Use resolveAsync(keyPath:) instead.
 
+    /// KeyPath를 사용한 해결 (async)
+    public func resolveAsync<T>(keyPath: KeyPath<DependencyContainer, T?>) async -> T? where T: Sendable {
+        let keyPathString = String(describing: keyPath)
         guard keyPathMappings[keyPathString] != nil else {
             Log.debug("❌ [UnifiedRegistry] KeyPath not found: \(keyPathString)")
             return nil
         }
-
-        // TypeKey로부터 실제 타입을 복원할 수 없으므로 direct resolve 사용
-        return resolve(T.self)
+        return await resolveAsync(T.self)
     }
 
     // MARK: - Management

@@ -74,6 +74,7 @@ extension Inject where T: AnyObject {
     public var wrappedValue: T {
         if let keyPath = keyPath {
             guard let resolved = DependencyContainer.live[keyPath: keyPath] else {
+                #if DEBUG
                 fatalError("""
                 🚨 [Inject] 필수 의존성을 찾을 수 없습니다!
 
@@ -83,6 +84,12 @@ extension Inject where T: AnyObject {
                 💡 해결방법:
                    UnifiedDI.register(\\.keyPath) { YourImplementation() }
                 """)
+                #else
+                Log.error("🚨 [Inject] 필수 의존성을 찾을 수 없습니다! KeyPath: \(keyPath), 타입: \(T.self)")
+                // 런타임에서는 빈 구현체나 기본값 반환을 고려할 수 있음
+                // 하지만 일반적으로는 여전히 크래시를 허용하는 것이 안전함
+                fatalError("Required dependency not found")
+                #endif
             }
             return resolved
         }

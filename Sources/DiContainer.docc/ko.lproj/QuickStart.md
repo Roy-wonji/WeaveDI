@@ -1,82 +1,225 @@
 # 빠른 시작 가이드
 
-DiContainer 2.1을 사용하여 Swift 프로젝트에서 **자동 최적화 의존성 주입**을 시작하는 방법을 단계별로 알아보세요.
+DiContainer를 5분만에 시작해보세요!
 
 ## 개요
 
-DiContainer는 **자동으로 의존성 그래프를 생성하고 성능을 최적화**하는 현대적인 의존성 주입 프레임워크입니다.
-별도 설정 없이 등록/해결만 하면 모든 최적화가 자동으로 실행됩니다.
+DiContainer 2.0은 Swift Concurrency와 자동 최적화를 완벽 지원하는 현대적인 의존성 주입 프레임워크입니다. 이 가이드에서는 가장 기본적인 사용 방법부터 고급 기능까지 단계별로 안내합니다.
 
-## 설치 방법
+## 1단계: 설치
 
 ### Swift Package Manager
 
-`Package.swift` 파일에 DiContainer를 추가하세요:
-
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/DiContainer", from: "2.1.0")
+    .package(url: "https://github.com/Roy-wonji/DiContainer.git", from: "2.0.0")
 ]
 ```
 
 ### Xcode에서 설치
 
-1. File → Add Package Dependencies
-2. URL 입력: `https://github.com/Roy-wonji/DiContainer`
-3. 버전 선택: `2.1.0` 이상
+1. Xcode에서 프로젝트 열기
+2. File → Add Package Dependencies
+3. URL 입력: `https://github.com/Roy-wonji/DiContainer.git`
+4. Add Package
 
-## 기본 설정
-
-### 1. 서비스 정의하기
+## 2단계: 임포트
 
 ```swift
-// 서비스 프로토콜 정의
+import DiContainer
+```
+
+## 3단계: 첫 번째 의존성 등록
+
+### 서비스 정의
+
+```swift
+// 프로토콜 정의
 protocol UserService {
-    func getCurrentUser() async throws -> User
-    func updateUser(_ user: User) async throws
+    func getUser(id: String) -> User?
+    func saveUser(_ user: User) throws
 }
 
-protocol NetworkService {
-    func request<T: Codable>(_ endpoint: String) async throws -> T
-}
-
-// 서비스 구현
+// 구현체 정의
 class UserServiceImpl: UserService {
-    @Inject var networkService: NetworkService?
-
-    func getCurrentUser() async throws -> User {
-        guard let network = networkService else {
-            throw ServiceError.networkUnavailable
-        }
-
-        let user: User = try await network.request("/user/current")
-        return user
+    func getUser(id: String) -> User? {
+        // 사용자 조회 로직
+        return User(id: id, name: "Sample User")
     }
 
-    func updateUser(_ user: User) async throws {
-        try await networkService?.request("/user/update")
-    }
-}
-
-class URLSessionNetworkService: NetworkService {
-    func request<T: Codable>(_ endpoint: String) async throws -> T {
-        // URLSession을 사용한 네트워크 구현
-        // ...
+    func saveUser(_ user: User) throws {
+        // 사용자 저장 로직
+        Log.debug("Saving user: \(user.name)")
     }
 }
 ```
 
-### 2. 의존성 부트스트랩
-
-`App` 또는 `AppDelegate`에서 설정:
+### 의존성 등록 (UnifiedDI 사용)
 
 ```swift
+// 앱 시작 시점에 등록
+let userService = UnifiedDI.register(UserService.self) {
+    UserServiceImpl()
+}
+
+// 즉시 사용 가능
+let user = userService.getUser(id: "123")
+```
+
+## 4단계: Property Wrapper로 주입
+
+### @Inject - 기본 주입
+
+```swift
+class UserViewController {
+    @Inject var userService: UserService?
+
+    func loadUser() {
+        if let service = userService {
+            let user = service.getUser(id: "current")
+            // UI 업데이트
+        }
+    }
+}
+```
+
+### @Factory - 매번 새로운 인스턴스
+
+```swift
+class ReportGenerator {
+    @Factory var pdfGenerator: PDFGenerator
+
+    func generateReport() {
+        // 매번 새로운 PDFGenerator 인스턴스 사용
+        let pdf = pdfGenerator.create()
+        return pdf
+    }
+}
+
+// PDFGenerator 등록
+_ = UnifiedDI.register(PDFGenerator.self) {
+    PDFGenerator()
+}
+```
+
+### @SafeInject - 안전한 주입 (에러 처리)
+
+```swift
+class APIController {
+    @SafeInject var apiService: APIService?
+
+    func fetchData() async {
+        do {
+            let service = try apiService.getValue()
+            let data = await service.fetchUserData()
+            // 데이터 처리
+        } catch {
+            Log.error("API service not available: \(error)")
+            // 대체 로직
+        }
+    }
+}
+```
+
+## 5단계: 다양한 등록 방법
+
+### KeyPath 등록
+
+```swift
+// Extension으로 KeyPath 정의
+extension DependencyContainer {
+    var userService: UserService? {
+        resolve(UserService.self)
+    }
+}
+
+// KeyPath로 등록
+let userService = UnifiedDI.register(\.userService) {
+    UserServiceImpl()
+}
+```
+
+### 조건부 등록
+
+```swift
+// 환경에 따른 조건부 등록
+let analyticsService = UnifiedDI.Conditional.registerIf(
+    AnalyticsService.self,
+    condition: isProduction,
+    factory: { FirebaseAnalyticsService() },  // 프로덕션용
+    fallback: { MockAnalyticsService() }      // 개발/테스트용
+)
+```
+
+## 6단계: 해결 방법들
+
+### 기본 해결
+
+```swift
+// 옵셔널 해결 (안전)
+let service = UnifiedDI.resolve(UserService.self)
+if let service = service {
+    // 사용
+}
+
+// 필수 해결 (없으면 크래시)
+let requiredService = UnifiedDI.requireResolve(UserService.self)
+// 항상 유효한 인스턴스
+
+// 기본값과 함께 해결
+let cacheService = UnifiedDI.resolve(
+    CacheService.self,
+    default: MemoryCacheService()
+)
+// 항상 유효한 인스턴스 (등록되지 않으면 기본값 사용)
+```
+
+## 7단계: 자동 최적화 활용
+
+### 자동화 기능 켜기
+
+```swift
+// 앱 시작 시점에 설정
+UnifiedDI.setAutoOptimization(true)  // 기본값: true
+UnifiedDI.setLogLevel(.all)          // 기본값: .all
+```
+
+### 자동 수집 정보 확인
+
+```swift
+// 사용 통계 확인
+let stats = UnifiedDI.stats
+Log.debug("사용 통계: \(stats)")
+
+// Actor hop 통계 확인
+let actorHopStats = UnifiedDI.actorHopStats
+Log.debug("Actor hop 통계: \(actorHopStats)")
+
+// 최적화 제안 확인
+let optimizations = UnifiedDI.actorOptimizations
+for (type, optimization) in optimizations {
+    Log.debug("최적화 제안 - \(type): \(optimization.suggestion)")
+}
+
+// 타입 안전성 이슈 확인
+let safetyIssues = UnifiedDI.typeSafetyIssues
+for (type, issue) in safetyIssues {
+    Log.warning("타입 안전성 이슈 - \(type): \(issue.suggestion)")
+}
+```
+
+## 8단계: 실제 앱 구조 예시
+
+### App.swift
+
+```swift
+import SwiftUI
+import DiContainer
+
 @main
 struct MyApp: App {
     init() {
-        Task {
-            await setupDependencies()
-        }
+        setupDependencies()
     }
 
     var body: some Scene {
@@ -85,250 +228,228 @@ struct MyApp: App {
         }
     }
 
-    private func setupDependencies() async {
-        await DependencyContainer.bootstrap { container in
-            // 서비스 등록
-            container.register(NetworkService.self) {
-                URLSessionNetworkService()
-            }
+    private func setupDependencies() {
+        // 자동 최적화 활성화
+        UnifiedDI.setAutoOptimization(true)
+        UnifiedDI.setLogLevel(.all)
 
-            container.register(UserService.self) {
-                UserServiceImpl()
-            }
-
-            #if DEBUG
-            // 디버그 빌드에서는 Mock 사용
-            container.register(NetworkService.self) {
-                MockNetworkService()
-            }
-            #endif
+        // Core Services
+        _ = UnifiedDI.register(NetworkService.self) {
+            URLSessionNetworkService()
         }
+
+        _ = UnifiedDI.register(DatabaseService.self) {
+            CoreDataService()
+        }
+
+        // Business Services
+        _ = UnifiedDI.register(UserService.self) {
+            UserServiceImpl()
+        }
+
+        _ = UnifiedDI.register(AuthService.self) {
+            AuthServiceImpl()
+        }
+
+        // Analytics (조건부)
+        _ = UnifiedDI.Conditional.registerIf(
+            AnalyticsService.self,
+            condition: !ProcessInfo.processInfo.arguments.contains("--uitests"),
+            factory: { FirebaseAnalyticsService() },
+            fallback: { MockAnalyticsService() }
+        )
+
+        Log.debug("Dependencies registered successfully")
     }
 }
 ```
 
-### 3. 의존성 주입 사용하기
-
-#### 프로퍼티 래퍼 사용 (권장)
+### ContentView.swift
 
 ```swift
-class UserViewController: UIViewController {
-    // 자동 주입 - 접근 시점에 자동으로 해결됨
-    @Inject var userService: UserService
+import SwiftUI
+import DiContainer
 
-    // 선택적 주입 - 등록되지 않은 경우 nil 반환
+struct ContentView: View {
+    @StateObject private var viewModel = ContentViewModel()
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                if viewModel.isLoading {
+                    ProgressView("Loading...")
+                } else {
+                    Text("Hello, \(viewModel.currentUser?.name ?? "Guest")!")
+                }
+
+                Button("Load User") {
+                    Task {
+                        await viewModel.loadCurrentUser()
+                    }
+                }
+            }
+            .navigationTitle("DiContainer Demo")
+        }
+    }
+}
+
+class ContentViewModel: ObservableObject {
+    @Published var currentUser: User?
+    @Published var isLoading = false
+
+    @Inject var userService: UserService?
     @Inject var analyticsService: AnalyticsService?
 
-    // 필수 주입 - 등록되지 않은 경우 크래시 (신중하게 사용!)
-    @RequiredInject var coreService: CoreService
+    @MainActor
+    func loadCurrentUser() async {
+        isLoading = true
+        defer { isLoading = false }
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        loadUserData()
+        analyticsService?.track(event: "user_load_started")
+
+        // 사용자 로드
+        currentUser = userService?.getUser(id: "current")
+
+        analyticsService?.track(event: "user_load_completed")
     }
+}
+```
 
-    private func loadUserData() {
-        Task {
-            do {
-                let user = try await userService.getCurrentUser()
-                updateUI(with: user)
-            } catch {
-                showError(error)
-            }
+## 9단계: 테스트 설정
+
+### 테스트용 의존성 설정
+
+```swift
+import XCTest
+@testable import DiContainer
+
+class MyAppTests: XCTestCase {
+
+    @MainActor
+    override func setUp() {
+        super.setUp()
+
+        // 테스트 환경 초기화
+        UnifiedDI.releaseAll()
+        UnifiedDI.setLogLevel(.off)  // 테스트 중 로그 끄기
+
+        // Mock 서비스들 등록
+        _ = UnifiedDI.register(UserService.self) {
+            MockUserService()
         }
-    }
-}
-```
 
-#### 직접 해결 방식
-
-```swift
-class UserManager {
-    private let userService: UserService
-
-    init() {
-        // 필요할 때 수동으로 의존성 해결
-        self.userService = DI.resolve(UserService.self) ?? UserServiceImpl()
-    }
-
-    func processUser() async {
-        // 에러 처리와 함께 사용
-        let result = DI.resolveResult(UserService.self)
-        switch result {
-        case .success(let service):
-            try await service.getCurrentUser()
-        case .failure(let error):
-            Log.error("UserService 해결 실패: \(error)")
-        }
-    }
-}
-```
-
-## 고급 등록 패턴
-
-### 환경별 등록
-
-```swift
-await DependencyContainer.bootstrap { container in
-    #if DEBUG
-    container.register(NetworkService.self) { MockNetworkService() }
-    container.register(UserService.self) { MockUserService() }
-    #elseif STAGING
-    container.register(NetworkService.self) { StagingNetworkService() }
-    container.register(UserService.self) { UserServiceImpl() }
-    #else
-    container.register(NetworkService.self) { ProductionNetworkService() }
-    container.register(UserService.self) { UserServiceImpl() }
-    #endif
-}
-```
-
-### 팩토리 기반 등록
-
-```swift
-struct ServiceFactory {
-    static func createNetworkService() -> NetworkService {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        return URLSessionNetworkService(configuration: config)
-    }
-
-    static func createUserService() -> UserService {
-        return UserServiceImpl()
-    }
-}
-
-// 팩토리를 사용한 등록
-await DependencyContainer.bootstrap { container in
-    container.register(NetworkService.self) {
-        ServiceFactory.createNetworkService()
-    }
-
-    container.register(UserService.self) {
-        ServiceFactory.createUserService()
-    }
-}
-```
-
-### KeyPath 기반 등록
-
-```swift
-extension DependencyContainer {
-    var userService: UserService? { resolve(UserService.self) }
-    var networkService: NetworkService? { resolve(NetworkService.self) }
-}
-
-// 타입 안전성을 위한 KeyPath 사용
-await DependencyContainer.bootstrap { container in
-    let userService = container.register(\.userService) {
-        UserServiceImpl()
-    }
-
-    let networkService = container.register(\.networkService) {
-        URLSessionNetworkService()
-    }
-
-    // 등록 직후 서비스를 바로 사용할 수 있음
-    Log.debug("등록된 서비스: \(userService), \(networkService)")
-}
-```
-
-## 테스트 설정
-
-```swift
-class UserServiceTests: XCTestCase {
-    override func setUp() async throws {
-        await super.setUp()
-
-        // 깨끗한 테스트를 위해 DI 상태 리셋
-        await DependencyContainer.releaseAll()
-
-        // 테스트 의존성 설정
-        await DependencyContainer.bootstrap { container in
-            container.register(NetworkService.self) {
-                MockNetworkService()
-            }
-
-            container.register(UserService.self) {
-                UserServiceImpl()
-            }
+        _ = UnifiedDI.register(NetworkService.self) {
+            MockNetworkService()
         }
     }
 
-    func testGetCurrentUser() async throws {
-        let userService: UserService = DI.requireResolve(UserService.self)
-        let user = try await userService.getCurrentUser()
+    @MainActor
+    override func tearDown() {
+        UnifiedDI.releaseAll()
+        super.tearDown()
+    }
 
-        XCTAssertEqual(user.id, "test-user")
+    func testUserServiceRegistration() {
+        // Given
+        let userService = UnifiedDI.resolve(UserService.self)
+
+        // Then
+        XCTAssertNotNil(userService)
+        XCTAssertTrue(userService is MockUserService)
+    }
+}
+
+// Mock 구현
+class MockUserService: UserService {
+    func getUser(id: String) -> User? {
+        return User(id: id, name: "Mock User")
+    }
+
+    func saveUser(_ user: User) throws {
+        // Mock implementation
     }
 }
 ```
 
-## 일반적인 패턴들
+## 10단계: 고급 사용법 미리보기
 
-### 싱글턴 서비스
-
-```swift
-// 싱글턴 인스턴스 생성
-let sharedAnalytics = AnalyticsManager()
-let sharedCache = CacheManager()
-
-await DependencyContainer.bootstrap { container in
-    // 동일한 인스턴스 등록 - 싱글턴으로 동작
-    container.register(AnalyticsManager.self) { sharedAnalytics }
-    container.register(CacheManager.self) { sharedCache }
-}
-```
-
-### 조건부 등록
+### 비동기 의존성
 
 ```swift
-await DependencyContainer.bootstrap { container in
-    // 런타임 조건에 따른 등록
-    if UserDefaults.standard.bool(forKey: "useAnalytics") {
-        container.register(AnalyticsService.self) {
-            GoogleAnalyticsService()
-        }
-    } else {
-        container.register(AnalyticsService.self) {
-            NoOpAnalyticsService()
-        }
+// 비동기로 초기화되는 서비스
+class DatabaseService {
+    static func initialize() async -> DatabaseService {
+        let service = DatabaseService()
+        await service.connect()
+        return service
+    }
+
+    private func connect() async {
+        // DB 연결 로직
     }
 }
+
+// 등록 시
+let dbService = await DatabaseService.initialize()
+_ = UnifiedDI.register(DatabaseService.self) { dbService }
 ```
 
-## AppDIContainer 활용
-
-AppDIContainer는 대규모 애플리케이션을 위한 체계적인 DI 관리 시스템입니다:
+### Actor 기반 서비스
 
 ```swift
-@main
-struct MyApp: App {
-    init() {
-        Task {
-            await AppDIContainer.shared.registerDependencies { container in
-                // Repository 모듈 등록
-                var repoFactory = AppDIContainer.shared.repositoryFactory
-                repoFactory.registerDefaultDefinitions()
-
-                await repoFactory.makeAllModules().asyncForEach { module in
-                    await container.register(module)
-                }
-
-                // UseCase 모듈 등록
-                let useCaseFactory = AppDIContainer.shared.useCaseFactory
-                await useCaseFactory.makeAllModules().asyncForEach { module in
-                    await container.register(module)
-                }
-            }
-        }
+@MainActor
+class UIService {
+    func updateUI() {
+        // UI 업데이트 로직 - 자동으로 MainActor에서 실행
     }
+}
+
+// 등록
+_ = UnifiedDI.register(UIService.self) {
+    UIService()
+}
+
+// 사용 - Actor hop 자동 감지
+Task {
+    let uiService = UnifiedDI.resolve(UIService.self)
+    await uiService?.updateUI()  // MainActor로 자동 hop
 }
 ```
 
 ## 다음 단계
 
-- <doc:모듈시스템>에서 대규모 의존성 그래프 구성 방법 학습
-- <doc:액터홉최적화>에서 최대 성능을 위한 최적화 기법 탐구
-- <doc:프로퍼티래퍼>에서 @Inject, @Factory 등의 활용법 이해
-- <doc:플러그인시스템>에서 확장 가능한 아키텍처 구축 방법 학습
+이제 DiContainer의 기본 사용법을 익혔습니다! 더 자세한 내용은 다음 가이드들을 참고하세요:
+
+- [Property Wrapper 상세 가이드](PropertyWrappers.md) - 모든 Property Wrapper 패턴
+- [자동 최적화 가이드](AutoDIOptimizer.md) - 성능 최적화 기능
+- [Core API 참조](CoreAPIs.md) - 모든 API 레퍼런스
+
+## 문제 해결
+
+### 자주 발생하는 문제들
+
+1. **의존성이 nil로 해결되는 경우**
+   ```swift
+   // 등록이 해결보다 먼저 되었는지 확인
+   _ = UnifiedDI.register(Service.self) { ServiceImpl() }
+   let service = UnifiedDI.resolve(Service.self) // 이제 정상 동작
+   ```
+
+2. **테스트에서 의존성이 격리되지 않는 경우**
+   ```swift
+   @MainActor
+   override func setUp() {
+       UnifiedDI.releaseAll()  // 이전 테스트의 의존성 정리
+       // 새 의존성 등록
+   }
+   ```
+
+3. **타입 안전성 경고가 나타나는 경우**
+   ```swift
+   // Sendable 프로토콜 추가
+   protocol UserService: Sendable {
+       // ...
+   }
+   ```
+
+이제 DiContainer를 프로젝트에 통합하고 현대적인 의존성 주입의 혜택을 누려보세요!

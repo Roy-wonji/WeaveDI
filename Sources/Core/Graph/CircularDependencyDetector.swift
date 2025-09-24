@@ -2,16 +2,17 @@
 //  CircularDependencyDetector.swift
 //  DiContainer
 //
-//  Created by Wonja Suh on 3/24/25.
+//  Created by Wonja Suh on 9/24/25.
 //
 
 import Foundation
 import LogMacro
 
-// MARK: - Circular Dependency Detection System (Actor + Sync Facade)
+// MARK: - Circular Dependency Detection System (Actor)
 
-/// 내부 구현: Actor 기반 순환 의존성 탐지기
-actor CircularDependencyDetectorActor {
+public actor CircularDependencyDetector {
+    public static let shared = CircularDependencyDetector()
+
     private var resolutionStack: [String] = []
     private var dependencyGraph: [String: Set<String>] = [:]
     private var detectedCycles: Set<CircularDependencyPath> = []
@@ -19,7 +20,7 @@ actor CircularDependencyDetectorActor {
     private var isAutoRecordingEnabled: Bool = false
 
     // Configuration
-    func setDetectionEnabled(_ enabled: Bool) {
+    public func setDetectionEnabled(_ enabled: Bool) {
         isDetectionEnabled = enabled
         if !enabled {
             resolutionStack.removeAll()
@@ -28,17 +29,14 @@ actor CircularDependencyDetectorActor {
         }
     }
 
-    // Auto recording configuration
-    func setAutoRecordingEnabled(_ enabled: Bool) {
+    public func setAutoRecordingEnabled(_ enabled: Bool) {
         isAutoRecordingEnabled = enabled
     }
 
     // Resolution tracking
-    func beginResolution<T>(_ type: T.Type) throws {
-        try beginResolution(String(describing: type))
-    }
+    public func beginResolution<T>(_ type: T.Type) throws { try beginResolution(String(describing: type)) }
 
-    func beginResolution(_ typeName: String) throws {
+    public func beginResolution(_ typeName: String) throws {
         guard isDetectionEnabled else { return }
         if resolutionStack.contains(typeName) {
             let cyclePath = createCyclePath(to: typeName)
@@ -48,33 +46,40 @@ actor CircularDependencyDetectorActor {
         resolutionStack.append(typeName)
     }
 
-    func endResolution<T>(_ type: T.Type) { endResolution(String(describing: type)) }
+    public func endResolution<T>(_ type: T.Type) { endResolution(String(describing: type)) }
 
-    func endResolution(_ typeName: String) {
+    public func endResolution(_ typeName: String) {
         guard isDetectionEnabled else { return }
         if let idx = resolutionStack.lastIndex(of: typeName) { resolutionStack.remove(at: idx) }
     }
 
     // Graph building
-    func recordDependency<From, To>(from: From.Type, to: To.Type) {
+    public func recordDependency<From, To>(from: From.Type, to: To.Type) {
         recordDependency(from: String(describing: from), to: String(describing: to))
     }
 
-    func recordDependency(from: String, to: String) {
+    public func recordDependency(from: String, to: String) {
         guard isDetectionEnabled else { return }
         dependencyGraph[from, default: []].insert(to)
     }
 
-    // Auto edge from current resolving type (top of stack) -> target
-    func recordAutoEdgeIfEnabled(to targetTypeName: String) {
+    public func removeDependency(from: String, to: String) {
+        guard isDetectionEnabled else { return }
+        if var set = dependencyGraph[from] {
+            set.remove(to)
+            if set.isEmpty { dependencyGraph.removeValue(forKey: from) } else { dependencyGraph[from] = set }
+        }
+    }
+
+    public func recordAutoEdgeIfEnabled(for resolvedType: Any.Type) {
+        let targetTypeName = String(describing: resolvedType)
         guard isDetectionEnabled, isAutoRecordingEnabled else { return }
         guard let from = resolutionStack.last, from != targetTypeName else { return }
         dependencyGraph[from, default: []].insert(targetTypeName)
     }
 
     // Analysis
-    func detectAllCircularDependencies() -> [CircularDependencyPath] {
-        guard isDetectionEnabled else { return [] }
+    public func detectAllCircularDependencies() -> [CircularDependencyPath] {
         var allCycles: Set<CircularDependencyPath> = []
         let snapshot = dependencyGraph
         for start in snapshot.keys {
@@ -86,11 +91,9 @@ actor CircularDependencyDetectorActor {
         return Array(allCycles).sorted { $0.path.count < $1.path.count }
     }
 
-    func analyzeDependencyChain<T>(_ type: T.Type) -> DependencyChainAnalysis {
-        analyzeDependencyChain(String(describing: type))
-    }
+    public func analyzeDependencyChain<T>(_ type: T.Type) -> DependencyChainAnalysis { analyzeDependencyChain(String(describing: type)) }
 
-    func analyzeDependencyChain(_ typeName: String) -> DependencyChainAnalysis {
+    public func analyzeDependencyChain(_ typeName: String) -> DependencyChainAnalysis {
         let snapshotGraph = dependencyGraph
         let snapshotCycles = detectedCycles
         var direct: [String] = []
@@ -107,7 +110,7 @@ actor CircularDependencyDetectorActor {
         )
     }
 
-    func getGraphStatistics() -> DependencyGraphStatistics {
+    public func getGraphStatistics() -> DependencyGraphStatistics {
         let graph = dependencyGraph
         let cycles = detectedCycles
         let totalTypes = graph.keys.count
@@ -125,7 +128,7 @@ actor CircularDependencyDetectorActor {
         )
     }
 
-    func clearCache() {
+    public func clearCache() {
         resolutionStack.removeAll()
         dependencyGraph.removeAll()
         detectedCycles.removeAll()
@@ -180,51 +183,6 @@ actor CircularDependencyDetectorActor {
             collectAllDependencies(dep, from: graph, collected: &collected, depth: depth + 1, maxDepth: &maxDepth)
         }
     }
-}
-
-/// 공개 파사드: 기존 동기 API를 유지하는 래퍼
-public final class CircularDependencyDetector: @unchecked Sendable {
-    public static let shared = CircularDependencyDetector()
-    private let core = CircularDependencyDetectorActor()
-    private init() {}
-
-    // MARK: - Sync bridge helpers
-    private final class _SyncBox<U>: @unchecked Sendable { var value: U?; init() {} }
-    private final class _ErrorBox: @unchecked Sendable { var error: Error? = nil }
-
-    private func sync<T: Sendable>(_ op: @Sendable @escaping () async -> T) -> T {
-        let sem = DispatchSemaphore(value: 0)
-        let box = _SyncBox<T>()
-        Task.detached { @Sendable in box.value = await op(); sem.signal() }
-        sem.wait()
-        return box.value!
-    }
-
-    private func syncThrows<T: Sendable>(_ op: @Sendable @escaping () async throws -> T) throws -> T {
-        let sem = DispatchSemaphore(value: 0)
-        let box = _SyncBox<T>()
-        let ebox = _ErrorBox()
-        Task.detached { @Sendable in do { box.value = try await op() } catch { ebox.error = error }; sem.signal() }
-        sem.wait()
-        if let e = ebox.error { throw e }
-        return box.value!
-    }
-
-    // MARK: - Public sync facade
-    public func setDetectionEnabled(_ enabled: Bool) { sync { [core] in await core.setDetectionEnabled(enabled) } }
-    public func setAutoRecordingEnabled(_ enabled: Bool) { sync { [core] in await core.setAutoRecordingEnabled(enabled) } }
-    public func beginResolution<T>(_ type: T.Type) throws { try syncThrows { [core] in try await core.beginResolution(type) } }
-    public func beginResolution(_ typeName: String) throws { try syncThrows { [core] in try await core.beginResolution(typeName) } }
-    public func endResolution<T>(_ type: T.Type) { sync { [core] in await core.endResolution(type) } }
-    public func endResolution(_ typeName: String) { sync { [core] in await core.endResolution(typeName) } }
-    public func recordDependency<From, To>(from: From.Type, to: To.Type) { sync { [core] in await core.recordDependency(from: from, to: to) } }
-    public func recordDependency(from: String, to: String) { sync { [core] in await core.recordDependency(from: from, to: to) } }
-    public func recordAutoEdgeIfEnabled(for resolvedType: Any.Type) { sync { [core] in await core.recordAutoEdgeIfEnabled(to: String(describing: resolvedType)) } }
-    public func detectAllCircularDependencies() -> [CircularDependencyPath] { sync { [core] in await core.detectAllCircularDependencies() } }
-    public func analyzeDependencyChain<T>(_ type: T.Type) -> DependencyChainAnalysis { sync { [core] in await core.analyzeDependencyChain(type) } }
-    public func analyzeDependencyChain(_ typeName: String) -> DependencyChainAnalysis { sync { [core] in await core.analyzeDependencyChain(typeName) } }
-    public func getGraphStatistics() -> DependencyGraphStatistics { sync { [core] in await core.getGraphStatistics() } }
-    public func clearCache() { sync { [core] in await core.clearCache() } }
 }
 
 // MARK: - Data Structures
@@ -299,9 +257,9 @@ public struct DependencyGraphStatistics: Codable, Sendable {
 public extension DependencyContainer {
 
     /// 순환 의존성 탐지와 함께 안전한 의존성 해결
-    func safeResolveWithCircularDetection<T>(_ type: T.Type) throws -> T {
-        try CircularDependencyDetector.shared.beginResolution(type)
-        defer { CircularDependencyDetector.shared.endResolution(type) }
+    func safeResolveWithCircularDetection<T>(_ type: T.Type) async throws -> T {
+        try await CircularDependencyDetector.shared.beginResolution(type)
+        defer { Task { await CircularDependencyDetector.shared.endResolution(type) } }
 
         guard let resolved = resolve(type) else {
             throw SafeDIError.dependencyNotFound(type: String(describing: type), keyPath: nil)

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import LogMacro
 
 // MARK: - Simplified DI API
 
@@ -62,6 +63,30 @@ public enum UnifiedDI {
     DependencyContainer.live.register(type, instance: instance)
     return instance
   }
+
+  // MARK: - Async Registration (DIActor-based)
+
+  /// DIActor를 사용한 비동기 의존성 등록 (권장)
+  ///
+  /// Actor 기반의 thread-safe한 의존성 등록을 제공합니다.
+  /// 기존 동기 API보다 더 안전하고 확장 가능합니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// Task {
+  ///     let releaseHandler = await UnifiedDI.registerAsync(UserService.self) {
+  ///         UserServiceImpl()
+  ///     }
+  ///     // 필요시 나중에 해제: await releaseHandler()
+  /// }
+  /// ```
+  @discardableResult
+  public static func registerAsync<T>(
+    _ type: T.Type,
+    factory: @escaping @Sendable () -> T
+  ) async -> @Sendable () async -> Void where T: Sendable {
+    return await DIActorGlobalAPI.register(type, factory: factory)
+  }
   
   /// KeyPath를 사용한 타입 안전한 등록 (DI.register(\.keyPath) 스타일)
   ///
@@ -114,9 +139,36 @@ public enum UnifiedDI {
   /// - Parameter keyPath: DependencyContainer 내의 KeyPath
   /// - Returns: 해결된 인스턴스 (없으면 nil)
   public static func resolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T? {
-    return DependencyContainer.live.resolve(T.self)
+    return DependencyContainer.live[keyPath: keyPath]
   }
   
+  // MARK: - Async Resolution (DIActor-based)
+
+  /// DIActor를 사용한 비동기 의존성 조회 (권장)
+  ///
+  /// Actor 기반의 thread-safe한 의존성 해결을 제공합니다.
+  /// 기존 동기 API보다 더 안전하고 성능이 우수합니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// Task {
+  ///     if let service = await UnifiedDI.resolveAsync(UserService.self) {
+  ///         // 서비스 사용
+  ///     }
+  /// }
+  /// ```
+  public static func resolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
+    return await DIActorGlobalAPI.resolve(type)
+  }
+
+  /// DIActor를 사용한 필수 의존성 조회 (실패 시 예외 발생)
+  ///
+  /// 반드시 등록되어 있어야 하는 의존성을 비동기적으로 조회합니다.
+  /// 등록되지 않은 경우 DIError를 throw합니다.
+  public static func requireResolveAsync<T>(_ type: T.Type) async throws -> T where T: Sendable {
+    return try await DIActorGlobalAPI.resolveThrows(type)
+  }
+
   /// 필수 의존성을 조회합니다 (실패 시 명확한 에러 메시지와 함께 크래시)
   ///
   /// 반드시 등록되어 있어야 하는 의존성을 조회할 때 사용합니다.
@@ -134,21 +186,51 @@ public enum UnifiedDI {
   /// // logger는 항상 유효한 인스턴스
   /// ```
   public static func requireResolve<T>(_ type: T.Type) -> T {
+    // 타입 안전성 사전 검사
+    performTypeSafetyCheck(for: type)
+
     guard let resolved = DependencyContainer.live.resolve(type) else {
       let typeName = String(describing: type)
+
+      // 프로덕션에서는 더 안전한 처리
+      #if DEBUG
       fatalError("""
             🚨 [DI] 필수 의존성을 찾을 수 없습니다!
-            
+
             타입: \(typeName)
-            
+
             💡 해결 방법:
                UnifiedDI.register(\(typeName).self) { YourImplementation() }
-            
+
             🔍 등록이 해결보다 먼저 수행되었는지 확인해주세요.
-            
+
             """)
+      #else
+      // 프로덕션에서는 에러 로깅 후 기본 인스턴스 시도
+      Log.error("🚨 [DI] Critical: Required dependency \(typeName) not found!")
+
+      // 마지막 수단으로 기본 초기화 시도
+      if let defaultInstance = Self.tryCreateDefaultInstance(for: type) {
+        Log.warning("🔄 [DI] Using default instance for \(typeName)")
+        return defaultInstance
+      }
+
+      // 그래도 실패하면 크래시하되, 더 간단한 메시지로
+      fatalError("[DI] Critical dependency missing: \(typeName)")
+      #endif
     }
     return resolved
+  }
+
+  /// 기본 인스턴스 생성 시도 (내부 사용)
+  private static func tryCreateDefaultInstance<T>(for type: T.Type) -> T? {
+    // NSObject 기반 타입들의 기본 초기화 시도
+    if type is NSObjectProtocol.Type {
+      return (type as? NSObject.Type)?.init() as? T
+    }
+
+    // 일반적인 기본 초기화 시도는 런타임에 위험하므로 생략
+    return nil
   }
   
   /// 의존성을 조회하거나 기본값을 반환합니다 (항상 성공)
@@ -168,6 +250,59 @@ public enum UnifiedDI {
   /// ```
   public static func resolve<T>(_ type: T.Type, default defaultValue: @autoclosure () -> T) -> T {
     return DependencyContainer.live.resolve(type) ?? defaultValue()
+  }
+
+  /// 안전한 필수 해결 - 에러를 던지는 버전 (권장)
+  ///
+  /// requireResolve의 더 안전한 대안입니다.
+  /// 실패 시 fatalError 대신 DIError를 던집니다.
+  ///
+  /// - Parameter type: 조회할 타입
+  /// - Returns: 해결된 인스턴스
+  /// - Throws: DIError.dependencyNotFound
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// do {
+  ///     let logger = try UnifiedDI.requireResolveThrows(Logger.self)
+  ///     // logger 사용
+  /// } catch {
+  ///     Log.error("Logger dependency missing: \(error)")
+  ///     // 대체 로직
+  /// }
+  /// ```
+  public static func requireResolveThrows<T>(_ type: T.Type) throws -> T {
+    guard let resolved = DependencyContainer.live.resolve(type) else {
+      let typeName = String(describing: type)
+      throw DIError.dependencyNotFound("등록 확인: UnifiedDI.register(\(typeName).self) { ... }")
+    }
+    return resolved
+  }
+
+  /// Result 타입으로 안전하게 해결
+  ///
+  /// 성공과 실패를 명시적으로 처리할 수 있는 방법입니다.
+  ///
+  /// - Parameter type: 조회할 타입
+  /// - Returns: Result<T, DIError>
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// let result = UnifiedDI.resolveResult(Logger.self)
+  /// switch result {
+  /// case .success(let logger):
+  ///     // logger 사용
+  /// case .failure(let error):
+  ///     Log.error("Logger resolution failed: \(error)")
+  /// }
+  /// ```
+  public static func resolveResult<T>(_ type: T.Type) -> Result<T, DIError> {
+    guard let resolved = DependencyContainer.live.resolve(type) else {
+      let typeName = String(describing: type)
+      let error = DIError.dependencyNotFound("등록 확인: UnifiedDI.register(\(typeName).self) { ... }")
+      return .failure(error)
+    }
+    return .success(resolved)
   }
   
   // MARK: - Management API
@@ -356,5 +491,36 @@ public extension UnifiedDI {
   }
 }
 
-// MARK: - Legacy Compatibility
+// MARK: - Type Safety Enhancement
 
+/// 타입 안전성 검사를 수행합니다
+private func performTypeSafetyCheck<T>(for type: T.Type) {
+#if DEBUG
+  // Actor 타입 식별 (Swift 6 existential syntax: any Actor)
+  if type is any Actor.Type {
+    Log.debug("✅ [TypeSafety] \(type) recognized as Actor type")
+  }
+#endif
+}
+
+/// 강화된 타입 검증을 수행합니다
+private func performEnhancedTypeValidation<T>(_ type: T.Type, context: String) -> Bool {
+  let typeName = String(describing: type)
+
+  // 위험한 타입 패턴 검사
+  let dangerousPatterns = ["NSMutableArray", "NSMutableDictionary", "NSMutableSet", "UnsafeMutablePointer"]
+
+  for pattern in dangerousPatterns {
+    if typeName.contains(pattern) {
+#if DEBUG
+      Log.debug("🚨 [TypeSafety] Dangerous type detected in \(context): \(typeName)")
+      Log.debug("💡 Consider using Swift's safe alternatives instead")
+#endif
+      return false
+    }
+  }
+
+  return true
+}
+
+// MARK: - Legacy Compatibility

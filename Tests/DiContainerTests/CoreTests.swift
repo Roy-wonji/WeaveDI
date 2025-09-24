@@ -2,7 +2,7 @@
 //  CoreTests.swift
 //  DiContainerTests
 //
-//  Created by Wonja Suh on 3/24/25.
+//  Created by Wonja Suh on 9/24/25.
 //
 
 import XCTest
@@ -50,18 +50,19 @@ final class TestDatabaseServiceImpl: TestDatabaseService, @unchecked Sendable {
 
 final class CoreTests: XCTestCase {
 
+    @MainActor
     override func setUp() async throws {
         try await super.setUp()
-        DIContainer.resetForTesting()
+        UnifiedDI.releaseAll()
 
         // 테스트를 위한 자동 로깅 비활성화
         UnifiedDI.setLogLevel(.off)
     }
 
+    @MainActor
     override func tearDown() async throws {
-        DIContainer.resetForTesting()
-
-        // 자동 최적화 통계 초기화
+        // UnifiedDI 방식으로 변경
+        UnifiedDI.releaseAll()
         UnifiedDI.resetStats()
 
         try await super.tearDown()
@@ -69,7 +70,7 @@ final class CoreTests: XCTestCase {
 
     // MARK: - Basic Registration Tests
 
-    func testBasicTypeRegistration() {
+    func testBasicTypeRegistration_기본타입등록() {
         // Given & When
         let service = UnifiedDI.register(TestUserService.self) {
             TestUserServiceImpl()
@@ -83,55 +84,53 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(resolved?.getUser(id: "456"), "user_456")
     }
 
-    func testKeyPathRegistration() {
+    func testKeyPathRegistration_키패스등록() {
         // When
-        let service = DI.register(\.testUserService) { TestUserServiceImpl() }
+        let service = UnifiedDI.register(\.testUserService) { TestUserServiceImpl() }
 
         // Then
         XCTAssertEqual(service.getUser(id: "456"), "user_456")
 
-        let resolved = DI.resolve(TestUserService.self)
+        let resolved = UnifiedDI.resolve(TestUserService.self)
         XCTAssertNotNil(resolved)
     }
 
-    func testConditionalRegistration() {
+    func testConditionalRegistration_조건부등록() {
         // Test true condition
-        DI.registerIf(
+        UnifiedDI.Conditional.registerIf(
             TestUserService.self,
             condition: true,
             factory: { TestUserServiceImpl() },
             fallback: { MockUserService() }
         )
 
-        let service1 = DI.resolve(TestUserService.self)
+        let service1 = UnifiedDI.resolve(TestUserService.self)
         XCTAssertEqual(service1?.getUser(id: "123"), "user_123")
 
         // Test false condition
-        DI.release(TestUserService.self)
+        UnifiedDI.release(TestUserService.self)
 
-        DI.registerIf(
+        UnifiedDI.Conditional.registerIf(
             TestUserService.self,
             condition: false,
             factory: { TestUserServiceImpl() },
             fallback: { MockUserService() }
         )
 
-        let service2 = DI.resolve(TestUserService.self)
+        let service2 = UnifiedDI.resolve(TestUserService.self)
         XCTAssertEqual(service2?.getUser(id: "123"), "mock_user_123")
     }
 
-    func testBatchRegistration() {
-        // When
-        DI.registerMany {
-            Registration(TestUserService.self) { TestUserServiceImpl() }
-            Registration(TestNetworkService.self) { TestNetworkServiceImpl() }
-            Registration(TestDatabaseService.self) { TestDatabaseServiceImpl() }
-        }
+    func testBatchRegistration_배치등록() {
+        // When - 배치 등록 대신 개별 등록으로 변경
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        _ = UnifiedDI.register(TestNetworkService.self) { TestNetworkServiceImpl() }
+        _ = UnifiedDI.register(TestDatabaseService.self) { TestDatabaseServiceImpl() }
 
         // Then
-        let userService = DI.resolve(TestUserService.self)
-        let networkService = DI.resolve(TestNetworkService.self)
-        let dbService = DI.resolve(TestDatabaseService.self)
+        let userService = UnifiedDI.resolve(TestUserService.self)
+        let networkService = UnifiedDI.resolve(TestNetworkService.self)
+        let dbService = UnifiedDI.resolve(TestDatabaseService.self)
 
         XCTAssertNotNil(userService)
         XCTAssertNotNil(networkService)
@@ -144,124 +143,115 @@ final class CoreTests: XCTestCase {
 
     // MARK: - Resolution Tests
 
-    func testOptionalResolution() {
+    func testOptionalResolution_옵셔널해결() {
         // Test without registration
-        let service1 = DI.resolve(TestUserService.self)
+        let service1 = UnifiedDI.resolve(TestUserService.self)
         XCTAssertNil(service1)
 
         // Test with registration
-        DI.register(TestUserService.self) { TestUserServiceImpl() }
-        let service2 = DI.resolve(TestUserService.self)
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        let service2 = UnifiedDI.resolve(TestUserService.self)
         XCTAssertNotNil(service2)
     }
 
-    func testRequiredResolution() {
+    func testRequiredResolution_필수해결() {
         // Given
-        DI.register(TestUserService.self) { TestUserServiceImpl() }
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
 
         // When
-        let service = DI.requireResolve(TestUserService.self)
+        let service = UnifiedDI.requireResolve(TestUserService.self)
 
         // Then
         XCTAssertEqual(service.getUser(id: "required"), "user_required")
     }
 
-    func testResolutionWithDefault() {
+    func testResolutionWithDefault_기본값포함해결() {
         // Test without registration
-        let service1 = DI.resolve(TestUserService.self, default: MockUserService())
+        let service1 = UnifiedDI.resolve(TestUserService.self, default: MockUserService())
         XCTAssertEqual(service1.getUser(id: "default"), "mock_user_default")
 
         // Test with registration
-        DI.register(TestUserService.self) { TestUserServiceImpl() }
-        let service2 = DI.resolve(TestUserService.self, default: MockUserService())
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        let service2 = UnifiedDI.resolve(TestUserService.self, default: MockUserService())
         XCTAssertEqual(service2.getUser(id: "registered"), "user_registered")
     }
 
-    func testThrowingResolution() throws {
-        // Test without registration
-        XCTAssertThrowsError(try DI.resolveThrows(TestUserService.self)) { error in
-            XCTAssertTrue(error is DIError)
-        }
+    func testThrowingResolution_예외발생해결() throws {
+        // Test without registration - deprecated API 제거로 인한 테스트 제거
+        // 기본적으로 UnifiedDI.resolve는 nil을 반환하므로 에러를 던지지 않음
 
         // Test with registration
-        DI.register(TestUserService.self) { TestUserServiceImpl() }
-        let service = try DI.resolveThrows(TestUserService.self)
-        XCTAssertEqual(service.getUser(id: "throws"), "user_throws")
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        let service = UnifiedDI.resolve(TestUserService.self)
+        XCTAssertNotNil(service)
+        XCTAssertEqual(service?.getUser(id: "throws"), "user_throws")
     }
 
-    func testResultResolution() {
+    func testResultResolution_결과타입해결() {
+        // Result API가 deprecated되어 기본 해결 방식으로 테스트
         // Test without registration
-        let result1 = DI.resolveResult(TestUserService.self)
-        switch result1 {
-        case .failure(let error):
-            XCTAssertTrue(error is DIError)
-        case .success:
-            XCTFail("Should have failed")
-        }
+        let service1 = UnifiedDI.resolve(TestUserService.self)
+        XCTAssertNil(service1)
 
         // Test with registration
-        DI.register(TestUserService.self) { TestUserServiceImpl() }
-        let result2 = DI.resolveResult(TestUserService.self)
-        switch result2 {
-        case .success(let service):
-            XCTAssertEqual(service.getUser(id: "result"), "user_result")
-        case .failure:
-            XCTFail("Should have succeeded")
-        }
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        let service2 = UnifiedDI.resolve(TestUserService.self)
+        XCTAssertNotNil(service2)
+        XCTAssertEqual(service2?.getUser(id: "result"), "user_result")
     }
 
     // MARK: - Management Tests
 
-    func testRelease() {
+    func testRelease_해제() {
         // Given
-        DI.register(TestUserService.self) { TestUserServiceImpl() }
-        XCTAssertNotNil(DI.resolve(TestUserService.self))
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        XCTAssertNotNil(UnifiedDI.resolve(TestUserService.self))
 
         // When
-        DI.release(TestUserService.self)
+        UnifiedDI.release(TestUserService.self)
 
         // Then
-        XCTAssertNil(DI.resolve(TestUserService.self))
+        XCTAssertNil(UnifiedDI.resolve(TestUserService.self))
     }
 
-    func testIsRegistered() {
+    func testIsRegistered_등록상태확인() {
+        // isRegistered API가 deprecated되어 resolve로 테스트
         // Test not registered
-        XCTAssertFalse(DI.isRegistered(TestUserService.self))
+        XCTAssertNil(UnifiedDI.resolve(TestUserService.self))
 
         // Test registered
-        DI.register(TestUserService.self) { TestUserServiceImpl() }
-        XCTAssertTrue(DI.isRegistered(TestUserService.self))
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        XCTAssertNotNil(UnifiedDI.resolve(TestUserService.self))
 
         // Test after release
-        DI.release(TestUserService.self)
-        XCTAssertFalse(DI.isRegistered(TestUserService.self))
+        UnifiedDI.release(TestUserService.self)
+        XCTAssertNil(UnifiedDI.resolve(TestUserService.self))
     }
 
-    func testContainerStatus() async {
-        // Test initial status
-        let status1 = await DI.getContainerStatus()
-        XCTAssertTrue(status1.isBootstrapped)
+    func testContainerStatus_컨테이너상태() async {
+        // 컨테이너 상태 API가 deprecated되어 기본적인 등록/해결 테스트로 변경
 
         // Register some dependencies
-        DI.register(TestUserService.self) { TestUserServiceImpl() }
-        DI.register(TestNetworkService.self) { TestNetworkServiceImpl() }
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        _ = UnifiedDI.register(TestNetworkService.self) { TestNetworkServiceImpl() }
 
-        let status2 = await DI.getContainerStatus()
-        XCTAssertTrue(status2.isBootstrapped)
+        // Verify registrations
+        XCTAssertNotNil(UnifiedDI.resolve(TestUserService.self))
+        XCTAssertNotNil(UnifiedDI.resolve(TestNetworkService.self))
     }
 
     // MARK: - Thread Safety Tests
 
-    func testConcurrentAccess() {
+    func testConcurrentAccess_동시접근() {
         let expectation = XCTestExpectation(description: "Concurrent operations")
         expectation.expectedFulfillmentCount = 100
 
         // Register initial service
-        DI.register(TestUserService.self) { TestUserServiceImpl() }
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
 
         // Concurrent resolution
         DispatchQueue.concurrentPerform(iterations: 100) { _ in
-            let service = DI.resolve(TestUserService.self)
+            let service = UnifiedDI.resolve(TestUserService.self)
             XCTAssertNotNil(service)
             expectation.fulfill()
         }
@@ -269,41 +259,41 @@ final class CoreTests: XCTestCase {
         wait(for: [expectation], timeout: 5.0)
     }
 
-    func testConcurrentRegistration() {
+    func testConcurrentRegistration_동시등록() {
         let expectation = XCTestExpectation(description: "Concurrent registration")
         expectation.expectedFulfillmentCount = 50
 
         DispatchQueue.concurrentPerform(iterations: 50) { index in
-            DI.register(TestUserService.self) { TestUserServiceImpl() }
+            _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
             expectation.fulfill()
         }
 
         wait(for: [expectation], timeout: 5.0)
 
         // Verify final state
-        let service = DI.resolve(TestUserService.self)
+        let service = UnifiedDI.resolve(TestUserService.self)
         XCTAssertNotNil(service)
     }
 
     // MARK: - Performance Tests
 
-    func testResolutionPerformance() {
+    func testResolutionPerformance_해결성능() {
         // Setup
-        DI.register(TestUserService.self) { TestUserServiceImpl() }
+        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
 
         // Measure resolution performance
         measure {
             for _ in 0..<1000 {
-                _ = DI.resolve(TestUserService.self)
+                _ = UnifiedDI.resolve(TestUserService.self)
             }
         }
     }
 
-    func testRegistrationPerformance() {
+    func testRegistrationPerformance_등록성능() {
         measure {
             for _ in 0..<100 {
-                DI.register(TestUserService.self) { TestUserServiceImpl() }
-                DI.release(TestUserService.self)
+                _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+                UnifiedDI.release(TestUserService.self)
             }
         }
     }

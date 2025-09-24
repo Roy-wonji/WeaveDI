@@ -274,8 +274,8 @@ public final class AutoDIOptimizer: @unchecked Sendable {
       }
     }
     
-    // Actor 타입 검증
-    if type is Actor.Type {
+    // Actor 타입 검증 (Swift 6 existential syntax)
+    if type is any Actor.Type {
       queue.async(flags: .barrier) { [weak self] in
         // Actor 타입은 자동으로 적절한 격리 제안
         let issue = TypeSafetyIssue(
@@ -434,7 +434,65 @@ public final class AutoDIOptimizer: @unchecked Sendable {
   
   /// 그래프 업데이트
   private func updateGraph() {
-    // 실시간으로 그래프 업데이트 (백그라운드에서 실행)
+    // 토글이 꺼져 있으면 아무 것도 하지 않음
+    if queue.sync(execute: { !isRealtimeGraphEnabled }) { return }
+    // 디바운스 적용: 최근 요청만 실행 (100ms)
+    // 최신 스냅샷에서 변경된 엣지만 Detector에 반영
+    // 인스턴스 상수로 유지 (디바운스 간격)
+    let debounceInterval: TimeInterval = 0.1
+    // 취소 가능한 작업 관리
+    queue.sync(flags: .barrier) { [weak self] in
+      guard let self = self else { return }
+      self._scheduleGraphUpdate(debounce: debounceInterval)
+    }
+  }
+
+  // MARK: - Graph update scheduler
+  private var lastPushedGraph: [String: Set<String>] = [:]
+  private var scheduledGraphUpdate: DispatchWorkItem?
+
+  private func _scheduleGraphUpdate(debounce: TimeInterval) {
+    scheduledGraphUpdate?.cancel()
+    let item = DispatchWorkItem { [weak self] in
+      guard let self = self else { return }
+      let newGraph = self.queue.sync { self.dependencyGraph }
+      let oldGraph = self.queue.sync { self.lastPushedGraph }
+
+      // Compute diff
+      var additions: [(from: String, to: String)] = []
+      var removals: [(from: String, to: String)] = []
+
+      // Added edges
+      for (from, newEdges) in newGraph {
+        let oldEdges = oldGraph[from] ?? []
+        for to in newEdges where !oldEdges.contains(to) {
+          additions.append((from, to))
+        }
+      }
+      // Removed edges
+      for (from, oldEdges) in oldGraph {
+        let newEdges = newGraph[from] ?? []
+        for to in oldEdges where !newEdges.contains(to) {
+          removals.append((from, to))
+        }
+      }
+
+      let removalsCopy = removals
+      let additionsCopy = additions
+      Task.detached { @Sendable in
+        for (from, to) in removalsCopy {
+          await CircularDependencyDetector.shared.removeDependency(from: from, to: to)
+        }
+        for (from, to) in additionsCopy {
+          await CircularDependencyDetector.shared.recordDependency(from: from, to: to)
+        }
+      }
+
+      // Update last pushed snapshot
+      self.queue.sync(flags: .barrier) { self.lastPushedGraph = newGraph }
+    }
+    scheduledGraphUpdate = item
+    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + debounce, execute: item)
   }
   
   /// 그래프 최적화
@@ -517,6 +575,31 @@ public final class AutoDIOptimizer: @unchecked Sendable {
   /// 자동 수정된 타입들 반환
   public var detectedAutoFixedTypes: Set<String> {
     queue.sync { autoFixedTypes }
+  }
+
+  /// 상위 N개의 자주 사용된 타입 이름을 반환합니다 (프리웜 후보)
+  public func topUsedTypes(limit: Int = 10) -> [String] {
+    queue.sync {
+      Array(usageStats.sorted { $0.value > $1.value }.prefix(max(0, limit))).map { $0.key }
+    }
+  }
+
+  // MARK: - Realtime Graph Toggle
+  private var isRealtimeGraphEnabled = true
+
+  /// 실시간 그래프 업데이트 on/off (기본: true)
+  public func setRealtimeGraphEnabled(_ enabled: Bool) {
+    queue.sync(flags: .barrier) {
+      isRealtimeGraphEnabled = enabled
+      if !enabled {
+        // 예약된 업데이트 취소
+        scheduledGraphUpdate?.cancel()
+        scheduledGraphUpdate = nil
+      } else {
+        // 즉시 한번 동기화 (디바운스 없이)
+        _scheduleGraphUpdate(debounce: 0)
+      }
+    }
   }
   
   /// 특정 타입이 최적화되었는지 확인

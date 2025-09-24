@@ -10,11 +10,6 @@ import LogMacro
 
 // MARK: - DIActor
 
-// 비동기 결과를 동기 브리지할 때 사용할 박스 (파일 스코프)
-private final class _DIActorAsyncBox<T>: @unchecked Sendable {
-  var value: T?
-  init() {}
-}
 
 /// Thread-safe DI operations을 위한 Actor 기반 구현
 ///
@@ -48,6 +43,26 @@ public actor DIActor {
 
   /// 해제 핸들러들을 저장 (메모리 관리)
   private var releaseHandlers = [AnyTypeIdentifier: () -> Void]()
+
+  /// 싱글톤 인스턴스 저장소
+  private var singletonInstances = [AnyTypeIdentifier: Any]()
+
+  /// 공유(싱글톤) 타입 집합
+  private var sharedTypes = Set<AnyTypeIdentifier>()
+
+  /// 스코프별 인스턴스 저장소
+  private var scopedInstances = [String: [AnyTypeIdentifier: Any]]()
+
+  // MARK: - Performance Optimization
+
+  /// 자주 사용되는 타입의 사용 횟수 추적
+  private var usageCount = [AnyTypeIdentifier: Int]()
+
+  /// Hot path 캐시 - 자주 사용되는 타입들 (10회 이상 사용된 타입)
+  private var hotCache = [AnyTypeIdentifier: Any]()
+
+  /// 마지막 정리 시간 (메모리 관리용)
+  private var lastCleanupTime = Date()
 
   // MARK: - Lifecycle
 
@@ -106,18 +121,92 @@ public actor DIActor {
 #endif
   }
 
+  /// Shared Actor 인스턴스로 타입을 등록합니다. (권장)
+  ///
+  /// 전통적인 싱글톤 대신 Actor 기반 공유 인스턴스를 제공합니다.
+  /// Actor의 격리성을 통해 자동으로 thread-safety를 보장합니다.
+  ///
+  /// - Parameters:
+  ///   - type: 등록할 타입
+  ///   - factory: 인스턴스를 생성하는 팩토리 클로저 (한 번만 실행됨)
+  /// - Returns: 등록 해제 핸들러
+  public func registerSharedActor<T>(
+    _ type: T.Type,
+    factory: @escaping @Sendable () -> T
+  ) -> @Sendable () async -> Void where T: Sendable {
+    let key = AnyTypeIdentifier(type: type)
+
+    // 공유 플래그 설정 및 팩토리 저장 (팩토리 자체는 상태 접근하지 않음)
+    sharedTypes.insert(key)
+    factories[key] = { factory() }
+
+    registrationTimes[key] = Date()
+
+#if DEBUG
+    #logInfo("✅ [DIActor] Registered shared actor \(type) at \(Date())")
+#endif
+
+    // 해제 핸들러 생성
+    let releaseHandler: @Sendable () async -> Void = { [weak self] in
+      await self?.releaseSharedActor(type)
+    }
+
+    releaseHandlers[key] = { @Sendable in
+      Task.detached { @Sendable in await releaseHandler() }
+    }
+
+    return releaseHandler
+  }
+
+  /// Shared Actor 인스턴스를 해제합니다.
+  private func releaseSharedActor<T>(_ type: T.Type) {
+    let key = AnyTypeIdentifier(type: type)
+    singletonInstances[key] = nil
+
+#if DEBUG
+    #logInfo("🗑️ [DIActor] Released shared actor \(type)")
+#endif
+  }
+
+  // helper 제거 (shared 로직은 resolve에서 처리)
+
   // MARK: - Resolution
 
-  /// 등록된 타입의 인스턴스를 해결합니다.
+  /// 등록된 타입의 인스턴스를 해결합니다. (최적화된 버전)
   /// - Parameter type: 해결할 타입
   /// - Returns: 해결된 인스턴스 또는 nil
-  public func resolve<T>(_ type: T.Type) -> T? where T: Sendable {
+  public func resolve<T>(_ type: T.Type) async -> T? where T: Sendable {
     let key = AnyTypeIdentifier(type: type)
+
+    // 공유 타입이면 캐시 우선 반환
+    if sharedTypes.contains(key) {
+      if let cached = singletonInstances[key] as? T {
+        return cached
+      }
+    }
+
+    // Hot cache 확인 - 자주 사용되는 타입들은 캐시에서 바로 반환
+    if !sharedTypes.contains(key), let cachedFactory = hotCache[key] as? () -> T {
+      let instance = cachedFactory()
+      usageCount[key, default: 0] += 1
+      return instance
+    }
+
+    // 순환 의존성 감지는 hot cache에 없는 경우에만
+    do {
+      try await CircularDependencyDetector.shared.beginResolution(type)
+    } catch {
+#if DEBUG
+      #logError("🚨 [DIActor] Circular dependency detected for \(type): \(error)")
+#endif
+      return nil
+    }
 
     guard let anyFactory = factories[key] else {
 #if DEBUG
       #logError("⚠️ [DIActor] Type \(type) not found")
 #endif
+      await CircularDependencyDetector.shared.endResolution(type)
       return nil
     }
 
@@ -125,24 +214,70 @@ public actor DIActor {
 #if DEBUG
       #logError("🚨 [DIActor] Type mismatch for \(type)")
 #endif
+      await CircularDependencyDetector.shared.endResolution(type)
       return nil
     }
 
-    // 팩토리 실행 (Actor 외부에서 실행하여 데드락 방지)
+    // 공유 타입 처리: 최초 생성 후 캐시 저장
+    if sharedTypes.contains(key) {
+      let instance = factory()
+      singletonInstances[key] = instance
+      await CircularDependencyDetector.shared.endResolution(type)
+      return instance
+    }
+
+    // 사용 횟수 증가 및 hot cache 업데이트 (비공유 타입만)
+    usageCount[key, default: 0] += 1
+
+    if usageCount[key]! >= 10 && hotCache[key] == nil {
+      hotCache[key] = factory
+#if DEBUG
+      #logInfo("🔥 [DIActor] Added to hot cache: \(type)")
+#endif
+    }
+
+    // 팩토리 실행
     let instance = factory()
 
+    // 주기적으로 캐시 정리 (100회 resolve마다)
+    if usageCount.values.reduce(0, +) % 100 == 0 {
+      performCacheCleanup()
+    }
+
 #if DEBUG
-    #logInfo("🔍 [DIActor] Resolved \(type)")
+    #logInfo("🔍 [DIActor] Resolved \(type) (usage: \(usageCount[key]!))")
 #endif
 
+    await CircularDependencyDetector.shared.endResolution(type)
     return instance
+  }
+
+  /// 캐시 정리를 수행합니다
+  private func performCacheCleanup() {
+    let now = Date()
+
+    // 5분마다 정리
+    guard now.timeIntervalSince(lastCleanupTime) > 300 else { return }
+
+    // 사용 횟수가 적은 항목들을 hot cache에서 제거
+    for (key, count) in usageCount {
+      if count < 5 {
+        hotCache[key] = nil
+      }
+    }
+
+    lastCleanupTime = now
+
+#if DEBUG
+    #logDebug("🧹 [DIActor] Performed cache cleanup. Hot cache size: \(hotCache.count)")
+#endif
   }
 
   /// Result 패턴으로 타입을 해결합니다.
   /// - Parameter type: 해결할 타입
   /// - Returns: 성공 시 인스턴스, 실패 시 DIError
-  public func resolveResult<T>(_ type: T.Type) -> Result<T, DIError> where T: Sendable {
-    if let resolved = resolve(type) {
+  public func resolveResult<T>(_ type: T.Type) async -> Result<T, DIError> where T: Sendable {
+    if let resolved = await resolve(type) {
       return .success(resolved)
     } else {
       return .failure(.dependencyNotFound(type))
@@ -153,8 +288,8 @@ public actor DIActor {
   /// - Parameter type: 해결할 타입
   /// - Returns: 해결된 인스턴스
   /// - Throws: DIError.dependencyNotFound
-  public func resolveThrows<T>(_ type: T.Type) throws -> T where T: Sendable {
-    if let resolved = resolve(type) {
+  public func resolveThrows<T>(_ type: T.Type) async throws -> T where T: Sendable {
+    if let resolved = await resolve(type) {
       return resolved
     } else {
       throw DIError.dependencyNotFound(type)
@@ -295,13 +430,6 @@ public enum DIActorBridge {
   /// - Warning: 메인 스레드에서만 사용하세요
   @MainActor
   public static func resolveSync<T>(_ type: T.Type) -> T? where T: Sendable {
-    let box = _DIActorAsyncBox<T>()
-    let sem = DispatchSemaphore(value: 0)
-    Task.detached { @Sendable in
-      box.value = await DIActor.shared.resolve(type)
-      sem.signal()
-    }
-    sem.wait()
-    return box.value
+    preconditionFailure("Use async API: await DIActor.shared.resolve(\\(T.self))")
   }
 }

@@ -104,7 +104,7 @@ public enum DIAdvanced {
             _ type: T.Type,
             scope: ScopeKind,
             factory: @escaping @Sendable () -> T
-        ) -> @Sendable () -> Void {
+        ) -> @Sendable () -> Void where T: Sendable {
             Task.detached { @Sendable in
                 await GlobalUnifiedRegistry.registerScoped(type, scope: scope, factory: factory)
             }
@@ -116,36 +116,22 @@ public enum DIAdvanced {
             _ type: T.Type,
             scope: ScopeKind,
             factory: @escaping @Sendable () async -> T
-        ) {
+        ) where T: Sendable {
             Task.detached { @Sendable in
                 await GlobalUnifiedRegistry.registerAsyncScoped(type, scope: scope, factory: factory)
             }
         }
 
-        /// 특정 스코프의 모든 인스턴스를 해제합니다
+        /// 특정 스코프의 모든 인스턴스를 해제합니다 (async)
         @discardableResult
-        public static func releaseScope(_ kind: ScopeKind, id: String) -> Int {
-            let sem = DispatchSemaphore(value: 0)
-            let box = IntBox()
-            Task.detached { @Sendable in
-                box.value = await GlobalUnifiedRegistry.releaseScope(kind: kind, id: id)
-                sem.signal()
-            }
-            sem.wait()
-            return box.value
+        public static func releaseScope(_ kind: ScopeKind, id: String) async -> Int {
+            return await GlobalUnifiedRegistry.releaseScope(kind: kind, id: id)
         }
 
-        /// 특정 타입의 스코프 인스턴스를 해제합니다
+        /// 특정 타입의 스코프 인스턴스를 해제합니다 (async)
         @discardableResult
-        public static func releaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
-            let sem = DispatchSemaphore(value: 0)
-            let box = BoolBox()
-            Task.detached { @Sendable in
-                box.value = await GlobalUnifiedRegistry.releaseScoped(type, kind: kind, id: id)
-                sem.signal()
-            }
-            sem.wait()
-            return box.value
+        public static func releaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) async -> Bool {
+            return await GlobalUnifiedRegistry.releaseScoped(type, kind: kind, id: id)
         }
     }
 }
@@ -213,15 +199,3 @@ public struct BatchRegistration {
 }
 
 // MARK: - Helper Classes
-
-/// 정수값을 안전하게 전달하기 위한 박스
-private final class IntBox: @unchecked Sendable {
-    var value: Int = 0
-    init() {}
-}
-
-/// 불린값을 안전하게 전달하기 위한 박스
-private final class BoolBox: @unchecked Sendable {
-    var value: Bool = false
-    init() {}
-}

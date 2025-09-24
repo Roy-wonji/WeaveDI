@@ -4,6 +4,12 @@
 
 DiContainer 2.0의 핵심 API들과 사용법을 자세히 알아보세요.
 
+> 공지: 동기 API → async API 전환 (중요)
+>
+> - UnifiedRegistry의 동기 해석 API는 제거되었습니다. 모든 해석은 async API(`resolveAsync`, `resolveAnyAsync`, `resolveAnyAsyncBox`, `resolveAsync(keyPath:)`)를 사용하세요.
+> - 의존성 그래프 시각화의 동기 API도 제거되었습니다. async API(`generateDOTGraphAsync`, `generateMermaidGraphAsync`, `generateASCIIGraphAsync`, `generateJSONGraphAsync`)를 사용하세요.
+> - 기존 코드는 `await`를 붙여 async 버전으로 전환하시기 바랍니다.
+
 ## 개요
 
 DiContainer 2.0은 세 가지 핵심 패턴을 중심으로 설계되었습니다:
@@ -338,9 +344,26 @@ await DependencyContainer.bootstrap { container in
 CircularDependencyDetector.shared.setDetectionEnabled(true)
 
 // 그래프 산출 (개발/CI에서)
-let dot = DependencyGraphVisualizer.generateDOTGraph(title: "Dependencies")
-let mermaid = DependencyGraphVisualizer.generateMermaidGraph(title: "Dependencies")
+let dot = await DependencyGraphVisualizer.generateDOTGraphAsync(title: "Dependencies")
+let mermaid = await DependencyGraphVisualizer.generateMermaidGraphAsync(title: "Dependencies")
 ```
+
+### 실시간 그래프 업데이트 토글
+
+의존성 그래프는 기본적으로 “실시간(diff + 디바운스)”으로 업데이트됩니다. 필요 시 토글로 끄고/켜세요.
+
+```swift
+// 실시간 업데이트 끄기 (그래프 반영 지연/미반영)
+AutoDIOptimizer.shared.setRealtimeGraphEnabled(false)
+
+// 다시 켜기 (즉시 1회 동기화 후, 디바운스 100ms로 실시간 반영)
+AutoDIOptimizer.shared.setRealtimeGraphEnabled(true)
+```
+
+설명:
+- 기본값은 true (자동 실시간 업데이트)
+- 내부적으로 변경된 엣지만 반영하는 diff 방식 + 100ms 디바운스 적용
+- 대규모 그래프/빈번한 등록 환경에서 성능 최적화를 위해 false로 두고, 필요 시 수동 시각화만 수행할 수 있습니다
 
 ### 의존성 체인 관리
 

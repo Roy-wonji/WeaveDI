@@ -1,6 +1,25 @@
-으# Changelog
+# Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [2.2.0] - 2025-09-24
+
+### Added
+- Visualizer 비동기 API 추가: generateDOTGraphAsync / generateMermaidGraphAsync / generateASCIIGraphAsync / generateJSONGraphAsync
+- 실시간 그래프 업데이트 토글 API: AutoDIOptimizer.shared.setRealtimeGraphEnabled(Bool) (기본 true)
+- 프리웜 보조: AutoDIOptimizer.topUsedTypes(limit:) 추가
+
+### Changed
+- Visualizer 완전 async 전환: exportGraph는 내부 브리지로 async API 호출
+- 문서(CoreAPIs.md) 예제를 async 기반으로 갱신
+- UnifiedRegistry 완전 async 해석으로 전환; 내부 순환탐지 기록을 await로 직접 호출하여 오버헤드 제거
+- @unchecked Sendable 최소화: ValueBox를 Sendable(value: any Sendable)로 변경, 제네릭 제약(where T: Sendable) 정비
+- 실시간 그래프 업데이트 동작: off 시 실시간 동기화 중지, on 시 즉시 1회 동기화 후 100ms 디바운스로 재개
+- 그래프 업데이트 최적화: updateGraph를 diff 기반(추가/제거 엣지) + 100ms 디바운스로 성능 개선
+
+### Removed
+- Visualizer 동기 생성 API 제거 (메이저 변경)
+- UnifiedRegistry 동기 해석 API 제거(메이저): resolve(:) / resolveAny(:) / resolveAnyBox(_:) / resolve(keyPath:)
 
 ## [2.1.0] - 2024-09-24
 
@@ -47,4 +66,3 @@ All notable changes to this project will be documented in this file.
 ---
 
 이전 버전에 대한 변경 이력은 향후 정리 예정입니다.
-

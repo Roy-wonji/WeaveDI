@@ -2,7 +2,7 @@
 //  DependencyGraphVisualizer.swift
 //  DiContainer
 //
-//  Created by Wonja Suh on 3/24/25.
+//  Created by Wonji Suh on 9/24/25.
 //
 
 import Foundation
@@ -16,65 +16,10 @@ public enum DependencyGraphVisualizer {
     // MARK: - DOT Graph Generation
 
     /// DOT 형식의 의존성 그래프 생성 (Graphviz 호환)
-    public static func generateDOTGraph(
-        title: String = "DiContainer Dependency Graph",
-        options: GraphVisualizationOptions = .default
-    ) -> String {
-        let statistics = CircularDependencyDetector.shared.getGraphStatistics()
-        let cycles = CircularDependencyDetector.shared.detectAllCircularDependencies()
-
-        var dot = """
-        digraph "\(title)" {
-            // Graph properties
-            rankdir=\(options.direction.rawValue);
-            bgcolor="\(options.backgroundColor)";
-            node [shape=\(options.nodeShape.rawValue), style=filled];
-            edge [color="\(options.edgeColor)"];
-
-            // Graph title
-            labelloc="t";
-            label="\(title)\\n\(statistics.summary.replacingOccurrences(of: "\n", with: "\\n"))";
-
-        """
-
-        // 노드 정의
-        dot += generateDOTNodes(options: options, cycles: cycles)
-
-        // 엣지 정의
-        dot += generateDOTEdges(options: options, cycles: cycles)
-
-        // 순환 의존성 하이라이트
-        if !cycles.isEmpty && options.highlightCycles {
-            dot += generateCycleHighlights(cycles: cycles, options: options)
-        }
-
-        dot += "\n}"
-        return dot
-    }
+    // Removed sync generateDOTGraph; use async variant
 
     /// Mermaid 형식의 의존성 그래프 생성
-    public static func generateMermaidGraph(
-        title: String = "DiContainer Dependency Graph",
-        options: GraphVisualizationOptions = .default
-    ) -> String {
-        let statistics = CircularDependencyDetector.shared.getGraphStatistics()
-        let cycles = CircularDependencyDetector.shared.detectAllCircularDependencies()
-
-        var mermaid = """
-        graph \(options.direction == .topToBottom ? "TD" : "LR")
-            %% \(title)
-            %% \(statistics.summary.replacingOccurrences(of: "\n", with: " | "))
-
-        """
-
-        // 의존성 관계 추가
-        mermaid += generateMermaidEdges(cycles: cycles, options: options)
-
-        // 스타일 정의
-        mermaid += generateMermaidStyles(cycles: cycles, options: options)
-
-        return mermaid
-    }
+    // Removed sync generateMermaidGraph; use async variant
 
     // MARK: - Text-based Visualization
 
@@ -103,34 +48,7 @@ public enum DependencyGraphVisualizer {
     }
 
     /// ASCII 아트 스타일의 그래프 생성
-    public static func generateASCIIGraph(maxWidth: Int = 80) -> String {
-        let statistics = CircularDependencyDetector.shared.getGraphStatistics()
-        let cycles = CircularDependencyDetector.shared.detectAllCircularDependencies()
-
-        var ascii = """
-        ┌\(String(repeating: "─", count: maxWidth - 2))┐
-        │\(centerText("DiContainer Dependency Graph", width: maxWidth - 2))│
-        ├\(String(repeating: "─", count: maxWidth - 2))┤
-        │\(centerText(statistics.summary.components(separatedBy: "\n").first ?? "", width: maxWidth - 2))│
-        """
-
-        if !cycles.isEmpty {
-            ascii += """
-            ├\(String(repeating: "─", count: maxWidth - 2))┤
-            │\(centerText("⚠️  \(cycles.count) 순환 의존성 발견", width: maxWidth - 2))│
-            """
-        }
-
-        ascii += """
-        └\(String(repeating: "─", count: maxWidth - 2))┘
-
-        """
-
-        // 주요 컴포넌트들 표시
-        ascii += generateASCIIComponents(maxWidth: maxWidth)
-
-        return ascii
-    }
+    // Removed sync generateASCIIGraph; use async variant
 
     // MARK: - Export Functions
 
@@ -141,43 +59,24 @@ public enum DependencyGraphVisualizer {
         title: String = "DiContainer Dependency Graph",
         options: GraphVisualizationOptions = .default
     ) throws {
-        let content: String
-
-        switch format {
-        case .dot:
-            content = generateDOTGraph(title: title, options: options)
-        case .mermaid:
-            content = generateMermaidGraph(title: title, options: options)
-        case .text:
-            content = generateASCIIGraph()
-        case .json:
-            content = try generateJSONGraph()
-        }
+        let content: String = {
+            switch format {
+            case .dot:
+                return (try? awaitResult { await generateDOTGraphAsync(title: title, options: options) }.get()) ?? ""
+            case .mermaid:
+                return (try? awaitResult { await generateMermaidGraphAsync(title: title, options: options) }.get()) ?? ""
+            case .text:
+                return (try? awaitResult { await generateASCIIGraphAsync() }.get()) ?? ""
+            case .json:
+                return (try? awaitResultThrows { try await generateJSONGraphAsync() }.get()) ?? "{}"
+            }
+        }()
 
         try content.write(to: url, atomically: true, encoding: .utf8)
     }
 
     /// JSON 형식의 그래프 데이터 생성
-    public static func generateJSONGraph() throws -> String {
-        let statistics = CircularDependencyDetector.shared.getGraphStatistics()
-        let cycles = CircularDependencyDetector.shared.detectAllCircularDependencies()
-
-        let graphData = GraphJSONData(
-            metadata: GraphMetadata(
-                title: "DiContainer Dependency Graph",
-                generatedAt: ISO8601DateFormatter().string(from: Date()),
-                statistics: statistics
-            ),
-            nodes: [], // TODO: 실제 노드 데이터 추가
-            edges: [], // TODO: 실제 엣지 데이터 추가
-            cycles: cycles.map { CycleData(path: $0.path) }
-        )
-
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let jsonData = try encoder.encode(graphData)
-        return String(data: jsonData, encoding: .utf8) ?? ""
-    }
+    // Removed sync generateJSONGraph; use async variant
 
     // MARK: - Interactive Graph Generation
 
@@ -403,7 +302,7 @@ public enum DependencyGraphVisualizer {
         var allTypes: Set<String> = []
 
         // 의존성 그래프에서 타입들 추출
-        let analysis = CircularDependencyDetector.shared.analyzeDependencyChain("Root")
+        let analysis: DependencyChainAnalysis = (try? awaitDetectorResult { await $0.analyzeDependencyChain("Root") }.get()) ?? DependencyChainAnalysis(rootType: "Root", directDependencies: [], allDependencies: [], maxDepth: 0, hasCycles: false)
         allTypes.formUnion(analysis.allDependencies)
 
         // 일반적인 DI 타입들 추가 (실제로는 리플렉션이나 런타임 정보를 사용해야 함)
@@ -485,6 +384,172 @@ public enum DependencyGraphVisualizer {
         let lastName = components.last ?? fullName
         return lastName.replacingOccurrences(of: "Protocol", with: "")
             .replacingOccurrences(of: "Impl", with: "")
+    }
+}
+
+// Bridge helper: await actor methods from sync context (Result-based, no fatalError)
+private enum DetectorBridgeError: Error { case nilResult }
+private final class _DetectorBox<T>: @unchecked Sendable { var value: T? }
+
+private func awaitDetectorResult<T: Sendable>(
+    _ body: @Sendable @escaping (CircularDependencyDetector) async -> T,
+    timeout: TimeInterval? = 1.0
+) -> Result<T, Error> {
+    let sem = DispatchSemaphore(value: 0)
+    let box = _DetectorBox<T>()
+    let task = Task.detached { @Sendable in
+        box.value = await body(CircularDependencyDetector.shared)
+        sem.signal()
+    }
+    if let timeout = timeout {
+        let nanos = UInt64(timeout * 1_000_000_000)
+        let deadline = DispatchTime.now() + .nanoseconds(Int(nanos))
+        if sem.wait(timeout: deadline) == .timedOut {
+            task.cancel()
+            return .failure(DetectorBridgeError.nilResult)
+        }
+    } else {
+        sem.wait()
+    }
+    if let value = box.value { return .success(value) }
+    return .failure(DetectorBridgeError.nilResult)
+}
+
+// Generic async -> sync bridges (without deprecation noise)
+private func awaitResult<T: Sendable>(
+    _ body: @Sendable @escaping () async -> T,
+    timeout: TimeInterval = 1.0
+) -> Result<T, Error> {
+    let sem = DispatchSemaphore(value: 0)
+    let box = _DetectorBox<T>()
+    let task = Task.detached { @Sendable in
+        box.value = await body()
+        sem.signal()
+    }
+    let deadline = DispatchTime.now() + .nanoseconds(Int(timeout * 1_000_000_000))
+    if sem.wait(timeout: deadline) == .timedOut { task.cancel(); return .failure(DetectorBridgeError.nilResult) }
+    if let v = box.value { return .success(v) }
+    return .failure(DetectorBridgeError.nilResult)
+}
+
+private final class _ErrorBox: @unchecked Sendable { var error: Error? }
+
+private func awaitResultThrows<T: Sendable>(
+    _ body: @Sendable @escaping () async throws -> T,
+    timeout: TimeInterval = 1.0
+) -> Result<T, Error> {
+    let sem = DispatchSemaphore(value: 0)
+    let vbox = _DetectorBox<T>()
+    let ebox = _ErrorBox()
+    let task = Task.detached { @Sendable in
+        do { vbox.value = try await body() } catch { ebox.error = error }
+        sem.signal()
+    }
+    let deadline = DispatchTime.now() + .nanoseconds(Int(timeout * 1_000_000_000))
+    if sem.wait(timeout: deadline) == .timedOut { task.cancel(); return .failure(DetectorBridgeError.nilResult) }
+    if let err = ebox.error { return .failure(err) }
+    if let v = vbox.value { return .success(v) }
+    return .failure(DetectorBridgeError.nilResult)
+}
+
+// Async variants (preferred) — use these to avoid sync bridging
+public extension DependencyGraphVisualizer {
+    static func generateDOTGraphAsync(
+        title: String = "DiContainer Dependency Graph",
+        options: GraphVisualizationOptions = .default
+    ) async -> String {
+        let statistics = await CircularDependencyDetector.shared.getGraphStatistics()
+        let cycles = await CircularDependencyDetector.shared.detectAllCircularDependencies()
+        var dot = """
+        digraph "\(title)" {
+            // Graph properties
+            rankdir=\(options.direction.rawValue);
+            bgcolor="\(options.backgroundColor)";
+            node [shape=\(options.nodeShape.rawValue), style=filled];
+            edge [color="\(options.edgeColor)"];
+
+            // Graph title
+            labelloc="t";
+            label="\(title)\\n\(statistics.summary.replacingOccurrences(of: "\n", with: "\\n"))";
+
+        """
+        dot += generateDOTNodes(options: options, cycles: cycles)
+        dot += generateDOTEdges(options: options, cycles: cycles)
+        if !cycles.isEmpty && options.highlightCycles {
+            dot += generateCycleHighlights(cycles: cycles, options: options)
+        }
+        dot += "\n}"
+        return dot
+    }
+
+    static func generateMermaidGraphAsync(
+        title: String = "DiContainer Dependency Graph",
+        options: GraphVisualizationOptions = .default
+    ) async -> String {
+        let statistics = await CircularDependencyDetector.shared.getGraphStatistics()
+        let cycles = await CircularDependencyDetector.shared.detectAllCircularDependencies()
+        var mermaid = """
+        graph \(options.direction == .topToBottom ? "TD" : "LR")
+            %% \(title)
+            %% \(statistics.summary.replacingOccurrences(of: "\n", with: " | "))
+
+        """
+        mermaid += generateMermaidEdges(cycles: cycles, options: options)
+        mermaid += generateMermaidStyles(cycles: cycles, options: options)
+        return mermaid
+    }
+
+    static func generateASCIIGraphAsync(maxWidth: Int = 80) async -> String {
+        let statistics = await CircularDependencyDetector.shared.getGraphStatistics()
+        let cycles = await CircularDependencyDetector.shared.detectAllCircularDependencies()
+        var ascii = """
+        ┌\(String(repeating: "─", count: maxWidth - 2))┐
+        │\(centerText("DiContainer Dependency Graph", width: maxWidth - 2))│
+        ├\(String(repeating: "─", count: maxWidth - 2))┤
+        │\(centerText(statistics.summary.components(separatedBy: "\n").first ?? "", width: maxWidth - 2))│
+        """
+        if !cycles.isEmpty {
+            ascii += """
+            ├\(String(repeating: "─", count: maxWidth - 2))┤
+            │\(centerText("⚠️  \(cycles.count) 순환 의존성 발견", width: maxWidth - 2))│
+            """
+        }
+        ascii += """
+        └\(String(repeating: "─", count: maxWidth - 2))┘
+
+        """
+        ascii += generateASCIIComponents(maxWidth: maxWidth)
+        return ascii
+    }
+
+    static func generateJSONGraphAsync() async throws -> String {
+        let statistics = await CircularDependencyDetector.shared.getGraphStatistics()
+        let cycles = await CircularDependencyDetector.shared.detectAllCircularDependencies()
+        let graphData = GraphJSONData(
+            metadata: GraphMetadata(
+                title: "DiContainer Dependency Graph",
+                generatedAt: ISO8601DateFormatter().string(from: Date()),
+                statistics: statistics
+            ),
+            nodes: [],
+            edges: [],
+            cycles: cycles.map { CycleData(path: $0.path) }
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let jsonData = try encoder.encode(graphData)
+        return String(data: jsonData, encoding: .utf8) ?? ""
+    }
+}
+
+// Deprecate sync APIs in favor of async variants
+public extension DependencyGraphVisualizer {
+    @available(*, deprecated, message: "Use generateDOTGraphAsync(...) instead")
+    static func generateDOTGraphDeprecated(
+        title: String = "DiContainer Dependency Graph",
+        options: GraphVisualizationOptions = .default
+    ) async -> String {
+        await generateDOTGraphAsync(title: title, options: options)
     }
 }
 

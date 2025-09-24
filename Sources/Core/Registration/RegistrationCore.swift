@@ -28,7 +28,7 @@ public struct Module: Sendable {
         file: StaticString = #fileID,
         function: StaticString = #function,
         line: UInt = #line
-    ) {
+    ) where T: Sendable {
         self.registrationClosure = {
             DependencyContainer.live.register(type, build: factory)
         }
@@ -61,14 +61,14 @@ public struct RegisterModule: Sendable {
     public func makeModule<T>(
         _ type: T.Type,
         factory: @Sendable @escaping () -> T
-    ) -> Module {
+    ) -> Module where T: Sendable {
         Module(type, factory: factory)
     }
 
     public func makeDependency<T>(
         _ protocolType: T.Type,
         factory: @Sendable @escaping () -> T
-    ) -> @Sendable () -> Module {
+    ) -> @Sendable () -> Module where T: Sendable {
         return {
             Module(protocolType, factory: factory)
         }
@@ -81,7 +81,7 @@ public struct RegisterModule: Sendable {
         repositoryProtocol: Repo.Type,
         repositoryFallback: @Sendable @autoclosure @escaping () -> Repo,
         factory: @Sendable @escaping (Repo) -> UseCase
-    ) -> @Sendable () -> Module {
+    ) -> @Sendable () -> Module where UseCase: Sendable {
         // Graph: record edge UseCase -> Repository
         Task.detached { @Sendable in
             await DependencyGraph.shared.addEdge(from: useCaseProtocol, to: repositoryProtocol, label: "uses")
@@ -116,7 +116,7 @@ public struct RegisterModule: Sendable {
         repository repositoryFactory: @Sendable @escaping () -> Interface,
         useCase useCaseFactory: @Sendable @escaping (Interface) -> Interface,
         fallback fallbackFactory: @Sendable @escaping () -> Interface
-    ) -> [() -> Module] {
+    ) -> [() -> Module] where Interface: Sendable {
         return [
             makeDependency(interfaceType, factory: repositoryFactory),
             makeUseCaseWithRepository(

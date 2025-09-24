@@ -241,24 +241,16 @@ public final actor AppDIContainer {
   /// 기본 Factory들을 DI 컨테이너에 등록합니다.
   nonisolated private func setupDefaultFactories() {
     // Repository Factory 등록
-    DependencyContainer.live.register(RepositoryModuleFactory.self) {
-      RepositoryModuleFactory()
-    }
+    DependencyContainer.live.register(RepositoryModuleFactory.self, instance: RepositoryModuleFactory())
 
     // UseCase Factory 등록
-    DependencyContainer.live.register(UseCaseModuleFactory.self) {
-      UseCaseModuleFactory()
-    }
+    DependencyContainer.live.register(UseCaseModuleFactory.self, instance: UseCaseModuleFactory())
 
     // Scope Factory 등록
-    DependencyContainer.live.register(ScopeModuleFactory.self) {
-      ScopeModuleFactory()
-    }
+    DependencyContainer.live.register(ScopeModuleFactory.self, instance: ScopeModuleFactory())
 
     // 통합 Factory Manager 등록
-    DependencyContainer.live.register(ModuleFactoryManager.self) {
-      ModuleFactoryManager()
-    }
+    DependencyContainer.live.register(ModuleFactoryManager.self, instance: ModuleFactoryManager())
   }
 
   /// 내부적으로 모듈 등록과 빌드를 수행하는 ``Container`` 인스턴스입니다.

@@ -41,16 +41,26 @@ public final class DIContainer: @unchecked Sendable, ObservableObject {
     /// 타입 안전한 의존성 저장소
     private let typeSafeRegistry = TypeSafeRegistry()
 
-    /// 모듈 기반 일괄 등록을 위한 모듈 배열
+    /// 모듈 기반 일괄 등록을 위한 모듈 배열 (동시성 안전: concurrent + barrier)
+    private let modulesQueue = DispatchQueue(label: "com.diContainer.modules", attributes: .concurrent)
     private var modules: [Module] = []
 
     /// 스레드 안전한 shared 인스턴스 관리
-    private nonisolated(unsafe) static var instance = DIContainer()
+    private static let instanceLock = NSLock()
+    nonisolated(unsafe) private static var _instance = DIContainer()
 
-    /// 전역 인스턴스
+    /// 전역 인스턴스 (원자적 접근 보장)
     public static var shared: DIContainer {
-        get { instance }
-        set { instance = newValue }
+        get {
+            instanceLock.lock()
+            defer { instanceLock.unlock() }
+            return _instance
+        }
+        set {
+            instanceLock.lock()
+            defer { instanceLock.unlock() }
+            _instance = newValue
+        }
     }
 
     // MARK: - Initialization
@@ -104,7 +114,7 @@ public final class DIContainer: @unchecked Sendable, ObservableObject {
     public func register<T>(
         _ type: T.Type,
         build factory: @escaping @Sendable () -> T
-    ) -> @Sendable () -> Void {
+    ) -> @Sendable () -> Void where T: Sendable {
         let releaseHandler = typeSafeRegistry.register(type, factory: factory)
 
         // 🚀 자동 그래프 추적
@@ -188,7 +198,7 @@ public final class DIContainer: @unchecked Sendable, ObservableObject {
 
     // MARK: - Module System
 
-    /// 모듈을 컨테이너에 추가합니다
+    /// 모듈을 컨테이너에 추가합니다 (스레드 안전)
     ///
     /// 실제 등록은 `buildModules()` 호출 시에 병렬로 처리됩니다.
     ///
@@ -196,17 +206,20 @@ public final class DIContainer: @unchecked Sendable, ObservableObject {
     /// - Returns: 체이닝을 위한 현재 컨테이너 인스턴스
     @discardableResult
     public func addModule(_ module: Module) -> Self {
-        modules.append(module)
+        modulesQueue.sync(flags: .barrier) { self.modules.append(module) }
         return self
     }
 
-    /// 수집된 모든 모듈의 등록을 병렬로 실행합니다
+    /// 수집된 모든 모듈의 등록을 병렬로 실행합니다 (스레드 안전)
     ///
     /// TaskGroup을 사용하여 모든 모듈을 동시에 병렬 처리합니다.
     /// 대량의 의존성 등록 시간을 크게 단축할 수 있습니다.
     public func buildModules() async {
-        let snapshot = modules
-        let processedCount = snapshot.count
+        // 스레드 안전하게 스냅샷 생성
+        let (snapshot, processedCount): ([Module], Int) = modulesQueue.sync {
+            let snap = self.modules
+            return (snap, snap.count)
+        }
 
         guard !snapshot.isEmpty else { return }
 
@@ -220,11 +233,13 @@ public final class DIContainer: @unchecked Sendable, ObservableObject {
             await group.waitForAll()
         }
 
-        // 처리된 모듈 제거
-        if modules.count >= processedCount {
-            modules.removeFirst(processedCount)
-        } else {
-            modules.removeAll()
+        // 처리된 모듈 제거 (스레드 안전)
+        modulesQueue.sync(flags: .barrier) {
+            if self.modules.count >= processedCount {
+                self.modules.removeFirst(processedCount)
+            } else {
+                self.modules.removeAll()
+            }
         }
 
         Log.debug("Built \(processedCount) modules")
@@ -249,17 +264,17 @@ public final class DIContainer: @unchecked Sendable, ObservableObject {
 
     /// 현재 등록 대기 중인 모듈의 개수를 반환합니다
     public var moduleCount: Int {
-        modules.count
+        modulesQueue.sync { modules.count }
     }
 
     /// 컨테이너가 비어있는지 확인합니다
     public var isEmpty: Bool {
-        modules.isEmpty
+        modulesQueue.sync { modules.isEmpty }
     }
 
     /// 모듈을 등록하는 편의 메서드
     public func register(_ module: Module) async {
-        modules.append(module)
+        modulesQueue.sync(flags: .barrier) { self.modules.append(module) }
         await module.register()
     }
 
@@ -548,3 +563,4 @@ public extension DIContainer {
         AutoDIOptimizer.shared.resetStats()
     }
 }
+ 

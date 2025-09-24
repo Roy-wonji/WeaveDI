@@ -18,7 +18,7 @@ public extension RegisterModule {
         repositoryFactory: @Sendable @escaping () -> Interface,
         useCaseFactory: @Sendable @escaping (Interface) -> Interface,
         repositoryFallback: @Sendable @escaping () -> Interface
-    ) -> [() -> Module] {
+    ) -> [() -> Module] where Interface: Sendable {
 
         let repositoryModule = makeDependency(interfaceType, factory: repositoryFactory)
 
@@ -73,7 +73,7 @@ public struct BulkRegistrationEntry {
         repository: @Sendable @escaping () -> Interface,
         useCase: @Sendable @escaping (Interface) -> Interface,
         fallback: @Sendable @escaping () -> Interface
-    ) {
+    ) where Interface: Sendable {
         self.createModulesFunc = { registerModule in
             registerModule.interface(
                 interfaceType,
@@ -111,7 +111,7 @@ public struct EasyScopeBuilder {
 public struct RegisterEasyScopeEntry {
     private let moduleFactory: () -> Module
 
-    public init<T>(type: T.Type, factory: @Sendable @escaping () -> T) {
+    public init<T>(type: T.Type, factory: @Sendable @escaping () -> T) where T: Sendable {
         self.moduleFactory = { Module(type, factory: factory) }
     }
 
@@ -132,7 +132,7 @@ public func =><Interface>(
         useCase: @Sendable (Interface) -> Interface,
         fallback: @Sendable () -> Interface
     )
-) -> BulkRegistrationEntry {
+) -> BulkRegistrationEntry where Interface: Sendable {
     BulkRegistrationEntry(
         interfaceType: lhs,
         repository: rhs.repository,
@@ -144,7 +144,7 @@ public func =><Interface>(
 // MARK: - Global Convenience Functions
 
 /// 전역 함수로 더욱 간편한 등록
-public func register<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) -> RegisterEasyScopeEntry {
+public func register<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) -> RegisterEasyScopeEntry where T: Sendable {
     RegisterEasyScopeEntry(type: type, factory: factory)
 }
 
@@ -154,7 +154,7 @@ public func registerInterface<Interface>(
     repository: @Sendable @escaping () -> Interface,
     useCase: @Sendable @escaping (Interface) -> Interface,
     fallback: @Sendable @escaping () -> Interface
-) -> [() -> Module] {
+) -> [() -> Module] where Interface: Sendable {
     let registerModule = RegisterModule()
     return registerModule.interface(
         interfaceType,

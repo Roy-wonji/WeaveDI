@@ -2,7 +2,7 @@
 //  RegistrationAPI.swift
 //  DiContainer
 //
-//  Created by Wonja Suh on 3/24/25.
+//  Created by Wonji Suh on 9/24/25.
 //
 
 import Foundation
@@ -170,7 +170,7 @@ public extension RegisterModule {
     func makeTypeSafeDependency<T>(
         _ protocolType: T.Type,
         factory: @Sendable @escaping () -> T
-    ) -> @Sendable () -> Module {
+    ) -> @Sendable () -> Module where T: Sendable {
         return {
             self.makeModule(protocolType, factory: factory)
         }
@@ -180,7 +180,7 @@ public extension RegisterModule {
     func makeDependencyImproved<T, U>(
         _ protocolType: T.Type,
         factory: @Sendable @escaping () -> U
-    ) -> @Sendable () -> Module {
+    ) -> @Sendable () -> Module where T: Sendable {
         return {
             self.makeModule(protocolType) {
                 let instance = factory()
@@ -212,7 +212,7 @@ public extension DI {
     static func registerWithToken<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
-    ) -> RegistrationToken {
+    ) -> RegistrationToken where T: Sendable {
         let releaseHandler = DependencyContainer.live.register(type, build: factory)
         let typeName = String(describing: type)
         return RegistrationToken(typeName: typeName, releaseHandler: releaseHandler)

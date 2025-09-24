@@ -43,6 +43,9 @@ public enum DIError: Error, LocalizedError, CustomStringConvertible {
     
     /// 컨테이너가 아직 부트스트랩되지 않은 경우
     case containerNotBootstrapped(String)
+
+    /// 내부 오류
+    case internalError(String)
     
     // MARK: - LocalizedError
     
@@ -64,6 +67,9 @@ public enum DIError: Error, LocalizedError, CustomStringConvertible {
             return "잘못된 구성입니다: \(message)"
         case .containerNotBootstrapped(let message):
             return "컨테이너가 초기화되지 않았습니다: \(message)"
+
+        case .internalError(let message):
+            return "내부 오류: \(message)"
         }
     }
     
@@ -81,6 +87,9 @@ public enum DIError: Error, LocalizedError, CustomStringConvertible {
             return "DI 컨테이너 설정에 문제가 있습니다."
         case .containerNotBootstrapped(_):
             return "DI 컨테이너가 아직 초기화되지 않았습니다."
+
+        case .internalError(_):
+            return "DiContainer 내부에서 예기치 않은 문제가 발생했습니다."
         }
     }
     
@@ -99,6 +108,9 @@ public enum DIError: Error, LocalizedError, CustomStringConvertible {
             return "DI 컨테이너 설정을 검토하고 올바른 구성인지 확인하세요."
         case .containerNotBootstrapped(_):
             return "앱 시작 시 DependencyContainer.bootstrap()을 호출하세요."
+
+        case .internalError(_):
+            return "GitHub 이슈를 통해 문제를 제보하거나 디버그 정보를 확인하세요."
         }
     }
     
@@ -129,7 +141,7 @@ public extension DIError {
     /// 의존성을 찾을 수 없는 오류를 생성합니다.
     static func dependencyNotFound<T>(_ type: T.Type, hint: String? = nil) -> DIError {
         let baseMessage = "Type '\(type)' not found in DI container"
-        let fullMessage = hint != nil ? "\(baseMessage). \(hint!)" : baseMessage
+        let fullMessage = hint.map { "\(baseMessage). \($0)" } ?? baseMessage
         return .dependencyNotFound(fullMessage)
     }
     
