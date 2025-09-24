@@ -1,866 +1,360 @@
 //
-//  UnifiedDI.swift
+//  SimplifiedDI.swift
 //  DiContainer
 //
-//  Created by Wonja Suh on 3/19/25.
+//  Created by Wonji Suh on 2024.
+//  Copyright © 2024 Wonji Suh. All rights reserved.
 //
 
 import Foundation
-import LogMacro
 
-// MARK: - Unified DI API
+// MARK: - Simplified DI API
 
 /// ## 개요
 ///
-/// `UnifiedDI`는 모든 의존성 주입 API를 통합하는 단일 진입점입니다.
-/// 기존의 분산된 API들(`DI`, `DependencyContainer.live`, `AutoRegister` 등)을
-/// 하나의 일관성 있는 인터페이스로 통합하여 개발자 경험을 개선합니다.
+/// `UnifiedDI`는 현대적이고 직관적인 의존성 주입 API입니다.
+/// 복잡한 기능들을 제거하고 핵심 기능에만 집중하여 이해하기 쉽고 사용하기 간편합니다.
 ///
-/// ## 핵심 특징
+/// ## 설계 철학
+/// - **단순함이 최고**: 복잡한 기능보다 명확한 API
+/// - **타입 안전성**: 컴파일 타임에 모든 오류 검증
+/// - **직관적 사용**: 코드만 봐도 이해할 수 있는 API
 ///
-/// ### 🎯 단일 진입점
-/// - **일관된 API**: 모든 등록/해결 작업을 하나의 타입에서 수행
-/// - **타입 안전성**: 컴파일 타임 타입 검증
-/// - **명확한 의도**: 메서드 이름으로 동작 방식 명시
-///
-/// ### 🔄 통합된 등록 방법
-/// - **팩토리 등록**: `register(_:factory:)`
-/// - **KeyPath 등록**: `register(_:factory:)` - KeyPath 기반
-/// - **조건부 등록**: `registerIf(_:condition:factory:fallback:)`
-/// - **일괄 등록**: `registerMany { ... }`
-///
-/// ### 🛡️ 다양한 해결 전략
-/// - **옵셔널 해결**: `resolve(_:)` - nil 가능
-/// - **필수 해결**: `requireResolve(_:)` - 실패 시 fatalError
-/// - **안전한 해결**: `resolveThrows(_:)` - 실패 시 throws
-/// - **기본값 해결**: `resolve(_:default:)` - 항상 성공
-/// - **성능 추적**: `resolveWithTracking(_:)` - 성능 측정 포함
-///
-/// ## 사용 예시
-///
-/// ### 기본 등록/해결
+/// ## 기본 사용법
 /// ```swift
-/// // 타입 기반 등록
-/// UnifiedDI.register(ServiceProtocol.self) { ServiceImpl() }
-///
-/// // KeyPath 기반 등록 (DI.register 스타일)
-/// let repository = UnifiedDI.register(\.summaryPersistenceInterface) {
-///     SummaryPersistenceRepositoryImpl()
+/// // 1. 등록하고 즉시 사용
+/// let repository = UnifiedDI.register(UserRepository.self) {
+///     UserRepositoryImpl()
 /// }
 ///
-/// // 해결
-/// let service = UnifiedDI.resolve(ServiceProtocol.self)           // Optional
-/// let database = UnifiedDI.requireResolve(DatabaseProtocol.self)  // Force unwrap
-/// let logger = UnifiedDI.resolve(LoggerProtocol.self, default: ConsoleLogger())
-/// ```
+/// // 2. 나중에 조회
+/// let service = UnifiedDI.resolve(UserService.self)
 ///
-/// ### 일괄 등록
-/// ```swift
-/// UnifiedDI.registerMany {
-///     Registration(NetworkService.self) { DefaultNetworkService() }
-///     Registration(UserRepository.self) { UserRepositoryImpl() }
-///     Registration(AuthService.self, condition: isProduction) {
-///         ProductionAuthService()
-///     } fallback: {
-///         MockAuthService()
-///     }
-/// }
-/// ```
-///
-/// ## 마이그레이션 가이드
-///
-/// ### 기존 DI API에서
-/// ```swift
-/// // Before
-/// DI.register(Service.self) { ServiceImpl() }
-/// let service = DI.resolve(Service.self)
-///
-/// // After
-/// UnifiedDI.register(Service.self) { ServiceImpl() }
-/// let service = UnifiedDI.resolve(Service.self)
-/// ```
-///
-/// ### 기존 DependencyContainer에서
-/// ```swift
-/// // Before
-/// DependencyContainer.live.register(Service.self, build: { ServiceImpl() })
-/// let service = DependencyContainer.live.resolve(Service.self)
-///
-/// // After
-/// UnifiedDI.register(Service.self) { ServiceImpl() }
-/// let service = UnifiedDI.resolve(Service.self)
+/// // 3. 필수 의존성 (실패 시 크래시)
+/// let logger = UnifiedDI.requireResolve(Logger.self)
 /// ```
 public enum UnifiedDI {
+  
+  // MARK: - Core Registration API
+  
+  /// 의존성을 등록하고 즉시 생성된 인스턴스를 반환합니다 (권장 방식)
+  ///
+  /// 가장 직관적인 의존성 등록 방법입니다.
+  /// 팩토리를 즉시 실행하여 인스턴스를 생성하고, 컨테이너에 등록한 후 반환합니다.
+  ///
+  /// - Parameters:
+  ///   - type: 등록할 타입
+  ///   - factory: 인스턴스를 생성하는 클로저
+  /// - Returns: 생성된 인스턴스
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// let repository = UnifiedDI.register(UserRepository.self) {
+  ///     UserRepositoryImpl()
+  /// }
+  /// // repository를 바로 사용 가능
+  /// ```
+  public static func register<T>(
+    _ type: T.Type,
+    factory: @escaping @Sendable () -> T
+  ) -> T where T: Sendable {
+    let instance = factory()
+    DependencyContainer.live.register(type, instance: instance)
+    return instance
+  }
+  
+  /// KeyPath를 사용한 타입 안전한 등록 (DI.register(\.keyPath) 스타일)
+  ///
+  /// DependencyContainer의 KeyPath를 사용하여 더욱 타입 안전하게 등록합니다.
+  ///
+  /// - Parameters:
+  ///   - keyPath: DependencyContainer 내의 KeyPath
+  ///   - factory: 인스턴스를 생성하는 팩토리 클로저
+  /// - Returns: 생성된 인스턴스
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// let repository = UnifiedDI.register(\.userRepository) {
+  ///     UserRepositoryImpl()
+  /// }
+  /// ```
+  public static func register<T>(
+    _ keyPath: KeyPath<DependencyContainer, T?>,
+    factory: @escaping @Sendable () -> T
+  ) -> T where T: Sendable {
+    let instance = factory()
+    DependencyContainer.live.register(T.self, instance: instance)
+    return instance
+  }
+  
+  // MARK: - Core Resolution API
+  
+  /// 등록된 의존성을 조회합니다 (안전한 방법)
+  ///
+  /// 의존성이 등록되지 않은 경우 nil을 반환하므로 크래시 없이 안전하게 처리할 수 있습니다.
+  /// 권장하는 안전한 의존성 해결 방법입니다.
+  ///
+  /// - Parameter type: 조회할 타입
+  /// - Returns: 해결된 인스턴스 (없으면 nil)
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// if let service = UnifiedDI.resolve(UserService.self) {
+  ///     // 서비스 사용
+  /// } else {
+  ///     // 대체 로직 수행
+  /// }
+  /// ```
+  public static func resolve<T>(_ type: T.Type) -> T? {
+    return DependencyContainer.live.resolve(type)
+  }
+  
+  /// KeyPath를 사용하여 의존성을 조회합니다
+  ///
+  /// - Parameter keyPath: DependencyContainer 내의 KeyPath
+  /// - Returns: 해결된 인스턴스 (없으면 nil)
+  public static func resolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T? {
+    return DependencyContainer.live.resolve(T.self)
+  }
+  
+  /// 필수 의존성을 조회합니다 (실패 시 명확한 에러 메시지와 함께 크래시)
+  ///
+  /// 반드시 등록되어 있어야 하는 의존성을 조회할 때 사용합니다.
+  /// 등록되지 않은 경우 개발자 친화적인 에러 메시지와 함께 앱이 종료됩니다.
+  ///
+  /// - Parameter type: 조회할 타입
+  /// - Returns: 해결된 인스턴스 (항상 성공)
+  ///
+  /// ### ⚠️ 주의사항:
+  /// 프로덕션 환경에서는 `resolve(_:)` 사용을 권장합니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// let logger = UnifiedDI.requireResolve(Logger.self)
+  /// // logger는 항상 유효한 인스턴스
+  /// ```
+  public static func requireResolve<T>(_ type: T.Type) -> T {
+    guard let resolved = DependencyContainer.live.resolve(type) else {
+      let typeName = String(describing: type)
+      fatalError("""
+            🚨 [DI] 필수 의존성을 찾을 수 없습니다!
+            
+            타입: \(typeName)
+            
+            💡 해결 방법:
+               UnifiedDI.register(\(typeName).self) { YourImplementation() }
+            
+            🔍 등록이 해결보다 먼저 수행되었는지 확인해주세요.
+            
+            """)
+    }
+    return resolved
+  }
+  
+  /// 의존성을 조회하거나 기본값을 반환합니다 (항상 성공)
+  ///
+  /// 의존성이 없어도 항상 성공하는 안전한 해결 방법입니다.
+  /// 기본 구현체나 Mock 객체를 제공할 때 유용합니다.
+  ///
+  /// - Parameters:
+  ///   - type: 조회할 타입
+  ///   - defaultValue: 해결 실패 시 사용할 기본값
+  /// - Returns: 해결된 인스턴스 또는 기본값
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// let logger = UnifiedDI.resolve(Logger.self, default: ConsoleLogger())
+  /// // logger는 항상 유효한 인스턴스
+  /// ```
+  public static func resolve<T>(_ type: T.Type, default defaultValue: @autoclosure () -> T) -> T {
+    return DependencyContainer.live.resolve(type) ?? defaultValue()
+  }
+  
+  // MARK: - Management API
+  
+  /// 등록된 의존성을 해제합니다
+  ///
+  /// 특정 타입의 의존성을 컨테이너에서 제거합니다.
+  /// 주로 테스트나 메모리 정리 시 사용합니다.
+  ///
+  /// - Parameter type: 해제할 타입
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// UnifiedDI.release(UserService.self)
+  /// // 이후 resolve 시 nil 반환
+  /// ```
+  public static func release<T>(_ type: T.Type) {
+    DependencyContainer.live.release(type)
+  }
+  
+  /// 모든 등록된 의존성을 해제합니다 (테스트용)
+  ///
+  /// 주로 테스트 환경에서 각 테스트 간 격리를 위해 사용합니다.
+  /// 프로덕션에서는 사용을 권장하지 않습니다.
+  ///
+  /// ### ⚠️ 주의사항:
+  /// 메인 스레드에서만 호출해야 합니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// // 테스트 setUp에서
+  /// override func setUp() {
+  ///     super.setUp()
+  ///     UnifiedDI.releaseAll()
+  /// }
+  /// ```
+  @MainActor
+  public static func releaseAll() {
+    DependencyContainer.live = DependencyContainer()
+  }
+}
 
-    // MARK: - Core Registration APIs
+// MARK: - Advanced Features (별도 네임스페이스)
 
-    /// 의존성을 등록하고 즉시 생성된 인스턴스를 반환합니다 (권장)
-    ///
-    /// 이 메서드는 팩토리를 즉시 실행하여 인스턴스를 생성하고,
-    /// 해당 인스턴스를 컨테이너에 등록한 후 반환합니다.
-    /// KeyPath 기반 등록과 동일한 동작을 제공합니다.
+/// 고급 기능들을 위한 네임스페이스
+///
+/// 일반적인 사용에서는 필요하지 않은 고급 기능들을 별도로 분리했습니다.
+/// 설계 철학에 따라 핵심 기능과 분리하여 복잡도를 줄였습니다.
+public extension UnifiedDI {
+  
+  /// 조건부 등록을 위한 네임스페이스
+  enum Conditional {
+    /// 조건에 따라 다른 구현체를 등록합니다
     ///
     /// - Parameters:
     ///   - type: 등록할 타입
-    ///   - factory: 인스턴스를 생성하는 클로저
-    /// - Returns: 생성된 인스턴스
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let repository = UnifiedDI.register(BookListInterface.self) {
-    ///     BookListRepositoryImpl()
-    /// }
-    /// // repository는 BookListInterface 인스턴스
-    /// ```
-    public static func register<T>(
-        _ type: T.Type,
-        factory: @escaping @Sendable () -> T
-    ) -> T where T: Sendable {
-        // 🤖 자동 의존성 감지
-        Task {
-            await AutoDependencyDetector.shared.detectDependencies(for: type, factory: factory)
-        }
-
-        let instance = factory()
-        DependencyContainer.live.register(type, instance: instance)
-        return instance
-    }
-
-    /// 지연 생성 패턴으로 의존성을 등록합니다 (해제 핸들러 반환)
-    ///
-    /// 이 메서드는 지연 생성 패턴을 사용하여 실제 `resolve` 호출 시에만
-    /// 팩토리 클로저가 실행됩니다. 매번 새로운 인스턴스가 생성됩니다.
-    ///
-    /// - Parameters:
-    ///   - type: 등록할 타입
-    ///   - lazy: true로 설정하면 지연 등록, false는 즉시 등록
-    ///   - factory: 인스턴스를 생성하는 클로저
-    /// - Returns: 등록 해제 핸들러 (호출하면 등록 해제)
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let releaseHandler = UnifiedDI.register(NetworkService.self, lazy: true) {
-    ///     DefaultNetworkService()
-    /// }
-    /// // 나중에 해제
-    /// releaseHandler()
-    /// ```
-    @discardableResult
-    public static func register<T>(
-        _ type: T.Type,
-        lazy: Bool,
-        factory: @escaping @Sendable () -> T
-    ) -> @Sendable () -> Void {
-        // 🤖 자동 의존성 감지
-        Task {
-            await AutoDependencyDetector.shared.detectDependencies(for: type, factory: factory)
-        }
-
-        return DependencyContainer.live.register(type, build: factory)
-    }
-
-    /// 의존성을 명시적으로 지정하여 등록하고 인스턴스를 반환합니다
-    ///
-    /// 자동 감지로는 찾을 수 없는 의존성을 수동으로 명시하면서
-    /// 즉시 생성된 인스턴스를 반환합니다.
-    ///
-    /// - Parameters:
-    ///   - type: 등록할 타입
-    ///   - dependencies: 이 타입이 의존하는 타입들의 목록
-    ///   - factory: 인스턴스를 생성하는 클로저
-    /// - Returns: 생성된 인스턴스
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let service = UnifiedDI.register(
-    ///     UserService.self,
-    ///     dependencies: [NetworkService.self, UserRepository.self, Logger.self]
-    /// ) {
-    ///     UserService()
-    /// }
-    /// ```
-    public static func register<T>(
-        _ type: T.Type,
-        dependencies: [Any.Type],
-        factory: @escaping @Sendable () -> T
-    ) -> T where T: Sendable {
-        // 🤖 자동 의존성 감지
-        Task {
-            await AutoDependencyDetector.shared.detectDependencies(for: type, factory: factory)
-            // 📝 수동 의존성 추가
-            await AutoDependencyDetector.shared.recordManualDependency(from: type, to: dependencies)
-        }
-
-        let instance = factory()
-        DependencyContainer.live.register(type, instance: instance)
-        return instance
-    }
-
-    /// 의존성을 명시적으로 지정하여 등록합니다 (지연/즉시 선택 가능)
-    ///
-    /// 자동 감지로는 찾을 수 없는 의존성을 수동으로 명시할 수 있습니다.
-    /// 자동 감지된 의존성과 수동으로 지정한 의존성이 모두 기록됩니다.
-    ///
-    /// - Parameters:
-    ///   - type: 등록할 타입
-    ///   - dependencies: 이 타입이 의존하는 타입들의 목록
-    ///   - lazy: true로 설정하면 지연 등록, false는 즉시 등록
-    ///   - factory: 인스턴스를 생성하는 클로저
-    /// - Returns: lazy=true일 때 해제 핸들러, lazy=false일 때 생성된 인스턴스 (Any 타입)
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// // 지연 등록
-    /// let releaseHandler = UnifiedDI.register(
-    ///     UserService.self,
-    ///     dependencies: [NetworkService.self],
-    ///     lazy: true
-    /// ) {
-    ///     UserService()
-    /// } as! () -> Void
-    ///
-    /// // 즉시 등록 및 인스턴스 반환
-    /// let service = UnifiedDI.register(
-    ///     UserService.self,
-    ///     dependencies: [NetworkService.self],
-    ///     lazy: false
-    /// ) {
-    ///     UserService()
-    /// } as! UserService
-    /// ```
-    public static func register<T>(
-        _ type: T.Type,
-        dependencies: [Any.Type],
-        lazy: Bool,
-        factory: @escaping @Sendable () -> T
-    ) -> Any where T: Sendable {
-        // 🤖 자동 의존성 감지
-        Task {
-            await AutoDependencyDetector.shared.detectDependencies(for: type, factory: factory)
-            // 📝 수동 의존성 추가
-            await AutoDependencyDetector.shared.recordManualDependency(from: type, to: dependencies)
-        }
-
-        if lazy {
-            return DependencyContainer.live.register(type, build: factory)
-        } else {
-            let instance = factory()
-            DependencyContainer.live.register(type, instance: instance)
-            return instance
-        }
-    }
-
-    /// 스코프 기반 등록 (동기)
-    @discardableResult
-    public static func registerScoped<T>(
-        _ type: T.Type,
-        scope: ScopeKind,
-        factory: @escaping @Sendable () -> T
-    ) -> @Sendable () -> Void {
-        // TypeSafeRegistry에는 스코프 개념이 없으므로 UnifiedRegistry에 직접 위임
-        Task.detached { @Sendable in
-            await GlobalUnifiedRegistry.registerScoped(type, scope: scope, factory: factory)
-        }
-        return { }
-    }
-
-    /// 스코프 기반 등록 (비동기)
-    public static func registerAsyncScoped<T>(
-        _ type: T.Type,
-        scope: ScopeKind,
-        factory: @escaping @Sendable () async -> T
-    ) {
-        Task.detached { @Sendable in
-            await GlobalUnifiedRegistry.registerAsyncScoped(type, scope: scope, factory: factory)
-        }
-    }
-
-    /// KeyPath를 사용하여 의존성을 등록하고 인스턴스를 반환합니다 (DI.register 스타일)
-    ///
-    /// DependencyContainer의 KeyPath를 사용하여 타입 안전한 방식으로
-    /// 의존성을 등록하고 동시에 생성된 인스턴스를 반환합니다.
-    /// 기존 `DI.register(\.keyPath)` 스타일과 호환되면서 더 편리합니다.
-    ///
-    /// - Parameters:
-    ///   - keyPath: DependencyContainer 내의 KeyPath
-    ///   - factory: 인스턴스를 생성하는 팩토리 클로저
-    /// - Returns: 생성된 인스턴스
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let repository = UnifiedDI.register(\.summaryPersistenceInterface) {
-    ///     SummaryPersistenceRepositoryImpl()
-    /// }
-    /// return SummaryPersistenceUseCaseImpl(repository: repository)
-    ///
-    /// let service = UnifiedDI.register(\.userService) {
-    ///     UserServiceImpl()
-    /// }
-    /// ```
-    public static func register<T>(
-        _ keyPath: KeyPath<DependencyContainer, T?>,
-        factory: @escaping @Sendable () -> T
-    ) -> T where T: Sendable {
-        let instance = factory()
-        DependencyContainer.live.register(T.self, instance: instance)
-        return instance
-    }
-
-
-
-    /// 조건에 따라 다른 구현체를 등록하고 인스턴스를 반환합니다
-    ///
-    /// 런타임 조건에 따라 서로 다른 팩토리를 사용하여 의존성을 등록하고
-    /// 생성된 인스턴스를 반환합니다. A/B 테스트, 환경별 분기, 피처 플래그 등에 유용합니다.
-    ///
-    /// - Parameters:
-    ///   - type: 등록할 타입
-    ///   - condition: 등록 조건 (true/false)
+    ///   - condition: 등록 조건
     ///   - factory: 조건이 true일 때 사용할 팩토리
     ///   - fallback: 조건이 false일 때 사용할 팩토리
     /// - Returns: 생성된 인스턴스
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let analytics = UnifiedDI.registerIf(
-    ///     AnalyticsService.self,
-    ///     condition: isProduction,
-    ///     factory: { FirebaseAnalytics() },
-    ///     fallback: { MockAnalytics() }
-    /// )
-    /// ```
     public static func registerIf<T>(
-        _ type: T.Type,
-        condition: Bool,
-        factory: @escaping @Sendable () -> T,
-        fallback: @escaping @Sendable () -> T
+      _ type: T.Type,
+      condition: Bool,
+      factory: @escaping @Sendable () -> T,
+      fallback: @escaping @Sendable () -> T
     ) -> T where T: Sendable {
-        if condition {
-            return register(type, factory: factory)
-        } else {
-            return register(type, factory: fallback)
-        }
+      if condition {
+        return UnifiedDI.register(type, factory: factory)
+      } else {
+        return UnifiedDI.register(type, factory: fallback)
+      }
     }
-
-
-    // MARK: - Core Resolution APIs
-
-    /// 등록된 의존성을 해결합니다 (옵셔널 반환)
-    ///
-    /// 가장 안전한 해결 방법으로, 의존성이 등록되지 않은 경우 nil을 반환합니다.
-    /// 크래시 없이 안전하게 처리할 수 있습니다.
-    ///
-    /// - Parameter type: 해결할 타입
-    /// - Returns: 해결된 인스턴스 (없으면 nil)
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// if let service = UnifiedDI.resolve(NetworkService.self) {
-    ///     // 서비스 사용
-    /// } else {
-    ///     // 대체 로직 수행
-    /// }
-    /// ```
-    public static func resolve<T>(_ type: T.Type) -> T? {
-        return DependencyContainer.live.resolve(type)
-    }
-
-    /// KeyPath를 사용하여 등록된 의존성을 해결합니다 (옵셔널 반환)
-    ///
-    /// KeyPath 기반으로 의존성을 안전하게 해결합니다.
-    /// 의존성이 등록되지 않은 경우 nil을 반환합니다.
-    ///
-    /// - Parameter keyPath: DependencyContainer 내의 KeyPath
-    /// - Returns: 해결된 인스턴스 (없으면 nil)
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// if let repository = UnifiedDI.resolve(\.summaryPersistenceInterface) {
-    ///     // 리포지토리 사용
-    /// } else {
-    ///     // 대체 로직 수행
-    /// }
-    /// ```
-    public static func resolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T? {
-        return DependencyContainer.live.resolve(T.self)
-    }
-
-    /// 필수 의존성을 해결합니다 (실패 시 fatalError)
-    ///
-    /// 의존성이 반드시 등록되어 있어야 하는 경우 사용합니다.
-    /// 등록되지 않은 경우 상세한 디버깅 정보와 함께 앱이 종료됩니다.
-    ///
-    /// - Parameter type: 해결할 타입
-    /// - Returns: 해결된 인스턴스 (항상 성공)
-    ///
-    /// ### ⚠️ 주의사항:
-    /// 프로덕션 코드에서는 `resolveThrows`를 사용하는 것을 권장합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let database = UnifiedDI.requireResolve(DatabaseProtocol.self)
-    /// // database는 항상 유효한 인스턴스
-    /// ```
-    public static func requireResolve<T>(_ type: T.Type) -> T {
-        guard let resolved = DependencyContainer.live.resolve(type) else {
-            let typeName = String(describing: type)
-            fatalError("""
-            🚨 [UnifiedDI] Required dependency not found!
-
-            Type: \(typeName)
-
-            💡 Fix by registering the dependency:
-               UnifiedDI.register(\(typeName).self) { YourImplementation() }
-
-            🔍 Make sure registration happens before resolution.
-            """)
-        }
-        return resolved
-    }
-
-    /// KeyPath를 사용하여 필수 의존성을 해결합니다 (실패 시 fatalError)
-    ///
-    /// KeyPath 기반으로 의존성이 반드시 등록되어 있어야 하는 경우 사용합니다.
-    /// 등록되지 않은 경우 상세한 디버깅 정보와 함께 앱이 종료됩니다.
-    ///
-    /// - Parameter keyPath: DependencyContainer 내의 KeyPath
-    /// - Returns: 해결된 인스턴스 (항상 성공)
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let repository = UnifiedDI.requireResolve(\.summaryPersistenceInterface)
-    /// // repository는 항상 유효한 인스턴스
-    /// ```
-    public static func requireResolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T {
-        guard let resolved = DependencyContainer.live.resolve(T.self) else {
-            let keyPathString = String(describing: keyPath)
-            let typeName = String(describing: T.self)
-            fatalError("""
-            🚨 [UnifiedDI] Required dependency not found!
-
-            KeyPath: \(keyPathString)
-            Type: \(typeName)
-
-            💡 Fix by registering the dependency:
-               UnifiedDI.register(\(keyPathString)) { YourImplementation() }
-
-            🔍 Make sure registration happens before resolution.
-            """)
-        }
-        return resolved
-    }
-
-    /// 등록된 의존성을 해결하고 실패 시 throws
-    ///
-    /// 에러 처리가 가능한 안전한 해결 방법입니다.
-    /// 프로덕션 환경에서 권장되는 패턴입니다.
-    ///
-    /// - Parameter type: 해결할 타입
-    /// - Returns: 해결된 인스턴스
-    /// - Throws: `DIError.dependencyNotFound`
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// do {
-    ///     let service = try UnifiedDI.resolveThrows(NetworkService.self)
-    ///     // 서비스 사용
-    /// } catch {
-    ///     // 에러 처리
-    ///     #logDebug("Service not available: \(error)")
-    /// }
-    /// ```
-    public static func resolveThrows<T>(_ type: T.Type) throws -> T {
-        if let resolved = DependencyContainer.live.resolve(type) {
-            return resolved
-        } else {
-            throw DIError.dependencyNotFound(type, hint: "Call UnifiedDI.register(\(type).self) { ... } first")
-        }
-    }
-
-    /// 등록된 의존성을 해결하거나 기본값을 반환합니다
-    ///
-    /// 의존성이 없어도 항상 성공하는 안전한 해결 방법입니다.
-    /// 기본 구현체나 Mock 객체를 제공할 때 유용합니다.
-    ///
-    /// - Parameters:
-    ///   - type: 해결할 타입
-    ///   - defaultValue: 해결 실패 시 사용할 기본값
-    /// - Returns: 해결된 인스턴스 또는 기본값
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let logger = UnifiedDI.resolve(LoggerProtocol.self, default: ConsoleLogger())
-    /// // logger는 항상 유효한 인스턴스 (등록된 것 또는 ConsoleLogger)
-    /// ```
-    public static func resolve<T>(_ type: T.Type, default defaultValue: @autoclosure () -> T) -> T {
-        return DependencyContainer.live.resolve(type) ?? defaultValue()
-    }
-
-    // MARK: - Performance APIs
-
-    /// 성능 추적과 함께 의존성을 해결합니다
-    ///
-    /// 해결 과정의 성능을 측정하고 통계를 수집합니다.
-    /// 디버그 빌드에서만 실제 측정이 수행되며, 릴리즈 빌드에서는 일반 resolve와 동일합니다.
-    ///
-    /// - Parameter type: 해결할 타입
-    /// - Returns: 해결된 인스턴스 (없으면 nil)
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let service = UnifiedDI.resolveWithTracking(NetworkService.self)
-    /// // 성능 통계가 자동으로 수집됨
-    /// ```
-    public static func resolveWithTracking<T>(_ type: T.Type) -> T? {
-        let token = SimplePerformanceOptimizer.startResolution(type)
-        defer { SimplePerformanceOptimizer.endResolution(token) }
-
-        return DependencyContainer.live.resolve(type)
-    }
-
-    /// 자주 사용되는 타입으로 표시하여 성능을 최적화합니다
-    ///
-    /// 특정 타입을 자주 사용되는 타입으로 등록하면
-    /// 해당 타입의 해결 성능이 최적화됩니다.
-    ///
-    /// - Parameter type: 최적화할 타입
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// await UnifiedDI.markAsFrequentlyUsed(UserService.self)
-    /// await UnifiedDI.markAsFrequentlyUsed(NetworkService.self)
-    /// ```
-    @MainActor
-    public static func markAsFrequentlyUsed<T>(_ type: T.Type) {
-        SimplePerformanceOptimizer.markAsFrequentlyUsed(type)
-    }
-
-    /// 성능 최적화를 활성화합니다
-    ///
-    /// 전체 DI 시스템의 성능 최적화를 활성화합니다.
-    /// 앱 시작 시 한 번 호출하는 것을 권장합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// @main
-    /// struct MyApp: App {
-    ///     init() {
-    ///         Task { @MainActor in
-    ///             await UnifiedDI.enablePerformanceOptimization()
-    ///         }
-    ///     }
-    /// }
-    /// ```
-    @MainActor
-    public static func enablePerformanceOptimization() {
-        SimplePerformanceOptimizer.enableOptimization()
-
-        #if DEBUG
-        #logDebug("⚡ [UnifiedDI] Performance optimization enabled")
-        #endif
-    }
-
-    /// 현재 성능 통계를 반환합니다
-    ///
-    /// DI 시스템의 성능 통계 정보를 가져옵니다.
-    /// 디버그 빌드에서만 실제 데이터가 제공됩니다.
-    ///
-    /// - Returns: 성능 통계 정보
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let stats = await UnifiedDI.getPerformanceStats()
-    /// #logDebug(stats.summary)
-    /// ```
-    @MainActor
-    public static func getPerformanceStats() -> SimplePerformanceOptimizer.PerformanceStats {
-        return SimplePerformanceOptimizer.getStats()
-    }
-
-    // MARK: - Auto Dependency Detection APIs
-
-    /// 자동 의존성 감지 활성화
-    ///
-    /// 의존성 등록 시 자동으로 의존성 관계를 감지하여 그래프를 생성합니다.
-    /// 앱 시작 시 한 번 호출하는 것을 권장합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// UnifiedDI.enableAutoDetection()
-    /// ```
-    public static func enableAutoDetection() {
-        Task {
-            await AutoDependencyDetector.shared.enableAutoDetection()
-        }
-    }
-
-    /// 자동 의존성 감지 비활성화
-    public static func disableAutoDetection() {
-        Task {
-            await AutoDependencyDetector.shared.disableAutoDetection()
-        }
-    }
-
-    /// 현재 자동 감지된 의존성 그래프를 반환합니다
-    ///
-    /// 지금까지 등록된 모든 의존성의 자동 감지 결과를 반환합니다.
-    ///
-    /// - Returns: 자동 감지된 그래프 데이터
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let graph = await UnifiedDI.getAutoDetectedGraph()
-    /// print(graph.generateASCIIGraph())
-    /// ```
-    public static func getAutoDetectedGraph() async -> AutoDetectedGraph {
-        return await AutoDependencyDetector.shared.generateAutoDetectedGraph()
-    }
-
-    /// 자동 감지된 의존성 통계를 반환합니다
-    ///
-    /// 현재까지 감지된 의존성들의 통계 정보를 반환합니다.
-    ///
-    /// - Returns: 의존성 통계
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let stats = await UnifiedDI.getAutoDetectionStatistics()
-    /// print(stats.summary)
-    /// ```
-    public static func getAutoDetectionStatistics() async -> DependencyStatistics {
-        let graph = await AutoDependencyDetector.shared.generateAutoDetectedGraph()
-        return graph.statistics
-    }
-
-    /// ASCII 형태의 자동 감지된 의존성 그래프를 출력합니다
-    ///
-    /// 콘솔에서 바로 확인할 수 있는 ASCII 그래프를 생성합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// await UnifiedDI.printAutoDetectedGraph()
-    /// ```
-    public static func printAutoDetectedGraph() async {
-        let graph = await AutoDependencyDetector.shared.generateAutoDetectedGraph()
-        print(graph.generateASCIIGraph())
-    }
-
-    /// Mermaid 형태의 자동 감지된 의존성 그래프를 반환합니다
-    ///
-    /// Mermaid 문법으로 된 그래프를 반환하여 웹에서 시각화할 수 있습니다.
-    ///
-    /// - Returns: Mermaid 형식의 그래프 문자열
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let mermaidGraph = await UnifiedDI.getAutoDetectedMermaidGraph()
-    /// // 웹 페이지나 도구에서 시각화
-    /// ```
-    public static func getAutoDetectedMermaidGraph() async -> String {
-        let graph = await AutoDependencyDetector.shared.generateAutoDetectedGraph()
-        return graph.generateMermaidGraph()
-    }
-
-    /// 자동 감지 상태를 초기화합니다
-    ///
-    /// 모든 자동 감지된 의존성 정보를 삭제합니다.
-    /// 주로 테스트 환경에서 사용합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// await UnifiedDI.resetAutoDetection()
-    /// ```
-    public static func resetAutoDetection() async {
-        await AutoDependencyDetector.shared.reset()
-    }
-
-    // MARK: - Batch Registration APIs
-
-    /// 여러 의존성을 한번에 등록합니다
-    ///
-    /// Result Builder를 사용한 DSL로 여러 의존성을 깔끔하게 등록할 수 있습니다.
-    /// 앱 시작 시 초기화 코드에서 사용하기 적합합니다.
-    ///
-    /// - Parameter registrations: 등록할 의존성 목록
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// UnifiedDI.registerMany {
-    ///     Registration(NetworkService.self) { DefaultNetworkService() }
-    ///     Registration(UserRepository.self) { UserRepositoryImpl() }
-    ///     Registration(LoggerProtocol.self, default: ConsoleLogger())
-    /// }
-    /// ```
-    public static func registerMany(@UnifiedRegistrationBuilder _ registrations: () -> [UnifiedRegistration]) {
-        let items = registrations()
-        for registration in items {
-            registration.register()
-        }
-    }
-
-    // MARK: - Management APIs
-
-    /// 등록된 의존성을 해제합니다
-    ///
-    /// 특정 타입의 의존성을 컨테이너에서 제거합니다.
-    /// 테스트나 메모리 정리 시 사용합니다.
-    ///
-    /// - Parameter type: 해제할 타입
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// UnifiedDI.release(NetworkService.self)
-    /// // 이후 resolve 시 nil 반환
-    /// ```
-    public static func release<T>(_ type: T.Type) {
-        DependencyContainer.live.release(type)
-    }
-
-    /// 모든 등록된 의존성을 해제합니다
-    ///
-    /// 주로 테스트 환경에서 각 테스트 간 격리를 위해 사용합니다.
-    /// 프로덕션에서는 사용을 권장하지 않습니다.
-    ///
-    /// ### ⚠️ 주의사항:
-    /// 메인 스레드에서만 호출해야 합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// // 테스트 setUp에서
-    /// override func setUp() {
-    ///     super.setUp()
-    ///     UnifiedDI.releaseAll()
-    /// }
-    /// ```
-    @MainActor
-    public static func releaseAll() {
-        DependencyContainer.live = DependencyContainer()
-
-        #if DEBUG
-        #logDebug("🧹 [UnifiedDI] All registrations released")
-        #endif
-    }
-
-    // MARK: - Scoped release helpers
-
-    /// 특정 스코프(kind,id)의 모든 인스턴스를 해제합니다.
-    /// - Returns: 해제된 개수
-    @discardableResult
-    public static func releaseScope(_ kind: ScopeKind, id: String) -> Int {
-        syncReleaseScope(kind, id: id)
-    }
-
-    /// 특정 타입의 스코프 인스턴스를 해제합니다.
-    /// - Returns: 해제 여부
-    @discardableResult
-    public static func releaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
-        syncReleaseScoped(type, kind: kind, id: id)
-    }
-
-    private static func syncReleaseScope(_ kind: ScopeKind, id: String) -> Int {
-        let sem = DispatchSemaphore(value: 0)
-        let box = IntBox()
-        Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScope(kind: kind, id: id); sem.signal() }
-        sem.wait()
-        return box.value
-    }
-
-    private static func syncReleaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) -> Bool {
-        let sem = DispatchSemaphore(value: 0)
-        let box = BoolBox()
-        Task.detached { @Sendable in box.value = await GlobalUnifiedRegistry.releaseScoped(type, kind: kind, id: id); sem.signal() }
-        sem.wait()
-        return box.value
-    }
+  }
 }
 
-// MARK: - Registration Builder
 
-/// 일괄 등록을 위한 Result Builder
-@resultBuilder
-public struct UnifiedRegistrationBuilder {
-    public static func buildBlock(_ components: UnifiedRegistration...) -> [UnifiedRegistration] {
-        return components
-    }
+// MARK: - Auto DI Features
 
-    public static func buildArray(_ components: [UnifiedRegistration]) -> [UnifiedRegistration] {
-        return components
-    }
-
-    public static func buildOptional(_ component: UnifiedRegistration?) -> [UnifiedRegistration] {
-        return component.map { [$0] } ?? []
-    }
-
-    public static func buildEither(first component: UnifiedRegistration) -> [UnifiedRegistration] {
-        return [component]
-    }
-
-    public static func buildEither(second component: UnifiedRegistration) -> [UnifiedRegistration] {
-        return [component]
-    }
-}
-
-// MARK: - Registration Item
-
-/// 일괄 등록을 위한 등록 아이템
-public struct UnifiedRegistration {
-    private let registerAction: () -> Void
-
-    /// 팩토리 기반 등록
-    public init<T>(_ type: T.Type, factory: @escaping @Sendable () -> T) {
-        self.registerAction = {
-            UnifiedDI.register(type, factory: factory)
-        }
-    }
-
-    /// 기본값 포함 등록
-    public init<T>(_ type: T.Type, default defaultValue: T) where T: Sendable {
-        self.registerAction = {
-            DependencyContainer.live.register(type, instance: defaultValue)
-        }
-    }
-
-    /// 조건부 등록
-    public init<T>(
-        _ type: T.Type,
-        condition: Bool,
-        factory: @escaping @Sendable () -> T,
-        fallback: @escaping @Sendable () -> T
-    ) {
-        self.registerAction = {
-            UnifiedDI.registerIf(type, condition: condition, factory: factory, fallback: fallback)
-        }
-    }
-
-    /// 등록 실행
-    internal func register() {
-        registerAction()
-    }
-}
-
-// MARK: - Convenience Extensions
-
-public extension UnifiedRegistration {
-    // Duplicate initializer removed to avoid conflicts
-}
-
-/// 등록 클로저를 위한 Result Builder
-@resultBuilder
-public struct RegistrationBuilder {
-    public static func buildBlock<T>(_ component: T) -> T {
-        return component
-    }
+/// 자동 의존성 주입 기능 확장
+public extension UnifiedDI {
+  
+  /// 🚀 자동 생성된 의존성 그래프를 시각화합니다
+  ///
+  /// 별도 설정 없이 자동으로 수집된 의존성 관계를 확인할 수 있습니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// // 현재까지 자동 수집된 의존성 그래프 출력
+  /// print(UnifiedDI.autoGraph)
+  /// ```
+  static var autoGraph: String {
+    DIContainer.shared.autoGeneratedGraph
+  }
+  
+  /// ⚡ 자동 최적화된 타입들을 반환합니다
+  ///
+  /// 사용 패턴을 분석하여 자동으로 성능 최적화가 적용된 타입들입니다.
+  static var optimizedTypes: Set<String> {
+    DIContainer.shared.optimizedTypes
+  }
+  
+  /// ⚠️ 자동 감지된 순환 의존성을 반환합니다
+  ///
+  /// 의존성 등록/해결 과정에서 자동으로 감지된 순환 의존성입니다.
+  static var circularDependencies: Set<String> {
+    DIContainer.shared.detectedCircularDependencies
+  }
+  
+  /// 📊 자동 수집된 성능 통계를 반환합니다
+  ///
+  /// 각 타입의 사용 빈도가 자동으로 추적됩니다.
+  static var stats: [String: Int] {
+    DIContainer.shared.usageStatistics
+  }
+  
+  /// 🔍 특정 타입이 자동 최적화되었는지 확인합니다
+  ///
+  /// - Parameter type: 확인할 타입
+  /// - Returns: 최적화 여부
+  static func isOptimized<T>(_ type: T.Type) -> Bool {
+    DIContainer.shared.isAutoOptimized(type)
+  }
+  
+  /// ⚙️ 자동 최적화 기능을 제어합니다
+  ///
+  /// - Parameter enabled: 활성화 여부 (기본값: true)
+  static func setAutoOptimization(_ enabled: Bool) {
+    DIContainer.shared.setAutoOptimization(enabled)
+  }
+  
+  /// 🧹 자동 수집된 통계를 초기화합니다
+  static func resetStats() {
+    DIContainer.shared.resetAutoStats()
+  }
+  
+  /// 📋 자동 로깅 레벨을 설정합니다
+  ///
+  /// - Parameter level: 로깅 레벨
+  ///   - `.all`: 모든 로그 출력 (기본값)
+  ///   - `.registration`: 등록만 로깅
+  ///   - `.optimization`: 최적화만 로깅
+  ///   - `.errors`: 에러만 로깅
+  ///   - `.off`: 로깅 끄기
+  static func setLogLevel(_ level: AutoDIOptimizer.LogLevel) {
+    AutoDIOptimizer.shared.setLogLevel(level)
+  }
+  
+  /// 📋 현재 로깅 레벨을 반환합니다
+  static var logLevel: AutoDIOptimizer.LogLevel {
+    AutoDIOptimizer.shared.currentLogLevel
+  }
+  
+  /// 🎯 자동 Actor 최적화 제안을 반환합니다
+  ///
+  /// 자동으로 수집된 Actor hop 패턴과 성능 분석을 바탕으로 최적화 제안을 제공합니다.
+  static var actorOptimizations: [String: AutoDIOptimizer.ActorOptimization] {
+    AutoDIOptimizer.shared.actorOptimizationSuggestions
+  }
+  
+  /// 🔒 자동 감지된 타입 안전성 이슈를 반환합니다
+  ///
+  /// 런타임에서 자동으로 감지된 타입 안전성 문제들과 권장사항을 제공합니다.
+  static var typeSafetyIssues: [String: AutoDIOptimizer.TypeSafetyIssue] {
+    AutoDIOptimizer.shared.detectedTypeSafetyIssues
+  }
+  
+  /// 🛠️ 자동으로 수정된 타입들을 반환합니다
+  ///
+  /// 타입 안전성 검사에서 자동으로 수정 처리된 타입들의 목록입니다.
+  static var autoFixedTypes: Set<String> {
+    AutoDIOptimizer.shared.detectedAutoFixedTypes
+  }
+  
+  /// ⚡ Actor hop 통계를 반환합니다
+  ///
+  /// 각 타입별로 발생한 Actor hop 횟수를 추적한 통계입니다.
+  static var actorHopStats: [String: Int] {
+    AutoDIOptimizer.shared.actorHopStats
+  }
+  
+  /// 📊 비동기 성능 통계를 반환합니다
+  ///
+  /// 각 타입별 평균 비동기 해결 시간 (밀리초)을 제공합니다.
+  static var asyncPerformanceStats: [String: Double] {
+    AutoDIOptimizer.shared.asyncPerformanceStats
+  }
 }
 
 // MARK: - Legacy Compatibility
 
-/// 기존 DI API와의 호환성을 위한 별칭
-/// 향후 deprecation 예정
-public typealias SimplifiedDI = UnifiedDI
-
-// MARK: - Type Aliases for Migration
-
-// Note: Legacy compatibility aliases removed to avoid conflicts with SimplifiedAPI.swift
-    // Sync bridging helpers (Sendable boxes)
-    private final class IntBox: @unchecked Sendable { var value: Int = 0; init() {} }
-    private final class BoolBox: @unchecked Sendable { var value: Bool = false; init() {} }
