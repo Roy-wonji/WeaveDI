@@ -27,7 +27,7 @@ public enum RegisterAndReturn {
         let instance = factory()
         #logInfo("✅ [RegisterAndReturn] Created instance for \(keyPathName): \(type(of: instance))")
 
-        DI.register(T.self) { instance }
+        _ = DI.register(T.self) { instance }
         return instance
     }
 
@@ -45,7 +45,7 @@ public enum RegisterAndReturn {
         let instance = await factory()
         #logInfo("✅ [RegisterAndReturn] Created async instance for \(keyPathName): \(type(of: instance))")
 
-        DI.register(T.self) { instance }
+        _ = DI.register(T.self) { instance }
         return instance
     }
 

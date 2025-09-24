@@ -31,7 +31,7 @@ import LogMacro
 /// ### ⚡ 성능 최적화
 /// - **지연 생성**: 실제 사용 시점까지 생성 지연
 /// - **타입 추론**: 컴파일 타임 타입 최적화
-/// - **성능 추적**: SimplePerformanceOptimizer 통합
+/// - **성능 추적**: AutoDIOptimizer 자동 통합
 ///
 /// ## 사용 예시
 ///
