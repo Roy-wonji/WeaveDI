@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "EBCD31E0-26B2-40F7-A045-0A70416E5C44",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:AppleStoreProductKiosk.xcodeproj",
+        "identifier" : "C8F725EA2E790FA100C2A1DE",
+        "name" : "AppleStoreProductKioskTests"
+      }
+    }
+  ],
+  "version" : 1
+}

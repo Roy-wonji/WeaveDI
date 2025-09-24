@@ -1,0 +1,39 @@
+{
+  "configurations" : [
+    {
+      "id" : "3A851F02-70F6-4439-A770-6EBF14C67D94",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:AppleStoreProductKiosk.xcodeproj",
+      "identifier" : "C8F725DD2E790F9F00C2A1DE",
+      "name" : "AppleStoreProductKiosk"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:AppleStoreProductKiosk.xcodeproj",
+        "identifier" : "C8F725EA2E790FA100C2A1DE",
+        "name" : "AppleStoreProductKioskTests"
+      }
+    },
+    {
+      "enabled" : false,
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:AppleStoreProductKiosk.xcodeproj",
+        "identifier" : "C8F725F42E790FA100C2A1DE",
+        "name" : "AppleStoreProductKioskUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
