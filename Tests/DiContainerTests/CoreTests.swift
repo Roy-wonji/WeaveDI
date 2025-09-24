@@ -52,27 +52,35 @@ final class CoreTests: XCTestCase {
 
     override func setUp() async throws {
         try await super.setUp()
-        await DependencyContainer.resetForTesting()
+        DIContainer.resetForTesting()
+
+        // 테스트를 위한 자동 로깅 비활성화
+        UnifiedDI.setLogLevel(.off)
     }
 
     override func tearDown() async throws {
-        await DependencyContainer.resetForTesting()
+        DIContainer.resetForTesting()
+
+        // 자동 최적화 통계 초기화
+        UnifiedDI.resetStats()
+
         try await super.tearDown()
     }
 
     // MARK: - Basic Registration Tests
 
     func testBasicTypeRegistration() {
-        // Given
-        let service = TestUserServiceImpl()
-
-        // When
-        DI.register(TestUserService.self) { service }
+        // Given & When
+        let service = UnifiedDI.register(TestUserService.self) {
+            TestUserServiceImpl()
+        }
 
         // Then
-        let resolved = DI.resolve(TestUserService.self)
+        XCTAssertEqual(service.getUser(id: "123"), "user_123")
+
+        let resolved = UnifiedDI.resolve(TestUserService.self)
         XCTAssertNotNil(resolved)
-        XCTAssertEqual(resolved?.getUser(id: "123"), "user_123")
+        XCTAssertEqual(resolved?.getUser(id: "456"), "user_456")
     }
 
     func testKeyPathRegistration() {
