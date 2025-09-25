@@ -63,9 +63,9 @@ public enum UnifiedDI {
     DependencyContainer.live.register(type, instance: instance)
     return instance
   }
-
+  
   // MARK: - Async Registration (DIActor-based)
-
+  
   /// DIActor를 사용한 비동기 의존성 등록 (권장)
   ///
   /// Actor 기반의 thread-safe한 의존성 등록을 제공합니다.
@@ -88,29 +88,27 @@ public enum UnifiedDI {
     return await DIActorGlobalAPI.register(type, factory: factory)
   }
   
-  /// KeyPath를 사용한 타입 안전한 등록 (DI.register(\.keyPath) 스타일)
+  /// KeyPath를 사용한 타입 안전한 등록 (UnifiedDI.register(\.keyPath) 스타일)
   ///
   /// DependencyContainer의 KeyPath를 사용하여 더욱 타입 안전하게 등록합니다.
   ///
-  /// - Parameters:
-  ///   - keyPath: DependencyContainer 내의 KeyPath
-  ///   - factory: 인스턴스를 생성하는 팩토리 클로저
-  /// - Returns: 생성된 인스턴스
-  ///
   /// ### 사용 예시:
   /// ```swift
-  /// let repository = UnifiedDI.register(\.userRepository) {
-  ///     UserRepositoryImpl()
+  /// let repository = UnifiedDI.register(\.productInterface) {
+  ///     ProductRepositoryImpl()
   /// }
   /// ```
+  @discardableResult
   public static func register<T>(
     _ keyPath: KeyPath<DependencyContainer, T?>,
     factory: @escaping @Sendable () -> T
   ) -> T where T: Sendable {
     let instance = factory()
+    // KeyPath를 통한 타입 추론으로 T.self를 등록
     DependencyContainer.live.register(T.self, instance: instance)
     return instance
   }
+  
   
   // MARK: - Core Resolution API
   
@@ -143,7 +141,7 @@ public enum UnifiedDI {
   }
   
   // MARK: - Async Resolution (DIActor-based)
-
+  
   /// DIActor를 사용한 비동기 의존성 조회 (권장)
   ///
   /// Actor 기반의 thread-safe한 의존성 해결을 제공합니다.
@@ -160,7 +158,7 @@ public enum UnifiedDI {
   public static func resolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
     return await DIActorGlobalAPI.resolve(type)
   }
-
+  
   /// DIActor를 사용한 필수 의존성 조회 (실패 시 예외 발생)
   ///
   /// 반드시 등록되어 있어야 하는 의존성을 비동기적으로 조회합니다.
@@ -168,7 +166,7 @@ public enum UnifiedDI {
   public static func requireResolveAsync<T>(_ type: T.Type) async throws -> T where T: Sendable {
     return try await DIActorGlobalAPI.resolveThrows(type)
   }
-
+  
   /// 필수 의존성을 조회합니다 (실패 시 명확한 에러 메시지와 함께 크래시)
   ///
   /// 반드시 등록되어 있어야 하는 의존성을 조회할 때 사용합니다.
@@ -186,52 +184,40 @@ public enum UnifiedDI {
   /// // logger는 항상 유효한 인스턴스
   /// ```
   public static func requireResolve<T>(_ type: T.Type) -> T {
-    // 타입 안전성 사전 검사
-    performTypeSafetyCheck(for: type)
-
+    
     guard let resolved = DependencyContainer.live.resolve(type) else {
       let typeName = String(describing: type)
-
+      
       // 프로덕션에서는 더 안전한 처리
-      #if DEBUG
+#if DEBUG
       fatalError("""
             🚨 [DI] 필수 의존성을 찾을 수 없습니다!
-
+            
             타입: \(typeName)
-
+            
             💡 해결 방법:
                UnifiedDI.register(\(typeName).self) { YourImplementation() }
-
+            
             🔍 등록이 해결보다 먼저 수행되었는지 확인해주세요.
-
+            
             """)
-      #else
+#else
       // 프로덕션에서는 에러 로깅 후 기본 인스턴스 시도
       Log.error("🚨 [DI] Critical: Required dependency \(typeName) not found!")
-
+      
       // 마지막 수단으로 기본 초기화 시도
       if let defaultInstance = Self.tryCreateDefaultInstance(for: type) {
         Log.warning("🔄 [DI] Using default instance for \(typeName)")
         return defaultInstance
       }
-
+      
       // 그래도 실패하면 크래시하되, 더 간단한 메시지로
       fatalError("[DI] Critical dependency missing: \(typeName)")
-      #endif
+#endif
     }
     return resolved
   }
-
-  /// 기본 인스턴스 생성 시도 (내부 사용)
-  private static func tryCreateDefaultInstance<T>(for type: T.Type) -> T? {
-    // NSObject 기반 타입들의 기본 초기화 시도
-    if type is NSObjectProtocol.Type {
-      return (type as? NSObject.Type)?.init() as? T
-    }
-
-    // 일반적인 기본 초기화 시도는 런타임에 위험하므로 생략
-    return nil
-  }
+  
   
   /// 의존성을 조회하거나 기본값을 반환합니다 (항상 성공)
   ///
@@ -251,59 +237,8 @@ public enum UnifiedDI {
   public static func resolve<T>(_ type: T.Type, default defaultValue: @autoclosure () -> T) -> T {
     return DependencyContainer.live.resolve(type) ?? defaultValue()
   }
-
-  /// 안전한 필수 해결 - 에러를 던지는 버전 (권장)
-  ///
-  /// requireResolve의 더 안전한 대안입니다.
-  /// 실패 시 fatalError 대신 DIError를 던집니다.
-  ///
-  /// - Parameter type: 조회할 타입
-  /// - Returns: 해결된 인스턴스
-  /// - Throws: DIError.dependencyNotFound
-  ///
-  /// ### 사용 예시:
-  /// ```swift
-  /// do {
-  ///     let logger = try UnifiedDI.requireResolveThrows(Logger.self)
-  ///     // logger 사용
-  /// } catch {
-  ///     Log.error("Logger dependency missing: \(error)")
-  ///     // 대체 로직
-  /// }
-  /// ```
-  public static func requireResolveThrows<T>(_ type: T.Type) throws -> T {
-    guard let resolved = DependencyContainer.live.resolve(type) else {
-      let typeName = String(describing: type)
-      throw DIError.dependencyNotFound("등록 확인: UnifiedDI.register(\(typeName).self) { ... }")
-    }
-    return resolved
-  }
-
-  /// Result 타입으로 안전하게 해결
-  ///
-  /// 성공과 실패를 명시적으로 처리할 수 있는 방법입니다.
-  ///
-  /// - Parameter type: 조회할 타입
-  /// - Returns: Result<T, DIError>
-  ///
-  /// ### 사용 예시:
-  /// ```swift
-  /// let result = UnifiedDI.resolveResult(Logger.self)
-  /// switch result {
-  /// case .success(let logger):
-  ///     // logger 사용
-  /// case .failure(let error):
-  ///     Log.error("Logger resolution failed: \(error)")
-  /// }
-  /// ```
-  public static func resolveResult<T>(_ type: T.Type) -> Result<T, DIError> {
-    guard let resolved = DependencyContainer.live.resolve(type) else {
-      let typeName = String(describing: type)
-      let error = DIError.dependencyNotFound("등록 확인: UnifiedDI.register(\(typeName).self) { ... }")
-      return .failure(error)
-    }
-    return .success(resolved)
-  }
+  
+  
   
   // MARK: - Management API
   
@@ -363,6 +298,7 @@ public extension UnifiedDI {
     ///   - factory: 조건이 true일 때 사용할 팩토리
     ///   - fallback: 조건이 false일 때 사용할 팩토리
     /// - Returns: 생성된 인스턴스
+    @discardableResult
     public static func registerIf<T>(
       _ type: T.Type,
       condition: Bool,
@@ -393,29 +329,29 @@ public extension UnifiedDI {
   /// // 현재까지 자동 수집된 의존성 그래프 출력
   /// print(UnifiedDI.autoGraph)
   /// ```
-  static var autoGraph: String {
-    DIContainer.shared.autoGeneratedGraph
+  static func autoGraph() -> String {
+    DIContainer.shared.getAutoGeneratedGraph()
   }
   
   /// ⚡ 자동 최적화된 타입들을 반환합니다
   ///
   /// 사용 패턴을 분석하여 자동으로 성능 최적화가 적용된 타입들입니다.
-  static var optimizedTypes: Set<String> {
-    DIContainer.shared.optimizedTypes
+  static func optimizedTypes() -> Set<String> {
+    DIContainer.shared.getOptimizedTypes()
   }
   
   /// ⚠️ 자동 감지된 순환 의존성을 반환합니다
   ///
   /// 의존성 등록/해결 과정에서 자동으로 감지된 순환 의존성입니다.
-  static var circularDependencies: Set<String> {
-    DIContainer.shared.detectedCircularDependencies
+  static func circularDependencies() -> Set<String> {
+    DIContainer.shared.getDetectedCircularDependencies()
   }
   
   /// 📊 자동 수집된 성능 통계를 반환합니다
   ///
   /// 각 타입의 사용 빈도가 자동으로 추적됩니다.
-  static var stats: [String: Int] {
-    DIContainer.shared.usageStatistics
+  static func stats() -> [String: Int] {
+    DIContainer.shared.getUsageStatistics()
   }
   
   /// 🔍 특정 타입이 자동 최적화되었는지 확인합니다
@@ -446,81 +382,128 @@ public extension UnifiedDI {
   ///   - `.optimization`: 최적화만 로깅
   ///   - `.errors`: 에러만 로깅
   ///   - `.off`: 로깅 끄기
-  static func setLogLevel(_ level: AutoDIOptimizer.LogLevel) {
+  static func setLogLevel(_ level: LogLevel) {
     AutoDIOptimizer.shared.setLogLevel(level)
   }
   
   /// 📋 현재 로깅 레벨을 반환합니다
-  static var logLevel: AutoDIOptimizer.LogLevel {
-    AutoDIOptimizer.shared.currentLogLevel
+  static func getLogLevel() async -> LogLevel {
+    AutoDIOptimizer.shared.getCurrentLogLevel()
+  }
+  
+  /// 현재 로깅 레벨(동기 접근용)
+  static var logLevel: LogLevel {
+    AutoDIOptimizer.shared.getCurrentLogLevel()
   }
   
   /// 🎯 자동 Actor 최적화 제안을 반환합니다
   ///
   /// 자동으로 수집된 Actor hop 패턴과 성능 분석을 바탕으로 최적화 제안을 제공합니다.
-  static var actorOptimizations: [String: AutoDIOptimizer.ActorOptimization] {
-    AutoDIOptimizer.shared.actorOptimizationSuggestions
+  static var actorOptimizations: [String: ActorOptimization] {
+    get async {
+      AutoDIOptimizer.shared.getActorOptimizationSuggestions()
+    }
   }
   
   /// 🔒 자동 감지된 타입 안전성 이슈를 반환합니다
   ///
   /// 런타임에서 자동으로 감지된 타입 안전성 문제들과 권장사항을 제공합니다.
-  static var typeSafetyIssues: [String: AutoDIOptimizer.TypeSafetyIssue] {
-    AutoDIOptimizer.shared.detectedTypeSafetyIssues
+  static var typeSafetyIssues: [String: TypeSafetyIssue] {
+    get async {
+      AutoDIOptimizer.shared.getDetectedTypeSafetyIssues()
+    }
   }
   
   /// 🛠️ 자동으로 수정된 타입들을 반환합니다
   ///
   /// 타입 안전성 검사에서 자동으로 수정 처리된 타입들의 목록입니다.
   static var autoFixedTypes: Set<String> {
-    AutoDIOptimizer.shared.detectedAutoFixedTypes
+    get async {
+      AutoDIOptimizer.shared.getDetectedAutoFixedTypes()
+    }
   }
   
   /// ⚡ Actor hop 통계를 반환합니다
   ///
   /// 각 타입별로 발생한 Actor hop 횟수를 추적한 통계입니다.
   static var actorHopStats: [String: Int] {
-    AutoDIOptimizer.shared.actorHopStats
+    get async {
+      AutoDIOptimizer.shared.getActorHopStats()
+    }
   }
   
   /// 📊 비동기 성능 통계를 반환합니다
   ///
   /// 각 타입별 평균 비동기 해결 시간 (밀리초)을 제공합니다.
   static var asyncPerformanceStats: [String: Double] {
-    AutoDIOptimizer.shared.asyncPerformanceStats
-  }
-}
-
-// MARK: - Type Safety Enhancement
-
-/// 타입 안전성 검사를 수행합니다
-private func performTypeSafetyCheck<T>(for type: T.Type) {
-#if DEBUG
-  // Actor 타입 식별 (Swift 6 existential syntax: any Actor)
-  if type is any Actor.Type {
-    Log.debug("✅ [TypeSafety] \(type) recognized as Actor type")
-  }
-#endif
-}
-
-/// 강화된 타입 검증을 수행합니다
-private func performEnhancedTypeValidation<T>(_ type: T.Type, context: String) -> Bool {
-  let typeName = String(describing: type)
-
-  // 위험한 타입 패턴 검사
-  let dangerousPatterns = ["NSMutableArray", "NSMutableDictionary", "NSMutableSet", "UnsafeMutablePointer"]
-
-  for pattern in dangerousPatterns {
-    if typeName.contains(pattern) {
-#if DEBUG
-      Log.debug("🚨 [TypeSafety] Dangerous type detected in \(context): \(typeName)")
-      Log.debug("💡 Consider using Swift's safe alternatives instead")
-#endif
-      return false
+    get async {
+      AutoDIOptimizer.shared.getAsyncPerformanceStats()
     }
   }
+  
+  // MARK: - Advanced Configuration
+  
+  /// 최적화 설정을 간편하게 조정합니다
+  /// - Parameters:
+  ///   - debounceMs: 디바운스 간격 (50-500ms, 기본값: 100ms)
+  ///   - threshold: 자주 사용되는 타입 임계값 (5-100회, 기본값: 10회)
+  ///   - realTimeUpdate: 실시간 그래프 업데이트 여부 (기본값: true)
+  static func configureOptimization(
+    debounceMs: Int = 100,
+    threshold: Int = 10,
+    realTimeUpdate: Bool = true
+  ) {
+    // 간단한 설정 업데이트
+    AutoDIOptimizer.shared.updateConfig("debounce: \(debounceMs), threshold: \(threshold), realTime: \(realTimeUpdate)")
+  }
+  
+  /// 그래프 변경 히스토리를 가져옵니다
+  /// - Parameter limit: 최대 반환 개수 (기본값: 10)
+  /// - Returns: 최근 변경 히스토리
+  static func getGraphChanges(limit: Int = 10) async -> [(timestamp: Date, changes: [String: NodeChangeType])] {
+    return  AutoDIOptimizer.shared.getRecentGraphChanges(limit: limit)
+  }
+}
 
-  return true
+
+// MARK: - 🔍 간단한 모니터링 API
+
+public extension UnifiedDI {
+  /// 📊 현재 등록된 모든 모듈 보기 (최적화 정보 포함)
+  static func showModules() async {
+    await AutoDIOptimizer.shared.showAll()
+  }
+  
+  /// 📈 간단한 요약 정보
+  static func summary() async -> String {
+    return await AutoMonitor.shared.getSummary()
+  }
+  
+  /// 🔗 특정 모듈의 의존성 보기
+  static func showDependencies(for module: String) async -> [String] {
+    return await AutoMonitor.shared.showDependenciesFor(module: module)
+  }
+  
+  /// ⚡ 최적화 제안 보기
+  static func getOptimizationTips() -> [String] {
+    return AutoDIOptimizer.shared.getOptimizationSuggestions()
+  }
+  
+  /// 📊 자주 사용되는 타입 TOP 5
+  static func getTopUsedTypes() -> [String] {
+    return AutoDIOptimizer.shared.getTopUsedTypes()
+  }
+  
+  /// 🔧 최적화 기능 켜기/끄기
+  static func enableOptimization(_ enabled: Bool = true) {
+    AutoDIOptimizer.shared.setOptimizationEnabled(enabled)
+  }
+  
+  /// 🧹 모니터링 초기화
+  static func resetMonitoring() async {
+    AutoDIOptimizer.shared.reset()
+    await AutoMonitor.shared.reset()
+  }
 }
 
 // MARK: - Legacy Compatibility

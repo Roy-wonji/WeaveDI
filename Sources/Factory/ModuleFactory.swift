@@ -81,7 +81,7 @@ public struct UseCaseModuleFactory: ModuleFactory, Sendable {
 }
 
 /// Scope 계층 모듈 팩토리
-public struct ScopeModuleFactory: ModuleFactory, @unchecked Sendable {
+public struct ScopeModuleFactory: ModuleFactory, Sendable {
     public let registerModule = RegisterModule()
     public var definitions: [@Sendable () -> Module] = []
 
@@ -103,7 +103,7 @@ public struct ScopeModuleFactory: ModuleFactory, @unchecked Sendable {
 // MARK: - Factory Manager
 
 /// 여러 팩토리를 한 번에 관리하는 매니저
-public struct ModuleFactoryManager: @unchecked Sendable {
+public struct ModuleFactoryManager: Sendable {
     public var repositoryFactory = RepositoryModuleFactory()
     public var useCaseFactory = UseCaseModuleFactory()
     public var scopeFactory = ScopeModuleFactory()
