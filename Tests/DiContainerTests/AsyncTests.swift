@@ -282,16 +282,19 @@ final class AsyncTests: XCTestCase {
             }
         }
 
-        // Wait for auto optimization to process
-        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+        // Wait for auto optimization to process (polling)
+        _ = await waitAsyncUntil(timeout: 2.0) {
+            let usage = UnifiedDI.stats()["AsyncTestService"] ?? 0
+            return usage >= 10
+        }
 
         // Check if optimization was triggered
-        let stats = UnifiedDI.stats
+        let stats = UnifiedDI.stats()
         let usage = stats["AsyncTestService"] ?? 0
         XCTAssertGreaterThanOrEqual(usage, 10)
 
         // Check Actor hop stats
-        let actorHopStats = UnifiedDI.actorHopStats
+      let actorHopStats = await UnifiedDI.actorHopStats
         let hopCount = actorHopStats["AsyncTestService"] ?? 0
 
         // Actor hops may have been detected in concurrent access
@@ -309,11 +312,14 @@ final class AsyncTests: XCTestCase {
             }.value
         }
 
-        // Wait for performance data collection
-        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+        // Wait for performance data collection (polling)
+        _ = await waitAsyncUntil(timeout: 2.0) {
+            let stats = await UnifiedDI.asyncPerformanceStats
+            return stats["AsyncTestService"] != nil
+        }
 
         // Check async performance stats
-        let asyncPerformanceStats = UnifiedDI.asyncPerformanceStats
+      let asyncPerformanceStats = await UnifiedDI.asyncPerformanceStats
 
         if let avgTime = asyncPerformanceStats["AsyncTestService"] {
             XCTAssertGreaterThan(avgTime, 0)

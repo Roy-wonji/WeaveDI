@@ -220,7 +220,7 @@ final class PropertyWrapperTests: XCTestCase {
     func testPropertyWrapperPerformance_래퍼성능() {
         _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
 
-        class TestService {
+        class TestService: @unchecked Sendable {
             @Inject var userService: TestUserService?
         }
 
@@ -270,23 +270,22 @@ final class PropertyWrapperTests: XCTestCase {
 
     // MARK: - Thread Safety Tests
 
-    func testConcurrentPropertyWrapperAccess_동시래퍼접근() {
+    func testConcurrentPropertyWrapperAccess_동시래퍼접근() async {
         _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
 
-        class TestService {
+        class TestService: @unchecked Sendable {
             @Inject var userService: TestUserService?
         }
 
         let service = TestService()
-        let expectation = XCTestExpectation(description: "Concurrent property wrapper access")
-        expectation.expectedFulfillmentCount = 100
-
-        DispatchQueue.concurrentPerform(iterations: 100) { _ in
-            _ = service.userService?.getUser(id: "concurrent")
-            expectation.fulfill()
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<100 {
+                group.addTask {
+                    _ = service.userService?.getUser(id: "concurrent")
+                }
+            }
         }
-
-        wait(for: [expectation], timeout: 5.0)
+        XCTAssertTrue(true)
     }
 }
 

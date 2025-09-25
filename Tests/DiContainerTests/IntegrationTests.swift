@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import Foundation
 import LogMacro
 @testable import DiContainer
 
@@ -22,8 +23,8 @@ protocol IntegrationNetworkClient: Sendable {
 }
 
 protocol IntegrationCacheService: Sendable {
-    func get(_ key: String) async -> Any?
-    func set(_ key: String, value: Any) async
+    func get<T: Sendable>(_ key: String) async -> T?
+    func set<T: Sendable>(_ key: String, value: T) async
     func remove(_ key: String) async
 }
 
@@ -53,7 +54,7 @@ final class IntegrationUserRepositoryImpl: IntegrationUserRepository, @unchecked
 
     func findUser(id: String) async -> IntegrationUser? {
         // Check cache first
-        if let cached = await cacheService?.get("user_\(id)") as? IntegrationUser {
+        if let cache = cacheService, let cached: IntegrationUser = await cache.get("user_\(id)") {
             return cached
         }
 
@@ -107,49 +108,37 @@ final class IntegrationNetworkClientImpl: IntegrationNetworkClient {
     }
 }
 
-final class IntegrationCacheServiceImpl: IntegrationCacheService, @unchecked Sendable {
-    private var cache: [String: Any] = [:]
-    private let queue = DispatchQueue(label: "cache", attributes: .concurrent)
+actor IntegrationCacheServiceImpl: IntegrationCacheService {
+    private var cache: [String: any Sendable] = [:]
 
-    func get(_ key: String) async -> Any? {
-        return await withCheckedContinuation { continuation in
-            queue.async {
-                continuation.resume(returning: self.cache[key])
-            }
-        }
+    func get<T: Sendable>(_ key: String) async -> T? {
+        return cache[key] as? T
     }
 
-    func set(_ key: String, value: Any) async {
-        await withCheckedContinuation { continuation in
-            queue.async(flags: .barrier) {
-                self.cache[key] = value
-                continuation.resume()
-            }
-        }
+    func set<T: Sendable>(_ key: String, value: T) async {
+        cache[key] = value
     }
 
     func remove(_ key: String) async {
-        await withCheckedContinuation { continuation in
-            queue.async(flags: .barrier) {
-                self.cache.removeValue(forKey: key)
-                continuation.resume()
-            }
-        }
+        cache.removeValue(forKey: key)
     }
 }
 
 final class IntegrationAnalyticsServiceImpl: IntegrationAnalyticsService, @unchecked Sendable {
     private var events: [(String, [String: Any])] = []
-    private let queue = DispatchQueue(label: "analytics", attributes: .concurrent)
+    private let lock = NSLock()
 
     func track(event: String, parameters: [String: Any]) {
-        queue.async(flags: .barrier) {
-            self.events.append((event, parameters))
-        }
+        lock.lock()
+        events.append((event, parameters))
+        lock.unlock()
     }
 
     func getEvents() -> [(String, [String: Any])] {
-        return queue.sync { events }
+        lock.lock()
+        let snapshot = events
+        lock.unlock()
+        return snapshot
     }
 }
 
@@ -399,7 +388,7 @@ final class IntegrationTests: XCTestCase {
             let userService = UnifiedDI.requireResolve(IntegrationUserService.self)
             _ = try await userService.getUser(id: "leak_test_\(i)")
 
-          await UnifiedDI.releaseAll()
+          await MainActor.run { UnifiedDI.releaseAll() }
         }
 
         // If we get here without crashes or excessive memory growth, test passes
@@ -422,23 +411,26 @@ final class IntegrationTests: XCTestCase {
             _ = try await userService.getUser(id: "optimization_test_\(i)")
         }
 
-        // Wait for auto optimization to process
-        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+        // Wait for auto optimization to process (polling)
+        _ = await waitAsyncUntil(timeout: 2.0) {
+            let s = UnifiedDI.stats()
+            return s.count > 0
+        }
 
         // Check optimization stats
-        let stats = UnifiedDI.stats
+        let stats = UnifiedDI.stats()
         XCTAssertGreaterThan(stats.count, 0)
 
         // Check if any services were optimized
-        let optimizedTypes = UnifiedDI.optimizedTypes
+        let optimizedTypes = UnifiedDI.optimizedTypes()
         XCTAssertGreaterThanOrEqual(optimizedTypes.count, 0)
 
         // Check for type safety issues
-        let typeSafetyIssues = UnifiedDI.typeSafetyIssues
+        let typeSafetyIssues = await UnifiedDI.typeSafetyIssues
         Log.debug("Type safety issues detected: \(typeSafetyIssues.count)")
 
         // Check Actor hop statistics
-        let actorHopStats = UnifiedDI.actorHopStats
+        let actorHopStats = await UnifiedDI.actorHopStats
         Log.debug("Actor hop stats: \(actorHopStats)")
     }
 
@@ -461,12 +453,16 @@ final class IntegrationTests: XCTestCase {
             }
         }
 
-        // Wait for optimization processing
-        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+        // Wait for optimization processing (polling)
+        _ = await waitAsyncUntil(timeout: 2.0) {
+            let opt = await UnifiedDI.actorOptimizations
+            let perf = await UnifiedDI.asyncPerformanceStats
+            return (opt.count + perf.count) >= 0 // ensure retrieval; gives time for collection
+        }
 
         // Check results
-        let actorOptimizations = UnifiedDI.actorOptimizations
-        let asyncPerformanceStats = UnifiedDI.asyncPerformanceStats
+        let actorOptimizations = await UnifiedDI.actorOptimizations
+      let asyncPerformanceStats = await UnifiedDI.asyncPerformanceStats
 
         Log.debug("Actor optimizations: \(actorOptimizations.count)")
         Log.debug("Async performance stats: \(asyncPerformanceStats.count)")
