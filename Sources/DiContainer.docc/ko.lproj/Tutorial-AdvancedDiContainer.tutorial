@@ -7,15 +7,15 @@
     @Steps {
       @Step {
         사용 통계/그래프/최적화된 타입을 읽어 성능 병목과 개선 포인트를 파악합니다.
-        @Code(name: "Stats/Graph/Optimized", file: Tutorial-AdvancedDiContainer-01-01.swift)
+        @Code(name: "Stats/Graph/Optimized", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-01-01.swift")
       }
       @Step {
         최근 그래프 변경 내역을 확인합니다.
-        @Code(name: "Graph Changes", file: Tutorial-AdvancedDiContainer-01-02.swift)
+        @Code(name: "Graph Changes", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-01-02.swift")
       }
       @Step {
         특정 타입의 최적화 여부를 점검합니다.
-        @Code(name: "IsOptimized?", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-01-03.swift")
+        @Code(name: "IsOptimized?", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-01-03.swift")
       }
     }
   }
@@ -24,15 +24,15 @@
     @Steps {
       @Step {
         병렬 해석에서 hop 통계를 수집하고 최적화 제안을 확인합니다.
-        @Code(name: "Actor Hop/제안", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-02-01.swift")
+        @Code(name: "Actor Hop/제안", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-02-01.swift")
       }
       @Step {
         제안 반영 패턴을 예시로 살펴봅니다.
-        @Code(name: "Apply Suggestions", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-02-02.swift")
+        @Code(name: "Apply Suggestions", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-02-02.swift")
       }
       @Step {
         대량 병렬 시나리오를 시뮬레이션합니다.
-        @Code(name: "Stress Parallel", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-02-03.swift")
+        @Code(name: "Stress Parallel", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-02-03.swift")
       }
     }
   }
@@ -41,15 +41,15 @@
     @Steps {
       @Step {
         타입 안전성 이슈를 수집하고 Sendable 충족/필수 해석 주의점을 짚습니다.
-        @Code(name: "Type Safety/Sendable", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-03-01.swift")
+        @Code(name: "Type Safety/Sendable", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-03-01.swift")
       }
       @Step {
         Sendable 마이그레이션 패턴을 살펴봅니다.
-        @Code(name: "Sendable Guide", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-03-02.swift")
+        @Code(name: "Sendable Guide", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-03-02.swift")
       }
       @Step {
         필수 해석과 기본값 패턴을 정리합니다.
-        @Code(name: "Require / Default", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-03-03.swift")
+        @Code(name: "Require / Default", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-03-03.swift")
       }
     }
   }
@@ -58,15 +58,15 @@
     @Steps {
       @Step {
         디바운스/임계치/실시간 갱신, 로그 레벨을 조정해 워크로드에 맞게 최적화합니다.
-        @Code(name: "configureOptimization / LogLevel", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-04-01.swift")
+        @Code(name: "configureOptimization / LogLevel", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-04-01.swift")
       }
       @Step {
         최적화 토글과 현재 로그 레벨을 확인합니다.
-        @Code(name: "Switches / LogLevel", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-04-02.swift")
+        @Code(name: "Switches / LogLevel", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-04-02.swift")
       }
       @Step {
         상위 사용 타입/제안을 확인합니다.
-        @Code(name: "Top Used / Tips", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-04-03.swift")
+        @Code(name: "Top Used / Tips", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-04-03.swift")
       }
     }
   }
@@ -75,15 +75,15 @@
     @Steps {
       @Step {
         간단 요약과 모듈 보기.
-        @Code(name: "Summary", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-05-01.swift")
+        @Code(name: "Summary", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-05-01.swift")
       }
       @Step {
         Top 사용 타입 출력.
-        @Code(name: "Top Used", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-05-02.swift")
+        @Code(name: "Top Used", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-05-02.swift")
       }
       @Step {
         모니터링 초기화.
-        @Code(name: "Reset", file: "Tutorial AdvancedDiContainer.tutorial/Tutorial-AdvancedDiContainer-05-03.swift")
+        @Code(name: "Reset", file: "Tutorial AdvancedDiContainer/Tutorial-AdvancedDiContainer-05-03.swift")
       }
     }
   }

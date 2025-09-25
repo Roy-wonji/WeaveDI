@@ -41,7 +41,7 @@
 
         네트워크 통신을 담당하는 서비스를 정의해보겠습니다.
 
-        @Code(name: "NetworkService.swift", file: "Tutorial YourFirstDI.tutorial/Tutorial-YourFirstDI-02-01.swift")
+        @Code(name: "NetworkService.swift", file: Tutorial-YourFirstDI-02-01.swift)
       }
 
       @Step {

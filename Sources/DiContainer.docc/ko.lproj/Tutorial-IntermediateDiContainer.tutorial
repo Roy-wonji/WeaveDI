@@ -7,15 +7,15 @@
     @Steps {
       @Step {
         복잡한 도메인 구성과 의존성 체인을 통해 중급 난이도의 설계를 다룹니다.
-        @Code(name: "Domain & UseCases", file: Tutorial-IntermediateDiContainer-01-01.swift)
+        @Code(name: "Domain & UseCases", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-01-01.swift")
       }
       @Step {
         의존성 최적화/트래킹 보조 유틸리티를 살펴봅니다.
-        @Code(name: "Optimizer & Utilities", file:Tutorial-IntermediateDiContainer-01-02.swift)
+        @Code(name: "Optimizer & Utilities", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-01-02.swift")
       }
       @Step {
         순환 의존성 탐지/해결 전략을 살펴봅니다.
-        @Code(name: "Cycle Resolver", file: Tutorial-IntermediateDiContainer-01-03.swift)
+        @Code(name: "Cycle Resolver", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-01-03.swift")
       }
     }
   }
@@ -24,11 +24,11 @@
     @Steps {
       @Step {
         환경별 서비스 구성/주입을 구현합니다.
-        @Code(name: "Environment Config", file: Tutorial-IntermediateDiContainer-02-01.swift)
+        @Code(name: "Environment Config", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-02-01.swift")
       }
       @Step {
         KeyPath + 조건부 등록으로 유연한 의존성 구성을 실습합니다.
-        @Code(name: "KeyPath / Conditional", file:Tutorial-IntermediateDiContainer-02-02.swift)
+        @Code(name: "KeyPath / Conditional", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-02-02.swift")
       }
     }
   }
@@ -37,11 +37,11 @@
     @Steps {
       @Step {
         화면/세션 등 범위를 가지는 의존성을 스코프로 관리합니다.
-        @Code(name: "Scoped Usage", file: Tutorial-IntermediateDiContainer-03-01.swift)
+        @Code(name: "Scoped Usage", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-03-01.swift")
       }
       @Step {
         스코프 해제와 리소스 관리 포인트를 확인합니다.
-        @Code(name: "Scoped Cleanup", file: Tutorial-IntermediateDiContainer-03-02.swift)
+        @Code(name: "Scoped Cleanup", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-03-02.swift")
       }
     }
   }
@@ -50,11 +50,11 @@
     @Steps {
       @Step {
         운영 환경에서의 에러 처리/회복 패턴을 살펴봅니다.
-        @Code(name: "Ops Patterns 1", file: Tutorial-IntermediateDiContainer-04-01.swift)
+        @Code(name: "Ops Patterns 1", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-04-01.swift")
       }
       @Step {
         로그/모니터링을 연계한 개선 전략을 정리합니다.
-        @Code(name: "Ops Patterns 2", file: Tutorial-IntermediateDiContainer-04-02.swift)
+        @Code(name: "Ops Patterns 2", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-04-02.swift")
       }
     }
   }
@@ -63,11 +63,11 @@
     @Steps {
       @Step {
         테스트 시작 전 초기화와 Mock 주입 패턴을 적용합니다.
-        @Code(name: "Test Setup", file: Tutorial-IntermediateDiContainer-05-01.swift)
+        @Code(name: "Test Setup", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-05-01.swift")
       }
       @Step {
         시나리오별 검증과 스냅샷 의존 통계를 확인합니다.
-        @Code(name: "Test Scenarios", file:Tutorial-IntermediateDiContainer-05-02.swift)
+        @Code(name: "Test Scenarios", file: "Tutorial IntermediateDiContainer/Tutorial-IntermediateDiContainer-05-02.swift")
       }
     }
   }
