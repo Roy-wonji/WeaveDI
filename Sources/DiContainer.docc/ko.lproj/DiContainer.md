@@ -149,9 +149,8 @@ class OptimizedViewController {
 
 - <doc:Tutorial-YourFirstDI>
 - <doc:Tutorial-MeetDiContainer>
-<!--- <doc:Tutorial-IntermediateDiContainer>-->
-<!--- <doc:Tutorial-AdvancedDiContainer>-->
-<!--- <doc:DiContainer-GettingStarted>-->
+- <doc:MIGRATION-2.0.0.md>
+- <doc:MIGRATION-3.0.0.md>
 
 #### 핵심 API
 - ``UnifiedDI``
