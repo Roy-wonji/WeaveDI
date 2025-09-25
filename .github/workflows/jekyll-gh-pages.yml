@@ -1,0 +1,53 @@
+# .github/workflows/docs.yml
+name: Documentation
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Select Xcode 16.2
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout gh-pages branch (output dir)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: docs-out
+
+      - name: Build DocC (DiContainer → static hosting)
+        run: |
+          rm -rf docs-out/.git
+          rm -rf docs-out/*
+          swift package \
+            --allow-writing-to-directory docs-out \
+            generate-documentation \
+            --target DiContainer \
+            --output-path docs-out \
+            --transform-for-static-hosting \
+            --hosting-base-path /DiContainer
+
+      - name: Fix permissions
+        run: sudo chown -R $USER docs-out
+
+      - name: Publish to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@4.1.7
+        with:
+          branch: gh-pages
+          folder: docs-out
+          single-commit: true
