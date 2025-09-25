@@ -17,6 +17,10 @@ let package = Package(
             name: "DiContainer",
             targets: ["DiContainer"]
         ),
+        .executable(
+            name: "Benchmarks",
+            targets: ["Benchmarks"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/Roy-wonji/LogMacro.git", from: "1.1.0"),
@@ -29,6 +33,7 @@ let package = Package(
                 .product(name: "LogMacro", package: "LogMacro"),
             ],
             path: "Sources",
+            exclude: ["Benchmarks"],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")
             ]
@@ -39,6 +44,11 @@ let package = Package(
                 "DiContainer"
             ],
             path: "Tests/DiContainerTests"
+        ),
+        .executableTarget(
+            name: "Benchmarks",
+            dependencies: ["DiContainer"],
+            path: "Sources/Benchmarks"
         )
     ],
     swiftLanguageModes: [.v6]

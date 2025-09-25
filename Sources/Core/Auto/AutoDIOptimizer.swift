@@ -8,7 +8,8 @@ import LogMacro
 /// - 주로 앱 초기화 시 단일 스레드에서 사용됩니다
 /// - 통계 데이터의 미세한 불일치는 기능에 영향을 주지 않습니다
 /// - 높은 성능을 위해 복잡한 동기화를 제거했습니다
-public final class AutoDIOptimizer: @unchecked Sendable {
+@DIActor
+public final class AutoDIOptimizer {
   
   public static let shared = AutoDIOptimizer()
   
@@ -32,6 +33,7 @@ public final class AutoDIOptimizer: @unchecked Sendable {
 
     // Synchronization for internal mutable state to avoid races under concurrency
     private let stateLock = NSLock()
+    private nonisolated let statsCache = DIStatsCache.shared
 
     // Helper to perform locked mutations/reads
     private func withLock<T>(_ body: () -> T) -> T {
@@ -43,6 +45,56 @@ public final class AutoDIOptimizer: @unchecked Sendable {
   private init() {
     lifecycleManager = SimpleLifecycleManager.shared
     #logInfo("🚀 AutoDIOptimizer 초기화 완료 (최적화 기능 포함)")
+  }
+
+  // MARK: - Debounced snapshot
+  private var snapshotDebounceScheduled: Bool = false
+  private var snapshotDebounceNanos: UInt64 = 100_000_000 // 100ms
+
+  private func scheduleSnapshotDebounced() {
+    if snapshotDebounceScheduled { return }
+    snapshotDebounceScheduled = true
+    Task { @DIActor in
+      try? await Task.sleep(nanoseconds: snapshotDebounceNanos)
+      self.snapshotDebounceScheduled = false
+      self.pushSnapshot()
+    }
+  }
+
+  /// 디바운스 간격 설정 (50~1000ms 사이 허용, 기본 100ms)
+  public func setDebounceInterval(ms: Int) {
+    let clamped = max(50, min(ms, 1000))
+    snapshotDebounceNanos = UInt64(clamped) * 1_000_000
+    #logInfo("🕒 Snapshot debounce set to: \(clamped)ms")
+  }
+  
+  // MARK: - Snapshot helpers
+  private func buildGraphText() -> String {
+    var result = "📊 의존성 그래프:\n"
+    let regs = registeredTypes
+    if regs.isEmpty {
+      result += "• 등록된 타입 없음\n"
+    } else {
+      result += "• 노드(등록된 타입): " + regs.sorted().joined(separator: ", ") + "\n"
+    }
+    if dependencies.isEmpty {
+      result += "• 의존성 없음"
+    } else {
+      for dep in dependencies { result += "• \(dep.from) → \(dep.to)\n" }
+    }
+    return result
+  }
+
+  private func pushSnapshot() {
+    let snap = DIStatsSnapshot(
+      frequentlyUsed: frequentlyUsed,
+      registered: registeredTypes,
+      resolved: resolvedTypes,
+      dependencies: dependencies,
+      logLevel: currentLogLevel,
+      graphText: buildGraphText()
+    )
+    statsCache.write(snap)
   }
   
   // MARK: - 핵심 추적 메서드 (간소화)
@@ -59,9 +111,9 @@ public final class AutoDIOptimizer: @unchecked Sendable {
     #logInfo("📦 등록: \(typeName) (총 \(registrationCount)개)")
     
     // 자동 모니터링 연계
-    Task {
-      await AutoMonitor.shared.onModuleRegistered(type)
-    }
+    // Same global actor; direct call
+    AutoMonitor.shared.onModuleRegistered(type)
+    scheduleSnapshotDebounced()
   }
   
   
@@ -80,11 +132,12 @@ public final class AutoDIOptimizer: @unchecked Sendable {
                 hit10 = true
             }
         }
-        if hit10 {
-            #logError("⚡ 최적화 권장: \(typeName)이 자주 사용됩니다 (싱글톤 고려)")
-        }
+    if hit10 {
+      #logError("⚡ 최적화 권장: \(typeName)이 자주 사용됩니다 (싱글톤 고려)")
+    }
     
     #logDebug("🔍 해결: \(typeName) (총 \(resolutionCount)회)")
+    scheduleSnapshotDebounced()
   }
   
   
@@ -98,63 +151,91 @@ public final class AutoDIOptimizer: @unchecked Sendable {
     #logInfo("🔗 의존성 추가: \(fromName) → \(toName)")
     
     // 자동 모니터링 연계
-    Task {
-      await AutoMonitor.shared.onDependencyAdded(from: from, to: to)
-    }
+    AutoMonitor.shared.onDependencyAdded(from: from, to: to)
+    scheduleSnapshotDebounced()
   }
   
   // MARK: - 간단한 조회 API
   
   /// 등록된 타입 목록
-  public func getRegisteredTypes() -> Set<String> {
-        return withLock { registeredTypes }
+  internal nonisolated func getRegisteredTypes() -> Set<String> {
+        return statsCache.read().registered
   }
+  @available(*, deprecated, message: "Use UnifiedDI/DIContainer or readSnapshot().registered")
+  public nonisolated static func getRegisteredTypes() -> Set<String> { DIStatsCache.shared.read().registered }
   
   /// 해결된 타입 목록
-  public func getResolvedTypes() -> Set<String> {
-        return withLock { resolvedTypes }
+  internal nonisolated func getResolvedTypes() -> Set<String> {
+        return statsCache.read().resolved
   }
+  @available(*, deprecated, message: "Use UnifiedDI/DIContainer or readSnapshot().resolved")
+  public nonisolated static func getResolvedTypes() -> Set<String> { DIStatsCache.shared.read().resolved }
   
   /// 의존성 관계 목록
-  public func getDependencies() -> [(from: String, to: String)] {
-        return withLock { dependencies }
+  internal nonisolated func getDependencies() -> [(from: String, to: String)] {
+        return statsCache.read().dependencies
   }
+  @available(*, deprecated, message: "Use UnifiedDI/DIContainer or readSnapshot().dependencies")
+  public nonisolated static func getDependencies() -> [(from: String, to: String)] { DIStatsCache.shared.read().dependencies }
   
   /// 간단한 통계
-  public func getStats() -> (registered: Int, resolved: Int, dependencies: Int) {
-        return withLock { (registrationCount, resolutionCount, dependencies.count) }
+  internal nonisolated func getStats() -> (registered: Int, resolved: Int, dependencies: Int) {
+        let s = statsCache.read(); return (s.registered.count, s.resolved.count, s.dependencies.count)
+  }
+  @available(*, deprecated, message: "Use UnifiedDI/DIContainer or readSnapshot()")
+  public nonisolated static func getStats() -> (registered: Int, resolved: Int, dependencies: Int) {
+        let s = DIStatsCache.shared.read(); return (s.registered.count, s.resolved.count, s.dependencies.count)
   }
   
   /// 요약 정보 (최적화 정보 포함)
-  public func getSummary() -> String {
-        let stats = getStats()
-        let topUsed = getTopUsedTypes(limit: 3)
-    
-    return """
+  internal nonisolated func getSummary() -> String {
+        let s = statsCache.read()
+        let topUsed = Array(s.frequentlyUsed.sorted { $0.value > $1.value }.prefix(3)).map { "\($0.key)(\($0.value)회)" }
+        return """
         📊 DI 시스템 요약:
-        • 등록된 타입: \(stats.registered)개
-        • 해결 요청: \(stats.resolved)회
-        • 의존성 관계: \(stats.dependencies)개
+        • 등록된 타입: \(s.registered.count)개
+        • 해결 요청: \(s.resolved.count)회
+        • 의존성 관계: \(s.dependencies.count)개
         • 자주 사용되는 타입: \(topUsed.isEmpty ? "없음" : topUsed.joined(separator: ", "))
-        • 최적화 상태: \(optimizationEnabled ? "활성화" : "비활성화")
+        • 스냅샷 기반 조회 (일부 지연 가능)
+        """
+  }
+  @available(*, deprecated, message: "Use UnifiedDI/DIContainer or readSnapshot()")
+  public nonisolated static func getSummary() -> String {
+        let s = DIStatsCache.shared.read()
+        let topUsed = Array(s.frequentlyUsed.sorted { $0.value > $1.value }.prefix(3)).map { "\($0.key)(\($0.value)회)" }
+        return """
+        📊 DI 시스템 요약:
+        • 등록된 타입: \(s.registered.count)개
+        • 해결 요청: \(s.resolved.count)회
+        • 의존성 관계: \(s.dependencies.count)개
+        • 자주 사용되는 타입: \(topUsed.isEmpty ? "없음" : topUsed.joined(separator: ", "))
+        • 스냅샷 기반 조회 (일부 지연 가능)
         """
   }
   
   // MARK: - 🚀 간단한 최적화 기능들
   
   /// 자주 사용되는 타입 TOP N
-  public func getTopUsedTypes(limit: Int = 5) -> [String] {
-    return frequentlyUsed
-      .sorted { $0.value > $1.value }
-      .prefix(limit)
-      .map { "\($0.key)(\($0.value)회)" }
+  public nonisolated func getTopUsedTypes(limit: Int = 5) -> [String] {
+    let freq = statsCache.read().frequentlyUsed
+    return freq.sorted { $0.value > $1.value }
+        .prefix(limit)
+        .map { "\($0.key)(\($0.value)회)" }
+  }
+  public nonisolated static func getTopUsedTypes(limit: Int = 5) -> [String] {
+    let freq = DIStatsCache.shared.read().frequentlyUsed
+    return freq.sorted { $0.value > $1.value }
+        .prefix(limit)
+        .map { "\($0.key)(\($0.value)회)" }
   }
   
   /// 순환 의존성 간단 감지
-    public func detectCircularDependencies() -> [String] {
-        // Take thread-safe snapshots
-        let typesSnapshot = withLock { registeredTypes }
-        let depsSnapshot = withLock { dependencies }
+    public nonisolated func detectCircularDependencies() -> [String] {
+        // Use snapshot
+        let snap = statsCache.read()
+        let typesSnapshot = snap.registered
+        let depsSnapshot = snap.dependencies
 
         var visited: Set<String> = []
         var stack: Set<String> = []
@@ -188,11 +269,11 @@ public final class AutoDIOptimizer: @unchecked Sendable {
     }
   
   /// 최적화 제안
-  public func getOptimizationSuggestions() -> [String] {
+  public nonisolated func getOptimizationSuggestions() -> [String] {
     var suggestions: [String] = []
-    
+    let freq = statsCache.read().frequentlyUsed
     // 자주 사용되는 타입 체크
-    for (type, count) in frequentlyUsed where count >= 5 {
+    for (type, count) in freq where count >= 5 {
       suggestions.append("💡 \(type): \(count)회 사용됨 → 싱글톤 패턴 고려")
     }
     
@@ -201,11 +282,34 @@ public final class AutoDIOptimizer: @unchecked Sendable {
     suggestions.append(contentsOf: cycles.map { "⚠️ \($0)" })
     
     // 미사용 타입 체크
-    let unused = registeredTypes.subtracting(resolvedTypes)
+    let snap = statsCache.read()
+    let unused = snap.registered.subtracting(snap.resolved)
     if !unused.isEmpty {
       suggestions.append("🗑️ 미사용 타입들: \(unused.joined(separator: ", "))")
     }
     
+    return suggestions.isEmpty ? ["✅ 최적화 제안 없음 - 좋은 상태입니다!"] : suggestions
+  }
+  public nonisolated static func getOptimizationSuggestions() -> [String] {
+    var suggestions: [String] = []
+    let freq = DIStatsCache.shared.read().frequentlyUsed
+    for (type, count) in freq where count >= 5 { suggestions.append("💡 \(type): \(count)회 사용됨 → 싱글톤 패턴 고려") }
+    let snap = DIStatsCache.shared.read()
+    // cycles
+    var visited: Set<String> = []
+    var stack: Set<String> = []
+    var cycles: [String] = []
+    func dfs(_ node: String) {
+      if stack.contains(node) { cycles.append("순환 감지: \(node)"); return }
+      if visited.contains(node) { return }
+      visited.insert(node); stack.insert(node)
+      for dep in snap.dependencies where dep.from == node { dfs(dep.to) }
+      stack.remove(node)
+    }
+    for t in snap.registered where !visited.contains(t) { dfs(t) }
+    suggestions.append(contentsOf: cycles.map { "⚠️ \($0)" })
+    let unused = snap.registered.subtracting(snap.resolved)
+    if !unused.isEmpty { suggestions.append("🗑️ 미사용 타입들: \(unused.joined(separator: ", "))") }
     return suggestions.isEmpty ? ["✅ 최적화 제안 없음 - 좋은 상태입니다!"] : suggestions
   }
   
@@ -273,58 +377,72 @@ public final class AutoDIOptimizer: @unchecked Sendable {
             cachedInstances.removeAll()
         }
     
-    Task {
-      await AutoMonitor.shared.reset()
+    Task { @DIActor in
+      AutoMonitor.shared.reset()
     }
     
     #logInfo("🔄 AutoDIOptimizer 초기화됨")
+    scheduleSnapshotDebounced()
   }
   
   // MARK: - 기존 API와의 호환성을 위한 메서드들
   
   /// 현재 통계 (기존 API 호환)
-  public func getCurrentStats() -> [String: Int] {
-        return withLock { frequentlyUsed }
+  public nonisolated func getCurrentStats() -> [String: Int] {
+        return statsCache.read().frequentlyUsed
+  }
+  public nonisolated static func readSnapshot() -> DIStatsSnapshot { DIStatsCache.shared.read() }
+  public nonisolated static func getCurrentStats() -> [String: Int] {
+        return DIStatsCache.shared.read().frequentlyUsed
   }
   
   /// 그래프 시각화 (간단 버전)
-    public func visualizeGraph() -> String {
-        var result = "📊 의존성 그래프:\n"
-        let (deps, regs) = withLock { (dependencies, registeredTypes) }
-
-        // Show registered nodes
-        if regs.isEmpty {
-            result += "• 등록된 타입 없음\n"
-        } else {
-            result += "• 노드(등록된 타입): " + regs.sorted().joined(separator: ", ") + "\n"
-        }
-
-        // Show edges
-        if deps.isEmpty {
-            result += "• 의존성 없음"
-        } else {
-            for dep in deps {
-                result += "• \(dep.from) → \(dep.to)\n"
-            }
-        }
-        return result
-    }
+    internal nonisolated func visualizeGraph() -> String { statsCache.read().graphText }
+    @available(*, deprecated, message: "Use UnifiedDI/DIContainer or readSnapshot().graphText")
+    public nonisolated static func visualizeGraph() -> String { DIStatsCache.shared.read().graphText }
   
   /// 자주 사용되는 타입들 (Set 버전)
-  public func getFrequentlyUsedTypes() -> Set<String> {
-        let snapshot = withLock { frequentlyUsed }
+  internal nonisolated func getFrequentlyUsedTypes() -> Set<String> {
+        let snapshot = statsCache.read().frequentlyUsed
+        return Set(snapshot.filter { $0.value >= 3 }.keys)
+  }
+  @available(*, deprecated, message: "Use UnifiedDI/DIContainer or readSnapshot().frequentlyUsed")
+  public nonisolated static func getFrequentlyUsedTypes() -> Set<String> {
+        let snapshot = DIStatsCache.shared.read().frequentlyUsed
         return Set(snapshot.filter { $0.value >= 3 }.keys)
   }
   
   /// 감지된 순환 의존성 (Set 버전)
-  public func getDetectedCircularDependencies() -> Set<String> {
+  internal nonisolated func getDetectedCircularDependencies() -> Set<String> {
         return Set(detectCircularDependencies())
+  }
+  @available(*, deprecated, message: "Use UnifiedDI/DIContainer")
+  public nonisolated static func getDetectedCircularDependencies() -> Set<String> {
+        let snap = DIStatsCache.shared.read()
+        var visited: Set<String> = []
+        var stack: Set<String> = []
+        var cycles: Set<String> = []
+        func dfs(_ node: String) {
+            if stack.contains(node) { cycles.insert("순환 감지: \(node)"); return }
+            if visited.contains(node) { return }
+            visited.insert(node); stack.insert(node)
+            for dep in snap.dependencies where dep.from == node { dfs(dep.to) }
+            stack.remove(node)
+        }
+        for type in snap.registered where !visited.contains(type) { dfs(type) }
+        return cycles
   }
   
   /// 특정 타입이 최적화되었는지 확인
-  public func isOptimized<T>(_ type: T.Type) -> Bool {
+  internal nonisolated func isOptimized<T>(_ type: T.Type) -> Bool {
         let typeName = String(describing: type)
-        let snapshot = withLock { frequentlyUsed }
+        let snapshot = statsCache.read().frequentlyUsed
+        return (snapshot[typeName] ?? 0) >= 5
+  }
+  @available(*, deprecated, message: "Use UnifiedDI/DIContainer")
+  public nonisolated static func isOptimized<T>(_ type: T.Type) -> Bool {
+        let typeName = String(describing: type)
+        let snapshot = DIStatsCache.shared.read().frequentlyUsed
         return (snapshot[typeName] ?? 0) >= 5
   }
   
@@ -334,9 +452,9 @@ public final class AutoDIOptimizer: @unchecked Sendable {
   }
   
   /// Actor 최적화 제안 (간단 버전)
-  public func getActorOptimizationSuggestions() -> [String: ActorOptimization] {
+  internal nonisolated func getActorOptimizationSuggestions() -> [String: ActorOptimization] {
     var suggestions: [String: ActorOptimization] = [:]
-        let types = withLock { registeredTypes }
+        let types = statsCache.read().registered
         for type in types {
             if type.contains("Actor") {
                 suggestions[type] = ActorOptimization(suggestion: "Actor 타입 감지됨")
@@ -344,11 +462,18 @@ public final class AutoDIOptimizer: @unchecked Sendable {
         }
         return suggestions
     }
+  @available(*, deprecated, message: "Use UnifiedDI.actorOptimizations")
+  public nonisolated static func getActorOptimizationSuggestions() -> [String: ActorOptimization] {
+        var suggestions: [String: ActorOptimization] = [:]
+        let types = DIStatsCache.shared.read().registered
+        for type in types { if type.contains("Actor") { suggestions[type] = ActorOptimization(suggestion: "Actor 타입 감지됨") } }
+        return suggestions
+  }
   
   /// 타입 안전성 이슈 감지 (간단 버전)
-  public func getDetectedTypeSafetyIssues() -> [String: TypeSafetyIssue] {
+  internal nonisolated func getDetectedTypeSafetyIssues() -> [String: TypeSafetyIssue] {
         var issues: [String: TypeSafetyIssue] = [:]
-        let types = withLock { registeredTypes }
+        let types = statsCache.read().registered
         for type in types {
             if type.contains("Unsafe") {
                 issues[type] = TypeSafetyIssue(issue: "Unsafe 타입 사용 감지")
@@ -356,22 +481,38 @@ public final class AutoDIOptimizer: @unchecked Sendable {
         }
         return issues
     }
+  @available(*, deprecated, message: "Use UnifiedDI.typeSafetyIssues")
+  public nonisolated static func getDetectedTypeSafetyIssues() -> [String: TypeSafetyIssue] {
+        var issues: [String: TypeSafetyIssue] = [:]
+        let types = DIStatsCache.shared.read().registered
+        for type in types { if type.contains("Unsafe") { issues[type] = TypeSafetyIssue(issue: "Unsafe 타입 사용 감지") } }
+        return issues
+  }
   
   /// 자동 수정된 타입들 (간단 버전)
-  public func getDetectedAutoFixedTypes() -> Set<String> {
+  internal nonisolated func getDetectedAutoFixedTypes() -> Set<String> {
+        return Set(getFrequentlyUsedTypes().prefix(3))
+  }
+  @available(*, deprecated, message: "Use UnifiedDI.autoFixedTypes")
+  public nonisolated static func getDetectedAutoFixedTypes() -> Set<String> {
         return Set(getFrequentlyUsedTypes().prefix(3))
   }
   
   /// Actor hop 통계 (간단 버전)
-  public func getActorHopStats() -> [String: Int] {
-        let snapshot = withLock { frequentlyUsed }
+  internal nonisolated func getActorHopStats() -> [String: Int] {
+        let snapshot = statsCache.read().frequentlyUsed
+        return snapshot.filter { $0.key.contains("Actor") }
+  }
+  @available(*, deprecated, message: "Use UnifiedDI.actorHopStats")
+  public nonisolated static func getActorHopStats() -> [String: Int] {
+        let snapshot = DIStatsCache.shared.read().frequentlyUsed
         return snapshot.filter { $0.key.contains("Actor") }
   }
   
   /// 비동기 성능 통계 (간단 버전)
-  public func getAsyncPerformanceStats() -> [String: Double] {
+  internal nonisolated func getAsyncPerformanceStats() -> [String: Double] {
         var stats: [String: Double] = [:]
-        let snapshot = withLock { frequentlyUsed }
+        let snapshot = statsCache.read().frequentlyUsed
         for (type, count) in snapshot {
             if type.contains("async") || type.contains("Async") {
                 stats[type] = Double(count) * 0.1 // 간단한 성능 점수
@@ -379,28 +520,43 @@ public final class AutoDIOptimizer: @unchecked Sendable {
         }
         return stats
     }
+  @available(*, deprecated, message: "Use UnifiedDI.asyncPerformanceStats")
+  public nonisolated static func getAsyncPerformanceStats() -> [String: Double] {
+        var stats: [String: Double] = [:]
+        let snapshot = DIStatsCache.shared.read().frequentlyUsed
+        for (type, count) in snapshot { if type.contains("async") || type.contains("Async") { stats[type] = Double(count) * 0.1 } }
+        return stats
+  }
   
   /// 최근 그래프 변경사항 (간단 버전)
-  public func getRecentGraphChanges(limit: Int = 10) -> [(timestamp: Date, changes: [String: NodeChangeType])] {
+  internal nonisolated func getRecentGraphChanges(limit: Int = 10) -> [(timestamp: Date, changes: [String: NodeChangeType])] {
         let now = Date()
-        let deps = withLock { dependencies }
+        let deps = statsCache.read().dependencies
         return deps.prefix(limit).enumerated().map { index, dep in
             (timestamp: now.addingTimeInterval(-Double(index) * 60),
              changes: [dep.from: NodeChangeType(change: "added dependency to \(dep.to)")])
         }
   }
+  @available(*, deprecated, message: "Use UnifiedDI.getGraphChanges(limit:)")
+  public nonisolated static func getRecentGraphChanges(limit: Int = 10) -> [(timestamp: Date, changes: [String: NodeChangeType])] {
+        let now = Date(); let deps = DIStatsCache.shared.read().dependencies
+        return deps.prefix(limit).enumerated().map { index, dep in
+            (timestamp: now.addingTimeInterval(-Double(index) * 60), changes: [dep.from: NodeChangeType(change: "added dependency to \(dep.to)")])
+        }
+  }
   
   /// 로그 레벨 설정
     public func setLogLevel(_ level: LogLevel) {
-        withLock { currentLogLevel = level }
+        currentLogLevel = level
         #logInfo("📝 로그 레벨 설정: \(level.rawValue)")
+        scheduleSnapshotDebounced()
     }
   
   
   /// 현재 로그 레벨
-    public func getCurrentLogLevel() -> LogLevel {
-        return withLock { currentLogLevel }
-    }
+    internal nonisolated func getCurrentLogLevel() -> LogLevel { statsCache.read().logLevel }
+    @available(*, deprecated, message: "Use UnifiedDI.logLevel or getLogLevel()")
+    public nonisolated static func getCurrentLogLevel() -> LogLevel { DIStatsCache.shared.read().logLevel }
   
   /// Nil 해결 처리 (간단 버전)
   public func handleNilResolution<T>(_ type: T.Type) {

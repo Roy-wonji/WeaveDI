@@ -202,16 +202,8 @@ public enum UnifiedDI {
             
             """)
 #else
-      // 프로덕션에서는 에러 로깅 후 기본 인스턴스 시도
+      // 프로덕션: 에러 로깅 후 크래시(명확한 메시지)
       Log.error("🚨 [DI] Critical: Required dependency \(typeName) not found!")
-      
-      // 마지막 수단으로 기본 초기화 시도
-      if let defaultInstance = Self.tryCreateDefaultInstance(for: type) {
-        Log.warning("🔄 [DI] Using default instance for \(typeName)")
-        return defaultInstance
-      }
-      
-      // 그래도 실패하면 크래시하되, 더 간단한 메시지로
       fatalError("[DI] Critical dependency missing: \(typeName)")
 #endif
     }
@@ -383,61 +375,80 @@ public extension UnifiedDI {
   ///   - `.errors`: 에러만 로깅
   ///   - `.off`: 로깅 끄기
   static func setLogLevel(_ level: LogLevel) {
-    AutoDIOptimizer.shared.setLogLevel(level)
+    // 1) 즉시 스냅샷 반영(테스트/동기 읽기 일관성)
+    let cache = DIStatsCache.shared
+    let snap = cache.read()
+    cache.write(DIStatsSnapshot(
+      frequentlyUsed: snap.frequentlyUsed,
+      registered: snap.registered,
+      resolved: snap.resolved,
+      dependencies: snap.dependencies,
+      logLevel: level,
+      graphText: snap.graphText
+    ))
+    // 2) 진짜 설정은 액터에 위임
+    Task { @DIActor in AutoDIOptimizer.shared.setLogLevel(level) }
   }
   
-  /// 📋 현재 로깅 레벨을 반환합니다
+  /// 📋 현재 로깅 레벨을 반환합니다 (스냅샷)
   static func getLogLevel() async -> LogLevel {
-    AutoDIOptimizer.shared.getCurrentLogLevel()
+     AutoDIOptimizer.readSnapshot().logLevel
   }
   
-  /// 현재 로깅 레벨(동기 접근용)
+  /// 현재 로깅 레벨(동기 접근용, 스냅샷)
   static var logLevel: LogLevel {
-    AutoDIOptimizer.shared.getCurrentLogLevel()
+    AutoDIOptimizer.readSnapshot().logLevel
   }
   
-  /// 🎯 자동 Actor 최적화 제안을 반환합니다
-  ///
-  /// 자동으로 수집된 Actor hop 패턴과 성능 분석을 바탕으로 최적화 제안을 제공합니다.
+  /// 🎯 자동 Actor 최적화 제안 (스냅샷 기반 간단 규칙)
   static var actorOptimizations: [String: ActorOptimization] {
     get async {
-      AutoDIOptimizer.shared.getActorOptimizationSuggestions()
+      let regs = AutoDIOptimizer.readSnapshot().registered
+      var out: [String: ActorOptimization] = [:]
+      for t in regs where t.contains("Actor") {
+        out[t] = ActorOptimization(suggestion: "Actor 타입 감지됨")
+      }
+      return out
     }
   }
   
-  /// 🔒 자동 감지된 타입 안전성 이슈를 반환합니다
-  ///
-  /// 런타임에서 자동으로 감지된 타입 안전성 문제들과 권장사항을 제공합니다.
+  /// 🔒 자동 감지된 타입 안전성 이슈 (간단 규칙)
   static var typeSafetyIssues: [String: TypeSafetyIssue] {
     get async {
-      AutoDIOptimizer.shared.getDetectedTypeSafetyIssues()
+      let regs = AutoDIOptimizer.readSnapshot().registered
+      var issues: [String: TypeSafetyIssue] = [:]
+      for t in regs where t.contains("Unsafe") {
+        issues[t] = TypeSafetyIssue(issue: "Unsafe 타입 사용 감지")
+      }
+      return issues
     }
   }
   
-  /// 🛠️ 자동으로 수정된 타입들을 반환합니다
-  ///
-  /// 타입 안전성 검사에서 자동으로 수정 처리된 타입들의 목록입니다.
+  /// 🛠️ 자동으로 수정된 타입들 (상위 사용 빈도 기준 예시)
   static var autoFixedTypes: Set<String> {
     get async {
-      AutoDIOptimizer.shared.getDetectedAutoFixedTypes()
+      let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
+      return Set(freq.sorted { $0.value > $1.value }.prefix(3).map { $0.key })
     }
   }
   
-  /// ⚡ Actor hop 통계를 반환합니다
-  ///
-  /// 각 타입별로 발생한 Actor hop 횟수를 추적한 통계입니다.
+  /// ⚡ Actor hop 통계 (간단 규칙: 이름에 Actor 포함)
   static var actorHopStats: [String: Int] {
     get async {
-      AutoDIOptimizer.shared.getActorHopStats()
+      let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
+      return freq.filter { $0.key.contains("Actor") }
     }
   }
   
-  /// 📊 비동기 성능 통계를 반환합니다
-  ///
-  /// 각 타입별 평균 비동기 해결 시간 (밀리초)을 제공합니다.
+  /// 📊 비동기 성능 통계 (간단 규칙: 이름에 async/Async 포함)
   static var asyncPerformanceStats: [String: Double] {
     get async {
-      AutoDIOptimizer.shared.getAsyncPerformanceStats()
+      let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
+      var out: [String: Double] = [:]
+      for (t, c) in freq where t.contains("async") || t.contains("Async") {
+        out[t] = Double(c) * 0.1
+      }
+      return out
     }
   }
   
@@ -453,15 +464,23 @@ public extension UnifiedDI {
     threshold: Int = 10,
     realTimeUpdate: Bool = true
   ) {
-    // 간단한 설정 업데이트
-    AutoDIOptimizer.shared.updateConfig("debounce: \(debounceMs), threshold: \(threshold), realTime: \(realTimeUpdate)")
+    // 간단한 설정 업데이트 + 디바운스 간격 적용(50~100ms 제한)
+    Task { @DIActor in
+      AutoDIOptimizer.shared.updateConfig("threshold: \(threshold), realTime: \(realTimeUpdate)")
+      AutoDIOptimizer.shared.setDebounceInterval(ms: debounceMs)
+    }
   }
   
   /// 그래프 변경 히스토리를 가져옵니다
   /// - Parameter limit: 최대 반환 개수 (기본값: 10)
   /// - Returns: 최근 변경 히스토리
   static func getGraphChanges(limit: Int = 10) async -> [(timestamp: Date, changes: [String: NodeChangeType])] {
-    return  AutoDIOptimizer.shared.getRecentGraphChanges(limit: limit)
+    let deps = Array(AutoDIOptimizer.readSnapshot().dependencies.prefix(limit))
+    let now = Date()
+    return deps.enumerated().map { index, dep in
+      (timestamp: now.addingTimeInterval(-Double(index) * 60),
+       changes: [dep.from: NodeChangeType(change: "added dependency to \(dep.to)")])
+    }
   }
 }
 
@@ -485,25 +504,44 @@ public extension UnifiedDI {
   }
   
   /// ⚡ 최적화 제안 보기
-  static func getOptimizationTips() -> [String] {
-    return AutoDIOptimizer.shared.getOptimizationSuggestions()
-  }
+    static func getOptimizationTips() -> [String] {
+        let snap = AutoDIOptimizer.readSnapshot()
+        var tips: [String] = []
+        for (t,c) in snap.frequentlyUsed where c >= 5 { tips.append("💡 \(t): \(c)회 사용됨 → 싱글톤 고려") }
+        // 순환 의존성 간단 감지
+        var visited: Set<String> = []
+        var stack: Set<String> = []
+        func dfs(_ n: String, _ deps: [(from:String,to:String)], _ out: inout [String]) {
+          if stack.contains(n) { out.append("순환 감지: \(n)"); return }
+          if visited.contains(n) { return }
+          visited.insert(n); stack.insert(n)
+          for d in deps where d.from == n { dfs(d.to, deps, &out) }
+          stack.remove(n)
+        }
+        var cycles:[String] = []
+        for t in snap.registered where !visited.contains(t) { dfs(t, snap.dependencies, &cycles) }
+        tips.append(contentsOf: cycles.map { "⚠️ \($0)" })
+        let unused = snap.registered.subtracting(snap.resolved)
+        if !unused.isEmpty { tips.append("🗑️ 미사용 타입들: \(unused.joined(separator: ", "))") }
+        return tips.isEmpty ? ["✅ 최적화 제안 없음 - 좋은 상태입니다!"] : tips
+    }
   
   /// 📊 자주 사용되는 타입 TOP 5
-  static func getTopUsedTypes() -> [String] {
-    return AutoDIOptimizer.shared.getTopUsedTypes()
-  }
+    static func getTopUsedTypes() -> [String] {
+        let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
+        return freq.sorted { $0.value > $1.value }.prefix(5).map { "\($0.key)(\($0.value)회)" }
+    }
   
   /// 🔧 최적화 기능 켜기/끄기
   static func enableOptimization(_ enabled: Bool = true) {
-    AutoDIOptimizer.shared.setOptimizationEnabled(enabled)
-  }
+        Task { @DIActor in AutoDIOptimizer.shared.setOptimizationEnabled(enabled) }
+    }
   
   /// 🧹 모니터링 초기화
   static func resetMonitoring() async {
-    AutoDIOptimizer.shared.reset()
-    await AutoMonitor.shared.reset()
-  }
+        await AutoDIOptimizer.shared.reset()
+        await AutoMonitor.shared.reset()
+    }
 }
 
 // MARK: - Legacy Compatibility

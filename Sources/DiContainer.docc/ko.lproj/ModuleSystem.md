@@ -675,7 +675,7 @@ struct EnvironmentAwareModule: Module {
 
 ## 다음 단계
 
-- <doc:코어API>에서 모듈에서 사용할 수 있는 등록/해결 API 학습
-- <doc:프로퍼티래퍼>에서 모듈 내 자동 의존성 주입 활용
-- <doc:액터홉최적화>에서 모듈 레벨 성능 최적화
-- <doc:플러그인시스템>에서 모듈 확장 가능성 탐구
+- <doc:CoreAPIs>에서 모듈에서 사용할 수 있는 등록/해결 API 학습
+- <doc:PropertyWrappers>에서 모듈 내 자동 의존성 주입 활용
+- <doc:AutoDIOptimizer>에서 모듈 레벨 성능 최적화
+- <doc:ModuleFactory>에서 모듈 확장 가능성 탐구

@@ -3,7 +3,8 @@ import LogMacro
 
 /// 자동 모듈 모니터링 시스템
 /// 모듈 등록 시 자동으로 그래프와 상태를 보여주는 간단한 시스템
-public actor AutoMonitor {
+@DIActor
+public final class AutoMonitor {
   
   public static let shared = AutoMonitor()
   
@@ -18,7 +19,7 @@ public actor AutoMonitor {
   // MARK: - 모듈 등록 시 자동 처리
   
   /// 모듈이 등록될 때마다 자동으로 호출됨
-  public func onModuleRegistered<T>(_ type: T.Type) {
+    public func onModuleRegistered<T>(_ type: T.Type) {
     let moduleName = String(describing: type)
     
     // 모듈 추가
@@ -32,7 +33,7 @@ public actor AutoMonitor {
   }
   
   /// 의존성이 추가될 때마다 자동으로 호출됨
-  public func onDependencyAdded<From, To>(from: From.Type, to: To.Type) {
+    public func onDependencyAdded<From, To>(from: From.Type, to: To.Type) {
     let fromName = String(describing: from)
     let toName = String(describing: to)
     

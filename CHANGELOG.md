@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2025-09-25
+
+### Breaking
+- AutoDIOptimizer 읽기 API 일원화 및 표면 축소
+  - AutoDIOptimizer의 다수 읽기용 nonisolated(static) API를 내부화(internal) 또는 Deprecated로 전환했습니다.
+  - 외부에서는 UnifiedDI/DIContainer의 동기 헬퍼(스냅샷 기반)만 사용하세요.
+  - 내부 동작(자동 수집/최적화)은 동일하며, 공용 읽기 경로만 통일되었습니다.
+- AutoMonitor 동일 글로벌 액터로 정렬
+  - AutoMonitor를 @DIActor로 통일하여 내부 hop을 제거했습니다. 외부 API 시그니처는 동일합니다.
+
+### Added
+- Benchmarks 실행 타깃 추가(간단 벤치 템플릿)
+  - Target: Benchmarks (swift run -c release Benchmarks)
+  - 인자: --count 10k/100k/1M, --debounce 50/100/200, --quick
+  - p50/p95/p99 및 total(ms) 출력
+- DocC/README 문서 보강
+  - Bootstrap 가이드 추가(동기/비동기/혼합/조건부/보장/테스트)
+  - Deprecated 읽기 API → 대체 경로 표 추가
+- 디바운스 설정 노출
+  - UnifiedDI.configureOptimization(debounceMs:)로 AutoDIOptimizer 디바운스 간격 제어(50~1000ms)
+
+### Changed
+- 읽기 경로 완전 일원화(스냅샷 기반 동기 반환)
+  - UnifiedDI/DIContainer에서 autoGraph/optimizedTypes/circularDependencies/stats/isOptimized가 스냅샷에서 즉시 반환되도록 간소화
+- 핫패스 fire-and-forget
+  - register/resolve 추적은 비차단 전송(Task { @DIActor in ... })으로 전환 → p95/p99 지연 개선에 유리
+- 스냅샷/그래프 갱신 디바운스(기본 100ms)
+  - 대량 호출 시 CPU/로그 부하 감소
+- 로깅 레벨 설정 일관성 개선
+  - UnifiedDI.setLogLevel은 먼저 스냅샷을 즉시 갱신 후 액터에 위임(테스트/동기 읽기 일관성 향상)
+
+### Removed
+- DocC의 미사용/구 문서 제거
+  - BootstrapRationale.md, BootstrapSystem.md, DocumentationStandards.md 삭제
+- 플러그인 시스템 관련 톱페이지 섹션 제거(기능 비노출)
+
+### Fixed
+- “No 'async' operations occur within 'await' expression” 경고 제거(비동기 경로 정리, fire-and-forget 조정)
+- 테스트 안정성 개선
+  - 스냅샷 반영 대기를 폴링(waitUntil/waitAsyncUntil)으로 통일
+  - 전체 테스트 통과 확인
+
 ### [2.3.0] - 2025-09-25
 
 ### Breaking

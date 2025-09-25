@@ -1,5 +1,7 @@
 # ``DiContainer``
 
+> 참고: 읽기(그래프/통계/최적화 여부 등)는 `UnifiedDI` 또는 `DIContainer`의 동기 헬퍼를 사용하세요. 내부 `AutoDIOptimizer`의 리더 API는 스냅샷 기반으로 통일되었으며, 외부에서는 직접 호출하지 않는 것을 권장합니다.
+
 현대적인 Swift Concurrency와 Actor 모델을 위해 설계된 고성능 의존성 주입 프레임워크
 
 ## Overview
@@ -26,10 +28,6 @@ DiContainer 2.0은 iOS 15.0+, macOS 12.0+, watchOS 8.0+, tvOS 15.0+ 애플리케
 - **ModuleFactory**: 재사용 가능한 모듈 생성
 - **Container**: 배치 등록 및 병렬 실행
 
-#### 🔌 확장 가능한 플러그인 아키텍처
-- **RegistrationPlugin**: 등록 프로세스 확장
-- **ResolutionPlugin**: 해결 프로세스 커스터마이징
-- **MonitoringPlugin**: 성능 모니터링 및 로깅
 
 #### 🧪 테스트 친화적 설계
 - **의존성 모킹**: 테스트용 Mock 객체 쉬운 등록
@@ -140,7 +138,9 @@ class OptimizedViewController {
 - <doc:QuickStart>
 - <doc:CoreAPIs>
 - <doc:MIGRATION-2.0.0>
+- <doc:MIGRATION-3.0.0>
 - <doc:AppDIIntegration>
+- <doc:Bootstrap>
 - ``DependencyContainer``
 
 ### 핵심 컴포넌트
@@ -159,7 +159,7 @@ class OptimizedViewController {
 
 #### 컨테이너 시스템
 - <doc:ContainerUsage>
-- <doc:ContainerPerformance>
+- <doc:PracticalGuide>
 - ``Container``
 - ``Module``
 - ``BatchModule``
@@ -182,7 +182,8 @@ class OptimizedViewController {
 - ``AutoDIOptimizer`` - 자동 성능 최적화
 - ``TypeSafeRegistry`` - 타입 안전 레지스트리
 - ``UnifiedRegistry`` - 통합 레지스트리
- - <doc:Scopes>
+- <doc:Scopes>
+- <doc:Benchmarks>
 
 ### 프로퍼티 래퍼 확장
 
@@ -196,15 +197,14 @@ class OptimizedViewController {
 
 - <doc:BulkRegistrationDSL>
 - <doc:ModuleFactory>
-- <doc:AutoResolution>
-- <doc:PluginSystem>
-- <doc:LegacyAPIs>
+- <doc:CoreAPIs>
+- <doc:ModuleFactory>
 - <doc:PropertyWrappers>
-- <doc:ActorHopOptimization>
+- <doc:AutoDIOptimizer>
 
 ### API 참조
 
-- <doc:UnifiedDI-DI-QuickReference>
+- <doc:UnifiedDI>
 
 #### 등록 API
 - ``UnifiedDI/register(_:factory:)``
