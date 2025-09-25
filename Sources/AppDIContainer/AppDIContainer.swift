@@ -266,7 +266,7 @@ public final actor AppDIContainer {
   ///
   /// ### Discussion
   /// - 전달된 클로저에서 `container.register(...)` 메서드를 통해 모듈들을 등록합니다.
-  /// - 이후 ``Container/build()`` 를 호출하여 등록된 모듈들의 초기화 로직을 병렬 실행합니다.
+  /// - 이후 ``DIContainer/build()`` 를 호출하여 등록된 모듈들의 초기화 로직을 병렬 실행합니다.
   /// - `registerModule.makeDependency(...)`, `makeUseCaseWithRepository(...)` 등을
   ///   활용해 여러 모듈을 한 번에 등록할 수 있습니다.
   public func registerDependencies(

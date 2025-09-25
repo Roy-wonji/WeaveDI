@@ -128,7 +128,6 @@ public actor UnifiedRegistry {
     /// - Parameters:
     ///   - type: 등록할 타입
     ///   - factory: 인스턴스를 생성하는 동기 클로저
-    /// - Returns: 등록 해제 핸들러
   
     public func register<T>(
         _ type: T.Type,
@@ -150,7 +149,6 @@ public actor UnifiedRegistry {
     /// - Parameters:
     ///   - type: 등록할 타입
     ///   - factory: 인스턴스를 생성하는 비동기 클로저
-    /// - Returns: 등록 해제 핸들러
     public func registerAsync<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () async -> T

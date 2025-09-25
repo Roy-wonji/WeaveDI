@@ -14,6 +14,12 @@ TARGET_NAME="DiContainer"
 # 정적 호스팅 시 URL 경로의 base path (예: roy-wonji.github.io/LogMacro/…)
 HOSTING_BASE_PATH="DiContainer"
 
+# Ensure module cache and SwiftPM caches are writable to avoid sandbox issues
+export MODULE_CACHE_DIR="${PWD}/.build/module-cache"
+export CLANG_MODULE_CACHE_PATH="${MODULE_CACHE_DIR}"
+export SWIFTPM_CACHE_PATH="${PWD}/.build/swiftpm-cache"
+mkdir -p "${MODULE_CACHE_DIR}" "${SWIFTPM_CACHE_PATH}"
+
 # (만약 xcodebuild으로 DocC 아카이브를 만들고 싶다면 아래 변수를 사용하세요)
 #BUILD_DESTINATION="generic/platform=iOS"
 #BUILD_PATH="/tmp/docbuild"

@@ -6,7 +6,7 @@ DiContainer의 강력한 Property Wrapper들을 활용하여 선언적이고 타
 
 DiContainer는 Swift의 Property Wrapper 기능을 활용하여 의존성 주입을 더욱 선언적이고 직관적으로 만들어줍니다. `@Inject`, `@Factory`, `@RequiredInject` 등의 Property Wrapper를 통해 복잡한 의존성 관리를 간단한 어노테이션으로 해결할 수 있습니다.
 
-## ``@Inject`` - 범용 의존성 주입
+## @Inject - 범용 의존성 주입
 
 ### 기본 사용법
 
@@ -112,7 +112,7 @@ let stats = DI.getPerformanceStats()
 Log.debug("ExpensiveService 평균 해결 시간: \(stats.averageResolutionTime(for: ExpensiveServiceProtocol.self))ms")
 ```
 
-## ``@Factory`` - 팩토리 인스턴스 주입
+## @Factory - 팩토리 인스턴스 주입
 
 ### 기본 개념
 
@@ -179,7 +179,7 @@ class TestableService {
 }
 ```
 
-## ``@RequiredInject`` - 필수 의존성 주입
+## @RequiredInject - 필수 의존성 주입
 
 ### 기본 사용법
 

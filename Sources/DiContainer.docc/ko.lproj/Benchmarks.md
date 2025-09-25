@@ -1,5 +1,3 @@
-% Benchmarks
-
 # 성능 벤치마크 (Benchmarks)
 
 DiContainer의 resolve 성능을 빠르게 점검하기 위한 간단한 벤치마크 가이드입니다. Benchmarks 실행 타깃을 통해 p50/p95/p99 및 총 소요 시간을 확인하고, 디바운스 간격에 따른 최적점을 탐색할 수 있습니다.
@@ -51,4 +49,3 @@ debounce=200ms, n=  1000000 | total= 2234.77ms | p50= 0.020 p95= 0.025 p99= 0.06
 
 - Benchmarks 타깃은 스냅샷 디바운스/핫패스 비차단 설계의 효과를 대략적으로 확인하는 용도입니다. 실제 앱에서는 사용 패턴/디바이스/빌드옵션에 따라 수치가 달라질 수 있으니 CSV로 여러 차례 수집하고 평균/표준편차를 함께 보세요.
 - 스냅샷 디바운스는 `UnifiedDI.configureOptimization(debounceMs:)`로 50~1000ms 사이에서 조정 가능합니다.
-
