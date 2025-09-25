@@ -1,62 +1,62 @@
-name: Documentation
+# name: Documentation
 
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+# on:
+#   push:
+#     branches: [main]
+#   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+# permissions:
+#   contents: read
+#   pages: write
+#   id-token: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
+# concurrency:
+#   group: "pages"
+#   cancel-in-progress: true
 
-jobs:
-  build:
-    runs-on: macos-15
-    steps:
-      - name: Select Xcode 16.4 (Swift 6.1)
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '16.4'
+# jobs:
+#   build:
+#     runs-on: macos-15
+#     steps:
+#       - name: Select Xcode 16.4 (Swift 6.1)
+#         uses: maxim-lobanov/setup-xcode@v1
+#         with:
+#           xcode-version: '16.4'
 
-      - name: Checkout
-        uses: actions/checkout@v4
+#       - name: Checkout
+#         uses: actions/checkout@v4
 
-      - name: Build DocC
-        run: |
-          rm -rf docs
-          swift package \
-            --allow-writing-to-directory docs \
-            generate-documentation \
-            --target DiContainer \
-            --output-path docs \
-            --transform-for-static-hosting \
-            --hosting-base-path /DiContainer
-          # DocC가 Jekyll에 막히지 않도록
-          touch docs/.nojekyll
-          # 루트로 접근 시 문서 첫 화면으로 리다이렉트
-          cat > docs/index.html <<'HTML'
-          <!DOCTYPE html><meta charset="utf-8">
-          <meta http-equiv="refresh" content="0; url=./documentation/dicontainer/">
-          <link rel="canonical" href="./documentation/dicontainer/">
-          HTML
+#       - name: Build DocC
+#         run: |
+#           rm -rf docs
+#           swift package \
+#             --allow-writing-to-directory docs \
+#             generate-documentation \
+#             --target DiContainer \
+#             --output-path docs \
+#             --transform-for-static-hosting \
+#             --hosting-base-path /DiContainer
+#           # DocC가 Jekyll에 막히지 않도록
+#           touch docs/.nojekyll
+#           # 루트로 접근 시 문서 첫 화면으로 리다이렉트
+#           cat > docs/index.html <<'HTML'
+#           <!DOCTYPE html><meta charset="utf-8">
+#           <meta http-equiv="refresh" content="0; url=./documentation/dicontainer/">
+#           <link rel="canonical" href="./documentation/dicontainer/">
+#           HTML
 
-      - name: Upload artifact (for Pages)
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
+#       - name: Upload artifact (for Pages)
+#         uses: actions/upload-pages-artifact@v3
+#         with:
+#           path: docs
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+#   deploy:
+#     needs: build
+#     runs-on: ubuntu-latest
+#     environment:
+#       name: github-pages
+#       url: ${{ steps.deployment.outputs.page_url }}
+#     steps:
+#       - name: Deploy to GitHub Pages
+#         id: deployment
+#         uses: actions/deploy-pages@v4
