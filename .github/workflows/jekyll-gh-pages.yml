@@ -1,50 +1,74 @@
-name: Documentation
+name: Documentation (DocC → GitHub Pages)
+
 on:
   push:
-    branches: [main]
+    branches: [main]     # 원하면 release/publish 이벤트도 추가 가능
   workflow_dispatch:
 
-# ✅ GITHUB_TOKEN로 gh-pages에 push하려면 필요
+# ✅ Pages 배포에 필요한 권한
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+# ✅ Pages는 동시에 1개만 배포
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: macos-15
     steps:
+      # Swift 6.1 포함 Xcode 선택 (16.3 이상)
       - name: Select Xcode 16.4 (Swift 6.1)
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '16.4'
 
-      - name: Checkout repo
+      - name: Show toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build DocC
+      # DocC 정적 사이트 생성
+      - name: Build DocC (DiContainer → docs/)
         run: |
-          rm -rf docs-out
-          mkdir -p docs-out
+          rm -rf docs
           swift package \
-            --allow-writing-to-directory docs-out \
+            --allow-writing-to-directory docs \
             generate-documentation \
             --target DiContainer \
-            --output-path docs-out \
+            --output-path docs \
             --transform-for-static-hosting \
             --hosting-base-path /DiContainer
-          touch docs-out/.nojekyll
-          cat > docs-out/index.html <<'HTML'
+
+          # Jekyll 무시 (DocC가 언더스코어 경로를 써서 필수)
+          touch docs/.nojekyll
+
+          # 루트 접근 시 문서 첫 화면으로 리다이렉트
+          cat > docs/index.html <<'HTML'
           <!DOCTYPE html><meta charset="utf-8">
           <meta http-equiv="refresh" content="0; url=./documentation/dicontainer/">
           <link rel="canonical" href="./documentation/dicontainer/">
           HTML
 
-      - name: Publish to GitHub Pages (gh-pages)
-        uses: JamesIves/github-pages-deploy-action@4.1.7
+      # Pages 배포용 아티팩트 업로드
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          branch: gh-pages
-          folder: docs-out
-          single-commit: true
-          clean: true                # ✅ 기존 파일 정리
-          git-config-name: github-actions[bot]
-          git-config-email: 41898282+github-actions[bot]@users.noreply.github.com
-          token: ${{ secrets.GITHUB_TOKEN }}   # 보통 자동 주입되지만 명시하면 확실
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
