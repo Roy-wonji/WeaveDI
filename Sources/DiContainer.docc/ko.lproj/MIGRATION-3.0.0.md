@@ -90,7 +90,7 @@ waitUntil(description: "wait snapshot") {
 
 ## 부트스트랩 관련(변경 없음)
 
-- 2.x.x의 부트스트랩 API 그대로 사용 가능합니다. 상세는 <doc:Bootstrap> 참고.
+- 2.x.x의 부트스트랩 API 그대로 사용 가능합니다. 상세는 <doc:Bootstrap>.
 
 ## FAQ
 

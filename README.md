@@ -121,6 +121,14 @@ let service = UnifiedDI.Conditional.registerIf(
     factory: { ProductionService() },
     fallback: { MockService() }
 )
+
+// 스코프 기반 등록
+let sessionService = UnifiedDI.registerScoped(
+    SessionService.self,
+    scope: .session
+) {
+    SessionServiceImpl()
+}
 ```
 
 ### Property Wrapper
@@ -310,12 +318,47 @@ python3 Scripts/plot_bench.py --csv bench.csv --out bench_plot
 
 > matplotlib이 없으면 텍스트 요약만 출력합니다. 설치: `pip install matplotlib`
 
-## 📖 문서
+## 📖 문서 및 튜토리얼
 
+### 📚 공식 문서
 - [API 문서](https://roy-wonji.github.io/DiContainer/documentation/dicontainer)
 - [자동 최적화 가이드](Sources/DiContainer.docc/ko.lproj/AutoDIOptimizer.md)
 - [Property Wrapper 가이드](Sources/DiContainer.docc/ko.lproj/PropertyWrappers.md)
 - [마이그레이션 3.0.0](Sources/DiContainer.docc/ko.lproj/MIGRATION-3.0.0.md)
+
+### 🎯 단계별 튜토리얼
+
+#### 🟢 초급자용
+1. **[DiContainer 시작하기](Sources/DiContainer.docc/ko.lproj/DiContainer-GettingStarted.tutorial)** (5분)
+   - 서비스 정의부터 앱 통합까지 완전한 사용법
+   - Property Wrapper 기초 (@Inject 사용법)
+   - SwiftUI/UIKit 통합 방법
+   - 실제 동작하는 완전한 예제
+
+2. **[첫 번째 의존성 주입](Sources/DiContainer.docc/ko.lproj/Tutorial-YourFirstDI.tutorial)** (15분)
+   - 간단한 카운터 앱 만들기
+   - 단계별 상세 구현
+
+#### 🟡 중급자용
+3. **[DiContainer 완전정복](Sources/DiContainer.docc/ko.lproj/Tutorial-MeetDiContainer.tutorial)** (25분)
+   - @Inject, @Factory, @SafeInject 모든 Property Wrapper 학습
+   - Clean Architecture 구현
+   - ModuleFactory 패턴
+   - 완전한 테스트 커버리지
+
+4. **[중급 DiContainer 활용법](Sources/DiContainer.docc/ko.lproj/Tutorial-IntermediateDiContainer.tutorial)** (30분)
+   - 복잡한 의존성 체인 관리
+   - 조건부 및 환경별 의존성 주입
+   - 스코프 기반 생명주기 관리
+
+#### 🔴 고급자용
+5. **[고급 최적화 및 성능](Sources/DiContainer.docc/ko.lproj/Tutorial-AdvancedDiContainer.tutorial)** (35분)
+   - AutoDIOptimizer 활용
+   - Actor Hop 통계 및 최적화
+   - 타입 안전성 및 성능 설정
+
+### 💡 빠른 시작
+초보자라면 **DiContainer 시작하기** 튜토리얼부터 시작하세요! Get Started 버튼을 클릭하면 바로 첫 번째 단계로 이동합니다.
 
 ## 🎯 주요 차별점
 

@@ -32,4 +32,3 @@ let service = UnifiedDI.resolve(GreetingService.self)
 let message = service?.greet(name: "개발자") ?? "서비스를 찾을 수 없습니다"
 
 print("📝 기본 사용: \(message)")
-

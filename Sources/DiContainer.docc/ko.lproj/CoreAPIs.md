@@ -499,10 +499,10 @@ class LazyServiceConsumer {
 
 ## 다음 단계
 
-- <doc:ModuleSystem>에서 모듈 기반 아키텍처 학습
-- <doc:PropertyWrappers>에서 고급 프로퍼티 래퍼 활용법
-- <doc:AutoDIOptimizer>에서 성능 최적화 기법
-- <doc:ModuleFactory>에서 확장 가능한 시스템 구축
+- <doc:ModuleSystem>
+- <doc:PropertyWrappers>
+- <doc:AutoDIOptimizer>
+- <doc:ModuleFactory>
 ### UnifiedDI/DI 사용 요약
 
 ```swift

@@ -1,21 +1,36 @@
-@Tutorial(time: 2) {
+@Tutorial(time: 5) {
   @Intro(title: "DiContainer 시작하기") {
     Swift의 현대적인 의존성 주입을 DiContainer와 함께 배워보세요.
 
-    Actor 기반 동시성과 완벽하게 통합된 DiContainer로
-    최대 10배 빠른 의존성 해결 성능을 경험해보세요!
+    Actor 기반 동시성과 완벽하게 통합된 DiContainer로 최대 10배 빠른 의존성 해결 성능을 경험해보세요!
+
+    이 튜토리얼을 통해 Property Wrapper를 활용한 직관적인 API 사용법을 배울 수 있습니다.
   }
 
   @Section(title: "첫 번째 의존성 주입") {
     @ContentAndMedia {
-      DiContainer의 첫 번째 예제로 의존성 주입을 시작해보겠습니다.
+      가장 간단한 의존성 주입부터 시작해보겠습니다.
+
+      기본적인 서비스 등록과 주입 방법을 배웁니다.
     }
 
     @Steps {
       @Step {
-        간단한 서비스를 등록하고 주입하는 방법을 배웁니다.
+        간단한 서비스를 정의하고 DiContainer에 등록해보겠습니다.
 
         @Code(name: "GettingStarted.swift", file: "DiContainer-GettingStarted-01.swift")
+      }
+
+      @Step {
+        Inject Property Wrapper를 사용해서 의존성을 주입받아보겠습니다.
+
+        @Code(name: "UsingService.swift", file: "DiContainer-GettingStarted-02.swift")
+      }
+
+      @Step {
+        실제 앱에서 사용하는 방법을 알아보겠습니다.
+
+        @Code(name: "AppSetup.swift", file: "DiContainer-GettingStarted-03.swift")
       }
     }
   }

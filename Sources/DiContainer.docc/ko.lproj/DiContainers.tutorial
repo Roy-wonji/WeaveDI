@@ -1,0 +1,24 @@
+@Tutorials(name: "DiContainer") {
+    @Intro(title: "DiContainer 시작하기") {
+        Swift의 현대적인 의존성 주입 프레임워크를 배워보세요.
+
+        Actor 기반 동시성과 완벽하게 통합된 DiContainer로 최대 10배 빠른 의존성 해결 성능을 경험해보세요!
+
+        Property Wrapper를 활용한 직관적인 API부터 고급 최적화 기법까지 단계별로 학습할 수 있습니다.
+    }
+
+    @Chapter(name: "시작하기") {
+        기본적인 DiContainer 사용법을 배웁니다.
+
+        @TutorialReference(tutorial: "doc:DiContainer-GettingStarted")
+        @TutorialReference(tutorial: "doc:Tutorial-YourFirstDI")
+        @TutorialReference(tutorial: "doc:Tutorial-MeetDiContainer")
+    }
+
+<!--    @Chapter(name: "고급 활용") {-->
+<!--        중급 및 고급 DiContainer 활용법을 마스터합니다.-->
+<!---->
+<!--        @TutorialReference(tutorial: "doc:Tutorial-IntermediateDiContainer")-->
+<!--        @TutorialReference(tutorial: "doc:Tutorial-AdvancedDiContainer")-->
+<!--    }-->
+}

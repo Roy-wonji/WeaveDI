@@ -19,13 +19,13 @@
       @Step {
         Package.swift에 DiContainer 의존성을 추가합니다.
 
-        @Code(name: "Package.swift", file: Tutorial-YourFirstDI-01-01.swift)
+        @Code(name: "Package.swift", file: "Tutorial-YourFirstDI-01-01.swift")
       }
 
       @Step {
         App.swift 파일에서 DiContainer를 임포트합니다.
 
-        @Code(name: "App.swift", file: Tutorial-YourFirstDI-01-02.swift)
+        @Code(name: "App.swift", file: "Tutorial-YourFirstDI-01-02.swift")
       }
     }
   }
@@ -41,7 +41,7 @@
 
         네트워크 통신을 담당하는 서비스를 정의해보겠습니다.
 
-        @Code(name: "NetworkService.swift", file: Tutorial-YourFirstDI-02-01.swift)
+        @Code(name: "NetworkService.swift", file: "Tutorial-YourFirstDI-02-01.swift")
       }
 
       @Step {
@@ -49,13 +49,13 @@
 
         사용자 데이터를 관리하는 서비스를 만들고, NetworkService에 의존하도록 합니다.
 
-        @Code(name: "UserService.swift", file: Tutorial-YourFirstDI-02-02.swift)
+        @Code(name: "UserService.swift", file: "Tutorial-YourFirstDI-02-02.swift")
       }
 
       @Step {
         User 모델을 정의합니다.
 
-        @Code(name: "User.swift", file: Tutorial-YourFirstDI-02-03.swift)
+        @Code(name: "User.swift", file: "Tutorial-YourFirstDI-02-03.swift")
       }
     }
   }
@@ -71,7 +71,7 @@
 
         앱이 시작될 때 모든 서비스를 컨테이너에 등록해야 합니다.
 
-        @Code(name: "App.swift", file: Tutorial-YourFirstDI-03-01.swift)
+        @Code(name: "App.swift", file: "Tutorial-YourFirstDI-03-01.swift")
       }
 
       @Step {
@@ -79,7 +79,7 @@
 
         더 깔끔한 구조를 위해 DI 설정을 분리해보겠습니다.
 
-        @Code(name: "DIContainer+Setup.swift", file: Tutorial-YourFirstDI-03-02.swift)
+        @Code(name: "DIContainer+Setup.swift", file: "Tutorial-YourFirstDI-03-02.swift")
       }
     }
   }
@@ -95,13 +95,13 @@
 
         Property Wrapper를 통해 의존성을 주입받는 방법을 알아보겠습니다.
 
-        @Code(name: "ContentView.swift", file: Tutorial-YourFirstDI-04-01.swift)
+        @Code(name: "ContentView.swift", file: "Tutorial-YourFirstDI-04-01.swift")
       }
 
       @Step {
         사용자 데이터를 로드하고 UI에 표시합니다.
 
-        @Code(name: "ContentView.swift", file: Tutorial-YourFirstDI-04-02.swift)
+        @Code(name: "ContentView.swift", file: "Tutorial-YourFirstDI-04-02.swift")
       }
     }
   }
@@ -117,13 +117,13 @@
 
         테스트를 위한 Mock 객체들을 정의해보겠습니다.
 
-        @Code(name: "MockServices.swift", file: Tutorial-YourFirstDI-05-01.swift)
+        @Code(name: "MockServices.swift", file: "Tutorial-YourFirstDI-05-01.swift")
       }
 
       @Step {
         UserService에 대한 유닛 테스트를 작성합니다.
 
-        @Code(name: "UserServiceTests.swift", file: Tutorial-YourFirstDI-05-02.swift)
+        @Code(name: "UserServiceTests.swift", file: "Tutorial-YourFirstDI-05-02.swift")
       }
 
       @Step {

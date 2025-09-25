@@ -11,7 +11,7 @@ import LogMacro
 /// Records dependency relationships and exports them as DOT or Mermaid diagrams.
 ///
 /// - Thread-safety: Implemented as an actor; all mutations are serialized.
-/// - Usage: Call ``addNode(_:alias:)`` and ``addEdge(from:to:label:)`` while wiring modules,
+/// - Usage: Call ``addNode(_:alias:)`` and ``addEdge(from:to:label:)-(_,To.Type,_)`` while wiring modules,
 ///   then export with ``exportDOT()``/``exportMermaid()`` or file helpers.
 public actor DependencyGraph {
     public static let shared = DependencyGraph()

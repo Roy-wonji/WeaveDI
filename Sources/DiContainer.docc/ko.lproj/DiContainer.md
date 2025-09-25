@@ -135,10 +135,10 @@ class OptimizedViewController {
 
 단계별 학습 경로:
 
-1. **기본**: <doc:Tutorial-YourFirstDI> (15분) - 첫 의존성 주입 만들기
-2. **초급**: <doc:Tutorial-MeetDiContainer> (25분) - 핵심 기능 실습 가이드
-3. **중급**: <doc:Tutorial-IntermediateDiContainer> (30분) - 스코프/조건부/혼합 부트스트랩
-4. **고급**: <doc:Tutorial-AdvancedDiContainer> (35분) - 최적화/Actor/안전성/성능
+1. **기본**: <doc:Tutorial-YourFirstDI>
+2. **초급**: <doc:Tutorial-MeetDiContainer>
+<!--3. **중급**: <doc:Tutorial-IntermediateDiContainer>-->
+<!--4. **고급**: <doc:Tutorial-AdvancedDiContainer>-->
 
 
 ## Topics
@@ -149,8 +149,8 @@ class OptimizedViewController {
 
 - <doc:Tutorial-YourFirstDI>
 - <doc:Tutorial-MeetDiContainer>
-- <doc:MIGRATION-2.0.0.md>
-- <doc:MIGRATION-3.0.0.md>
+- <doc:MIGRATION-2.0.0>
+- <doc:MIGRATION-3.0.0>
 
 #### 핵심 API
 - ``UnifiedDI``
@@ -178,8 +178,6 @@ class OptimizedViewController {
 #### 컨테이너 시스템
 - ``Container``
 - ``Module``
-- ``Container``
-- ``Module``
 - ``BatchRegistrationBuilder``
 - ``AppDIContainer``
 
@@ -201,42 +199,10 @@ class OptimizedViewController {
 - ``UnifiedRegistry``
 - ``ScopeKind``
 
-### 프로퍼티 래퍼 확장
 
-- ``Inject``
-- ``RequiredInject``
-- ``Factory``
-
-### 실무 가이드
-
-- ``BatchRegistrationBuilder``
-- ``ModuleFactory``
-- ``UnifiedDI``
-- ``AutoDIOptimizer``
 
 ### API 참조
 
 - ``UnifiedDI``
-- ``DI``
-
-#### 등록 API
-- ``UnifiedDI/register(_:factory:)``
-- ``UnifiedDI/registerMany(_:)``
-- ``UnifiedDI/registerScoped(_:scope:factory:)``
-- ``UnifiedDI/registerAsyncScoped(_:scope:factory:)``
-- ``DI``
-
-#### 해결 API
-- ``UnifiedDI/resolve(_:)``
-- ``UnifiedDI/requireResolve(_:)``
-- ``UnifiedDI/resolveThrows(_:)``
-- ``UnifiedDI/resolve(_:default:)``
-- ``DI``
-
-#### 관리 API
-- ``UnifiedDI/release(_:)``
-- ``UnifiedDI/releaseAll()``
-- ``UnifiedDI/releaseScope(_:id:)``
-- ``UnifiedDI/releaseScoped(_:kind:id:)``
 - ``DI``
 - ``DependencyContainer``
