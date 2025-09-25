@@ -2,16 +2,14 @@ name: Documentation (DocC → GitHub Pages)
 
 on:
   push:
-    branches: [main]     # 원하면 release/publish 이벤트도 추가 가능
+    branches: [main]
   workflow_dispatch:
 
-# ✅ Pages 배포에 필요한 권한
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# ✅ Pages는 동시에 1개만 배포
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -20,7 +18,6 @@ jobs:
   build:
     runs-on: macos-15
     steps:
-      # Swift 6.1 포함 Xcode 선택 (16.3 이상)
       - name: Select Xcode 16.4 (Swift 6.1)
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -34,7 +31,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # DocC 정적 사이트 생성
       - name: Build DocC (DiContainer → docs/)
         run: |
           rm -rf docs
@@ -45,18 +41,13 @@ jobs:
             --output-path docs \
             --transform-for-static-hosting \
             --hosting-base-path /DiContainer
-
-          # Jekyll 무시 (DocC가 언더스코어 경로를 써서 필수)
           touch docs/.nojekyll
-
-          # 루트 접근 시 문서 첫 화면으로 리다이렉트
           cat > docs/index.html <<'HTML'
           <!DOCTYPE html><meta charset="utf-8">
           <meta http-equiv="refresh" content="0; url=./documentation/dicontainer/">
           <link rel="canonical" href="./documentation/dicontainer/">
           HTML
 
-      # Pages 배포용 아티팩트 업로드
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
