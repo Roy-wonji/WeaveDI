@@ -25,13 +25,17 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Show toolchain versions
+      - name: Debug workspace
         run: |
-          xcodebuild -version
-          swift --version
+          echo "WORKSPACE: $GITHUB_WORKSPACE"
+          ls -la
+          test -f Package.swift && echo "✅ Package.swift found" || (echo "❌ missing"; exit 1)
 
-      - name: Build DocC (WeaveDI → docs/)
+      - name: Build DocC (→ docs)
+        working-directory: ${{ github.workspace }}
         run: |
           rm -rf docs
           swift package \
