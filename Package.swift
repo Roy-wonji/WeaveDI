@@ -34,6 +34,9 @@ let package = Package(
             ],
             path: "Sources",
             exclude: ["Benchmarks"],
+            resources: [
+                .process("DiContainer.docc")
+            ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")
             ]

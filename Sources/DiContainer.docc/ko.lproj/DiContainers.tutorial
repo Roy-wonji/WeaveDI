@@ -8,6 +8,8 @@
     }
 
     @Chapter(name: "시작하기") {
+        @Image(source: "dicontainer-basics.png", alt: "DiContainer 기초")
+
         기본적인 DiContainer 사용법을 배웁니다.
 
         @TutorialReference(tutorial: "doc:DiContainer-GettingStarted")
@@ -15,10 +17,11 @@
         @TutorialReference(tutorial: "doc:Tutorial-MeetDiContainer")
     }
 
-<!--    @Chapter(name: "고급 활용") {-->
-<!--        중급 및 고급 DiContainer 활용법을 마스터합니다.-->
-<!---->
-<!--        @TutorialReference(tutorial: "doc:Tutorial-IntermediateDiContainer")-->
-<!--        @TutorialReference(tutorial: "doc:Tutorial-AdvancedDiContainer")-->
-<!--    }-->
+    @Chapter(name: "고급 활용") {
+        @Image(source: "dicontainer-advanced.png", alt: "DiContainer 고급 활용")
+
+        중급 및 고급 DiContainer 활용법을 마스터합니다.
+
+        @TutorialReference(tutorial: "doc:Tutorial-IntermediateDiContainer")
+    }
 }

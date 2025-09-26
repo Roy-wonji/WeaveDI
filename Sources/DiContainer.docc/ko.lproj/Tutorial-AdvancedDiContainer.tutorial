@@ -42,6 +42,7 @@
       @Step {
         타입 안전성 이슈를 수집하고 Sendable 충족/필수 해석 주의점을 짚습니다.
         @Code(name: "Type Safety/Sendable", file: "Tutorial-AdvancedDiContainer-03-01.swift")
+      }
       @Step {
         Sendable 마이그레이션 패턴을 살펴봅니다.
         @Code(name: "Sendable Guide", file: "Tutorial-AdvancedDiContainer-03-02.swift")

@@ -2,30 +2,25 @@ import Foundation
 import DiContainer
 import LogMacro
 
-// MARK: - Complex Domain Model Architecture
+// MARK: - 복잡한 전자상거래 도메인 모델
 
-/// 복잡한 전자상거래 도메인 모델
-/// 여러 계층의 의존성 관계를 보여주는 예제
+/// 실제 전자상거래 서비스에서 사용될 법한 복잡한 도메인 구조를 구현합니다.
+/// 이 예제를 통해 다계층 의존성 관계를 이해하고 실무에 적용할 수 있습니다.
 
-// MARK: - Domain Entities
+// MARK: - 도메인 엔티티들
 
 struct User: Sendable {
     let id: String
     let email: String
-    let preferences: UserPreferences
-    let subscriptions: [Subscription]
+    let name: String
+    let membershipLevel: MembershipLevel
 }
 
-struct UserPreferences: Sendable {
-    let theme: String
-    let language: String
-    let notifications: NotificationSettings
-}
-
-struct NotificationSettings: Sendable {
-    let emailEnabled: Bool
-    let pushEnabled: Bool
-    let categories: [String]
+enum MembershipLevel: String, Sendable {
+    case bronze = "bronze"
+    case silver = "silver"
+    case gold = "gold"
+    case platinum = "platinum"
 }
 
 struct Product: Sendable {
@@ -33,7 +28,7 @@ struct Product: Sendable {
     let name: String
     let price: Decimal
     let category: ProductCategory
-    let inventory: InventoryInfo
+    let inventory: Int
 }
 
 struct ProductCategory: Sendable {
@@ -42,56 +37,19 @@ struct ProductCategory: Sendable {
     let parentId: String?
 }
 
-struct InventoryInfo: Sendable {
-    let available: Int
-    let reserved: Int
-    let threshold: Int
-}
-
 struct Order: Sendable {
     let id: String
     let userId: String
     let items: [OrderItem]
-    let shipping: ShippingInfo
-    let payment: PaymentInfo
+    let totalAmount: Decimal
     let status: OrderStatus
+    let createdAt: Date
 }
 
 struct OrderItem: Sendable {
     let productId: String
     let quantity: Int
     let unitPrice: Decimal
-}
-
-struct ShippingInfo: Sendable {
-    let address: Address
-    let method: ShippingMethod
-    let estimatedDelivery: Date
-}
-
-struct Address: Sendable {
-    let street: String
-    let city: String
-    let country: String
-    let postalCode: String
-}
-
-enum ShippingMethod: String, Sendable {
-    case standard = "standard"
-    case express = "express"
-    case overnight = "overnight"
-}
-
-struct PaymentInfo: Sendable {
-    let method: PaymentMethod
-    let amount: Decimal
-    let currency: String
-}
-
-enum PaymentMethod: String, Sendable {
-    case creditCard = "credit_card"
-    case paypal = "paypal"
-    case applePay = "apple_pay"
 }
 
 enum OrderStatus: String, Sendable {
@@ -103,339 +61,260 @@ enum OrderStatus: String, Sendable {
     case cancelled = "cancelled"
 }
 
-struct Subscription: Sendable {
-    let id: String
-    let type: SubscriptionType
-    let startDate: Date
-    let endDate: Date?
-    let isActive: Bool
-}
-
-enum SubscriptionType: String, Sendable {
-    case free = "free"
-    case premium = "premium"
-    case enterprise = "enterprise"
-}
-
-// MARK: - Repository Layer Protocols
+// MARK: - Repository 계층 (데이터 접근)
 
 protocol UserRepository: Sendable {
     func findUser(by id: String) async throws -> User?
-    func save(user: User) async throws
-    func findUsers(with preferences: UserPreferences) async throws -> [User]
+    func save(_ user: User) async throws
+    func findUsersByMembership(_ level: MembershipLevel) async throws -> [User]
 }
 
 protocol ProductRepository: Sendable {
     func findProduct(by id: String) async throws -> Product?
-    func findProducts(in category: ProductCategory) async throws -> [Product]
-    func updateInventory(productId: String, quantity: Int) async throws
+    func findProductsByCategory(_ categoryId: String) async throws -> [Product]
+    func updateInventory(_ productId: String, quantity: Int) async throws
 }
 
 protocol OrderRepository: Sendable {
+    func save(_ order: Order) async throws -> Order
     func findOrder(by id: String) async throws -> Order?
-    func findOrders(for userId: String) async throws -> [Order]
-    func save(order: Order) async throws
-    func updateStatus(orderId: String, status: OrderStatus) async throws
+    func findOrdersByUser(_ userId: String) async throws -> [Order]
+    func updateOrderStatus(_ orderId: String, status: OrderStatus) async throws
 }
 
-protocol InventoryRepository: Sendable {
-    func checkAvailability(productId: String, quantity: Int) async throws -> Bool
-    func reserve(productId: String, quantity: Int) async throws
-    func release(productId: String, quantity: Int) async throws
-}
-
-protocol NotificationRepository: Sendable {
-    func sendNotification(userId: String, message: String, type: String) async throws
-    func getNotificationSettings(userId: String) async throws -> NotificationSettings
-}
-
-// MARK: - Service Layer Protocols
+// MARK: - Service 계층 (비즈니스 로직)
 
 protocol UserService: Sendable {
     func getUser(id: String) async throws -> User
-    func updatePreferences(userId: String, preferences: UserPreferences) async throws
-    func checkSubscription(userId: String, type: SubscriptionType) async throws -> Bool
+    func validateUser(_ userId: String) async throws -> Bool
+    func getUserDiscount(_ userId: String) async throws -> Decimal
 }
 
 protocol ProductService: Sendable {
     func getProduct(id: String) async throws -> Product
-    func searchProducts(category: String, filters: [String: Any]) async throws -> [Product]
-    func checkAvailability(productId: String, quantity: Int) async throws -> Bool
+    func checkProductAvailability(_ productId: String, quantity: Int) async throws -> Bool
+    func reserveProduct(_ productId: String, quantity: Int) async throws
 }
 
 protocol OrderService: Sendable {
-    func createOrder(userId: String, items: [OrderItem], shipping: ShippingInfo) async throws -> Order
-    func processPayment(orderId: String, paymentInfo: PaymentInfo) async throws
-    func updateOrderStatus(orderId: String, status: OrderStatus) async throws
+    func createOrder(userId: String, items: [OrderItem]) async throws -> Order
+    func processOrder(_ orderId: String) async throws
     func getOrderHistory(userId: String) async throws -> [Order]
 }
 
-protocol PaymentService: Sendable {
-    func processPayment(amount: Decimal, method: PaymentMethod) async throws -> String
-    func refundPayment(transactionId: String, amount: Decimal) async throws
-    func validatePaymentMethod(method: PaymentMethod, details: [String: Any]) async throws -> Bool
-}
-
-protocol ShippingService: Sendable {
-    func calculateShippingCost(address: Address, method: ShippingMethod) async throws -> Decimal
-    func scheduleDelivery(orderId: String, address: Address, method: ShippingMethod) async throws -> Date
-    func trackShipment(orderId: String) async throws -> String
-}
-
 protocol NotificationService: Sendable {
-    func sendOrderConfirmation(userId: String, order: Order) async throws
-    func sendShippingNotification(userId: String, order: Order, trackingNumber: String) async throws
-    func sendPromotionNotification(userId: String, message: String) async throws
+    func sendOrderConfirmation(_ order: Order) async throws
+    func sendShippingNotification(_ order: Order) async throws
 }
 
-// MARK: - Complex Use Cases
+// MARK: - UseCase 계층 (애플리케이션 로직)
 
+/// 복잡한 주문 처리 UseCase
+/// 여러 서비스들을 조합하여 비즈니스 프로세스를 구현합니다.
 protocol OrderProcessingUseCase: Sendable {
-    func processOrder(userId: String, items: [OrderItem], shipping: ShippingInfo, payment: PaymentInfo) async throws -> Order
+    func processNewOrder(userId: String, items: [OrderItem]) async throws -> Order
 }
 
-protocol InventoryManagementUseCase: Sendable {
-    func reserveItems(items: [OrderItem]) async throws
-    func releaseItems(items: [OrderItem]) async throws
-    func updateStock(productId: String, quantity: Int) async throws
-}
+// MARK: - 구현체
 
-protocol UserAnalyticsUseCase: Sendable {
-    func trackUserActivity(userId: String, action: String, metadata: [String: Any]) async throws
-    func generateUserInsights(userId: String) async throws -> [String: Any]
-    func getRecommendations(userId: String) async throws -> [Product]
-}
-
-// MARK: - Implementation Examples
-
-/// 복잡한 의존성 체인을 가진 OrderProcessingUseCase 구현
 final class DefaultOrderProcessingUseCase: OrderProcessingUseCase {
     @Inject private var userService: UserService
     @Inject private var productService: ProductService
     @Inject private var orderService: OrderService
-    @Inject private var paymentService: PaymentService
-    @Inject private var shippingService: ShippingService
     @Inject private var notificationService: NotificationService
-    @Inject private var inventoryUseCase: InventoryManagementUseCase
-    @Inject private var analyticsUseCase: UserAnalyticsUseCase
 
-    func processOrder(
-        userId: String,
-        items: [OrderItem],
-        shipping: ShippingInfo,
-        payment: PaymentInfo
-    ) async throws -> Order {
-        #logInfo("🛒 [OrderProcessing] 주문 처리 시작 - 사용자: \(userId)")
+    func processNewOrder(userId: String, items: [OrderItem]) async throws -> Order {
+        #logInfo("🛒 주문 처리 시작: \(userId)")
 
         // 1. 사용자 검증
-        let user = try await userService.getUser(id: userId)
-        #logInfo("✅ [OrderProcessing] 사용자 검증 완료: \(user.email)")
+        let isValidUser = try await userService.validateUser(userId)
+        guard isValidUser else {
+            throw OrderProcessingError.invalidUser(userId)
+        }
 
-        // 2. 상품 가용성 확인
+        // 2. 상품들 가용성 확인
         for item in items {
-            let isAvailable = try await productService.checkAvailability(
-                productId: item.productId,
+            let isAvailable = try await productService.checkProductAvailability(
+                item.productId,
                 quantity: item.quantity
             )
             guard isAvailable else {
-                throw OrderProcessingError.insufficientInventory(productId: item.productId)
+                throw OrderProcessingError.productUnavailable(item.productId)
             }
         }
-        #logInfo("✅ [OrderProcessing] 재고 확인 완료")
 
-        // 3. 재고 예약
-        try await inventoryUseCase.reserveItems(items: items)
-        #logInfo("📦 [OrderProcessing] 재고 예약 완료")
+        // 3. 상품들 예약
+        for item in items {
+            try await productService.reserveProduct(item.productId, quantity: item.quantity)
+        }
 
         do {
-            // 4. 배송비 계산
-            let shippingCost = try await shippingService.calculateShippingCost(
-                address: shipping.address,
-                method: shipping.method
-            )
+            // 4. 주문 생성
+            let order = try await orderService.createOrder(userId: userId, items: items)
 
-            // 5. 총 금액 계산
-            let itemsTotal = items.reduce(0) { $0 + $1.unitPrice * Decimal($1.quantity) }
-            let totalAmount = itemsTotal + shippingCost
+            // 5. 주문 처리
+            try await orderService.processOrder(order.id)
 
-            // 6. 결제 처리
-            let paymentInfo = PaymentInfo(
-                method: payment.method,
-                amount: totalAmount,
-                currency: payment.currency
-            )
+            // 6. 알림 발송
+            try await notificationService.sendOrderConfirmation(order)
 
-            let transactionId = try await paymentService.processPayment(
-                amount: totalAmount,
-                method: payment.method
-            )
-            #logInfo("💳 [OrderProcessing] 결제 완료: \(transactionId)")
-
-            // 7. 주문 생성
-            let order = try await orderService.createOrder(
-                userId: userId,
-                items: items,
-                shipping: shipping
-            )
-
-            // 8. 배송 스케줄링
-            let estimatedDelivery = try await shippingService.scheduleDelivery(
-                orderId: order.id,
-                address: shipping.address,
-                method: shipping.method
-            )
-            #logInfo("🚚 [OrderProcessing] 배송 스케줄 완료: \(estimatedDelivery)")
-
-            // 9. 알림 발송
-            try await notificationService.sendOrderConfirmation(userId: userId, order: order)
-
-            // 10. 사용자 활동 추적
-            try await analyticsUseCase.trackUserActivity(
-                userId: userId,
-                action: "order_created",
-                metadata: [
-                    "order_id": order.id,
-                    "total_amount": totalAmount,
-                    "items_count": items.count
-                ]
-            )
-
-            #logInfo("🎉 [OrderProcessing] 주문 처리 완료: \(order.id)")
+            #logInfo("✅ 주문 처리 완료: \(order.id)")
             return order
 
         } catch {
-            // 실패 시 예약된 재고 해제
-            try await inventoryUseCase.releaseItems(items: items)
-            #logError("❌ [OrderProcessing] 주문 처리 실패, 재고 해제됨: \(error)")
+            #logError("❌ 주문 처리 실패: \(error)")
+            // 실패시 예약된 상품들을 롤백해야 함
             throw error
         }
     }
 }
 
-/// 재고 관리 UseCase 구현 (또 다른 복잡한 의존성 체인)
-final class DefaultInventoryManagementUseCase: InventoryManagementUseCase {
-    @Inject private var inventoryRepository: InventoryRepository
-    @Inject private var productRepository: ProductRepository
-    @Inject private var notificationService: NotificationService
+final class DefaultUserService: UserService {
+    @Inject private var userRepository: UserRepository
 
-    func reserveItems(items: [OrderItem]) async throws {
-        #logInfo("📦 [Inventory] 재고 예약 시작: \(items.count)개 아이템")
-
-        for item in items {
-            let isAvailable = try await inventoryRepository.checkAvailability(
-                productId: item.productId,
-                quantity: item.quantity
-            )
-
-            guard isAvailable else {
-                throw InventoryError.insufficientStock(productId: item.productId)
-            }
-
-            try await inventoryRepository.reserve(
-                productId: item.productId,
-                quantity: item.quantity
-            )
-
-            // 재고 임계값 확인
-            if let product = try await productRepository.findProduct(by: item.productId) {
-                let remainingStock = product.inventory.available - item.quantity
-                if remainingStock <= product.inventory.threshold {
-                    try await notificationService.sendPromotionNotification(
-                        userId: "admin",
-                        message: "재고 부족 알림: \(product.name) - 남은 수량: \(remainingStock)"
-                    )
-                }
-            }
+    func getUser(id: String) async throws -> User {
+        guard let user = try await userRepository.findUser(by: id) else {
+            throw UserServiceError.userNotFound(id)
         }
-
-        #logInfo("✅ [Inventory] 재고 예약 완료")
+        return user
     }
 
-    func releaseItems(items: [OrderItem]) async throws {
-        #logInfo("🔄 [Inventory] 재고 해제 시작: \(items.count)개 아이템")
-
-        for item in items {
-            try await inventoryRepository.release(
-                productId: item.productId,
-                quantity: item.quantity
-            )
+    func validateUser(_ userId: String) async throws -> Bool {
+        do {
+            _ = try await getUser(id: userId)
+            return true
+        } catch {
+            return false
         }
-
-        #logInfo("✅ [Inventory] 재고 해제 완료")
     }
 
-    func updateStock(productId: String, quantity: Int) async throws {
-        #logInfo("📈 [Inventory] 재고 업데이트: \(productId), 수량: \(quantity)")
+    func getUserDiscount(_ userId: String) async throws -> Decimal {
+        let user = try await getUser(id: userId)
 
-        try await productRepository.updateInventory(
-            productId: productId,
-            quantity: quantity
-        )
-
-        #logInfo("✅ [Inventory] 재고 업데이트 완료")
+        // 멤버십 레벨에 따른 할인률
+        switch user.membershipLevel {
+        case .bronze:
+            return 0.05  // 5%
+        case .silver:
+            return 0.10  // 10%
+        case .gold:
+            return 0.15  // 15%
+        case .platinum:
+            return 0.20  // 20%
+        }
     }
 }
 
-// MARK: - Error Types
+final class DefaultProductService: ProductService {
+    @Inject private var productRepository: ProductRepository
+
+    func getProduct(id: String) async throws -> Product {
+        guard let product = try await productRepository.findProduct(by: id) else {
+            throw ProductServiceError.productNotFound(id)
+        }
+        return product
+    }
+
+    func checkProductAvailability(_ productId: String, quantity: Int) async throws -> Bool {
+        let product = try await getProduct(id: productId)
+        return product.inventory >= quantity
+    }
+
+    func reserveProduct(_ productId: String, quantity: Int) async throws {
+        let product = try await getProduct(id: productId)
+        guard product.inventory >= quantity else {
+            throw ProductServiceError.insufficientInventory(productId)
+        }
+
+        let newInventory = product.inventory - quantity
+        try await productRepository.updateInventory(productId, quantity: newInventory)
+    }
+}
+
+// MARK: - 에러 정의
 
 enum OrderProcessingError: Error, LocalizedError {
-    case insufficientInventory(productId: String)
-    case paymentFailed(reason: String)
-    case shippingNotAvailable
-    case userNotFound(userId: String)
+    case invalidUser(String)
+    case productUnavailable(String)
+    case orderCreationFailed
 
     var errorDescription: String? {
         switch self {
-        case .insufficientInventory(let productId):
-            return "재고 부족: \(productId)"
-        case .paymentFailed(let reason):
-            return "결제 실패: \(reason)"
-        case .shippingNotAvailable:
-            return "배송 불가 지역"
-        case .userNotFound(let userId):
-            return "사용자를 찾을 수 없음: \(userId)"
+        case .invalidUser(let userId):
+            return "유효하지 않은 사용자: \(userId)"
+        case .productUnavailable(let productId):
+            return "상품을 사용할 수 없음: \(productId)"
+        case .orderCreationFailed:
+            return "주문 생성에 실패했습니다"
         }
     }
 }
 
-enum InventoryError: Error, LocalizedError {
-    case insufficientStock(productId: String)
-    case reservationFailed(productId: String)
-    case releaseError(productId: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .insufficientStock(let productId):
-            return "재고 부족: \(productId)"
-        case .reservationFailed(let productId):
-            return "재고 예약 실패: \(productId)"
-        case .releaseError(let productId):
-            return "재고 해제 실패: \(productId)"
-        }
-    }
+enum UserServiceError: Error {
+    case userNotFound(String)
 }
 
-// MARK: - Dependency Registration Example
+enum ProductServiceError: Error {
+    case productNotFound(String)
+    case insufficientInventory(String)
+}
+
+// MARK: - DI 컨테이너 설정
 
 extension DIContainer {
-    /// 복잡한 도메인 모델의 의존성 등록 예제
-    func registerComplexDomainDependencies() async {
-        #logInfo("🔧 [DIContainer] 복잡한 도메인 의존성 등록 시작")
+    /// 복잡한 전자상거래 도메인의 의존성을 등록하는 예제
+    func registerEcommerceDomain() async {
+        #logInfo("🔧 전자상거래 도메인 의존성 등록 시작")
 
-        // UseCase 등록 (가장 상위 레벨)
+        // UseCase 계층
         register(OrderProcessingUseCase.self) {
             DefaultOrderProcessingUseCase()
         }
 
-        register(InventoryManagementUseCase.self) {
-            DefaultInventoryManagementUseCase()
+        // Service 계층
+        register(UserService.self) {
+            DefaultUserService()
         }
 
-        // 이 예제는 복잡한 의존성 체인을 보여줍니다:
-        // OrderProcessingUseCase -> 8개의 다른 서비스들
-        // 각 서비스들 -> Repository 계층
-        // Repository 계층 -> 데이터 소스들
+        register(ProductService.self) {
+            DefaultProductService()
+        }
 
-        #logInfo("✅ [DIContainer] 복잡한 도메인 의존성 등록 완료")
+        // 이 예제는 Repository와 기타 서비스들의 구현체는
+        // 다음 단계에서 mock이나 실제 구현으로 등록될 예정입니다.
+
+        #logInfo("✅ 전자상거래 도메인 의존성 등록 완료")
+        #logInfo("📊 등록된 의존성 개수: \(registry.registrationCount)")
+    }
+}
+
+// MARK: - 사용 예제
+
+enum EcommerceUsageExample {
+    static func demonstrateComplexDependencies() async {
+        #logInfo("🎬 복잡한 의존성 체인 데모 시작")
+
+        let container = DIContainer()
+        await container.registerEcommerceDomain()
+
+        // UseCase를 통한 주문 처리
+        let orderUseCase: OrderProcessingUseCase = container.resolve()
+
+        let sampleItems = [
+            OrderItem(productId: "prod-001", quantity: 2, unitPrice: 29.99),
+            OrderItem(productId: "prod-002", quantity: 1, unitPrice: 149.99)
+        ]
+
+        do {
+            let order = try await orderUseCase.processNewOrder(
+                userId: "user-123",
+                items: sampleItems
+            )
+            #logInfo("🎉 주문 성공: \(order.id)")
+        } catch {
+            #logError("💥 주문 실패: \(error)")
+        }
+
+        #logInfo("📈 현재 성능 통계: \(container.performanceStats())")
     }
 }

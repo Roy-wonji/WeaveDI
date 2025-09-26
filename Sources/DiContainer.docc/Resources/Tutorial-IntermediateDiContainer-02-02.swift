@@ -2,429 +2,460 @@ import Foundation
 import DiContainer
 import LogMacro
 
-// MARK: - Conditional Injection System
+// MARK: - KeyPath와 조건부 등록 시스템
 
-/// 조건부 의존성 주입을 위한 Predicate 시스템
-/// 복잡한 비즈니스 로직에 따라 동적으로 의존성을 결정
+/// 런타임 조건과 KeyPath를 활용하여 유연하고 동적인 의존성 주입을
+/// 구현하는 고급 패턴들을 다룹니다.
 
-// MARK: - Injection Conditions
+// MARK: - 조건부 등록 기반 구조
 
-protocol InjectionCondition: Sendable {
-    func shouldInject() async -> Bool
-    var description: String { get }
-}
+/// 조건에 따라 다른 구현체를 선택하는 조건부 등록 시스템
+final class ConditionalRegistrationManager {
+    private var conditions: [String: () -> Bool] = [:]
+    private var factories: [String: [ConditionFactory]] = [:]
 
-struct UserRoleCondition: InjectionCondition {
-    let requiredRole: UserRole
-    let userService: UserService
+    /// 조건을 등록합니다
+    func registerCondition(name: String, condition: @escaping () -> Bool) {
+        conditions[name] = condition
+        #logInfo("📋 조건 등록: \(name)")
+    }
 
-    func shouldInject() async -> Bool {
-        do {
-            let currentUser = try await userService.getCurrentUser()
-            return currentUser.role.hasPermission(for: requiredRole)
-        } catch {
-            #logError("🚨 [Condition] 사용자 역할 확인 실패: \(error)")
-            return false
+    /// 조건부 팩토리를 등록합니다
+    func registerConditionalFactory<T>(
+        for type: T.Type,
+        condition: String,
+        priority: Int = 0,
+        factory: @escaping () -> T
+    ) {
+        let key = String(describing: type)
+        let conditionFactory = ConditionFactory(
+            condition: condition,
+            priority: priority,
+            factory: { factory() }
+        )
+
+        if factories[key] == nil {
+            factories[key] = []
         }
+        factories[key]?.append(conditionFactory)
+
+        // 우선순위별로 정렬
+        factories[key]?.sort { $0.priority > $1.priority }
+
+        #logInfo("🏭 조건부 팩토리 등록: \(key) (조건: \(condition), 우선순위: \(priority))")
     }
 
-    var description: String {
-        "사용자 역할: \(requiredRole.rawValue)"
-    }
-}
+    /// 조건에 맞는 인스턴스를 해결합니다
+    func resolve<T>(_ type: T.Type) -> T? {
+        let key = String(describing: type)
+        guard let typeFactories = factories[key] else { return nil }
 
-struct FeatureFlagCondition: InjectionCondition {
-    let featureName: String
-    let featureFlagService: FeatureFlagService
+        for factory in typeFactories {
+            if let condition = conditions[factory.condition], condition() {
+                #logInfo("✅ 조건부 해결: \(key) (조건: \(factory.condition))")
+                return factory.factory() as? T
+            }
+        }
 
-    func shouldInject() async -> Bool {
-        await featureFlagService.isEnabled(feature: featureName)
-    }
-
-    var description: String {
-        "기능 플래그: \(featureName)"
-    }
-}
-
-struct EnvironmentCondition: InjectionCondition {
-    let allowedEnvironments: Set<AppEnvironment>
-
-    func shouldInject() async -> Bool {
-        allowedEnvironments.contains(AppEnvironment.current)
-    }
-
-    var description: String {
-        "환경: \(allowedEnvironments.map(\.rawValue).joined(separator: ", "))"
+        #logWarning("⚠️ 조건에 맞는 팩토리를 찾을 수 없음: \(key)")
+        return nil
     }
 }
 
-struct TimeBasedCondition: InjectionCondition {
-    let allowedTimeRange: ClosedRange<Int> // 24시간 형식
+private struct ConditionFactory {
+    let condition: String
+    let priority: Int
+    let factory: () -> Any
+}
 
-    func shouldInject() async -> Bool {
-        let currentHour = Calendar.current.component(.hour, from: Date())
-        return allowedTimeRange.contains(currentHour)
+// MARK: - KeyPath 기반 의존성 주입
+
+/// KeyPath를 사용하여 프로퍼티 기반 의존성 주입을 구현합니다
+final class KeyPathInjector {
+    private var injectionRules: [String: Any] = [:]
+
+    /// KeyPath 기반 주입 규칙을 등록합니다
+    func registerInjection<Root, Value>(
+        keyPath: WritableKeyPath<Root, Value>,
+        value: Value
+    ) {
+        let key = "\(Root.self).\(keyPath)"
+        injectionRules[key] = value
+        #logInfo("🗝️ KeyPath 주입 규칙 등록: \(key)")
     }
 
-    var description: String {
-        "시간대: \(allowedTimeRange.lowerBound)시-\(allowedTimeRange.upperBound)시"
+    /// 인스턴스에 KeyPath 기반 주입을 수행합니다
+    func inject<Root>(into instance: inout Root) {
+        let typeName = String(describing: Root.self)
+        #logInfo("🔧 KeyPath 주입 시작: \(typeName)")
+
+        // 실제 구현에서는 리플렉션이나 매크로를 사용해야 함
+        // 여기서는 개념적 예제로만 구현
+
+        #logInfo("✅ KeyPath 주입 완료: \(typeName)")
     }
 }
 
-// MARK: - Supporting Types
+// MARK: - 실용적인 조건부 등록 예제
+
+// MARK: 사용자 권한 기반 서비스
 
 enum UserRole: String, Sendable {
     case guest = "guest"
     case user = "user"
-    case premium = "premium"
     case admin = "admin"
+    case superAdmin = "super_admin"
 
-    func hasPermission(for requiredRole: UserRole) -> Bool {
-        switch (self, requiredRole) {
-        case (.admin, _):
-            return true
-        case (.premium, .premium), (.premium, .user), (.premium, .guest):
-            return true
-        case (.user, .user), (.user, .guest):
-            return true
-        case (.guest, .guest):
-            return true
-        default:
-            return false
+    var permissions: Set<Permission> {
+        switch self {
+        case .guest:
+            return [.read]
+        case .user:
+            return [.read, .write]
+        case .admin:
+            return [.read, .write, .delete, .manage]
+        case .superAdmin:
+            return [.read, .write, .delete, .manage, .systemAdmin]
         }
     }
 }
 
-struct User: Sendable {
-    let id: String
-    let email: String
-    let role: UserRole
-    let subscriptionType: SubscriptionType
+enum Permission: String, Sendable {
+    case read = "read"
+    case write = "write"
+    case delete = "delete"
+    case manage = "manage"
+    case systemAdmin = "system_admin"
 }
 
-protocol UserService: Sendable {
-    func getCurrentUser() async throws -> User
-}
+/// 현재 사용자 컨텍스트를 관리하는 서비스
+final class UserContextService: @unchecked Sendable {
+    private var _currentUserRole: UserRole = .guest
+    private let queue = DispatchQueue(label: "UserContextService", attributes: .concurrent)
 
-protocol FeatureFlagService: Sendable {
-    func isEnabled(feature: String) async -> Bool
-    func setEnabled(feature: String, enabled: Bool) async
-}
-
-// MARK: - Conditional Injection Manager
-
-/// 조건부 의존성 주입을 관리하는 매니저
-final class ConditionalInjectionManager: @unchecked Sendable {
-    static let shared = ConditionalInjectionManager()
-
-    private let accessQueue = DispatchQueue(label: "ConditionalInjectionManager.access", attributes: .concurrent)
-    private var _conditionalRegistrations: [String: ConditionalRegistration] = [:]
-
-    private init() {}
-
-    /// 조건부 의존성을 등록합니다
-    func register<T>(
-        _ type: T.Type,
-        condition: InjectionCondition,
-        factory: @escaping @Sendable () -> T,
-        fallback: @escaping @Sendable () -> T? = { nil }
-    ) {
-        let key = String(describing: type)
-
-        accessQueue.async(flags: .barrier) {
-            self._conditionalRegistrations[key] = ConditionalRegistration(
-                condition: condition,
-                factory: factory,
-                fallback: fallback
-            )
-        }
-
-        #logInfo("📋 [Conditional] 조건부 등록: \(key)")
-        #logInfo("  조건: \(condition.description)")
+    var currentUserRole: UserRole {
+        get { queue.sync { _currentUserRole } }
+        set { queue.async(flags: .barrier) { self._currentUserRole = newValue } }
     }
 
-    /// 조건에 따라 의존성을 해결합니다
-    func resolve<T>(_ type: T.Type) async -> T? {
-        let key = String(describing: type)
-
-        guard let registration = accessQueue.sync(execute: { _conditionalRegistrations[key] }) else {
-            #logError("❌ [Conditional] 등록되지 않은 타입: \(key)")
-            return nil
-        }
-
-        let shouldInject = await registration.condition.shouldInject()
-
-        if shouldInject {
-            let instance = registration.factory() as! T
-            #logInfo("✅ [Conditional] 조건 만족, 의존성 주입: \(key)")
-            #logInfo("  조건: \(registration.condition.description)")
-            return instance
-        } else {
-            #logInfo("⚠️ [Conditional] 조건 불만족, 폴백 사용: \(key)")
-            #logInfo("  조건: \(registration.condition.description)")
-            return registration.fallback() as? T
-        }
+    func hasPermission(_ permission: Permission) -> Bool {
+        return currentUserRole.permissions.contains(permission)
     }
 
-    /// 등록된 모든 조건들의 상태를 확인합니다
-    func checkAllConditions() async -> [ConditionStatus] {
-        let registrations = accessQueue.sync { _conditionalRegistrations }
-        var statuses: [ConditionStatus] = []
-
-        for (typeName, registration) in registrations {
-            let isMet = await registration.condition.shouldInject()
-            statuses.append(ConditionStatus(
-                typeName: typeName,
-                condition: registration.condition.description,
-                isMet: isMet
-            ))
-        }
-
-        return statuses.sorted { $0.typeName < $1.typeName }
+    func setUserRole(_ role: UserRole) {
+        currentUserRole = role
+        #logInfo("👤 사용자 역할 변경: \(role.rawValue)")
     }
 }
 
-// MARK: - Supporting Structures
+// 권한별 다른 데이터 서비스
 
-private struct ConditionalRegistration {
-    let condition: InjectionCondition
-    let factory: @Sendable () -> Any
-    let fallback: @Sendable () -> Any?
+protocol DataService: Sendable {
+    func getData() async throws -> [String]
+    func createData(_ data: String) async throws
+    func deleteData(_ id: String) async throws
 }
 
-struct ConditionStatus: Sendable {
-    let typeName: String
-    let condition: String
-    let isMet: Bool
+final class GuestDataService: DataService {
+    func getData() async throws -> [String] {
+        #logInfo("👁️ [Guest] 읽기 전용 데이터 반환")
+        return ["public_data_1", "public_data_2"]
+    }
 
-    var statusEmoji: String {
-        isMet ? "✅" : "❌"
+    func createData(_ data: String) async throws {
+        throw DataServiceError.permissionDenied("게스트는 데이터를 생성할 수 없습니다")
+    }
+
+    func deleteData(_ id: String) async throws {
+        throw DataServiceError.permissionDenied("게스트는 데이터를 삭제할 수 없습니다")
     }
 }
 
-// MARK: - Conditional Property Wrapper
-
-/// 조건부 의존성 주입을 위한 Property Wrapper
-@propertyWrapper
-struct ConditionalInject<T> {
-    private let type: T.Type
-    private var _value: T?
-
-    var wrappedValue: T? {
-        get {
-            if _value == nil {
-                _value = Task {
-                    await ConditionalInjectionManager.shared.resolve(type)
-                }.result.value ?? nil
-            }
-            return _value
-        }
+final class UserDataService: DataService {
+    func getData() async throws -> [String] {
+        #logInfo("👤 [User] 사용자 데이터 반환")
+        return ["user_data_1", "user_data_2", "shared_data"]
     }
 
-    init(_ type: T.Type) {
-        self.type = type
-        self._value = nil
+    func createData(_ data: String) async throws {
+        #logInfo("➕ [User] 데이터 생성: \(data)")
+    }
+
+    func deleteData(_ id: String) async throws {
+        throw DataServiceError.permissionDenied("일반 사용자는 데이터를 삭제할 수 없습니다")
     }
 }
 
-// MARK: - Feature Flag Service Implementation
-
-final class DefaultFeatureFlagService: FeatureFlagService, @unchecked Sendable {
-    private let accessQueue = DispatchQueue(label: "FeatureFlagService.access", attributes: .concurrent)
-    private var _flags: [String: Bool] = [
-        "premium_features": true,
-        "admin_panel": false,
-        "beta_ui": true,
-        "analytics_tracking": true,
-        "debug_mode": false
-    ]
-
-    func isEnabled(feature: String) async -> Bool {
-        return accessQueue.sync {
-            _flags[feature] ?? false
-        }
+final class AdminDataService: DataService {
+    func getData() async throws -> [String] {
+        #logInfo("👑 [Admin] 모든 데이터 반환")
+        return ["admin_data", "user_data_1", "user_data_2", "system_data"]
     }
 
-    func setEnabled(feature: String, enabled: Bool) async {
-        accessQueue.async(flags: .barrier) {
-            self._flags[feature] = enabled
-        }
-        #logInfo("🚩 [FeatureFlag] \(feature) = \(enabled)")
+    func createData(_ data: String) async throws {
+        #logInfo("➕ [Admin] 데이터 생성: \(data)")
+    }
+
+    func deleteData(_ id: String) async throws {
+        #logInfo("🗑️ [Admin] 데이터 삭제: \(id)")
     }
 }
 
-final class MockUserService: UserService {
-    private let currentUser: User
+enum DataServiceError: Error, LocalizedError {
+    case permissionDenied(String)
 
-    init(user: User = User(id: "1", email: "user@example.com", role: .user, subscriptionType: .free)) {
-        self.currentUser = user
-    }
-
-    func getCurrentUser() async throws -> User {
-        await Task.sleep(nanoseconds: 100_000_000) // 0.1초 지연
-        return currentUser
-    }
-}
-
-// MARK: - Example Services
-
-protocol PremiumService: Sendable {
-    func getPremiumFeatures() async -> [String]
-}
-
-protocol AdminService: Sendable {
-    func performAdminAction(action: String) async -> Bool
-}
-
-protocol AnalyticsService: Sendable {
-    func trackEvent(name: String, properties: [String: Any]) async
-}
-
-final class DefaultPremiumService: PremiumService {
-    func getPremiumFeatures() async -> [String] {
-        #logInfo("💎 [Premium] 프리미엄 기능 조회")
-        return ["advanced_analytics", "priority_support", "custom_themes"]
-    }
-}
-
-final class DefaultAdminService: AdminService {
-    func performAdminAction(action: String) async -> Bool {
-        #logInfo("🔐 [Admin] 관리자 작업 수행: \(action)")
-        await Task.sleep(nanoseconds: 200_000_000) // 0.2초 지연
-        return true
-    }
-}
-
-final class DefaultAnalyticsService: AnalyticsService {
-    func trackEvent(name: String, properties: [String: Any]) async {
-        #logInfo("📊 [Analytics] 이벤트 추적: \(name)")
-        #logInfo("📊 [Analytics] 속성: \(properties)")
-    }
-}
-
-// MARK: - Usage Example
-
-/// 조건부 의존성 주입 사용 예제
-final class ConditionalInjectionExample {
-    @ConditionalInject(PremiumService.self) var premiumService
-    @ConditionalInject(AdminService.self) var adminService
-    @ConditionalInject(AnalyticsService.self) var analyticsService
-
-    func setupConditionalDependencies() async {
-        #logInfo("🎯 [Example] 조건부 의존성 설정 시작")
-
-        let manager = ConditionalInjectionManager.shared
-        let userService = MockUserService()
-        let featureFlagService = DefaultFeatureFlagService()
-
-        // Premium Service: 프리미엄 사용자에게만 제공
-        manager.register(
-            PremiumService.self,
-            condition: UserRoleCondition(requiredRole: .premium, userService: userService),
-            factory: { DefaultPremiumService() },
-            fallback: { nil }
-        )
-
-        // Admin Service: 관리자에게만 제공
-        manager.register(
-            AdminService.self,
-            condition: UserRoleCondition(requiredRole: .admin, userService: userService),
-            factory: { DefaultAdminService() },
-            fallback: { nil }
-        )
-
-        // Analytics Service: 기능 플래그와 시간 조건
-        let analyticsCondition = CombinedCondition(conditions: [
-            FeatureFlagCondition(featureName: "analytics_tracking", featureFlagService: featureFlagService),
-            TimeBasedCondition(allowedTimeRange: 9...18) // 업무 시간에만 활성화
-        ], operation: .and)
-
-        manager.register(
-            AnalyticsService.self,
-            condition: analyticsCondition,
-            factory: { DefaultAnalyticsService() },
-            fallback: { NoOpAnalyticsService() }
-        )
-
-        #logInfo("✅ [Example] 조건부 의존성 설정 완료")
-    }
-
-    func demonstrateConditionalInjection() async {
-        #logInfo("🎲 [Example] 조건부 의존성 주입 테스트")
-
-        // Premium Service 테스트
-        if let premium = premiumService {
-            let features = await premium.getPremiumFeatures()
-            #logInfo("💎 [Example] 프리미엄 기능: \(features)")
-        } else {
-            #logInfo("🚫 [Example] 프리미엄 서비스 이용 불가")
-        }
-
-        // Admin Service 테스트
-        if let admin = adminService {
-            let success = await admin.performAdminAction(action: "system_backup")
-            #logInfo("🔐 [Example] 관리자 작업 결과: \(success)")
-        } else {
-            #logInfo("🚫 [Example] 관리자 서비스 이용 불가")
-        }
-
-        // Analytics Service 테스트
-        if let analytics = analyticsService {
-            await analytics.trackEvent(name: "feature_used", properties: [
-                "feature": "conditional_injection",
-                "timestamp": Date().timeIntervalSince1970
-            ])
-        }
-
-        // 모든 조건 상태 확인
-        let statuses = await ConditionalInjectionManager.shared.checkAllConditions()
-        #logInfo("📊 [Example] 조건 상태 요약:")
-        for status in statuses {
-            #logInfo("  \(status.statusEmoji) \(status.typeName): \(status.condition)")
+    var errorDescription: String? {
+        switch self {
+        case .permissionDenied(let message):
+            return "권한 오류: \(message)"
         }
     }
 }
 
-// MARK: - Combined Conditions
+// MARK: 기능 플래그 기반 서비스
 
-struct CombinedCondition: InjectionCondition {
-    let conditions: [InjectionCondition]
-    let operation: LogicalOperation
+/// 기능 플래그를 관리하는 서비스
+final class FeatureFlagService: @unchecked Sendable {
+    private var _flags: [String: Bool] = [:]
+    private let queue = DispatchQueue(label: "FeatureFlagService", attributes: .concurrent)
 
-    enum LogicalOperation {
-        case and, or
+    func setFlag(_ name: String, enabled: Bool) {
+        queue.async(flags: .barrier) {
+            self._flags[name] = enabled
+        }
+        #logInfo("🚩 기능 플래그 설정: \(name) = \(enabled)")
     }
 
-    func shouldInject() async -> Bool {
-        switch operation {
-        case .and:
-            for condition in conditions {
-                if !(await condition.shouldInject()) {
-                    return false
-                }
-            }
-            return true
-
-        case .or:
-            for condition in conditions {
-                if await condition.shouldInject() {
-                    return true
-                }
-            }
-            return false
+    func isEnabled(_ name: String) -> Bool {
+        return queue.sync {
+            return _flags[name] ?? false
         }
     }
 
-    var description: String {
-        let op = operation == .and ? " AND " : " OR "
-        return conditions.map(\.description).joined(separator: op)
+    func getAllFlags() -> [String: Bool] {
+        return queue.sync { _flags }
     }
 }
 
-// MARK: - No-Op Implementations
+// 기능 플래그에 따른 다른 알고리즘 구현
 
-final class NoOpAnalyticsService: AnalyticsService {
-    func trackEvent(name: String, properties: [String: Any]) async {
-        // No operation - 조용히 무시
+protocol RecommendationEngine: Sendable {
+    func generateRecommendations(for userId: String) async -> [String]
+}
+
+final class BasicRecommendationEngine: RecommendationEngine {
+    func generateRecommendations(for userId: String) async -> [String] {
+        #logInfo("🔍 [Basic] 기본 추천 알고리즘 실행")
+        return ["item1", "item2", "item3"]
+    }
+}
+
+final class MLRecommendationEngine: RecommendationEngine {
+    func generateRecommendations(for userId: String) async -> [String] {
+        #logInfo("🤖 [ML] 머신러닝 추천 알고리즘 실행")
+        try? await Task.sleep(nanoseconds: 500_000_000) // ML 처리 시뮬레이션
+        return ["ml_item1", "ml_item2", "ml_item3", "ml_item4"]
+    }
+}
+
+final class AIRecommendationEngine: RecommendationEngine {
+    func generateRecommendations(for userId: String) async -> [String] {
+        #logInfo("🧠 [AI] AI 추천 알고리즘 실행")
+        try? await Task.sleep(nanoseconds: 1_000_000_000) // AI 처리 시뮬레이션
+        return ["ai_item1", "ai_item2", "ai_item3", "ai_item4", "ai_item5"]
+    }
+}
+
+// MARK: - 조건부 등록을 통한 DI 설정
+
+extension DIContainer {
+    /// 조건부 등록 시스템을 설정합니다
+    func setupConditionalRegistration() async {
+        #logInfo("🔧 조건부 등록 시스템 설정")
+
+        let userContext = UserContextService()
+        let featureFlags = FeatureFlagService()
+
+        // 기본 서비스들 등록
+        registerSingleton(UserContextService.self) { userContext }
+        registerSingleton(FeatureFlagService.self) { featureFlags }
+
+        // 조건부 등록 매니저 설정
+        let conditionalManager = ConditionalRegistrationManager()
+
+        // 조건들 등록
+        conditionalManager.registerCondition(name: "isGuest") {
+            userContext.currentUserRole == .guest
+        }
+
+        conditionalManager.registerCondition(name: "isUser") {
+            userContext.currentUserRole == .user
+        }
+
+        conditionalManager.registerCondition(name: "isAdmin") {
+            [.admin, .superAdmin].contains(userContext.currentUserRole)
+        }
+
+        conditionalManager.registerCondition(name: "mlEnabled") {
+            featureFlags.isEnabled("ml_recommendations")
+        }
+
+        conditionalManager.registerCondition(name: "aiEnabled") {
+            featureFlags.isEnabled("ai_recommendations")
+        }
+
+        // 데이터 서비스 조건부 등록 (권한별)
+        conditionalManager.registerConditionalFactory(
+            for: DataService.self,
+            condition: "isAdmin",
+            priority: 3
+        ) { AdminDataService() }
+
+        conditionalManager.registerConditionalFactory(
+            for: DataService.self,
+            condition: "isUser",
+            priority: 2
+        ) { UserDataService() }
+
+        conditionalManager.registerConditionalFactory(
+            for: DataService.self,
+            condition: "isGuest",
+            priority: 1
+        ) { GuestDataService() }
+
+        // 추천 엔진 조건부 등록 (기능 플래그별)
+        conditionalManager.registerConditionalFactory(
+            for: RecommendationEngine.self,
+            condition: "aiEnabled",
+            priority: 3
+        ) { AIRecommendationEngine() }
+
+        conditionalManager.registerConditionalFactory(
+            for: RecommendationEngine.self,
+            condition: "mlEnabled",
+            priority: 2
+        ) { MLRecommendationEngine() }
+
+        // 기본 추천 엔진 (항상 활성화)
+        conditionalManager.registerCondition(name: "always") { true }
+        conditionalManager.registerConditionalFactory(
+            for: RecommendationEngine.self,
+            condition: "always",
+            priority: 1
+        ) { BasicRecommendationEngine() }
+
+        // 조건부 매니저를 컨테이너에 등록
+        registerSingleton(ConditionalRegistrationManager.self) { conditionalManager }
+
+        // 기능 플래그 초기값 설정
+        featureFlags.setFlag("ml_recommendations", enabled: false)
+        featureFlags.setFlag("ai_recommendations", enabled: false)
+
+        #logInfo("✅ 조건부 등록 시스템 설정 완료")
+    }
+
+    /// 조건부 해결을 수행합니다
+    func resolveConditionally<T>(_ type: T.Type) -> T? {
+        let conditionalManager: ConditionalRegistrationManager = resolve()
+        return conditionalManager.resolve(type)
+    }
+}
+
+// MARK: - 조건부 등록 사용 예제
+
+final class ConditionalDependencyDemo {
+    private let container = DIContainer()
+
+    init() async {
+        await container.setupConditionalRegistration()
+    }
+
+    /// 사용자 권한별 데이터 서비스 테스트
+    func testUserRoleBasedServices() async {
+        #logInfo("🎭 사용자 권한별 서비스 테스트")
+
+        let userContext: UserContextService = container.resolve()
+
+        // 게스트로 시작
+        userContext.setUserRole(.guest)
+        await testDataService()
+
+        // 일반 사용자로 변경
+        userContext.setUserRole(.user)
+        await testDataService()
+
+        // 관리자로 변경
+        userContext.setUserRole(.admin)
+        await testDataService()
+    }
+
+    /// 기능 플래그별 추천 엔진 테스트
+    func testFeatureFlagBasedServices() async {
+        #logInfo("🚩 기능 플래그별 서비스 테스트")
+
+        let featureFlags: FeatureFlagService = container.resolve()
+
+        // 기본 추천 엔진
+        await testRecommendationEngine()
+
+        // ML 추천 엔진 활성화
+        featureFlags.setFlag("ml_recommendations", enabled: true)
+        await testRecommendationEngine()
+
+        // AI 추천 엔진 활성화 (ML은 비활성화)
+        featureFlags.setFlag("ml_recommendations", enabled: false)
+        featureFlags.setFlag("ai_recommendations", enabled: true)
+        await testRecommendationEngine()
+
+        // 둘 다 활성화 (우선순위에 따라 AI 선택)
+        featureFlags.setFlag("ml_recommendations", enabled: true)
+        featureFlags.setFlag("ai_recommendations", enabled: true)
+        await testRecommendationEngine()
+    }
+
+    private func testDataService() async {
+        guard let dataService = container.resolveConditionally(DataService.self) else {
+            #logError("❌ DataService를 해결할 수 없습니다")
+            return
+        }
+
+        do {
+            let data = try await dataService.getData()
+            #logInfo("📊 데이터 조회 성공: \(data)")
+
+            try await dataService.createData("test_data")
+            #logInfo("✅ 데이터 생성 성공")
+
+        } catch {
+            #logWarning("⚠️ 데이터 서비스 작업 제한: \(error.localizedDescription)")
+        }
+    }
+
+    private func testRecommendationEngine() async {
+        guard let engine = container.resolveConditionally(RecommendationEngine.self) else {
+            #logError("❌ RecommendationEngine을 해결할 수 없습니다")
+            return
+        }
+
+        let recommendations = await engine.generateRecommendations(for: "user123")
+        #logInfo("🎯 추천 결과: \(recommendations)")
+    }
+}
+
+// MARK: - 조건부 등록 데모
+
+enum ConditionalRegistrationExample {
+    static func demonstrateConditionalRegistration() async {
+        #logInfo("🎬 조건부 등록 데모 시작")
+
+        let demo = await ConditionalDependencyDemo()
+
+        #logInfo("1️⃣ 사용자 권한별 서비스 테스트")
+        await demo.testUserRoleBasedServices()
+
+        #logInfo("\n2️⃣ 기능 플래그별 서비스 테스트")
+        await demo.testFeatureFlagBasedServices()
+
+        #logInfo("🎉 조건부 등록 데모 완료")
     }
 }
