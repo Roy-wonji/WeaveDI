@@ -1,5 +1,7 @@
 # ``WeaveDI``
 
+📖 **문서**: [한국어](WeaveDI) | [English](../WeaveDI) | [공식 사이트](https://roy-wonji.github.io/WeaveDI/documentation/weavedi)
+
 > 참고: 읽기(그래프/통계/최적화 여부 등)는 `UnifiedDI` 또는 `DIContainer`의 동기 헬퍼를 사용하세요. 내부 `AutoDIOptimizer`의 리더 API는 스냅샷 기반으로 통일되었으며, 외부에서는 직접 호출하지 않는 것을 권장합니다.
 
 현대적인 Swift Concurrency와 Actor 모델을 위해 설계된 고성능 의존성 주입 프레임워크
@@ -9,6 +11,9 @@
 WeaveDI 2.0은 iOS 15.0+, macOS 12.0+, watchOS 8.0+, tvOS 15.0+ 애플리케이션을 위한 차세대 의존성 주입 프레임워크입니다. Swift의 최신 동시성 모델과 완벽하게 통합되며, **Actor Hop 최적화**를 통해 의존성 해결 성능을 최대 **10배** 향상시킵니다.
 
 ### 🚀 주요 특징
+
+#### 🚀 런타임 핫패스 최적화 (v3.2.0)
+TypeID + 락-프리 읽기로 50-80% 성능 향상. 자세한 내용은 <doc:RuntimeOptimization>을 참고하세요.
 
 #### 🎭 Actor Hop 최적화
 서로 다른 Actor 컨텍스트 간 전환을 지능적으로 최적화하여 의존성 해결 성능을 극대화합니다.

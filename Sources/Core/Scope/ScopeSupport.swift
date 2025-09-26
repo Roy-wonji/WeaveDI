@@ -9,6 +9,7 @@ import Foundation
 
 /// 사전 정의된 스코프 종류
 public enum ScopeKind: String, Hashable, Sendable {
+    case singleton
     case screen
     case session
     case request

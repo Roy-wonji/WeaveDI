@@ -139,6 +139,9 @@ public actor UnifiedRegistry {
         syncFactories[key] = syncFactory
         updateRegistrationInfo(key, type: .syncFactory)
 
+        // 🚀 최적화 등록도 수행
+        tryOptimizedRegister(type, factory: factory)
+
         Log.debug("✅ [UnifiedRegistry] Registered sync factory for \(String(describing: type))")
     }
 
@@ -344,6 +347,11 @@ public actor UnifiedRegistry {
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
     public func resolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
+        // 🚀 최적화 경로 시도
+        if let optimized = tryOptimizedResolve(type) {
+            return optimized
+        }
+
         let key = AnyTypeIdentifier(type: type)
 
         // 1. Scoped 비동기 팩토리에서 생성
@@ -536,6 +544,95 @@ public struct RegistrationInfo {
         Count: \(registrationCount)
         Last: \(lastRegistrationDate)
         """
+    }
+}
+
+// MARK: - Optimization Integration
+
+extension UnifiedRegistry {
+
+    /// 런타임 최적화를 활성화합니다
+    public func enableOptimization() {
+        SimpleOptimizationManager.shared.enable()
+        Log.info("🚀 [UnifiedRegistry] Runtime optimization enabled")
+    }
+
+    /// 런타임 최적화를 비활성화합니다
+    public func disableOptimization() {
+        SimpleOptimizationManager.shared.disable()
+        Log.info("🔧 [UnifiedRegistry] Runtime optimization disabled")
+    }
+
+    /// 최적화 상태 확인
+    public var isOptimizationEnabled: Bool {
+        return SimpleOptimizationManager.shared.isEnabled()
+    }
+}
+
+// 최적화 저장소 지원을 위한 내부 확장
+internal extension UnifiedRegistry {
+
+    /// 최적화된 해결 시도 (내부용)
+    func tryOptimizedResolve<T>(_ type: T.Type) -> T? where T: Sendable {
+        return SimpleOptimizationManager.shared.tryResolve(type)
+    }
+
+    /// 최적화된 등록 (내부용)
+    func tryOptimizedRegister<T>(_ type: T.Type, factory: @escaping @Sendable () -> T) where T: Sendable {
+        SimpleOptimizationManager.shared.tryRegister(type, factory: factory)
+    }
+}
+
+// MARK: - Simple Optimization Manager
+
+/// 간단한 최적화 관리자
+internal final class SimpleOptimizationManager: @unchecked Sendable {
+    static let shared = SimpleOptimizationManager()
+
+    private let lock = NSLock()
+    private var enabledState = false
+    // OptimizedScopeManager는 사용하지 않고 간단한 딕셔너리로 대체
+    private var optimizedInstances: [ObjectIdentifier: Any] = [:]
+
+    private init() {}
+
+    func enable() {
+        lock.lock()
+        defer { lock.unlock() }
+        enabledState = true
+    }
+
+    func disable() {
+        lock.lock()
+        defer { lock.unlock() }
+        enabledState = false
+    }
+
+    func isEnabled() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return enabledState
+    }
+
+    func tryResolve<T>(_ type: T.Type) -> T? where T: Sendable {
+        guard isEnabled() else { return nil }
+
+        lock.lock()
+        defer { lock.unlock() }
+
+        let key = ObjectIdentifier(type)
+        return optimizedInstances[key] as? T
+    }
+
+    func tryRegister<T>(_ type: T.Type, factory: @escaping @Sendable () -> T) where T: Sendable {
+        guard isEnabled() else { return }
+
+        lock.lock()
+        defer { lock.unlock() }
+
+        let key = ObjectIdentifier(type)
+        let instance = factory()
+        optimizedInstances[key] = instance
     }
 }
 

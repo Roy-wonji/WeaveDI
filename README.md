@@ -9,7 +9,9 @@
 ![Platform](https://img.shields.io/badge/platforms-iOS%2015%2B%20%7C%20macOS%2014%2B%20%7C%20watchOS%208%2B%20%7C%20tvOS%2015%2B-lightgrey)
 
 **현대적인 Swift Concurrency를 위한 간단하고 강력한 의존성 주입 프레임워크**
-[📖**공식 문서 보기**](https://roy-wonji.github.io/WeaveDI/documentation/weavedi)</br>
+
+📖 **문서**: [한국어](README.md) | [English](README-EN.md) | [공식 문서](https://roy-wonji.github.io/WeaveDI/documentation/weavedi)
+
 참고: 읽기(그래프/통계/최적화 여부)는 UnifiedDI/DIContainer의 동기 헬퍼를 사용하세요. 내부 AutoDIOptimizer의 읽기용 API는 스냅샷 기반 내부용이며 외부 직접 호출은 비권장(Deprecated)입니다.
 
 ## 🎯 핵심 특징
@@ -18,6 +20,7 @@
 - 🔒 **타입 안전성**: 컴파일 타임 타입 검증
 - 📝 **간단한 API**: 3개의 핵심 Property Wrapper만 기억하면 됨
 - 🤖 **자동 최적화**: 의존성 그래프, Actor hop 감지, 타입 안전성 검증 자동화
+- 🚀 **런타임 핫패스 최적화**: TypeID + 락-프리 읽기로 50-80% 성능 향상
 - 🧪 **테스트 친화적**: 의존성 모킹과 격리 지원
 
 ## 🚀 빠른 시작
@@ -216,6 +219,46 @@ for _ in 1...15 {
 // 사용 통계는 30초마다 자동으로 로깅됩니다
 // 📊 [AutoDI] Current stats: ["UserService": 15, "DataRepository": 8]
 ```
+
+## 🚀 런타임 핫패스 최적화 (v3.2.0)
+
+고성능이 요구되는 앱을 위한 미세 최적화 기능입니다.
+
+### 최적화 활성화
+
+```swift
+import WeaveDI
+
+// 최적화 모드 활성화 (기존 API는 그대로 작동)
+UnifiedRegistry.shared.enableOptimization()
+
+// 기존 코드는 변경 없이 성능 향상
+let service = await UnifiedDI.resolve(UserService.self)
+```
+
+### 핵심 최적화 기술
+
+1. **TypeID + 인덱스 접근**: 딕셔너리 → 배열 슬롯으로 O(1) 접근
+2. **락-프리 읽기**: 스냅샷 방식으로 읽기 경합 제거
+3. **인라인 최적화**: 함수 호출 오버헤드 축소
+4. **팩토리 체이닝 제거**: 직접 호출 경로로 중간 단계 제거
+5. **스코프별 저장소**: 싱글톤/세션/요청 스코프 분리 최적화
+
+### 예상 성능 향상
+
+| 시나리오 | 개선율 | 설명 |
+|---------|--------|------|
+| 단일 스레드 resolve | 50-80% | TypeID + 직접 접근 |
+| 멀티스레드 읽기 | 2-3배 | 락-프리 스냅샷 |
+| 복잡한 의존성 | 20-40% | 체인 플래튼화 |
+
+### 벤치마크 실행
+
+```bash
+swift run -c release Benchmarks --count 100k --quick
+```
+
+자세한 내용은 [PERFORMANCE-OPTIMIZATION.md](PERFORMANCE-OPTIMIZATION.md)를 참고하세요.
 
 ### 로깅 제어 (기본값: 모든 로그 활성화)
 

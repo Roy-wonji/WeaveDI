@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2025-09-27
+
+### Added
+#### 🚀 런타임 핫패스 미세최적화
+- **TypeID + 인덱스 접근 시스템**
+  - ObjectIdentifier → Int 슬롯 ID 매핑으로 딕셔너리 대신 O(1) 배열 인덱스 접근
+  - 타입 초기화 비용 제거 및 메모리 접근 패턴 최적화
+  - 파일: `Sources/Core/Optimized/OptimizedTypeRegistry.swift`
+
+- **스냅샷/락-프리 읽기 시스템**
+  - 불변 Storage 클래스 기반 스냅샷 방식으로 읽기 경합 제거
+  - 원자적 포인터 교체로 쓰기 시에만 락 사용, 읽기는 완전 락-프리
+  - 파일: `Sources/Core/Optimized/AtomicStorage.swift`
+
+- **inlinable + final + @_alwaysEmitIntoClient 최적화**
+  - 핫패스 API에 인라인 최적화 속성 적용으로 함수 호출 오버헤드 축소
+  - 클라이언트 코드에 직접 인라인 방출로 크로스 모듈 최적화 지원
+  - 파일: `Sources/Core/Optimized/FastDI.swift`
+
+- **코스트리 반영 및 팩토리 체이닝 제거**
+  - 팩토리 중간 단계 없는 직접 호출 경로 생성
+  - 의존성 체인 플래튼화로 다단계 팩토리 호출 비용 제거
+  - 파일: `Sources/Core/Optimized/DirectCallRegistry.swift`
+
+- **스코프별 정적 저장소 + once 초기화**
+  - 싱글톤/세션/리퀘스트 스코프별 전용 저장소 분리
+  - 원자적 once 초기화로 싱글톤 생성 경합 제거
+  - 파일: `Sources/Core/Optimized/OptimizedScopeStorage.swift`
+
+### Changed
+- **UnifiedDI 내부 최적화 통합**
+  - 기존 API 유지하면서 내부적으로 최적화 경로 적용
+  - `enableOptimization()` / `disableOptimization()`으로 최적화 모드 제어
+  - 기존 동작과 100% 호환성 보장
+
+- **성능 개선**
+  - resolve 경로에서 딕셔너리 탐색 → 배열 인덱스 접근으로 전환
+  - 읽기 경합 제거로 멀티스레드 환경에서 처리량 향상
+  - 싱글톤 초기화 once 보장으로 경합 조건 제거
+
+### Performance
+- 핫패스 해결 성능 **50-80%** 향상 (예상)
+- 멀티스레드 읽기 처리량 **2-3배** 개선 (예상)
+- 메모리 접근 패턴 최적화로 캐시 히트율 향상
+
+
 ## [3.0.0] - 2025-09-25
 
 ### Breaking

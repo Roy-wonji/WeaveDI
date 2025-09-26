@@ -44,7 +44,7 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
          <TestPlanReference
-            reference = "container:Tests/WeaveDITests/WeaveDI-Package.xctestplan"
+            reference = "container:WeaveDITestPlan.xctestplan"
             default = "YES">
          </TestPlanReference>
       </TestPlans>
