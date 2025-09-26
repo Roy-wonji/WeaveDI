@@ -1,9 +1,8 @@
-# DiContainer
-
 <p align="center">
-  <img src="Sources/DiContainer.docc/Resources/Images/Logo.png" alt="DiContainer – App Image" width="70%" height="400">
+ <img src="Sources/DiContainer.docc/Resources/Images/Logo.png" alt="DiContainer – App Image" width="70%" height="500">
 </p>
 
+# DiContainer 
 ![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Roy-wonji/DiContainer/blob/main/LICENSE)
