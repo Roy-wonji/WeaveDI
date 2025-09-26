@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import DiContainer
+@testable import WeaveDI
 
 // MARK: - Async Test Services
 
@@ -72,6 +72,9 @@ final class AsyncTests: XCTestCase {
             AsyncTestServiceImpl()
         }
 
+        // Wait for async registration to complete
+        await UnifiedDI.waitForRegistration()
+
         // Resolve and test
         let service = UnifiedDI.resolve(AsyncTestService.self)
         XCTAssertNotNil(service)
@@ -84,6 +87,10 @@ final class AsyncTests: XCTestCase {
         // Register with async factory using UnifiedDI
         let asyncService = await AsyncDatabaseServiceImpl.initialize()
         _ = UnifiedDI.register(AsyncDatabaseService.self) { asyncService }
+
+        // Wait for async registration to complete with additional time for complex initialization
+        await UnifiedDI.waitForRegistration()
+        try? await Task.sleep(nanoseconds: 10_000_000) // Extra 10ms for complex async initialization
 
         // Resolve and test
         let service = UnifiedDI.resolve(AsyncDatabaseService.self)
@@ -116,6 +123,9 @@ final class AsyncTests: XCTestCase {
             AsyncTestServiceImpl()
         }
 
+        // Wait for async registration to complete
+        await UnifiedDI.waitForRegistration()
+
         // Test optional resolution
         let service = UnifiedDI.resolve(AsyncTestService.self)
         XCTAssertNotNil(service)
@@ -137,6 +147,9 @@ final class AsyncTests: XCTestCase {
             AsyncTestServiceImpl()
         }
 
+        // Wait for async registration to complete
+        await UnifiedDI.waitForRegistration()
+
         let service2 = UnifiedDI.resolve(AsyncTestService.self, default: MockAsyncTestService())
         let result2 = await service2.performAsyncOperation()
         XCTAssertEqual(result2, "async_operation_completed")
@@ -153,6 +166,8 @@ final class AsyncTests: XCTestCase {
             fallback: { MockAsyncTestService() }
         )
 
+        // Wait for async registration to complete
+        await UnifiedDI.waitForRegistration()
         let service1 = UnifiedDI.resolve(AsyncTestService.self)
         let result1 = await service1?.performAsyncOperation()
         XCTAssertEqual(result1, "async_operation_completed")
@@ -167,6 +182,8 @@ final class AsyncTests: XCTestCase {
             fallback: { MockAsyncTestService() }
         )
 
+        // Wait for async registration to complete
+        await UnifiedDI.waitForRegistration()
         let service2 = UnifiedDI.resolve(AsyncTestService.self)
         let result2 = await service2?.performAsyncOperation()
         XCTAssertEqual(result2, "mock_async_operation")
@@ -180,6 +197,10 @@ final class AsyncTests: XCTestCase {
 
         let asyncDb = await AsyncDatabaseServiceImpl.initialize()
         _ = UnifiedDI.register(AsyncDatabaseService.self) { asyncDb }
+
+        // Wait for async registrations to complete
+        await UnifiedDI.waitForRegistration()
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
 
         // Test all services are registered
         let testService = UnifiedDI.resolve(AsyncTestService.self)

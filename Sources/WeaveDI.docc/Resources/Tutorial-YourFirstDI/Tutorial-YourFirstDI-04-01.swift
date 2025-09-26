@@ -1,5 +1,5 @@
 import SwiftUI
-import DiContainer
+import WeaveDI
 
 struct ContentView: View {
     @Inject private var userService: UserService?
@@ -9,7 +9,7 @@ struct ContentView: View {
             Image(systemName: "globe")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
-            Text("Hello, DiContainer!")
+            Text("Hello, WeaveDI!")
 
             if let userService {
                 Text("✅ UserService 주입 성공!")

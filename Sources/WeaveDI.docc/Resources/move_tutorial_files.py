@@ -7,8 +7,8 @@ from pathlib import Path
 def move_tutorial_files():
     """Move all Swift tutorial files to Resources folder"""
 
-    source_dir = Path("/Users/suhwonji/Desktop/SideProject/DiContainer/Sources/DiContainer.docc/ko.lproj")
-    target_dir = Path("/Users/suhwonji/Desktop/SideProject/DiContainer/Sources/DiContainer.docc/Resources")
+    source_dir = Path("/Users/suhwonji/Desktop/SideProject/WeaveDI/Sources/WeaveDI.docc/ko.lproj")
+    target_dir = Path("/Users/suhwonji/Desktop/SideProject/WeaveDI/Sources/WeaveDI.docc/Resources")
 
     # Ensure target directory exists
     target_dir.mkdir(exist_ok=True)

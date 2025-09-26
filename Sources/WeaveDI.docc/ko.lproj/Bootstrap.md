@@ -1,6 +1,6 @@
 # 부트스트랩 가이드 (Bootstrap)
 
-앱 시작 시 의존성을 안전하고 일관되게 준비하는 방법을 소개합니다. DiContainer는 다양한 부트스트랩 패턴을 제공하여 동기/비동기 초기화, 테스트 격리, 조건부 초기화 등을 유연하게 구성할 수 있습니다.
+앱 시작 시 의존성을 안전하고 일관되게 준비하는 방법을 소개합니다. WeaveDI는 다양한 부트스트랩 패턴을 제공하여 동기/비동기 초기화, 테스트 격리, 조건부 초기화 등을 유연하게 구성할 수 있습니다.
 
 ## 개요
 
@@ -18,7 +18,7 @@
 ## 동기 부트스트랩
 
 ```swift
-import DiContainer
+import WeaveDI
 
 await DIContainer.bootstrap { container in
     container.register(Logger.self) { ConsoleLogger() }

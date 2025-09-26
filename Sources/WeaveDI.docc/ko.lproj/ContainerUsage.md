@@ -1,6 +1,6 @@
 # Container Usage
 
-DiContainer의 Container는 모듈을 수집한 뒤 한 번에 병렬 등록하여 Actor hop을 최소화합니다.
+WeaveDI의 Container는 모듈을 수집한 뒤 한 번에 병렬 등록하여 Actor hop을 최소화합니다.
 
 ## 개요
 - `Module`은 등록 작업의 최소 단위입니다.

@@ -8,41 +8,41 @@ import shutil
 import glob
 
 def copy_tutorial_files():
-    source_dir = "/Users/suhwonji/Desktop/SideProject/DiContainer/Sources/DiContainer.docc/ko.lproj"
-    dest_dir = "/Users/suhwonji/Desktop/SideProject/DiContainer/Sources/DiContainer.docc/Resources"
+    source_dir = "/Users/suhwonji/Desktop/SideProject/WeaveDI/Sources/WeaveDI.docc/ko.lproj"
+    dest_dir = "/Users/suhwonji/Desktop/SideProject/WeaveDI/Sources/WeaveDI.docc/Resources"
 
     # Intermediate tutorial files
     intermediate_files = [
-        "Tutorial-IntermediateDiContainer-01-01.swift",
-        "Tutorial-IntermediateDiContainer-01-02.swift",
-        "Tutorial-IntermediateDiContainer-01-03.swift",
-        "Tutorial-IntermediateDiContainer-02-01.swift",
-        "Tutorial-IntermediateDiContainer-02-02.swift",
-        "Tutorial-IntermediateDiContainer-03-01.swift",
-        "Tutorial-IntermediateDiContainer-03-02.swift",
-        "Tutorial-IntermediateDiContainer-04-01.swift",
-        "Tutorial-IntermediateDiContainer-04-02.swift",
-        "Tutorial-IntermediateDiContainer-05-01.swift",
-        "Tutorial-IntermediateDiContainer-05-02.swift"
+        "Tutorial-IntermediateWeaveDI-01-01.swift",
+        "Tutorial-IntermediateWeaveDI-01-02.swift",
+        "Tutorial-IntermediateWeaveDI-01-03.swift",
+        "Tutorial-IntermediateWeaveDI-02-01.swift",
+        "Tutorial-IntermediateWeaveDI-02-02.swift",
+        "Tutorial-IntermediateWeaveDI-03-01.swift",
+        "Tutorial-IntermediateWeaveDI-03-02.swift",
+        "Tutorial-IntermediateWeaveDI-04-01.swift",
+        "Tutorial-IntermediateWeaveDI-04-02.swift",
+        "Tutorial-IntermediateWeaveDI-05-01.swift",
+        "Tutorial-IntermediateWeaveDI-05-02.swift"
     ]
 
     # Advanced tutorial files
     advanced_files = [
-        "Tutorial-AdvancedDiContainer-01-01.swift",
-        "Tutorial-AdvancedDiContainer-01-02.swift",
-        "Tutorial-AdvancedDiContainer-01-03.swift",
-        "Tutorial-AdvancedDiContainer-02-01.swift",
-        "Tutorial-AdvancedDiContainer-02-02.swift",
-        "Tutorial-AdvancedDiContainer-02-03.swift",
-        "Tutorial-AdvancedDiContainer-03-01.swift",
-        "Tutorial-AdvancedDiContainer-03-02.swift",
-        "Tutorial-AdvancedDiContainer-03-03.swift",
-        "Tutorial-AdvancedDiContainer-04-01.swift",
-        "Tutorial-AdvancedDiContainer-04-02.swift",
-        "Tutorial-AdvancedDiContainer-04-03.swift",
-        "Tutorial-AdvancedDiContainer-05-01.swift",
-        "Tutorial-AdvancedDiContainer-05-02.swift",
-        "Tutorial-AdvancedDiContainer-05-03.swift"
+        "Tutorial-AdvancedWeaveDI-01-01.swift",
+        "Tutorial-AdvancedWeaveDI-01-02.swift",
+        "Tutorial-AdvancedWeaveDI-01-03.swift",
+        "Tutorial-AdvancedWeaveDI-02-01.swift",
+        "Tutorial-AdvancedWeaveDI-02-02.swift",
+        "Tutorial-AdvancedWeaveDI-02-03.swift",
+        "Tutorial-AdvancedWeaveDI-03-01.swift",
+        "Tutorial-AdvancedWeaveDI-03-02.swift",
+        "Tutorial-AdvancedWeaveDI-03-03.swift",
+        "Tutorial-AdvancedWeaveDI-04-01.swift",
+        "Tutorial-AdvancedWeaveDI-04-02.swift",
+        "Tutorial-AdvancedWeaveDI-04-03.swift",
+        "Tutorial-AdvancedWeaveDI-05-01.swift",
+        "Tutorial-AdvancedWeaveDI-05-02.swift",
+        "Tutorial-AdvancedWeaveDI-05-03.swift"
     ]
 
     all_files = intermediate_files + advanced_files
@@ -85,9 +85,9 @@ def copy_tutorial_files():
 
     # Verify copied files
     print("Verifying copied files in Resources:")
-    resources_files = glob.glob(os.path.join(dest_dir, "Tutorial-*DiContainer-*.swift"))
-    intermediate_in_resources = [f for f in resources_files if "IntermediateDiContainer" in f]
-    advanced_in_resources = [f for f in resources_files if "AdvancedDiContainer" in f]
+    resources_files = glob.glob(os.path.join(dest_dir, "Tutorial-*WeaveDI-*.swift"))
+    intermediate_in_resources = [f for f in resources_files if "IntermediateWeaveDI" in f]
+    advanced_in_resources = [f for f in resources_files if "AdvancedWeaveDI" in f]
 
     print(f"Intermediate tutorial files in Resources: {len(intermediate_in_resources)}/11")
     print(f"Advanced tutorial files in Resources: {len(advanced_in_resources)}/15")

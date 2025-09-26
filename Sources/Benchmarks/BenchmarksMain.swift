@@ -89,7 +89,7 @@ struct Benchmarks {
                     let line = String(format: "%@,%d,%d,%.4f,%.4f,%.4f,%.4f\n", ts, db, n, totalMs, p50, p95, p99)
                     if let data = line.data(using: .utf8), let fh = FileHandle(forWritingAtPath: path) {
                         defer { try? fh.close() }
-                        try? fh.seekToEnd()
+                        _ = try? fh.seekToEnd()
                         try? fh.write(contentsOf: data)
                     }
                 }

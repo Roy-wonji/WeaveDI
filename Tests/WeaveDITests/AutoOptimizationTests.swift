@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import DiContainer
+@testable import WeaveDI
 
 // MARK: - Test Services for Auto Optimization
 
@@ -180,6 +180,7 @@ final class AutoOptimizationTests: XCTestCase {
   func testTypeSafetyIssueDetection_타입안전성이슈감지() async {
     // Given - 의도적으로 안전하지 않은 타입 등록
     _ = UnifiedDI.register(NonSendableService.self) { NonSendableService() }
+    await UnifiedDI.waitForRegistration()
 
     // When
     let resolved = UnifiedDI.resolve(NonSendableService.self)
@@ -207,6 +208,7 @@ final class AutoOptimizationTests: XCTestCase {
   func testAutoFixedTypes_자동수정타입확인() async {
     // Given
     _ = UnifiedDI.register(NonSendableService.self) { NonSendableService() }
+    await UnifiedDI.waitForRegistration()
 
     // When
     let resolved = UnifiedDI.resolve(NonSendableService.self)

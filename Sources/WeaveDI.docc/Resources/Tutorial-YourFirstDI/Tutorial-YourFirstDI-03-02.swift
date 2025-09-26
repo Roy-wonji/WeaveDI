@@ -1,4 +1,4 @@
-import DiContainer
+import WeaveDI
 
 // MARK: - DI Container Setup
 
@@ -15,7 +15,7 @@ extension UnifiedDI {
             DefaultUserService()
         }
 
-        print("🚀 DiContainer 설정 완료!")
+        print("🚀 WeaveDI 설정 완료!")
         print("📦 등록된 서비스: NetworkService, UserService")
     }
 }
@@ -25,7 +25,7 @@ extension UnifiedDI {
 import SwiftUI
 
 @main
-struct DiContainerApp: App {
+struct WeaveDIApp: App {
 
     init() {
         UnifiedDI.setupAppDependencies()

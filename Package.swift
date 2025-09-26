@@ -27,7 +27,7 @@ let package = Package(
         .package(url: "https://github.com/Roy-wonji/LogMacro.git", branch: "main"),
         .package(url: "https://github.com/apple/swift-docc-plugin.git", from: "1.4.5"),
         .package(
-          url: "https://github.com/apple/swift-syntax.git",  "509.0.2"..<"602.0.0"),
+          url: "https://github.com/apple/swift-syntax.git", from: "600.0.0"),
     ],
     targets: [
         .target(
@@ -48,6 +48,8 @@ let package = Package(
         .macro(
             name: "WeaveDIMacros",
             dependencies: [
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
             ],

@@ -1,10 +1,12 @@
 # 빠른 시작 가이드
 
-DiContainer를 5분만에 시작해보세요!
+![WeaveDI Logo](Logo.png)
+
+WeaveDI를 5분만에 시작해보세요!
 
 ## 개요
 
-DiContainer 2.0은 Swift Concurrency와 자동 최적화를 완벽 지원하는 현대적인 의존성 주입 프레임워크입니다. 이 가이드에서는 가장 기본적인 사용 방법부터 고급 기능까지 단계별로 안내합니다.
+WeaveDI 2.0은 Swift Concurrency와 자동 최적화를 완벽 지원하는 현대적인 의존성 주입 프레임워크입니다. 이 가이드에서는 가장 기본적인 사용 방법부터 고급 기능까지 단계별로 안내합니다.
 
 ## 1단계: 설치
 
@@ -12,7 +14,7 @@ DiContainer 2.0은 Swift Concurrency와 자동 최적화를 완벽 지원하는 
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/DiContainer.git", from: "2.0.0")
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "2.0.0")
 ]
 ```
 
@@ -20,13 +22,13 @@ dependencies: [
 
 1. Xcode에서 프로젝트 열기
 2. File → Add Package Dependencies
-3. URL 입력: `https://github.com/Roy-wonji/DiContainer.git`
+3. URL 입력: `https://github.com/Roy-wonji/WeaveDI.git`
 4. Add Package
 
 ## 2단계: 임포트
 
 ```swift
-import DiContainer
+import WeaveDI
 ```
 
 ## 3단계: 첫 번째 의존성 등록
@@ -214,7 +216,7 @@ for (type, issue) in safetyIssues {
 
 ```swift
 import SwiftUI
-import DiContainer
+import WeaveDI
 
 @main
 struct MyApp: App {
@@ -268,7 +270,7 @@ struct MyApp: App {
 
 ```swift
 import SwiftUI
-import DiContainer
+import WeaveDI
 
 struct ContentView: View {
     @StateObject private var viewModel = ContentViewModel()
@@ -288,7 +290,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationTitle("DiContainer Demo")
+            .navigationTitle("WeaveDI Demo")
         }
     }
 }
@@ -321,7 +323,7 @@ class ContentViewModel: ObservableObject {
 
 ```swift
 import XCTest
-@testable import DiContainer
+@testable import WeaveDI
 
 class MyAppTests: XCTestCase {
 
@@ -418,7 +420,7 @@ Task {
 
 ## 다음 단계
 
-이제 DiContainer의 기본 사용법을 익혔습니다! 더 자세한 내용은 다음 가이드들을 참고하세요:
+이제 WeaveDI의 기본 사용법을 익혔습니다! 더 자세한 내용은 다음 가이드들을 참고하세요:
 
 - [Property Wrapper 상세 가이드](PropertyWrappers.md) - 모든 Property Wrapper 패턴
 - [자동 최적화 가이드](AutoDIOptimizer.md) - 성능 최적화 기능
@@ -452,4 +454,4 @@ Task {
    }
    ```
 
-이제 DiContainer를 프로젝트에 통합하고 현대적인 의존성 주입의 혜택을 누려보세요!
+이제 WeaveDI를 프로젝트에 통합하고 현대적인 의존성 주입의 혜택을 누려보세요!

@@ -1,5 +1,5 @@
 import SwiftUI
-import DiContainer
+import WeaveDI
 
 struct ContentView: View {
     @Inject private var userService: UserService?
@@ -49,7 +49,7 @@ struct ContentView: View {
                         .padding()
                 }
             }
-            .navigationTitle("DiContainer 사용자")
+            .navigationTitle("WeaveDI 사용자")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("새로고침") {

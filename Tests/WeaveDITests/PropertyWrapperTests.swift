@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import DiContainer
+@testable import WeaveDI
 
 // MARK: - Property Wrapper Tests
 
@@ -46,13 +46,15 @@ final class PropertyWrapperTests: XCTestCase {
 
         // Test with registration
         _ =  UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        await UnifiedDI.waitForRegistration()
         XCTAssertNotNil(service.userService)
         XCTAssertEqual(service.performOperation(), "user_inject_test")
     }
 
-    func testInjectWithKeyPath_키패스주입() {
+    func testInjectWithKeyPath_키패스주입() async {
         // Register service
         _ = UnifiedDI.register(\.propertyTestUserService) { TestUserServiceImpl() }
+        await UnifiedDI.waitForRegistration()
 
         // Test class with KeyPath injection
         class TestService {
@@ -68,9 +70,10 @@ final class PropertyWrapperTests: XCTestCase {
         XCTAssertEqual(service.performOperation(), "user_keypath_test")
     }
 
-    func testInjectWithExplicitType_명시적타입주입() {
+    func testInjectWithExplicitType_명시적타입주입() async {
         // Register service
         _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        await UnifiedDI.waitForRegistration()
 
         // Test class with explicit type injection
         class TestService {
@@ -86,9 +89,10 @@ final class PropertyWrapperTests: XCTestCase {
         XCTAssertEqual(service.performOperation(), "user_explicit_test")
     }
 
-    func testInjectNonOptional_필수주입() {
+    func testInjectNonOptional_필수주입() async {
         // Register service first to prevent fatalError
         _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        await UnifiedDI.waitForRegistration()
 
         // Test class with non-optional injection (requires registration)
         class TestService {

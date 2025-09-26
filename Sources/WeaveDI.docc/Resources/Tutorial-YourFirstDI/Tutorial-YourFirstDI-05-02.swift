@@ -1,6 +1,6 @@
 import XCTest
-import DiContainer
-@testable import DiContainerApp
+import WeaveDI
+@testable import WeaveDIApp
 
 final class UserServiceTests: XCTestCase {
 

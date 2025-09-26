@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import DiContainer
+@testable import WeaveDI
 
 // MARK: - Test Services
 

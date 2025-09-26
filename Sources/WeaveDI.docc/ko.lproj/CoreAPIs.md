@@ -2,7 +2,7 @@
 
 > Language: 한국어 | English: [Core APIs](CoreAPIs.md)
 
-DiContainer 2.0의 핵심 API들과 사용법을 자세히 알아보세요.
+WeaveDI 2.0의 핵심 API들과 사용법을 자세히 알아보세요.
 
 > 공지: 동기 API → async API 전환 (중요)
 >
@@ -12,7 +12,7 @@ DiContainer 2.0의 핵심 API들과 사용법을 자세히 알아보세요.
 
 ## 개요
 
-DiContainer 2.0은 세 가지 핵심 패턴을 중심으로 설계되었습니다:
+WeaveDI 2.0은 세 가지 핵심 패턴을 중심으로 설계되었습니다:
 1. **등록 (Registration)** - 의존성을 컨테이너에 등록
 2. **주입 (Injection)** - 프로퍼티 래퍼를 통한 자동 주입
 3. **해결 (Resolution)** - 수동으로 의존성 해결

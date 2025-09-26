@@ -1,11 +1,11 @@
 <p align="center">
- <img src="Sources/DiContainer.docc/Resources/Images/Logo.png" alt="DiContainer – App Image" width="70%" height="500">
+ <img src="Sources/WeaveDI.docc/Resources/Images/Logo.png" alt="WeaveDI – App Image" width="70%" height="500">
 </p>
 
-# DiContainer 
+# WeaveDI
 ![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Roy-wonji/DiContainer/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Roy-wonji/WeaveDI/blob/main/LICENSE)
 ![Platform](https://img.shields.io/badge/platforms-iOS%2015%2B%20%7C%20macOS%2014%2B%20%7C%20watchOS%208%2B%20%7C%20tvOS%2015%2B-lightgrey)
 
 **현대적인 Swift Concurrency를 위한 간단하고 강력한 의존성 주입 프레임워크**
@@ -26,14 +26,14 @@
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/DiContainer.git", from: "2.0.0")
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "2.0.0")
 ]
 ```
 
 ### 기본 사용법
 
 ```swift
-import DiContainer
+import WeaveDI
 
 // 1. 의존성 등록
 let userService = UnifiedDI.register(UserServiceProtocol.self) {
@@ -65,7 +65,7 @@ class SafeController {
 ### 부트스트랩(앱 시작 시 초기화)
 
 ```swift
-import DiContainer
+import WeaveDI
 
 // 동기 부트스트랩
 await DIContainer.bootstrap { di in
@@ -324,10 +324,10 @@ python3 Scripts/plot_bench.py --csv bench.csv --out bench_plot
 ## 📖 문서 및 튜토리얼
 
 ### 📚 공식 문서
-- [API 문서](https://roy-wonji.github.io/DiContainer/documentation/dicontainer)
-- [자동 최적화 가이드](Sources/DiContainer.docc/ko.lproj/AutoDIOptimizer.md)
-- [Property Wrapper 가이드](Sources/DiContainer.docc/ko.lproj/PropertyWrappers.md)
-- [마이그레이션 3.0.0](Sources/DiContainer.docc/ko.lproj/MIGRATION-3.0.0.md)
+- [API 문서](https://roy-wonji.github.io/WeaveDI/documentation/dicontainer)
+- [자동 최적화 가이드](Sources/WeaveDI.docc/ko.lproj/AutoDIOptimizer.md)
+- [Property Wrapper 가이드](Sources/WeaveDI.docc/ko.lproj/PropertyWrappers.md)
+- [마이그레이션 3.0.0](Sources/WeaveDI.docc/ko.lproj/MIGRATION-3.0.0.md)
 
 ### ⚡ 핫패스 정적화 활성화 (USE_STATIC_FACTORY)
 
@@ -349,7 +349,7 @@ python3 Scripts/plot_bench.py --csv bench.csv --out bench_plot
   - 반복 루프는 resolve 캐시(루프 밖 1회 확보 → 안에서는 재사용)
 
 ### 🎯 튜토리얼
-- [튜토리얼 모음(웹)](https://roy-wonji.github.io/DiContainer/tutorials/dicontainers)
+- [튜토리얼 모음(웹)](https://roy-wonji.github.io/WeaveDI/tutorials/dicontainers)
 
 ## 🎯 주요 차별점
 
@@ -380,17 +380,17 @@ MIT License. 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
 
 ## 🤝 기여하기
 
-DiContainer를 더 좋게 만들어주세요!
+WeaveDI를 더 좋게 만들어주세요!
 
 ### 기여 방법
-1. **이슈 제기**: [GitHub Issues](https://github.com/Roy-wonji/DiContainer/issues)에서 버그 리포트나 기능 요청
+1. **이슈 제기**: [GitHub Issues](https://github.com/Roy-wonji/WeaveDI/issues)에서 버그 리포트나 기능 요청
 2. **Pull Request**: 개선사항이나 새로운 기능을 직접 구현해서 기여
 3. **문서 개선**: README나 문서의 오타, 개선사항 제안
 
 ### 개발 환경 설정
 ```bash
-git clone https://github.com/Roy-wonji/DiContainer.git
-cd DiContainer
+git clone https://github.com/Roy-wonji/WeaveDI.git
+cd WeaveDI
 swift build
 swift test
 ```
@@ -400,7 +400,7 @@ swift test
 ---
 <div align="center">
 
-<strong>DiContainer와 함께 더 나은 Swift 개발 경험을 만들어가세요! 🚀</strong>
+<strong>WeaveDI와 함께 더 나은 Swift 개발 경험을 만들어가세요! 🚀</strong>
 
 ⭐ <strong>이 프로젝트가 도움이 되었다면 Star를 눌러주세요!</strong> ⭐
 

@@ -1,29 +1,29 @@
 @Tutorial(time: 15) {
   @Intro(title: "첫 번째 의존성 주입 만들기") {
-    이 튜토리얼에서는 DiContainer를 사용하여 첫 번째 의존성 주입을 구현해보겠습니다.
+    이 튜토리얼에서는 WeaveDI를 사용하여 첫 번째 의존성 주입을 구현해보겠습니다.
     UserService와 NetworkService를 만들고, Property Wrapper를 통해 주입받는 방법을 배워보겠습니다.
   }
 
   @Section(title: "프로젝트 설정") {
     @ContentAndMedia {
-      DiContainer를 프로젝트에 추가하고 기본 설정을 완료합니다.
+      WeaveDI를 프로젝트에 추가하고 기본 설정을 완료합니다.
     }
 
     @Steps {
       @Step {
         새로운 iOS 프로젝트를 생성합니다.
 
-        Xcode에서 새 프로젝트를 생성하고 "DiContainerApp"이라고 이름을 지어주세요.
+        Xcode에서 새 프로젝트를 생성하고 "WeaveDIApp"이라고 이름을 지어주세요.
       }
 
       @Step {
-        Package.swift에 DiContainer 의존성을 추가합니다.
+        Package.swift에 WeaveDI 의존성을 추가합니다.
 
         @Code(name: "Package.swift", file: "Tutorial-YourFirstDI-01-01.swift")
       }
 
       @Step {
-        App.swift 파일에서 DiContainer를 임포트합니다.
+        App.swift 파일에서 WeaveDI를 임포트합니다.
 
         @Code(name: "App.swift", file: "Tutorial-YourFirstDI-01-02.swift")
       }

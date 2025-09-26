@@ -7,7 +7,7 @@
 
 import XCTest
 import Foundation
-@testable import DiContainer
+@testable import WeaveDI
 
 // MARK: - Integration Test Services
 

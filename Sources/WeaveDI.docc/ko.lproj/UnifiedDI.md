@@ -1,6 +1,6 @@
 # 통합 DI 시스템 - UnifiedDI vs DI
 
-DiContainer 2.0은 두 가지 주요 API 진입점을 제공합니다: `UnifiedDI`와 `DI`. 각각의 역할과 사용 시나리오를 이해하여 프로젝트에 최적한 선택을 하세요.
+WeaveDI 2.0은 두 가지 주요 API 진입점을 제공합니다: `UnifiedDI`와 `DI`. 각각의 역할과 사용 시나리오를 이해하여 프로젝트에 최적한 선택을 하세요.
 
 ## 🎯 API 선택 가이드
 

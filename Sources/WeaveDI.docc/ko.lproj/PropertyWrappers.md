@@ -1,10 +1,10 @@
 # Property Wrapper 가이드
 
-DiContainer의 강력한 Property Wrapper들을 활용하여 선언적이고 타입 안전한 의존성 주입을 구현하는 방법
+WeaveDI의 강력한 Property Wrapper들을 활용하여 선언적이고 타입 안전한 의존성 주입을 구현하는 방법
 
 ## 개요
 
-DiContainer는 Swift의 Property Wrapper 기능을 활용하여 의존성 주입을 더욱 선언적이고 직관적으로 만들어줍니다. `@Inject`, `@Factory`, `@RequiredInject` 등의 Property Wrapper를 통해 복잡한 의존성 관리를 간단한 어노테이션으로 해결할 수 있습니다.
+WeaveDI는 Swift의 Property Wrapper 기능을 활용하여 의존성 주입을 더욱 선언적이고 직관적으로 만들어줍니다. `@Inject`, `@Factory`, `@RequiredInject` 등의 Property Wrapper를 통해 복잡한 의존성 관리를 간단한 어노테이션으로 해결할 수 있습니다.
 
 ## @Inject - 범용 의존성 주입
 
@@ -13,7 +13,7 @@ DiContainer는 Swift의 Property Wrapper 기능을 활용하여 의존성 주입
 `@Inject`는 가장 일반적으로 사용되는 Property Wrapper로, 타입 기반과 KeyPath 기반 주입을 모두 지원합니다.
 
 ```swift
-import DiContainer
+import WeaveDI
 
 class UserService {
     // 타입 기반 주입 - 옵셔널
@@ -262,7 +262,7 @@ actor DataProcessor {
 
 ```swift
 import SwiftUI
-import DiContainer
+import WeaveDI
 
 struct UserProfileView: View {
     @StateObject private var viewModel = UserProfileViewModel()
@@ -321,7 +321,7 @@ class UserProfileViewModel: ObservableObject {
 
 ```swift
 import Combine
-import DiContainer
+import WeaveDI
 
 class ReactiveService: ObservableObject {
     @Published var data: [DataModel] = []
@@ -562,4 +562,4 @@ class PerformanceOptimizedService {
 }
 ```
 
-Property Wrapper를 통한 의존성 주입은 DiContainer의 가장 강력한 기능 중 하나입니다. 선언적이고 타입 안전하며, Swift의 언어 기능과 자연스럽게 통합되어 개발자 경험을 크게 향상시킵니다.
+Property Wrapper를 통한 의존성 주입은 WeaveDI의 가장 강력한 기능 중 하나입니다. 선언적이고 타입 안전하며, Swift의 언어 기능과 자연스럽게 통합되어 개발자 경험을 크게 향상시킵니다.

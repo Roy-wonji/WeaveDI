@@ -1,10 +1,10 @@
-# DiContainer 2.0.0 마이그레이션 가이드
+# WeaveDI 2.0.0 마이그레이션 가이드
 
-DiContainer 1.x에서 2.0.0으로 업그레이드하는 완전한 가이드
+WeaveDI 1.x에서 2.0.0으로 업그레이드하는 완전한 가이드
 
 ## 개요
 
-DiContainer 2.0.0은 Swift Concurrency를 완전히 수용하고, Actor Hop 최적화를 도입한 메이저 업데이트입니다. 이 가이드는 기존 1.x 코드를 새 버전으로 안전하고 효율적으로 마이그레이션하는 방법을 제공합니다.
+WeaveDI 2.0.0은 Swift Concurrency를 완전히 수용하고, Actor Hop 최적화를 도입한 메이저 업데이트입니다. 이 가이드는 기존 1.x 코드를 새 버전으로 안전하고 효율적으로 마이그레이션하는 방법을 제공합니다.
 
 ## 한눈에 보는 주요 변화
 
@@ -339,7 +339,7 @@ UnifiedDI.setAutoOptimization(false) // 비활성화
 
 ```swift
 import ComposableArchitecture
-import DiContainer
+import WeaveDI
 
 extension UserUseCase: DependencyKey {
   public static var liveValue: UserUseCaseProtocol = {

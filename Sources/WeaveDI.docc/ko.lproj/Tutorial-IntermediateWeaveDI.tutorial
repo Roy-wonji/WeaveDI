@@ -1,0 +1,135 @@
+@Tutorial(time: 30) {
+    @Intro(title: "중급 WeaveDI 튜토리얼") {
+        WeaveDI의 중급 기능들을 단계별로 학습해보세요.
+
+        복잡한 도메인 모델부터 환경별 설정, 스코프 관리, 그리고 테스트 패턴까지 실무에서 바로 적용할 수 있는 고급 기법들을 다룹니다.
+    }
+
+    @Section(title: "복잡한 도메인과 의존성 체인") {
+        @ContentAndMedia {
+            실무에서 사용하는 복잡한 의존성 구조를 학습합니다.
+        }
+
+        @Steps {
+            @Step {
+                전자상거래 도메인을 예로 복잡한 의존성 구조를 구현해봅니다.
+
+                UseCase → Service → Repository 계층의 의존성 체인과 각 계층간의 상호작용을 살펴봅니다.
+
+                @Code(name: "ComplexDomain.swift", file: "Tutorial-IntermediateWeaveDI-01-01.swift")
+            }
+
+            @Step {
+                의존성 그래프를 최적화하고 성능을 모니터링하는 도구들을 활용해봅니다.
+
+                해결 시간 추적, 순환 의존성 감지, 그리고 성능 병목 지점을 찾는 방법을 배웁니다.
+
+                @Code(name: "DependencyOptimizer.swift", file: "Tutorial-IntermediateWeaveDI-01-02.swift")
+            }
+
+            @Step {
+                순환 의존성을 감지하고 해결하는 전략을 구현해봅니다.
+
+                실제 프로젝트에서 발생할 수 있는 순환 의존성 문제와 그 해결 방법을 다룹니다.
+
+                @Code(name: "CircularDependencyResolver.swift", file: "Tutorial-IntermediateWeaveDI-01-03.swift")
+            }
+        }
+    }
+
+    @Section(title: "환경별 설정과 조건부 등록") {
+        @ContentAndMedia {
+            환경에 따른 동적 의존성 구성을 학습합니다.
+        }
+
+        @Steps {
+            @Step {
+                개발, 스테이징, 프로덕션 환경에 따른 서비스 구성을 구현합니다.
+
+                각 환경별로 다른 API 엔드포인트, 로그 레벨, 타임아웃 설정 등을 관리하는 방법을 배웁니다.
+
+                @Code(name: "EnvironmentConfig.swift", file: "Tutorial-IntermediateWeaveDI-02-01.swift")
+            }
+
+            @Step {
+                KeyPath와 조건부 등록을 활용한 유연한 의존성 구성을 실습합니다.
+
+                런타임 조건에 따라 다른 구현체를 주입하는 고급 패턴을 다룹니다.
+
+                @Code(name: "ConditionalRegistration.swift", file: "Tutorial-IntermediateWeaveDI-02-02.swift")
+            }
+        }
+    }
+
+    @Section(title: "스코프 기반 의존성 관리") {
+        @ContentAndMedia {
+            의존성의 생명주기를 체계적으로 관리하는 방법을 다룹니다.
+        }
+
+        @Steps {
+            @Step {
+                화면, 세션, 사용자별 스코프를 가진 의존성을 관리합니다.
+
+                스코프별로 인스턴스의 생명주기를 제어하고, 메모리 효율성을 높이는 방법을 배웁니다.
+
+                @Code(name: "ScopedDependencies.swift", file: "Tutorial-IntermediateWeaveDI-03-01.swift")
+            }
+
+            @Step {
+                스코프 해제와 리소스 정리를 올바르게 처리하는 방법을 학습합니다.
+
+                메모리 누수를 방지하고 리소스를 안전하게 정리하는 베스트 프랙티스를 다룹니다.
+
+                @Code(name: "ScopedCleanup.swift", file: "Tutorial-IntermediateWeaveDI-03-02.swift")
+            }
+        }
+    }
+
+    @Section(title: "운영 환경 전략과 에러 처리") {
+        @ContentAndMedia {
+            프로덕션 환경에서의 안정적인 운영 전략을 구현합니다.
+        }
+
+        @Steps {
+            @Step {
+                프로덕션 환경에서의 에러 처리와 복구 패턴을 구현합니다.
+
+                의존성 주입 실패 시 fallback 전략과 graceful degradation을 다룹니다.
+
+                @Code(name: "ProductionErrorHandling.swift", file: "Tutorial-IntermediateWeaveDI-04-01.swift")
+            }
+
+            @Step {
+                로깅과 모니터링을 통한 운영 개선 전략을 정리합니다.
+
+                의존성 해결 성능 모니터링과 이슈 추적 방법을 학습합니다.
+
+                @Code(name: "OperationalMonitoring.swift", file: "Tutorial-IntermediateWeaveDI-04-02.swift")
+            }
+        }
+    }
+
+    @Section(title: "테스트 친화적 패턴") {
+        @ContentAndMedia {
+            테스트를 위한 효과적인 의존성 주입 패턴을 학습합니다.
+        }
+
+        @Steps {
+            @Step {
+                테스트를 위한 의존성 주입 초기화와 Mock 패턴을 적용합니다.
+
+                단위 테스트와 통합 테스트에서 효과적으로 의존성을 관리하는 방법을 배웁니다.
+
+                @Code(name: "TestSetup.swift", file: "Tutorial-IntermediateWeaveDI-05-01.swift")
+            }
+
+            @Step {
+                시나리오별 테스트 검증과 의존성 통계를 확인합니다.
+
+                테스트 실행 중 의존성 사용 패턴을 분석하고 최적화하는 방법을 다룹니다.
+
+                @Code(name: "TestScenarios.swift", file: "Tutorial-IntermediateWeaveDI-05-02.swift")
+            }
+        }
+    }
+}

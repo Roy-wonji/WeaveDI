@@ -1,8 +1,8 @@
 import SwiftUI
-import DiContainer
+import WeaveDI
 
 @main
-struct DiContainerApp: App {
+struct WeaveDIApp: App {
 
     init() {
         setupDependencies()

@@ -553,4 +553,29 @@ public extension UnifiedDI {
     }
 }
 
+// MARK: - Test Helpers
+
+extension UnifiedDI {
+  /// 테스트 전용: 비동기 등록 완료 대기
+  ///
+  /// 비동기 등록 후 호출하여 등록이 완료될 때까지 대기합니다.
+  /// Task.yield()를 사용하여 가벼운 대기를 수행합니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// func testAsyncRegistration() async {
+  ///     _ = UnifiedDI.register(UserService.self) { UserServiceImpl() }
+  ///     await UnifiedDI.waitForRegistration()
+  ///
+  ///     let service = UnifiedDI.resolve(UserService.self)
+  ///     XCTAssertNotNil(service)
+  /// }
+  /// ```
+  public static func waitForRegistration() async {
+    // 더 강력한 대기: Task.yield() + 짧은 대기
+    await Task.yield()
+    try? await Task.sleep(nanoseconds: 1_000_000) // 1ms 추가 대기
+  }
+}
+
 // MARK: - Legacy Compatibility
