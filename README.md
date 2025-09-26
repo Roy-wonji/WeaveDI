@@ -1,5 +1,7 @@
 # DiContainer
 
+![DiContainer – App Image](Sources/DiContainer.docc/Resources/Images/Logo.png)
+
 ![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Roy-wonji/DiContainer/blob/main/LICENSE)
@@ -321,45 +323,32 @@ python3 Scripts/plot_bench.py --csv bench.csv --out bench_plot
 ## 📖 문서 및 튜토리얼
 
 ### 📚 공식 문서
-- [튜토리얼(웹)](https://roy-wonji.github.io/DiContainer/tutorials/dicontainers/)
 - [API 문서](https://roy-wonji.github.io/DiContainer/documentation/dicontainer)
 - [자동 최적화 가이드](Sources/DiContainer.docc/ko.lproj/AutoDIOptimizer.md)
 - [Property Wrapper 가이드](Sources/DiContainer.docc/ko.lproj/PropertyWrappers.md)
 - [마이그레이션 3.0.0](Sources/DiContainer.docc/ko.lproj/MIGRATION-3.0.0.md)
 
-### 🎯 단계별 튜토리얼
+### ⚡ 핫패스 정적화 활성화 (USE_STATIC_FACTORY)
 
-#### 🟢 초급자용
-1. **[DiContainer 시작하기](Sources/DiContainer.docc/ko.lproj/DiContainer-GettingStarted.tutorial)** (5분)
-   - 서비스 정의부터 앱 통합까지 완전한 사용법
-   - Property Wrapper 기초 (@Inject 사용법)
-   - SwiftUI/UIKit 통합 방법
-   - 실제 동작하는 완전한 예제
+- 의미: 반복·프레임 루프 등 핫패스에서 런타임 해석을 없애 정적 생성/캐시로 대체해 비용을 0에 수렴하게 합니다.
+- 사용 위치: 코드에 `#if USE_STATIC_FACTORY` 분기(이미 템플릿 포함) → 빌드 플래그로 on/off
+- 활성화 방법
+  - Xcode: Target → Build Settings → Other Swift Flags(Release 또는 전용 스킴)에 `-DUSE_STATIC_FACTORY` 추가
+  - SPM CLI: `swift build -c release -Xswiftc -DUSE_STATIC_FACTORY`
+    - 테스트: `swift test -c release -Xswiftc -DUSE_STATIC_FACTORY`
 
-2. **[첫 번째 의존성 주입](Sources/DiContainer.docc/ko.lproj/Tutorial-YourFirstDI.tutorial)** (15분)
-   - 간단한 카운터 앱 만들기
-   - 단계별 상세 구현
+### 📏 성능 측정 가이드
 
-#### 🟡 중급자용
-3. **[DiContainer 완전정복](Sources/DiContainer.docc/ko.lproj/Tutorial-MeetDiContainer.tutorial)** (25분)
-   - @Inject, @Factory, @SafeInject 모든 Property Wrapper 학습
-   - Clean Architecture 구현
-   - ModuleFactory 패턴
-   - 완전한 테스트 커버리지
+- 반드시 Release + WMO(Whole‑Module Optimization)에서 측정하세요.
+  - Xcode: Release 스킴으로 실행(Release는 기본적으로 WMO 적용)
+  - SPM: `swift build -c release`, `swift test -c release`
+- 노이즈 최소화 팁
+  - 로그 레벨 낮추기: `UnifiedDI.setLogLevel(.errors)` 또는 `.off`
+  - 자동 최적화 ON: `UnifiedDI.configureOptimization(...)`, `UnifiedDI.setAutoOptimization(true)`
+  - 반복 루프는 resolve 캐시(루프 밖 1회 확보 → 안에서는 재사용)
 
-4. **[중급 DiContainer 활용법](Sources/DiContainer.docc/ko.lproj/Tutorial-IntermediateDiContainer.tutorial)** (30분)
-   - 복잡한 의존성 체인 관리
-   - 조건부 및 환경별 의존성 주입
-   - 스코프 기반 생명주기 관리
-
-#### 🔴 고급자용
-5. **[고급 최적화 및 성능](Sources/DiContainer.docc/ko.lproj/Tutorial-AdvancedDiContainer.tutorial)** (35분)
-   - AutoDIOptimizer 활용
-   - Actor Hop 통계 및 최적화
-   - 타입 안전성 및 성능 설정
-
-### 💡 빠른 시작
-초보자라면 **DiContainer 시작하기** 튜토리얼부터 시작하세요! Get Started 버튼을 클릭하면 바로 첫 번째 단계로 이동합니다.
+### 🎯 튜토리얼
+- [튜토리얼 모음(웹)](https://roy-wonji.github.io/DiContainer/tutorials/dicontainers)
 
 ## 🎯 주요 차별점
 

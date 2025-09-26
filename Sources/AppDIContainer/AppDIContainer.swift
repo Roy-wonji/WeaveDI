@@ -272,6 +272,11 @@ public final actor AppDIContainer {
   public func registerDependencies(
     registerModules: @escaping (Container) async -> Void
   ) async {
+    // Enable runtime optimization and minimize logging for performance-sensitive builds
+    UnifiedDI.configureOptimization(debounceMs: 100, threshold: 10, realTimeUpdate: true)
+    UnifiedDI.setAutoOptimization(true)
+    UnifiedDI.setLogLevel(.errors)
+
     // 1. self를 직접 캡처하지 않도록 container를 로컬 상수에 복사
     let containerCopy = container
 

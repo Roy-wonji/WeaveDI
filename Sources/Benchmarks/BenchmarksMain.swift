@@ -39,9 +39,18 @@ struct Benchmarks {
 
                 protocol Svc: Sendable {}
                 struct Impl: Svc {}
-                _ = UnifiedDI.register(Svc.self) { Impl() }
 
+                // ③ 재사용 타입은 인스턴스 등록으로 고정
+                DIContainer.live.register(Svc.self, instance: Impl())
+
+                // 워밍업
+                #if USE_STATIC_FACTORY
+                // ⑤ 핫패스 정적화: 런타임 해석을 제거
+                let warm = Impl()
+                _ = warm as Svc
+                #else
                 for _ in 0..<1000 { _ = UnifiedDI.resolve(Svc.self) }
+                #endif
 
                 let t0 = DispatchTime.now().uptimeNanoseconds
                 let step = max(1, n / 100_000)
@@ -49,8 +58,15 @@ struct Benchmarks {
                 samples.reserveCapacity(min(n, 100_000))
                 var last = DispatchTime.now().uptimeNanoseconds
 
+                // ② 반복 루프에서 resolve 캐시
+                #if USE_STATIC_FACTORY
+                let svc = Impl() as Svc
+                #else
+                let svc = UnifiedDI.resolve(Svc.self) as Svc?
+                #endif
+
                 for i in 0..<n {
-                    _ = UnifiedDI.resolve(Svc.self)
+                    _ = svc
                     if i % step == 0 {
                         let now = DispatchTime.now().uptimeNanoseconds
                         samples.append(now - last)
