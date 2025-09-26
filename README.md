@@ -349,7 +349,7 @@ python3 Scripts/plot_bench.py --csv bench.csv --out bench_plot
   - 반복 루프는 resolve 캐시(루프 밖 1회 확보 → 안에서는 재사용)
 
 ### 🎯 튜토리얼
-- [튜토리얼 모음(웹)](https://roy-wonji.github.io/WeaveDI/tutorials/dicontainers)
+- [튜토리얼 모음(웹)](https://roy-wonji.github.io/WeaveDI/tutorials/weavedicontainers)
 
 ## 🎯 주요 차별점
 
