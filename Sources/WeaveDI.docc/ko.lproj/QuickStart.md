@@ -1,6 +1,5 @@
 # 빠른 시작 가이드
 
-![WeaveDI Logo](Logo.png)
 
 WeaveDI를 5분만에 시작해보세요!
 
