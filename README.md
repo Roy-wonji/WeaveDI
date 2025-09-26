@@ -1,6 +1,8 @@
 # DiContainer
 
-![DiContainer – App Image](Sources/DiContainer.docc/Resources/Images/Logo.png)
+<p align="center">
+  <img src="Sources/DiContainer.docc/Resources/Images/Logo.png" alt="DiContainer – App Image" width="70%" height="400">
+</p>
 
 ![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)

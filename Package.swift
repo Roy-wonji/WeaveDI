@@ -2,13 +2,14 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import CompilerPluginSupport
 
 let package = Package(
     name: "DiContainer",
     platforms: [
-        .iOS(.v15), 
-        .macOS(.v14), 
-        .watchOS(.v8), 
+        .iOS(.v15),
+        .macOS(.v14),
+        .watchOS(.v8),
         .tvOS(.v15),
         .visionOS(.v1)
     ],
@@ -25,21 +26,31 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/Roy-wonji/LogMacro.git", from: "1.1.0"),
         .package(url: "https://github.com/apple/swift-docc-plugin.git", from: "1.4.5"),
+        .package(url: "https://github.com/apple/swift-syntax.git", exact: "600.0.1"),
     ],
     targets: [
         .target(
             name: "DiContainer",
             dependencies: [
                 .product(name: "LogMacro", package: "LogMacro"),
+                "DiContainerMacros"
             ],
             path: "Sources",
-            exclude: ["Benchmarks"],
+            exclude: ["Benchmarks", "DiContainerMacros"],
             resources: [
                 .process("DiContainer.docc")
             ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")
             ]
+        ),
+        .macro(
+            name: "DiContainerMacros",
+            dependencies: [
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+            ],
+            path: "Sources/DiContainerMacros"
         ),
         .testTarget(
             name: "DiContainerTests",
@@ -52,7 +63,7 @@ let package = Package(
             name: "Benchmarks",
             dependencies: ["DiContainer"],
             path: "Sources/Benchmarks"
-        )
+        ),
     ],
     swiftLanguageModes: [.v6]
 )

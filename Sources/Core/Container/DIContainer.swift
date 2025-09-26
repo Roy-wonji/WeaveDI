@@ -10,6 +10,14 @@ import Foundation
 import LogMacro
 import Combine
 
+// MARK: - Global Actor
+
+/// DIContainer 전용 Global Actor (자동 정의)
+@globalActor
+public actor DIContainerActor {
+    public static let shared = DIContainerActor()
+}
+
 // MARK: - DIContainer
 
 /// ## 개요
@@ -34,7 +42,8 @@ import Combine
 /// - **안전한 초기화**: 앱 시작 시 의존성 준비
 /// - **원자적 교체**: 컨테이너 전체를 한 번에 교체
 /// - **테스트 지원**: 테스트 간 격리 보장
-public final class DIContainer: @unchecked Sendable, ObservableObject {
+/// - **Swift 6 동시성**: 기존 API는 동기, Actor API는 자동 생성
+public final class DIContainer: ObservableObject, @unchecked Sendable {
 
     // MARK: - Properties
 
@@ -45,28 +54,103 @@ public final class DIContainer: @unchecked Sendable, ObservableObject {
     private let modulesQueue = DispatchQueue(label: "com.diContainer.modules", attributes: .concurrent)
     private var modules: [Module] = []
 
-    /// 스레드 안전한 shared 인스턴스 관리
-    private static let instanceLock = NSLock()
-    nonisolated(unsafe) private static var _instance = DIContainer()
+    /// Parent-Child 관계 지원
+    private let parent: DIContainer?
+    private var children: [DIContainer] = []
+    private let childrenQueue = DispatchQueue(label: "com.diContainer.children", attributes: .concurrent)
 
-    /// 전역 인스턴스 (원자적 접근 보장)
+    /// Swift 6 완전 호환 shared 인스턴스 관리
+    nonisolated(unsafe) private static var sharedContainer = DIContainer()
+    private static let sharedLock = NSLock()
+
+    /// 전역 인스턴스 (동기 API - 기존 호환성)
     public static var shared: DIContainer {
         get {
-            instanceLock.lock()
-            defer { instanceLock.unlock() }
-            return _instance
+            sharedLock.lock()
+            defer { sharedLock.unlock() }
+            return sharedContainer
         }
         set {
-            instanceLock.lock()
-            defer { instanceLock.unlock() }
-            _instance = newValue
+            sharedLock.lock()
+            defer { sharedLock.unlock() }
+            sharedContainer = newValue
         }
     }
+
+    // MARK: - Actor Protected API (자동 생성)
+
+    /// @DIContainerActor로 보호된 shared 인스턴스
+    @DIContainerActor
+    public static var actorShared: DIContainer {
+        get { shared }  // 내부적으로 락으로 보호됨
+        set { shared = newValue }
+    }
+
+    /// Actor 보호하에 의존성 등록
+    @DIContainerActor
+    public static func registerAsync<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) -> T where T: Sendable {
+        return actorShared.register(type, factory: factory)
+    }
+
+    /// Actor 보호하에 의존성 해결
+    @DIContainerActor
+    public static func resolveAsync<T>(_ type: T.Type) -> T? where T: Sendable {
+        return actorShared.resolve(type)
+    }
+
 
     // MARK: - Initialization
 
     /// 빈 컨테이너를 생성합니다
-    public init() {}
+    /// 기본 초기화 (루트 컨테이너)
+    public init() {
+        self.parent = nil
+    }
+
+    /// Parent-Child 초기화
+    /// - Parameter parent: 부모 컨테이너 (의존성을 상속받음)
+    public init(parent: DIContainer) {
+        self.parent = parent
+
+        // 부모에 자식으로 등록
+        parent.childrenQueue.sync(flags: .barrier) {
+            parent.children.append(self)
+        }
+    }
+
+    // MARK: - Parent-Child Container API
+
+    /// 새로운 자식 컨테이너를 생성합니다.
+    /// 자식 컨테이너는 부모의 의존성을 상속받습니다.
+    ///
+    /// ### 사용법:
+    /// ```swift
+    /// let appContainer = DIContainer()
+    /// appContainer.register(DatabaseService.self) { DatabaseImpl() }
+    ///
+    /// let userModule = appContainer.createChild()
+    /// userModule.register(UserRepository.self) {
+    ///     UserRepositoryImpl(database: resolve()) // 부모에서 Database 해결
+    /// }
+    /// ```
+    ///
+    /// - Returns: 새로운 자식 컨테이너
+    public func createChild() -> DIContainer {
+        return DIContainer(parent: self)
+    }
+
+    /// 모든 자식 컨테이너를 가져옵니다
+    /// - Returns: 현재 등록된 자식 컨테이너들
+    public func getChildren() -> [DIContainer] {
+        return childrenQueue.sync { children }
+    }
+
+    /// 부모 컨테이너를 가져옵니다.
+    /// - Returns: 부모 컨테이너 (루트인 경우 nil)
+    public func getParent() -> DIContainer? {
+        return parent
+    }
+
 
     // MARK: - Core Registration API
 
@@ -162,6 +246,15 @@ public final class DIContainer: @unchecked Sendable, ObservableObject {
         Log.debug("Registered instance for \(String(describing: type))")
     }
 
+    /// Actor 보호된 인스턴스 등록 (동시성 안전)
+    @DIContainerActor
+    public func actorRegister<T>(
+        _ type: T.Type,
+        instance: T
+    ) where T: Sendable {
+        register(type, instance: instance)
+    }
+
     // MARK: - Core Resolution API
 
     /// 등록된 의존성을 조회합니다
@@ -176,8 +269,15 @@ public final class DIContainer: @unchecked Sendable, ObservableObject {
             AutoDIOptimizer.shared.trackResolution(type)
         }
 
+        // 1. 현재 컨테이너에서 해결 시도
         if let result = typeSafeRegistry.resolve(type) {
-            Log.debug("Resolved \(String(describing: type))")
+            Log.debug("Resolved \(String(describing: type)) from current container")
+            return result
+        }
+
+        // 2. Parent 컨테이너에서 해결 시도
+        if let parent = parent, let result = parent.resolve(type) {
+            Log.debug("Resolved \(String(describing: type)) from parent container")
             return result
         }
 

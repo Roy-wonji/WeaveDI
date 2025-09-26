@@ -60,32 +60,32 @@ public enum UnifiedDI {
     factory: @escaping @Sendable () -> T
   ) -> T where T: Sendable {
     let instance = factory()
-    DependencyContainer.live.register(type, instance: instance)
+    Task { await DIContainer.shared.actorRegister(type, instance: instance) }
     return instance
   }
   
   // MARK: - Async Registration (DIActor-based)
   
-  /// DIActor를 사용한 비동기 의존성 등록 (권장)
+  /// DIContainerActor를 사용한 비동기 의존성 등록 (권장)
   ///
-  /// Actor 기반의 thread-safe한 의존성 등록을 제공합니다.
-  /// 기존 동기 API보다 더 안전하고 확장 가능합니다.
+  /// @DIContainerActor 기반의 thread-safe한 의존성 등록을 제공합니다.
+  /// DIContainer.registerAsync와 같은 방식으로 동작합니다.
   ///
   /// ### 사용 예시:
   /// ```swift
   /// Task {
-  ///     let releaseHandler = await UnifiedDI.registerAsync(UserService.self) {
+  ///     let instance = await UnifiedDI.registerAsync(UserService.self) {
   ///         UserServiceImpl()
   ///     }
-  ///     // 필요시 나중에 해제: await releaseHandler()
+  ///     // instance를 바로 사용 가능
   /// }
   /// ```
   @discardableResult
   public static func registerAsync<T>(
     _ type: T.Type,
     factory: @escaping @Sendable () -> T
-  ) async -> @Sendable () async -> Void where T: Sendable {
-    return await DIActorGlobalAPI.register(type, factory: factory)
+  ) async -> T where T: Sendable {
+    return await DIContainer.registerAsync(type, factory: factory)
   }
   
   /// KeyPath를 사용한 타입 안전한 등록 (UnifiedDI.register(\.keyPath) 스타일)
@@ -105,7 +105,7 @@ public enum UnifiedDI {
   ) -> T where T: Sendable {
     let instance = factory()
     // KeyPath를 통한 타입 추론으로 T.self를 등록
-    DependencyContainer.live.register(T.self, instance: instance)
+    Task { await DIContainer.shared.actorRegister(T.self, instance: instance) }
     return instance
   }
   
@@ -142,10 +142,10 @@ public enum UnifiedDI {
   
   // MARK: - Async Resolution (DIActor-based)
   
-  /// DIActor를 사용한 비동기 의존성 조회 (권장)
+  /// DIContainerActor를 사용한 비동기 의존성 조회 (권장)
   ///
-  /// Actor 기반의 thread-safe한 의존성 해결을 제공합니다.
-  /// 기존 동기 API보다 더 안전하고 성능이 우수합니다.
+  /// @DIContainerActor 기반의 thread-safe한 의존성 해결을 제공합니다.
+  /// DIContainer.resolveAsync와 같은 방식으로 동작합니다.
   ///
   /// ### 사용 예시:
   /// ```swift
@@ -156,15 +156,24 @@ public enum UnifiedDI {
   /// }
   /// ```
   public static func resolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
-    return await DIActorGlobalAPI.resolve(type)
+    return await DIContainer.resolveAsync(type)
   }
   
-  /// DIActor를 사용한 필수 의존성 조회 (실패 시 예외 발생)
+  /// DIContainerActor를 사용한 필수 의존성 조회 (실패 시 nil 반환)
   ///
   /// 반드시 등록되어 있어야 하는 의존성을 비동기적으로 조회합니다.
-  /// 등록되지 않은 경우 DIError를 throw합니다.
-  public static func requireResolveAsync<T>(_ type: T.Type) async throws -> T where T: Sendable {
-    return try await DIActorGlobalAPI.resolveThrows(type)
+  /// DIContainer.resolveAsync와 같은 방식으로 동작하며, 실패시 nil을 반환합니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// Task {
+  ///     if let service = await UnifiedDI.requireResolveAsync(UserService.self) {
+  ///         // 서비스 사용
+  ///     }
+  /// }
+  /// ```
+  public static func requireResolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
+    return await DIContainer.resolveAsync(type)
   }
   
   /// 필수 의존성을 조회합니다 (실패 시 명확한 에러 메시지와 함께 크래시)
