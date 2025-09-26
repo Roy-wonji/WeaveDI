@@ -98,4 +98,4 @@ swift run -c release Benchmarks --count 100k --quick
 
 ---
 
-📖 **문서**: [한국어](RuntimeOptimization.md) | [English](../RuntimeOptimization.md)
+📖 **문서**: [한국어](RuntimeOptimization) | [English](../en.lproj/RuntimeOptimization)

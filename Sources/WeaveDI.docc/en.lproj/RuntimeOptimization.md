@@ -98,4 +98,4 @@ Optimizations are implemented in the following files:
 
 ---
 
-📖 **Documentation**: [한국어](ko.lproj/RuntimeOptimization.md) | [English](RuntimeOptimization.md)
+📖 **Documentation**: [한국어](../ko.lproj/RuntimeOptimization) | [English](RuntimeOptimization)

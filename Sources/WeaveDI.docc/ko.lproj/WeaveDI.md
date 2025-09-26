@@ -1,6 +1,6 @@
 # ``WeaveDI``
 
-📖 **문서**: [한국어](WeaveDI) | [English](../WeaveDI) | [공식 사이트](https://roy-wonji.github.io/WeaveDI/documentation/weavedi)
+📖 **문서**: [한국어](WeaveDI) | [English](../en.lproj/WeaveDI) | [공식 사이트](https://roy-wonji.github.io/WeaveDI/documentation/weavedi)
 
 > 참고: 읽기(그래프/통계/최적화 여부 등)는 `UnifiedDI` 또는 `DIContainer`의 동기 헬퍼를 사용하세요. 내부 `AutoDIOptimizer`의 리더 API는 스냅샷 기반으로 통일되었으며, 외부에서는 직접 호출하지 않는 것을 권장합니다.
 
