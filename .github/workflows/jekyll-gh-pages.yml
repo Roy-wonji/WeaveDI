@@ -23,16 +23,29 @@ jobs:
         with:
           xcode-version: '16.4'
 
-      - name: Show toolchain versions
-        run: |
-          xcodebuild -version
-          swift --version
-
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build DocC (DiContainer → docs/)
+      - name: Debug: locate Package.swift
         run: |
+          pwd
+          ls -la
+          echo "---- search Package.swift ----"
+          FOUND=$(git ls-files | grep -E '/?Package.swift$' || true)
+          if [ -z "$FOUND" ]; then
+            echo "❌ Package.swift not found in repo. Commit your SwiftPM manifest."
+            exit 1
+          fi
+          echo "$FOUND" | sed -n '1p' > .package_path
+          echo "Found: $(cat .package_path)"
+
+      - name: Build DocC (WeaveDI → docs/)
+        run: |
+          PKG_DIR=$(dirname "$(cat .package_path)")
+          [ "$PKG_DIR" = "." ] && PKG_DIR="$PWD" || PKG_DIR="$PWD/$PKG_DIR"
+          echo "Using package dir: $PKG_DIR"
+          cd "$PKG_DIR"
+
           rm -rf docs
           swift package \
             --allow-writing-to-directory docs \
@@ -41,6 +54,7 @@ jobs:
             --output-path docs \
             --transform-for-static-hosting \
             --hosting-base-path /WeaveDI
+
           touch docs/.nojekyll
           cat > docs/index.html <<'HTML'
           <!DOCTYPE html><meta charset="utf-8">
@@ -51,7 +65,11 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: ${{ steps.build.outputs.docs_path || 'docs' }}
+        # 위 step에서 working dir을 바꿨으니, 기본값이면 업로드 경로를 repo 루트 기준으로 조정해야 합니다.
+        # 간단히 절대경로 업로드로 바꾸려면:
+        # with:
+        #   path: ${{ github.workspace }}/path/to/package/docs
 
   deploy:
     needs: build
