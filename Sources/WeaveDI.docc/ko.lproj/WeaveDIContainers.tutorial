@@ -18,11 +18,13 @@
     }
 
     @Chapter(name: "고급 활용") {
-        @Image(source: "dicontainer-advanced.png", alt: "WeaveDI 고급 활용")
-
-        중급 및 고급 WeaveDI 활용법을 마스터합니다.
-
-        @TutorialReference(tutorial: "doc:Tutorial-IntermediateWeaveDI")
-        @TutorialReference(tutorial: "doc:Tutorial-AdvancedWeaveDI")
+      @Image(source: "dicontainer-advanced.png", alt: "WeaveDI 고급 활용")
+      
+      중급 및 고급 WeaveDI 활용법을 마스터합니다.
+      
+      @TutorialReference(tutorial: "doc:Tutorial-IntermediateWeaveDI")
+      @TutorialReference(tutorial: "doc:Tutorial-AdvancedWeaveDI")
+      @TutorialReference(tutorial: "doc:Tutorial-NeedleStyle")
+      
     }
 }
