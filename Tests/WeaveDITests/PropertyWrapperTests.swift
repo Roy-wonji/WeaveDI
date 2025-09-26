@@ -28,7 +28,7 @@ final class PropertyWrapperTests: XCTestCase {
 
     // MARK: - @Inject Tests
 
-    func testInjectOptional_옵셔널주입() {
+  func testInjectOptional_옵셔널주입() async {
         // Test class with optional injection
         class TestService {
             @Inject var userService: TestUserService?
@@ -45,7 +45,7 @@ final class PropertyWrapperTests: XCTestCase {
         XCTAssertNil(service.performOperation())
 
         // Test with registration
-        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+        _ =  UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
         XCTAssertNotNil(service.userService)
         XCTAssertEqual(service.performOperation(), "user_inject_test")
     }
@@ -143,9 +143,10 @@ final class PropertyWrapperTests: XCTestCase {
 
     // MARK: - @SafeInject Tests
 
-    func testSafeInjectSuccess_안전주입성공() throws {
-        // Register service first
-        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
+    @MainActor
+    func testSafeInjectSuccess_안전주입성공() async throws {
+        // Register service directly into live container to avoid async timing issues
+        DependencyContainer.live.register(TestUserService.self, instance: TestUserServiceImpl())
 
         // Test class with safe injection
         class TestService {

@@ -5,7 +5,7 @@ import PackageDescription
 import CompilerPluginSupport
 
 let package = Package(
-    name: "DiContainer",
+    name: "WeaveDI",
     platforms: [
         .iOS(.v15),
         .macOS(.v14),
@@ -15,8 +15,8 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "DiContainer",
-            targets: ["DiContainer"]
+            name: "WeaveDI",
+            targets: ["WeaveDI"]
         ),
         .executable(
             name: "Benchmarks",
@@ -24,44 +24,45 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/Roy-wonji/LogMacro.git", from: "1.1.0"),
+        .package(url: "https://github.com/Roy-wonji/LogMacro.git", branch: "main"),
         .package(url: "https://github.com/apple/swift-docc-plugin.git", from: "1.4.5"),
-        .package(url: "https://github.com/apple/swift-syntax.git", exact: "600.0.1"),
+        .package(
+          url: "https://github.com/apple/swift-syntax.git",  "509.0.2"..<"602.0.0"),
     ],
     targets: [
         .target(
-            name: "DiContainer",
+            name: "WeaveDI",
             dependencies: [
                 .product(name: "LogMacro", package: "LogMacro"),
-                "DiContainerMacros"
+                "WeaveDIMacros"
             ],
             path: "Sources",
-            exclude: ["Benchmarks", "DiContainerMacros"],
+            exclude: ["Benchmarks", "WeaveDIMacros"],
             resources: [
-                .process("DiContainer.docc")
+                .process("WeaveDI.docc")
             ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")
             ]
         ),
         .macro(
-            name: "DiContainerMacros",
+            name: "WeaveDIMacros",
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
             ],
-            path: "Sources/DiContainerMacros"
+            path: "Sources/WeaveDIMacros"
         ),
         .testTarget(
-            name: "DiContainerTests",
+            name: "WeaveDITests",
             dependencies: [
-                "DiContainer"
+                "WeaveDI"
             ],
-            path: "Tests/DiContainerTests"
+            path: "Tests/WeaveDITests"
         ),
         .executableTarget(
             name: "Benchmarks",
-            dependencies: ["DiContainer"],
+            dependencies: ["WeaveDI"],
             path: "Sources/Benchmarks"
         ),
     ],

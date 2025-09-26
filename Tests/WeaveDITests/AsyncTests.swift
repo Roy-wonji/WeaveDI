@@ -6,7 +6,6 @@
 //
 
 import XCTest
-import LogMacro
 @testable import DiContainer
 
 // MARK: - Async Test Services
@@ -332,8 +331,8 @@ final class AsyncTests: XCTestCase {
         let startTime = CFAbsoluteTimeGetCurrent()
         try? await operation()
         let endTime = CFAbsoluteTimeGetCurrent()
-        let duration = endTime - startTime
-        Log.debug("Async operation took: \(duration * 1000)ms")
+      _ = endTime - startTime
+        // Log.debug("Async operation took: \(duration * 1000)ms") // Temporarily disabled
     }
 }
 

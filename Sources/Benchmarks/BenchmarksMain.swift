@@ -1,5 +1,5 @@
 import Foundation
-import DiContainer
+import WeaveDI
 import Darwin
 
 @main
