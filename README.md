@@ -7,9 +7,10 @@
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Roy-wonji/WeaveDI/blob/main/LICENSE)
 ![Platform](https://img.shields.io/badge/platforms-iOS%2015%2B%20%7C%20macOS%2014%2B%20%7C%20watchOS%208%2B%20%7C%20tvOS%2015%2B-lightgrey)
+[![Docs](https://img.shields.io/badge/docs-WeaveDI-blue)](https://roy-wonji.github.io/WeaveDI/documentation/weavedi)
 
 **현대적인 Swift Concurrency를 위한 간단하고 강력한 의존성 주입 프레임워크**
-[📖**공식 문서 보기**](https://roy-wonji.github.io/WeaveDI/documentation/weavedi)</br>
+
 참고: 읽기(그래프/통계/최적화 여부)는 UnifiedDI/DIContainer의 동기 헬퍼를 사용하세요. 내부 AutoDIOptimizer의 읽기용 API는 스냅샷 기반 내부용이며 외부 직접 호출은 비권장(Deprecated)입니다.
 
 ## 🎯 핵심 특징
