@@ -23,5 +23,6 @@
         중급 및 고급 DiContainer 활용법을 마스터합니다.
 
         @TutorialReference(tutorial: "doc:Tutorial-IntermediateDiContainer")
+        @TutorialReference(tutorial: "doc:Tutorial-AdvancedDiContainer")
     }
 }

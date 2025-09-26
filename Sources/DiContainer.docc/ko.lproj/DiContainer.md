@@ -138,7 +138,7 @@ class OptimizedViewController {
 1. **기본**: <doc:Tutorial-YourFirstDI>
 2. **초급**: <doc:Tutorial-MeetDiContainer>
 3. **중급**: <doc:Tutorial-IntermediateDiContainer>
-<!--4. **고급**: <doc:Tutorial-AdvancedDiContainer>-->
+4. **고급**: <doc:Tutorial-AdvancedDiContainer>
 
 
 ## Topics

@@ -158,7 +158,7 @@
 
         실무에서 사용하는 모듈별 Factory 패턴을 구현해보겠습니다.
 
-        @Code(name: "FactoryExtensions.swift", file: "RTutorial-MeetDiContainer-05-02.swift")
+        @Code(name: "FactoryExtensions.swift", file: "Tutorial-MeetDiContainer-05-02.swift")
       }
 
       @Step {
