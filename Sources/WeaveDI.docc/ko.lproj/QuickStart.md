@@ -6,7 +6,19 @@ WeaveDI를 5분만에 시작해보세요!
 
 ## 개요
 
-WeaveDI 2.0은 Swift Concurrency와 자동 최적화를 완벽 지원하는 현대적인 의존성 주입 프레임워크입니다. 이 가이드에서는 가장 기본적인 사용 방법부터 고급 기능까지 단계별로 안내합니다.
+WeaveDI 2.0은 Swift Concurrency와 자동 최적화를 완벽 지원하는 현대적인 의존성 주입 프레임워크입니다. **Uber Needle의 모든 핵심 장점을 흡수하면서도 더 나은 개발자 경험을 제공합니다.**
+
+### 🏆 Needle 대비 WeaveDI의 장점
+
+| 특징 | Needle | WeaveDI |
+|------|--------|---------|
+| **컴파일타임 안전성** | ✅ | ✅ (더 간편) |
+| **런타임 성능** | ✅ 제로 코스트 | ✅ 제로 코스트 + Actor 최적화 |
+| **Swift 6 지원** | ⚠️ 제한적 | ✅ 완벽 네이티브 |
+| **코드 생성 필요** | ❌ 필수 | ✅ 선택적 |
+| **마이그레이션** | ❌ All-or-nothing | ✅ 점진적 |
+
+> 💡 **Needle 사용자라면?** [Needle 스타일 사용법](NeedleStyleDI.md)에서 완벽한 마이그레이션 가이드를 확인하세요!
 
 ## 1단계: 설치
 
@@ -454,4 +466,67 @@ Task {
    }
    ```
 
-이제 WeaveDI를 프로젝트에 통합하고 현대적인 의존성 주입의 혜택을 누려보세요!
+## 🚀 Needle 수준 성능 활성화 (선택사항)
+
+Uber Needle과 동일한 제로 코스트 성능을 원한다면:
+
+### 1. 빌드 플래그 설정
+
+**Xcode:**
+```
+Build Settings → Other Swift Flags → -DUSE_STATIC_FACTORY 추가
+```
+
+**SPM:**
+```bash
+swift build -c release -Xswiftc -DUSE_STATIC_FACTORY
+```
+
+### 2. 앱 초기화 시 활성화
+
+```swift
+@main
+struct MyApp: App {
+    init() {
+        // Needle 수준 성능 활성화
+        UnifiedDI.enableStaticOptimization()
+        // 출력: 🚀 WeaveDI: Static factory optimization ENABLED
+    }
+}
+```
+
+### 3. 컴파일타임 의존성 검증
+
+```swift
+// Needle의 핵심 장점: 컴파일타임 안전성
+@DependencyGraph([
+    UserService.self: [NetworkService.self, Logger.self],
+    NetworkService.self: [Logger.self]
+])
+extension WeaveDI {}
+```
+
+### 4. 고성능 해결
+
+```swift
+// 성능이 중요한 곳에서 사용
+let fastService = UnifiedDI.staticResolve(UserService.self)
+
+// 성능 비교 확인
+print(UnifiedDI.performanceComparison())
+// 출력: 🏆 WeaveDI vs Needle Performance: EQUAL
+```
+
+### 5. Needle 마이그레이션
+
+```swift
+// Needle에서 마이그레이션하는 경우
+print(UnifiedDI.migrateFromNeedle())  // 단계별 가이드
+print(UnifiedDI.needleMigrationBenefits())  // 마이그레이션 이점
+```
+
+> 📖 **더 자세한 Needle 스타일 사용법:** [Needle 방식 DI 사용법](NeedleStyleDI.md)
+
+---
+
+이제 WeaveDI를 프로젝트에 통합하고 현대적인 의존성 주입의 혜택을 누려보세요! **Needle 사용자라면 더욱 강력하고 편리한 DI 경험을 얻을 수 있습니다.** 🏆

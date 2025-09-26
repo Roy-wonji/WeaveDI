@@ -353,14 +353,37 @@ python3 Scripts/plot_bench.py --csv bench.csv --out bench_plot
 
 ## 🎯 주요 차별점
 
+### 🏆 vs Uber Needle: 모든 장점 + 더 나은 경험
+
+| 특징 | Needle | WeaveDI | 결과 |
+|------|--------|---------|------|
+| **컴파일타임 안전성** | ✅ 코드 생성 | ✅ 매크로 기반 | **동등** |
+| **런타임 성능** | ✅ 제로 코스트 | ✅ 제로 코스트 + Actor 최적화 | **WeaveDI 우승** |
+| **Swift 6 지원** | ⚠️ 제한적 | ✅ 완벽 네이티브 | **WeaveDI 우승** |
+| **코드 생성 필요** | ❌ 필수 | ✅ 선택적 | **WeaveDI 우승** |
+| **학습 곡선** | ❌ 가파름 | ✅ 점진적 | **WeaveDI 우승** |
+| **마이그레이션** | ❌ All-or-nothing | ✅ 점진적 | **WeaveDI 우승** |
+
+```swift
+// Needle 수준 성능 + 더 쉬운 사용법
+UnifiedDI.enableStaticOptimization()  // Needle과 동일한 제로 코스트
+
+@DependencyGraph([  // 컴파일타임 검증
+    UserService.self: [NetworkService.self, Logger.self]
+])
+extension WeaveDI {}
+
+print(UnifiedDI.migrateFromNeedle())  // Needle → WeaveDI 마이그레이션 가이드
+```
+
 ### 1. 완전 자동화된 최적화
 - **별도 설정 없이** Actor hop 감지, 타입 안전성 검증, 성능 최적화가 자동 실행
-- **실시간 분석**으로 30초마다 최적화 수행
+- **실시간 분석**으로 30초마다 최적화 수행 (Needle에 없는 기능)
 - **개발자 친화적 제안**으로 성능 개선점 자동 안내
 
-### 2. Swift Concurrency 네이티브
+### 2. Swift Concurrency 네이티브 (Needle 대비 우위)
 - **Actor 안전성** 자동 검증 및 최적화 제안
-- **async/await 완벽 지원**
+- **async/await 완벽 지원** (Needle은 제한적)
 - **Sendable 프로토콜** 준수 검증
 
 ### 3. 단순하면서도 강력한 API
