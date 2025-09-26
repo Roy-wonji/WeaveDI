@@ -1,7 +1,5 @@
 # Needle 방식 DI 사용법
 
-![WeaveDI Logo](Logo.png)
-
 WeaveDI에서 Uber Needle 프레임워크와 유사한 방식으로 의존성 주입을 사용하는 방법을 안내합니다.
 
 ## 개요

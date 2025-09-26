@@ -87,7 +87,6 @@
         @ContentAndMedia {
             기존 Needle 코드를 WeaveDI로 점진적으로 마이그레이션하는 방법을 학습합니다.
 
-            @Image(source: Logo.png, alt: "WeaveDI Logo")
         }
 
         @Steps {
