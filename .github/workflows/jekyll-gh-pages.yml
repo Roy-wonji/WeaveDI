@@ -37,15 +37,15 @@ jobs:
           swift package \
             --allow-writing-to-directory docs \
             generate-documentation \
-            --target DiContainer \
+            --target WeaveDI \
             --output-path docs \
             --transform-for-static-hosting \
-            --hosting-base-path /DiContainer
+            --hosting-base-path /WeaveDI
           touch docs/.nojekyll
           cat > docs/index.html <<'HTML'
           <!DOCTYPE html><meta charset="utf-8">
-          <meta http-equiv="refresh" content="0; url=./documentation/dicontainer/">
-          <link rel="canonical" href="./documentation/dicontainer/">
+          <meta http-equiv="refresh" content="0; url=./documentation/weavedi/">
+          <link rel="canonical" href="./documentation/weavedi/">
           HTML
 
       - name: Upload artifact
