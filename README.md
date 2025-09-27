@@ -13,7 +13,7 @@
 
 참고: 읽기(그래프/통계/최적화 여부)는 UnifiedDI/DIContainer의 동기 헬퍼를 사용하세요. 내부 AutoDIOptimizer의 읽기용 API는 스냅샷 기반 내부용이며 외부 직접 호출은 비권장(Deprecated)입니다.
 
-📖 **문서**: [한국어](README.md) | [English](README-EN.md) | [공식 문서](https://roy-wonji.github.io/WeaveDI/i)
+📖 **문서**: [한국어](README.md) | [English](README-EN.md) | [공식 문서](https://roy-wonji.github.io/WeaveDI/)
 
 ## 🎯 핵심 특징
 
