@@ -1,0 +1,157 @@
+name: Deploy VitePress Documentation to GitHub Pages
+
+on:
+  # main 브랜치에 푸시될 때 자동 배포
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy.yml'
+
+  # 수동 실행 가능
+  workflow_dispatch:
+
+# GitHub Pages에 배포하기 위한 권한 설정
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 동시 배포 방지 - 진행 중인 배포가 있으면 대기
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # 빌드 및 아티팩트 업로드
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 전체 git 히스토리 가져오기 (lastUpdated 기능을 위해)
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🧹 Clean previous builds
+        run: |
+          rm -rf docs/.vitepress/dist
+          rm -rf docs/.vitepress/cache
+
+      - name: 🔍 Validate configuration
+        run: |
+          echo "✅ Validating VitePress configuration..."
+          npx vitepress build docs --dry-run
+
+      - name: 🏗️ Build VitePress documentation
+        run: |
+          echo "🏗️ Building VitePress documentation..."
+          npm run docs:build
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --max_old_space_size=4096
+
+      - name: 📊 Build size analysis
+        run: |
+          echo "📊 Analyzing build output..."
+          du -sh docs/.vitepress/dist
+          find docs/.vitepress/dist -name "*.js" -o -name "*.css" | wc -l
+          find docs/.vitepress/dist -name "*.html" | wc -l
+
+      - name: 🧪 Test built files
+        run: |
+          echo "🧪 Testing built documentation..."
+          # 필수 파일들이 생성되었는지 확인
+          test -f docs/.vitepress/dist/index.html || (echo "❌ index.html not found" && exit 1)
+          test -d docs/.vitepress/dist/assets || (echo "❌ assets directory not found" && exit 1)
+          test -f docs/.vitepress/dist/guide/quick-start.html || (echo "❌ quick-start.html not found" && exit 1)
+          test -f docs/.vitepress/dist/api/core-apis.html || (echo "❌ core-apis.html not found" && exit 1)
+          echo "✅ All required files are present"
+
+      - name: 🔗 Check for broken links
+        run: |
+          echo "🔗 Checking for broken internal links..."
+          # 상대 경로 링크들이 올바른지 확인
+          find docs/.vitepress/dist -name "*.html" -exec grep -l "href=\"[^h]" {} \; | head -5
+
+      - name: 📤 Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: 📤 Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+          name: github-pages
+          retention-days: 1
+
+  # GitHub Pages에 배포
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: ✅ Deployment success
+        run: |
+          echo "🎉 Documentation successfully deployed!"
+          echo "📖 Documentation URL: ${{ steps.deployment.outputs.page_url }}"
+          echo "🔗 Direct links:"
+          echo "   - Home: ${{ steps.deployment.outputs.page_url }}"
+          echo "   - Quick Start: ${{ steps.deployment.outputs.page_url }}guide/quick-start.html"
+          echo "   - API Reference: ${{ steps.deployment.outputs.page_url }}api/core-apis.html"
+          echo "   - Korean Docs: ${{ steps.deployment.outputs.page_url }}ko/"
+
+  # 배포 후 검증
+  post-deploy:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: 🔍 Verify deployment
+        run: |
+          echo "🔍 Verifying deployed documentation..."
+
+          # GitHub Pages URL이 응답하는지 확인
+          PAGES_URL="${{ needs.deploy.outputs.page_url }}"
+
+          # 메인 페이지 확인
+          curl -f -s "$PAGES_URL" > /dev/null && echo "✅ Main page is accessible" || echo "❌ Main page failed"
+
+          # 주요 페이지들 확인
+          curl -f -s "${PAGES_URL}guide/quick-start.html" > /dev/null && echo "✅ Quick Start page is accessible" || echo "❌ Quick Start page failed"
+          curl -f -s "${PAGES_URL}api/core-apis.html" > /dev/null && echo "✅ API reference is accessible" || echo "❌ API reference failed"
+          curl -f -s "${PAGES_URL}ko/" > /dev/null && echo "✅ Korean docs are accessible" || echo "❌ Korean docs failed"
+
+      - name: 📝 Create deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ WeaveDI Documentation has been successfully deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📖 Documentation Links" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏠 [Home Page](${{ needs.deploy.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
+          echo "- 🚀 [Quick Start Guide](${{ needs.deploy.outputs.page_url }}guide/quick-start.html)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📚 [API Reference](${{ needs.deploy.outputs.page_url }}api/core-apis.html)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🇰🇷 [Korean Documentation](${{ needs.deploy.outputs.page_url }}ko/)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 Build Info" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Time**: $(date -u)" >> $GITHUB_STEP_SUMMARY

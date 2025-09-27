@@ -1,0 +1,264 @@
+# 빠른 시작 가이드
+
+WeaveDI를 5분만에 시작해보세요!
+
+## 개요
+
+WeaveDI 2.0은 Swift Concurrency와 자동 최적화를 완벽 지원하는 현대적인 의존성 주입 프레임워크입니다. **Uber Needle의 모든 핵심 장점을 흡수하면서도 더 나은 개발자 경험을 제공합니다.**
+
+### 🏆 Needle 대비 WeaveDI의 장점
+
+| 특징 | Needle | WeaveDI |
+|------|--------|---------|
+| **컴파일타임 안전성** | ✅ | ✅ (더 간편) |
+| **런타임 성능** | ✅ 제로 코스트 | ✅ 제로 코스트 + Actor 최적화 |
+| **Swift 6 지원** | ⚠️ 제한적 | ✅ 완벽 네이티브 |
+| **코드 생성 필요** | ❌ 필수 | ✅ 선택적 |
+| **마이그레이션** | ❌ All-or-nothing | ✅ 점진적 |
+
+> 💡 **Needle 사용자라면?** [Needle 스타일 사용법](/ko/guide/needle-style-di)에서 완벽한 마이그레이션 가이드를 확인하세요!
+
+## 1단계: 설치
+
+### Swift Package Manager
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "2.0.0")
+]
+```
+
+### Xcode에서 설치
+
+1. Xcode에서 프로젝트 열기
+2. File → Add Package Dependencies
+3. URL 입력: `https://github.com/Roy-wonji/WeaveDI.git`
+4. Add Package
+
+## 2단계: 임포트
+
+```swift
+import WeaveDI
+```
+
+## 3단계: 첫 번째 의존성 등록
+
+### 서비스 정의
+
+```swift
+// 프로토콜 정의
+protocol UserService {
+    func getUser(id: String) -> User?
+    func saveUser(_ user: User) throws
+}
+
+// 구현체 정의
+class UserServiceImpl: UserService {
+    func getUser(id: String) -> User? {
+        // 사용자 조회 로직
+        return User(id: id, name: "Sample User")
+    }
+
+    func saveUser(_ user: User) throws {
+        // 사용자 저장 로직
+        Log.debug("Saving user: \(user.name)")
+    }
+}
+```
+
+### 의존성 등록 (UnifiedDI 사용)
+
+```swift
+// 앱 시작 시점에 등록
+let userService = UnifiedDI.register(UserService.self) {
+    UserServiceImpl()
+}
+
+// 즉시 사용 가능
+let user = userService.getUser(id: "123")
+```
+
+## 4단계: Property Wrapper로 주입
+
+### @Inject - 기본 주입
+
+```swift
+class UserViewController {
+    @Inject var userService: UserService?
+
+    func loadUser() {
+        if let service = userService {
+            let user = service.getUser(id: "current")
+            // UI 업데이트
+        }
+    }
+}
+```
+
+### @Factory - 매번 새로운 인스턴스
+
+```swift
+class ReportGenerator {
+    @Factory var pdfGenerator: PDFGenerator
+
+    func generateReport() {
+        // 매번 새로운 PDFGenerator 인스턴스 사용
+        let pdf = pdfGenerator.create()
+        return pdf
+    }
+}
+
+// PDFGenerator 등록
+_ = UnifiedDI.register(PDFGenerator.self) {
+    PDFGenerator()
+}
+```
+
+### @SafeInject - 안전한 주입 (에러 처리)
+
+```swift
+class APIController {
+    @SafeInject var apiService: APIService?
+
+    func fetchData() async {
+        do {
+            let service = try apiService.getValue()
+            let data = await service.fetchUserData()
+            // 데이터 처리
+        } catch {
+            Log.error("API service not available: \(error)")
+            // 대체 로직
+        }
+    }
+}
+```
+
+## 5단계: 다양한 등록 방법
+
+### KeyPath 등록
+
+```swift
+// Extension으로 KeyPath 정의
+extension DependencyContainer {
+    var userService: UserService? {
+        resolve(UserService.self)
+    }
+}
+
+// KeyPath로 등록
+let userService = UnifiedDI.register(\.userService) {
+    UserServiceImpl()
+}
+```
+
+### 조건부 등록
+
+```swift
+// 환경에 따른 조건부 등록
+let analyticsService = UnifiedDI.Conditional.registerIf(
+    AnalyticsService.self,
+    condition: isProduction,
+    factory: { FirebaseAnalyticsService() },  // 프로덕션용
+    fallback: { MockAnalyticsService() }      // 개발/테스트용
+)
+```
+
+## 6단계: 해결 방법들
+
+### 기본 해결
+
+```swift
+// 옵셔널 해결 (안전)
+let service = UnifiedDI.resolve(UserService.self)
+if let service = service {
+    // 사용
+}
+
+// 필수 해결 (없으면 크래시)
+let requiredService = UnifiedDI.requireResolve(UserService.self)
+// 항상 유효한 인스턴스
+
+// 기본값과 함께 해결
+let cacheService = UnifiedDI.resolve(
+    CacheService.self,
+    default: MemoryCacheService()
+)
+// 항상 유효한 인스턴스 (등록되지 않으면 기본값 사용)
+```
+
+## 7단계: 자동 최적화 활용
+
+### 자동화 기능 켜기
+
+```swift
+// 앱 시작 시점에 설정
+UnifiedDI.setAutoOptimization(true)  // 기본값: true
+UnifiedDI.setLogLevel(.all)          // 기본값: .all
+```
+
+### 자동 수집 정보 확인
+
+```swift
+// 사용 통계 확인
+let stats = UnifiedDI.stats
+Log.debug("사용 통계: \(stats)")
+
+// Actor hop 통계 확인
+let actorHopStats = UnifiedDI.actorHopStats
+Log.debug("Actor hop 통계: \(actorHopStats)")
+
+// 최적화 제안 확인
+let optimizations = UnifiedDI.actorOptimizations
+for (type, optimization) in optimizations {
+    Log.debug("최적화 제안 - \(type): \(optimization.suggestion)")
+}
+
+// 타입 안전성 이슈 확인
+let safetyIssues = UnifiedDI.typeSafetyIssues
+for (type, issue) in safetyIssues {
+    Log.warning("타입 안전성 이슈 - \(type): \(issue.suggestion)")
+}
+```
+
+## 다음 단계
+
+이제 WeaveDI의 기본 사용법을 익혔습니다! 더 자세한 내용은 다음 가이드들을 참고하세요:
+
+- [Property Wrapper 상세 가이드](/ko/guide/property-wrappers) - 모든 Property Wrapper 패턴
+- [자동 최적화 가이드](/ko/guide/auto-di-optimizer) - 성능 최적화 기능
+- [Core API 참조](/ko/api/core-apis) - 모든 API 레퍼런스
+
+## 🚀 Needle 수준 성능 활성화 (선택사항)
+
+Uber Needle과 동일한 제로 코스트 성능을 원한다면:
+
+### 1. 빌드 플래그 설정
+
+**Xcode:**
+```
+Build Settings → Other Swift Flags → -DUSE_STATIC_FACTORY 추가
+```
+
+**SPM:**
+```bash
+swift build -c release -Xswiftc -DUSE_STATIC_FACTORY
+```
+
+### 2. 앱 초기화 시 활성화
+
+```swift
+@main
+struct MyApp: App {
+    init() {
+        // Needle 수준 성능 활성화
+        UnifiedDI.enableStaticOptimization()
+        // 출력: 🚀 WeaveDI: Static factory optimization ENABLED
+    }
+}
+```
+
+> 📖 **더 자세한 Needle 스타일 사용법:** [Needle 방식 DI 사용법](/ko/guide/needle-style-di)
+
+---
+
+이제 WeaveDI를 프로젝트에 통합하고 현대적인 의존성 주입의 혜택을 누려보세요! **Needle 사용자라면 더욱 강력하고 편리한 DI 경험을 얻을 수 있습니다.** 🏆
