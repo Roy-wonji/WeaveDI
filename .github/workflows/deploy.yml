@@ -51,9 +51,15 @@ jobs:
             --target WeaveDI \
             --output-path site/docc \
             --transform-for-static-hosting \
-            --hosting-base-path /WeaveDI/docc
-          # DocC는 .nojekyll 필요 없음(정적 변환 시 기본 대응). 필요 시 아래 주석 해제
-          # touch site/docc/.nojekyll
+            --hosting-base-path /WeaveDI/docc \
+            --experimental-enable-symbol-variant-folding
+          # 안전한 호스팅을 위해 nojekyll 추가 (DocC도 안전하게 접근 가능)
+          touch site/docc/.nojekyll
+          cat > site/docc/index.html <<'HTML'
+          <!DOCTYPE html><meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=./documentation/weavedi/">
+          <link rel="canonical" href="./documentation/weavedi/">
+          HTML
 
       - name: 📦 Upload DocC artifact
         uses: actions/upload-artifact@v4
@@ -91,15 +97,11 @@ jobs:
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max_old_space_size=4096
-          # 문서 미완성일 땐 임시 무시 (완성 후 제거 권장)
           VP_IGNORE_DEAD_LINKS: '1'
         run: |
-          # base는 docs/.vitepress/config.ts에서 '/WeaveDI/' 여야 함
           npm run docs:build
           mkdir -p site
           cp -a docs/.vitepress/dist/* site/
-          # 루트 접근 편의를 위한 인덱스(옵션): 필요 없으면 제거
-          # [ -f site/index.html ] || echo '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./">' > site/index.html
           touch site/.nojekyll
 
       - name: 📦 Upload VitePress artifact
