@@ -20,21 +20,27 @@ features:
   - icon: 🚀
     title: Runtime Hot Path Optimization
     details: TypeID + lock-free reads improve performance by 50-80%. Lightning-fast dependency resolution.
+    link: /guide/runtimeOptimization
   - icon: 🎭
     title: Actor Hop Optimization
     details: Intelligently optimizes transitions between different Actor contexts to achieve maximum performance.
+    link: /guide/diActor
   - icon: 🔒
     title: Complete Type Safety
     details: KeyPath-based registration and strong type inference provide compile-time validation.
+    link: /guide/unifiedDi
   - icon: 📝
     title: Intuitive Property Wrappers
     details: "@Inject, @Factory, @SafeInject - simple and powerful dependency injection patterns."
+    link: /guide/propertyWrappers
   - icon: 🏗️
     title: Powerful Module System
     details: AppDIContainer, ModuleFactory, Container for scalable dependency management.
+    link: /guide/moduleSystem
   - icon: 🧪
     title: Test-Friendly Design
     details: Easy mocking, isolated tests, and reliable bootstrap reset for testing.
+    link: /guide/bootstrap
 ---
 
 ## Quick Example
