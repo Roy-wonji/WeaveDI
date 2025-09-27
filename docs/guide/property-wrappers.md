@@ -1,25 +1,25 @@
 # Property Wrappers
 
-WeaveDI의 강력한 프로퍼티 래퍼를 활용한 타입 안전한 의존성 주입
+Comprehensive guide to WeaveDI's powerful property wrappers for type-safe dependency injection.
 
 ## Overview
 
-WeaveDI는 Swift의 프로퍼티 래퍼 기능을 활용하여 의존성 주입을 더욱 직관적이고 안전하게 만들어줍니다. 세 가지 핵심 프로퍼티 래퍼가 서로 다른 사용 시나리오를 커버하며, 모든 래퍼는 컴파일 타임 안전성을 제공합니다.
+WeaveDI leverages Swift's property wrapper feature to make dependency injection more intuitive and safe. Three core property wrappers cover different usage scenarios, all providing compile-time safety.
 
-### 프로퍼티 래퍼 종류
+### Property Wrapper Types
 
-| 래퍼 | 용도 | 반환 타입 | 사용 시점 |
-|------|------|----------|----------|
-| `@Inject` | 선택적 의존성 | `Optional` | 없어도 동작하는 서비스 |
-| `@Factory` | 팩토리 인스턴스 | `Non-Optional` | 매번 새 인스턴스 필요 |
-| `@SafeInject` | 필수 의존성 | `Optional` + 에러 처리 | 반드시 있어야 하는 서비스 |
+| Wrapper | Purpose | Return Type | Use Case |
+|---------|---------|-------------|----------|
+| `@Inject` | Optional dependencies | `Optional` | Services that can be missing |
+| `@Factory` | Factory instances | `Non-Optional` | New instance each time |
+| `@SafeInject` | Required dependencies | `Optional` + Error handling | Critical services |
 
-### 프로퍼티 래퍼의 장점
+### Benefits of Property Wrappers
 
-- **선언적 문법**: 의존성을 프로퍼티처럼 선언만 하면 자동 주입
-- **지연 로딩**: 실제 사용 시점에 의존성 해결하여 앱 시작 시간 단축
-- **타입 안전성**: Swift 타입 시스템과 완벽 통합으로 컴파일 타임 검증
-- **메모리 효율성**: 자동 메모리 관리와 약한 참조 지원
+- **Declarative Syntax**: Simply declare dependencies as properties for automatic injection
+- **Lazy Loading**: Resolve dependencies at usage time to reduce app startup time
+- **Type Safety**: Perfect integration with Swift's type system for compile-time verification
+- **Memory Efficiency**: Automatic memory management with weak reference support
 
 ## @Inject
 

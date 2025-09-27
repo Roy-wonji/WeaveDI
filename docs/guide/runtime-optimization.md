@@ -1,6 +1,6 @@
 # Runtime Hot-Path Optimization
 
-Learn about the high-performance runtime optimization system introduced in WeaveDI v3.2.0.
+Learn about the high-performance runtime optimization system introduced in WeaveDI v3.1.0.
 
 ## Overview
 

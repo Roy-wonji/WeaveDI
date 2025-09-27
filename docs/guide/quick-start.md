@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get up and running with WeaveDI in minutes!
+Comprehensive guide to get up and running with WeaveDI - from basic setup to production-ready implementation in real projects.
 
 ## Overview
 
