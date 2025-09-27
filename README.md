@@ -7,7 +7,7 @@
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Roy-wonji/WeaveDI/blob/main/LICENSE)
 ![Platform](https://img.shields.io/badge/platforms-iOS%2015%2B%20%7C%20macOS%2014%2B%20%7C%20watchOS%208%2B%20%7C%20tvOS%2015%2B-lightgrey)
-[![Docs](https://roy-wonji.github.io/WeaveDI/)
+[![Docs](https://img.shields.io/badge/docs-WeaveDI-blue)](https://roy-wonji.github.io/WeaveDI/)
 
 **현대적인 Swift Concurrency를 위한 간단하고 강력한 의존성 주입 프레임워크**
 
