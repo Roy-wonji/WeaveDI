@@ -337,4 +337,4 @@ The automatic system provides better performance and requires no manual interven
 
 ---
 
-📖 **Documentation**: [한국어](../ko/api/auto-di-optimizer) | [English](auto-di-optimizer)
+📖 **Documentation**: [한국어](../ko/api/appDiIntegration) | [English](appDiIntegration)

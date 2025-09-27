@@ -563,7 +563,7 @@ class MigratedOrderService: OrderServiceProtocol { }
 
 ## See Also
 
-- [Property Wrappers](/guide/property-wrappers) - Dependency injection at point of use
-- [Module System](/guide/module-system) - Organizing large applications
+- [Property Wrappers](/guide/propertyWrappers) - Dependency injection at point of use
+- [Module System](/guide/moduleSystem) - Organizing large applications
 - [Bootstrap Guide](/guide/bootstrap) - Application initialization patterns
-- [Auto DI Optimizer](/guide/auto-di-optimizer) - Automatic performance optimization
+- [Auto DI Optimizer](/guide/autoDiOptimizer) - Automatic performance optimization

@@ -337,4 +337,4 @@ DIContainer.setCacheSize(100)
 
 ---
 
-📖 **문서**: [한국어](auto-di-optimizer) | [English](../api/auto-di-optimizer)
+📖 **문서**: [한국어](appDiIntegration) | [English](../api/appDiIntegration)
