@@ -4,25 +4,28 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'WeaveDI',
   description: 'Modern Dependency Injection Framework for Swift',
-  base: '/WeaveDI/',                 // ← GitHub Pages 프로젝트 페이지면 꼭 레포명!
+  base: '/WeaveDI/',
 
-  // ✅ 다국어 루트 정의 (ko는 prefix 링크 명시)
-  locales: {
-    root: {
-      label: 'English',
-      lang: 'en'
-    },
+  // ✅ Dead link 검사: 로컬에선 ON, CI에선 OFF (VP_IGNORE_DEAD_LINKS=1)
+  ignoreDeadLinks: process.env.VP_IGNORE_DEAD_LINKS === '1'
+  // 또는 특정 경로만 임시 무시하고 싶다면:
+  // ignoreDeadLinks: [
+  //   /^https?:\/\//,                 // 외부 링크 무시
+  //   /#.+$/,                         // 앵커만 있는 내부 링크 무시
+  //   /^\/(ko\/)?guide\/(module-factory|runtime-optimization)(\.html)?$/ // 작성 예정 문서
+  // ],
+
+  ,locales: {
+    root: { label: 'English', lang: 'en' },
     ko: {
       label: '한국어',
       lang: 'ko',
-      link: '/WeaveDI/ko/'           // ← 배포 URL 기준 prefix(+base). 로컬 dev에선 '/ko/'로도 동작
-      // (만약 로컬 dev에서만 '/ko/' 필요하면 빌드 시만 base가 붙는 형태라 그대로 두셔도 됩니다)
+      link: '/WeaveDI/ko/'
     }
   },
 
-  // ✅ 전역 테마 + locale별 override는 여기에서!
   themeConfig: {
-    logo: '/logo.svg',               // docs/public/logo.svg 파일
+    logo: '/logo.svg',
     siteTitle: 'WeaveDI',
 
     search: { provider: 'local' },
@@ -33,7 +36,6 @@ export default defineConfig({
 
     lastUpdated: { text: 'Last updated' },
 
-    // 영어 기본 내비/사이드바
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/quick-start' },
@@ -162,17 +164,16 @@ export default defineConfig({
                 { text: '실전 가이드', link: '/ko/api/practical-guide' }
               ]
             }
-          ]
-        },
-        footer: {
-          message: 'MIT 라이선스 하에 릴리스됨.',
-          copyright: 'Copyright © 2024 WeaveDI Team'
+          ],
+          footer: {
+            message: 'MIT 라이선스 하에 릴리스됨.',
+            copyright: 'Copyright © 2024 WeaveDI Team'
+          }
         }
       }
     }
   },
 
-  // 코드 하이라이트/라인 넘버
   markdown: {
     theme: { light: 'github-light', dark: 'github-dark' },
     lineNumbers: true

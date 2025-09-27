@@ -123,10 +123,10 @@ let service = await UnifiedDI.resolve(UserService.self)
 
 Step-by-step learning path:
 
-1. **Basics**: [Your First DI](/guide/tutorial-your-first-di)
-2. **Beginner**: [Meet WeaveDI](/guide/tutorial-meet-weavedi)
-3. **Intermediate**: [Intermediate WeaveDI](/guide/tutorial-intermediate-weavedi)
-4. **Advanced**: [Advanced WeaveDI](/guide/tutorial-advanced-weavedi)
+1. **Basics**: [Quick Start](/guide/quick-start)
+2. **Beginner**: [Bootstrap](/guide/bootstrap)
+3. **Intermediate**: [Property Wrappers](/guide/property-wrappers)
+4. **Advanced**: [Module System](/guide/module-system)
 
 ## 📚 Documentation Topics
 

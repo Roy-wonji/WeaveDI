@@ -234,6 +234,6 @@ class CriticalService {
 
 ## See Also
 
-- [Core APIs](/guide/core-apis) - Core API reference
-- [Quick Start](/quick-start) - Getting started guide
+- [Core APIs](/api/core-apis) - Core API reference
+- [Quick Start](/guide/quick-start) - Getting started guide
 - [Runtime Optimization](/guide/runtime-optimization) - Performance optimization

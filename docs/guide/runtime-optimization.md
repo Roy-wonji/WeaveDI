@@ -92,6 +92,6 @@ Optimizations are implemented in the following files:
 
 ## See Also
 
-- [Performance Optimization Guide](../../PERFORMANCE-OPTIMIZATION.md)
-- [Benchmarks Documentation](/ko/benchmarks)
+- [Performance Optimization Guide](/guide/runtime-optimization)
+- [Benchmarks Documentation](/guide/benchmarks)
 - [UnifiedDI API](/guide/unified-di)
