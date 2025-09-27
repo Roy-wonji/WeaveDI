@@ -1,76 +1,29 @@
-name: Deploy VitePress + DocC (GitHub Actions only)
+name: Deploy VitePress Documentation to GitHub Pages
 
 on:
   push:
     branches: [ main ]
     paths:
       - 'docs/**'
-      - 'Sources/**'
-      - 'Package.swift'
       - 'package.json'
       - 'package-lock.json'
-      - '.github/workflows/deploy.yml'
+      - '.github/workflows/deploy-vitepress.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write   # gh-pages 브랜치 푸시에 필요
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: 'pages'
   cancel-in-progress: true
 
 jobs:
-  # 1) DocC 빌드 (macOS)
-  build_docc:
-    runs-on: macos-15
-    steps:
-      - name: 📥 Checkout (full)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🛠️ Select Xcode 16.4 (Swift 6.1)
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '16.4'
-
-      - name: 🔎 Verify Package.swift
-        run: |
-          test -f Package.swift || (echo "❌ Package.swift not found at repo root"; exit 1)
-
-      - name: 🧱 Build DocC → site/docc/
-        run: |
-          rm -rf site
-          mkdir -p site/docc
-          swift package \
-            --allow-writing-to-directory site/docc \
-            generate-documentation \
-            --target WeaveDI \
-            --output-path site/docc \
-            --transform-for-static-hosting \
-            --hosting-base-path /WeaveDI/docc
-          # DocC 진입 리다이렉트
-          cat > site/docc/index.html <<'HTML'
-          <!doctype html><meta charset="utf-8">
-          <meta http-equiv="refresh" content="0; url=./documentation/weavedi/">
-          <link rel="canonical" href="./documentation/weavedi/">
-          HTML
-          # Jekyll 처리 방지(옵션)
-          touch site/docc/.nojekyll
-
-      - name: 📦 Upload DocC artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: docc-site
-          path: site/docc
-          if-no-files-found: error
-          retention-days: 3
-
-  # 2) VitePress 빌드 (Ubuntu)
-  build_vitepress:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout (full)
+      - name: 📥 Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -83,66 +36,57 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             docs/**
-
       - name: 📦 Install deps
         run: npm ci
+
+      - name: 🔐 Audit (prod deps only)
+        run: npm audit --omit=dev --audit-level=high || true
 
       - name: 🧹 Clean
         run: rm -rf docs/.vitepress/dist docs/.vitepress/cache
 
-      - name: 🏗️ Build VitePress → site/
+      - name: 🔎 Debug base / routes (optional)
+        run: |
+          echo "Expected base => /WeaveDI/ in docs/.vitepress/config.ts"
+          test -f docs/.vitepress/config.ts && sed -n '1,80p' docs/.vitepress/config.ts || true
+      - name: 🏗️ Build VitePress
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max_old_space_size=4096
-          VP_IGNORE_DEAD_LINKS: '1'   # 작성중 링크 임시 무시, 완료 후 제거 권장
+          VP_IGNORE_DEAD_LINKS: '1'   # 문서 미완성 시 데드링크 임시 무시(완성 후 제거 권장)
         run: |
-          # base는 docs/.vitepress/config.ts 에서 반드시 '/WeaveDI/' 여야 함
+          echo "🔗 Internal links snapshot (first 30):"
+          # [text](/path) 형태 내부 링크 프린트(안전한 ERE 사용)
+          grep -RhoE '\]\(\/[^) ]+\)' docs 2>/dev/null \
+            | sed -E 's/.*\]\(//; s/\)//' \
+            | sort -u | head -30 || true
           npm run docs:build
-          mkdir -p site
-          cp -a docs/.vitepress/dist/* site/
-          touch site/.nojekyll
+      - name: ⚙️ Configure Pages
+        uses: actions/configure-pages@v4
 
-      - name: 📦 Upload VitePress artifact
-        uses: actions/upload-artifact@v4
+      - name: 📤 Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: vitepress-site
-          path: site
-          if-no-files-found: error
-          retention-days: 3
+          path: docs/.vitepress/dist
+          name: github-pages
+          retention-days: 1
 
-  # 3) 병합 후 gh-pages로 푸시 (배포)
-  publish_gh_pages:
-    needs: [build_docc, build_vitepress]
+  deploy:
+    needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: 📥 Download VitePress
-        uses: actions/download-artifact@v4
-        with:
-          name: vitepress-site
-          path: site
-
-      - name: 📥 Download DocC (into /docc)
-        uses: actions/download-artifact@v4
-        with:
-          name: docc-site
-          path: site/docc
-
-      - name: 🗂️ Preview tree
-        run: |
-          echo "== site =="
-          find site -maxdepth 2 -type d -print
-
-      - name: 🚀 Push to gh-pages (Actions only, no deploy-pages)
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: site
-          force_orphan: true
-          commit_message: "docs: publish VitePress (/WeaveDI) + DocC (/WeaveDI/docc)"
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
       - name: ✅ Summary
         run: |
-          echo "## ✅ Deployed via Actions (gh-pages push)" >> $GITHUB_STEP_SUMMARY
-          echo "Main (VitePress): https://roy-wonji.github.io/WeaveDI/" >> $GITHUB_STEP_SUMMARY
-          echo "DocC:            https://roy-wonji.github.io/WeaveDI/docc/" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "URL: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Home: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Quick Start: ${{ steps.deployment.outputs.page_url }}guide/quick-start.html" >> $GITHUB_STEP_SUMMARY
+          echo "- API: ${{ steps.deployment.outputs.page_url }}api/core-apis.html" >> $GITHUB_STEP_SUMMARY
