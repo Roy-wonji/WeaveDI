@@ -95,7 +95,7 @@ export default defineConfig({
         },
         footer: {
           message: 'MIT 라이선스 하에 릴리스됨.',
-          copyright: 'Copyright © 2024 WeaveDI Team'
+          copyright: 'Copyright © 2025 WeaveDI Team'
         }
       }
     }
