@@ -1,6 +1,6 @@
 # 🚀 Runtime Hot-Path Micro-Optimizations
 
-WeaveDI v3.2.0 introduces advanced runtime optimizations specifically designed for hot-path performance in dependency injection scenarios.
+WeaveDI v3.1.0 introduces advanced runtime optimizations specifically designed for hot-path performance in dependency injection scenarios.
 
 ## 🎯 Optimization Overview
 

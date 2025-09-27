@@ -11,7 +11,7 @@ hero:
   actions:
     - theme: brand
       text: Get Started
-      link: /guide/quick-start
+      link: /guide/quickStart
     - theme: alt
       text: View on GitHub
       link: https://github.com/Roy-wonji/WeaveDI

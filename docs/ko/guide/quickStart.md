@@ -8,7 +8,7 @@
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.2.0")
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.1.0")
 ]
 ```
 

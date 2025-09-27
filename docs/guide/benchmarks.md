@@ -19,7 +19,7 @@ WeaveDI 3.1+ introduces significant performance improvements over traditional DI
 
 ### Runtime Optimization Results
 
-With runtime optimization enabled in v3.2.0:
+With runtime optimization enabled in v3.1.0:
 
 | Scenario | Improvement | Description |
 |----------|-------------|-------------|

@@ -182,7 +182,7 @@ export default defineConfig({
     socialLinks: [{ icon: 'github', link: 'https://github.com/Roy-wonji/WeaveDI' }],
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2024 WeaveDI Team'
+      copyright: 'Copyright © 2025 WeaveDI Team'
     },
 
   },

@@ -6,11 +6,11 @@ A high-performance dependency injection framework designed for modern Swift Conc
 
 ## Overview
 
-WeaveDI 3.2 is a next-generation dependency injection framework for iOS 15.0+, macOS 14.0+, watchOS 8.0+, tvOS 15.0+ applications. It seamlessly integrates with Swift's latest concurrency model and improves dependency resolution performance by up to **80%** through **Runtime Hot-Path Optimization**.
+WeaveDI 3.1.0 is a next-generation dependency injection framework for iOS 15.0+, macOS 14.0+, watchOS 8.0+, tvOS 15.0+ applications. It seamlessly integrates with Swift's latest concurrency model and improves dependency resolution performance by up to **80%** through **Runtime Hot-Path Optimization**.
 
 ### 🚀 Key Features
 
-#### 🚀 Runtime Hot-Path Optimization (v3.2.0)
+#### 🚀 Runtime Hot-Path Optimization (v3.1.0)
 50-80% performance improvement with TypeID + lock-free reads. See <doc:RuntimeOptimization> for details.
 
 #### 🎭 Actor Hop Optimization
