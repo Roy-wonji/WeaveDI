@@ -1,93 +1,109 @@
+// docs/.vitepress/config.ts
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'WeaveDI',
   description: 'Modern Dependency Injection Framework for Swift',
-  base: '/WeaveDI/',
+  base: '/WeaveDI/',                 // ← GitHub Pages 프로젝트 페이지면 꼭 레포명!
 
-  // 다국어 설정
+  // ✅ 다국어 루트 정의 (ko는 prefix 링크 명시)
   locales: {
     root: {
       label: 'English',
-      lang: 'en',
-      title: 'WeaveDI',
-      description: 'Modern Dependency Injection Framework for Swift',
-      themeConfig: {
-        nav: [
-          { text: 'Home', link: '/' },
-          { text: 'Guide', link: '/guide/quick-start' },
-          { text: 'API Reference', link: '/api/core-apis' },
-          { text: 'GitHub', link: 'https://github.com/Roy-wonji/WeaveDI' }
-        ],
-        sidebar: {
-          '/guide/': [
-            {
-              text: 'Getting Started',
-              items: [
-                { text: 'Quick Start', link: '/guide/quick-start' },
-                { text: 'Bootstrap', link: '/guide/bootstrap' },
-                { text: 'Property Wrappers', link: '/guide/property-wrappers' }
-              ]
-            },
-            {
-              text: 'Core Concepts',
-              items: [
-                { text: 'Unified DI', link: '/guide/unified-di' },
-                { text: 'Container Usage', link: '/guide/container-usage' },
-                { text: 'Scopes', link: '/guide/scopes' }
-              ]
-            },
-            {
-              text: 'Advanced',
-              items: [
-                { text: 'Module System', link: '/guide/module-system' },
-                { text: 'Module Factory', link: '/guide/module-factory' },
-                { text: 'Auto DI Optimizer', link: '/guide/auto-di-optimizer' },
-                { text: 'Runtime Optimization', link: '/guide/runtime-optimization' }
-              ]
-            },
-            {
-              text: 'Integration',
-              items: [
-                { text: 'App DI Integration', link: '/guide/app-di-integration' },
-                { text: 'Needle Style DI', link: '/guide/needle-style-di' },
-                { text: 'Dependency Key Patterns', link: '/guide/dependency-key-patterns' }
-              ]
-            },
-            {
-              text: 'Migration',
-              items: [
-                { text: 'Migration 2.0.0', link: '/guide/migration-2.0.0' },
-                { text: 'Migration 3.0.0', link: '/guide/migration-3.0.0' }
-              ]
-            }
-          ],
-          '/api/': [
-            {
-              text: 'API Reference',
-              items: [
-                { text: 'Core APIs', link: '/api/core-apis' },
-                { text: 'Bulk Registration DSL', link: '/api/bulk-registration-dsl' },
-                { text: 'Practical Guide', link: '/api/practical-guide' }
-              ]
-            }
-          ]
-        },
-        socialLinks: [
-          { icon: 'github', link: 'https://github.com/Roy-wonji/WeaveDI' }
-        ],
-        footer: {
-          message: 'Released under the MIT License.',
-          copyright: 'Copyright © 2024 WeaveDI Team'
-        }
-      }
+      lang: 'en'
     },
     ko: {
       label: '한국어',
       lang: 'ko',
-      title: 'WeaveDI',
-      description: 'Swift를 위한 현대적인 의존성 주입 프레임워크',
-      themeConfig: {
+      link: '/WeaveDI/ko/'           // ← 배포 URL 기준 prefix(+base). 로컬 dev에선 '/ko/'로도 동작
+      // (만약 로컬 dev에서만 '/ko/' 필요하면 빌드 시만 base가 붙는 형태라 그대로 두셔도 됩니다)
+    }
+  },
+
+  // ✅ 전역 테마 + locale별 override는 여기에서!
+  themeConfig: {
+    logo: '/logo.svg',               // docs/public/logo.svg 파일
+    siteTitle: 'WeaveDI',
+
+    search: { provider: 'local' },
+
+    editLink: {
+      pattern: 'https://github.com/Roy-wonji/WeaveDI/edit/main/docs/:path'
+    },
+
+    lastUpdated: { text: 'Last updated' },
+
+    // 영어 기본 내비/사이드바
+    nav: [
+      { text: 'Home', link: '/' },
+      { text: 'Guide', link: '/guide/quick-start' },
+      { text: 'API Reference', link: '/api/core-apis' },
+      { text: 'GitHub', link: 'https://github.com/Roy-wonji/WeaveDI' }
+    ],
+    sidebar: {
+      '/guide/': [
+        {
+          text: 'Getting Started',
+          items: [
+            { text: 'Quick Start', link: '/guide/quick-start' },
+            { text: 'Bootstrap', link: '/guide/bootstrap' },
+            { text: 'Property Wrappers', link: '/guide/property-wrappers' }
+          ]
+        },
+        {
+          text: 'Core Concepts',
+          items: [
+            { text: 'Unified DI', link: '/guide/unified-di' },
+            { text: 'Container Usage', link: '/guide/container-usage' },
+            { text: 'Scopes', link: '/guide/scopes' }
+          ]
+        },
+        {
+          text: 'Advanced',
+          items: [
+            { text: 'Module System', link: '/guide/module-system' },
+            { text: 'Module Factory', link: '/guide/module-factory' },
+            { text: 'Auto DI Optimizer', link: '/guide/auto-di-optimizer' },
+            { text: 'Runtime Optimization', link: '/guide/runtime-optimization' }
+          ]
+        },
+        {
+          text: 'Integration',
+          items: [
+            { text: 'App DI Integration', link: '/guide/app-di-integration' },
+            { text: 'Needle Style DI', link: '/guide/needle-style-di' },
+            { text: 'Dependency Key Patterns', link: '/guide/dependency-key-patterns' }
+          ]
+        },
+        {
+          text: 'Migration',
+          items: [
+            { text: 'Migration 2.0.0', link: '/guide/migration-2.0.0' },
+            { text: 'Migration 3.0.0', link: '/guide/migration-3.0.0' }
+          ]
+        }
+      ],
+      '/api/': [
+        {
+          text: 'API Reference',
+          items: [
+            { text: 'Core APIs', link: '/api/core-apis' },
+            { text: 'Bulk Registration DSL', link: '/api/bulk-registration-dsl' },
+            { text: 'Practical Guide', link: '/api/practical-guide' }
+          ]
+        }
+      ]
+    },
+
+    socialLinks: [{ icon: 'github', link: 'https://github.com/Roy-wonji/WeaveDI' }],
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2024 WeaveDI Team'
+    },
+
+    // ✅ 한국어 내비/사이드바 override
+    locales: {
+      ko: {
         nav: [
           { text: '홈', link: '/ko/' },
           { text: '가이드', link: '/ko/guide/quick-start' },
@@ -148,9 +164,6 @@ export default defineConfig({
             }
           ]
         },
-        socialLinks: [
-          { icon: 'github', link: 'https://github.com/Roy-wonji/WeaveDI' }
-        ],
         footer: {
           message: 'MIT 라이선스 하에 릴리스됨.',
           copyright: 'Copyright © 2024 WeaveDI Team'
@@ -159,37 +172,12 @@ export default defineConfig({
     }
   },
 
-  // 테마 설정
-  themeConfig: {
-    logo: '/logo.svg',
-    siteTitle: 'WeaveDI',
-
-    // 검색 설정
-    search: {
-      provider: 'local'
-    },
-
-    // 편집 링크
-    editLink: {
-      pattern: 'https://github.com/Roy-wonji/WeaveDI/edit/main/docs/:path'
-    },
-
-    // 마지막 업데이트
-    lastUpdated: {
-      text: 'Last updated'
-    }
-  },
-
-  // Markdown 설정
+  // 코드 하이라이트/라인 넘버
   markdown: {
-    theme: {
-      light: 'github-light',
-      dark: 'github-dark'
-    },
+    theme: { light: 'github-light', dark: 'github-dark' },
     lineNumbers: true
   },
 
-  // Head 설정
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }],
     ['meta', { name: 'theme-color', content: '#646cff' }],
