@@ -93,3 +93,4 @@ jobs:
           echo "- Home: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
           echo "- Quick Start: ${{ steps.deployment.outputs.page_url }}guide/quick-start.html" >> $GITHUB_STEP_SUMMARY
           echo "- API: ${{ steps.deployment.outputs.page_url }}api/core-apis.html" >> $GITHUB_STEP_SUMMARY
+ 이거 두개 를 쓰는데 가각 다른 링크로 하고 싶어 
