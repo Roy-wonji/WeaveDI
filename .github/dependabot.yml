@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"               # package.json 위치가 docs/면 "/docs"로
+    schedule:
+      interval: weekly
+    # esbuild는 상위 체인이 아직 올리지 못하니 임시 무시
+    ignore:
+      - dependency-name: "esbuild"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+    # vitepress/vite/esbuild를 같은 PR로 묶어 관리
+    groups:
+      vitepress-stack:
+        patterns:
+          - "vitepress"
+          - "vite"
+          - "esbuild"
+    open-pull-requests-limit: 5
+    rebase-strategy: auto

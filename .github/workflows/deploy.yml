@@ -40,6 +40,9 @@ jobs:
       - name: 📦 Install deps
         run: npm ci
 
+      - name: 🔐 Audit (prod deps only)
+        run: npm audit --omit=dev --audit-level=high || true
+
       - name: 🧹 Clean
         run: rm -rf docs/.vitepress/dist docs/.vitepress/cache
 
