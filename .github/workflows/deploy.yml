@@ -1,4 +1,4 @@
-name: Deploy VitePress + DocC to GitHub Pages
+name: Deploy VitePress + DocC (GitHub Actions only)
 
 on:
   push:
@@ -14,8 +14,6 @@ on:
 
 permissions:
   contents: write   # gh-pages 브랜치 푸시에 필요
-  pages: write
-  id-token: write
 
 concurrency:
   group: 'pages'
@@ -38,7 +36,6 @@ jobs:
 
       - name: 🔎 Verify Package.swift
         run: |
-          ls -la
           test -f Package.swift || (echo "❌ Package.swift not found at repo root"; exit 1)
 
       - name: 🧱 Build DocC → site/docc/
@@ -52,12 +49,13 @@ jobs:
             --output-path site/docc \
             --transform-for-static-hosting \
             --hosting-base-path /WeaveDI/docc
-          # DocC 인덱스 리다이렉트(편의)
+          # DocC 진입 리다이렉트
           cat > site/docc/index.html <<'HTML'
-          <!DOCTYPE html><meta charset="utf-8">
+          <!doctype html><meta charset="utf-8">
           <meta http-equiv="refresh" content="0; url=./documentation/weavedi/">
           <link rel="canonical" href="./documentation/weavedi/">
           HTML
+          # Jekyll 처리 방지(옵션)
           touch site/docc/.nojekyll
 
       - name: 📦 Upload DocC artifact
@@ -96,8 +94,9 @@ jobs:
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max_old_space_size=4096
-          VP_IGNORE_DEAD_LINKS: '1'   # 문서 작성 중엔 임시 허용, 완성 후 제거 권장
+          VP_IGNORE_DEAD_LINKS: '1'   # 작성중 링크 임시 무시, 완료 후 제거 권장
         run: |
+          # base는 docs/.vitepress/config.ts 에서 반드시 '/WeaveDI/' 여야 함
           npm run docs:build
           mkdir -p site
           cp -a docs/.vitepress/dist/* site/
@@ -111,8 +110,8 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  # 3) 병합 & gh-pages 배포 (git push 방식 — 콜론 파일 허용)
-  merge_and_deploy:
+  # 3) 병합 후 gh-pages로 푸시 (배포)
+  publish_gh_pages:
     needs: [build_docc, build_vitepress]
     runs-on: ubuntu-latest
     steps:
@@ -128,23 +127,22 @@ jobs:
           name: docc-site
           path: site/docc
 
-      - name: 🗂️ List merged output
+      - name: 🗂️ Preview tree
         run: |
-          echo "== site tree =="
+          echo "== site =="
           find site -maxdepth 2 -type d -print
 
-      # gh-pages 브랜치로 직접 커밋/푸시 → Pages가 이 브랜치를 서빙
-      - name: 🚀 Publish to gh-pages
+      - name: 🚀 Push to gh-pages (Actions only, no deploy-pages)
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: site
-          force_orphan: true  # 깔끔한 단일 히스토리
-          commit_message: "docs: publish VitePress + DocC"
+          force_orphan: true
+          commit_message: "docs: publish VitePress (/WeaveDI) + DocC (/WeaveDI/docc)"
 
       - name: ✅ Summary
         run: |
-          echo "## 🚀 Deployed via gh-pages branch!" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Deployed via Actions (gh-pages push)" >> $GITHUB_STEP_SUMMARY
           echo "Main (VitePress): https://roy-wonji.github.io/WeaveDI/" >> $GITHUB_STEP_SUMMARY
           echo "DocC:            https://roy-wonji.github.io/WeaveDI/docc/" >> $GITHUB_STEP_SUMMARY
