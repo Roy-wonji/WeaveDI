@@ -55,11 +55,13 @@ jobs:
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max_old_space_size=4096
-          # 문서 미완성일 땐 dead link 임시 무시 (완성 후 제거 권장)
-          VP_IGNORE_DEAD_LINKS: '1'
+          VP_IGNORE_DEAD_LINKS: '1'   # 문서 미완성 시 데드링크 임시 무시(완성 후 제거 권장)
         run: |
           echo "🔗 Internal links snapshot (first 30):"
-          grep -Rho '\](/[^) ]\+)' docs 2>/dev/null | sed 's/.*]('//;s/)//' | sort -u | head -30 || true
+          # [text](/path) 형태 내부 링크 프린트(안전한 ERE 사용)
+          grep -RhoE '\]\(\/[^) ]+\)' docs 2>/dev/null \
+            | sed -E 's/.*\]\(//; s/\)//' \
+            | sort -u | head -30 || true
           npm run docs:build
 
       - name: ⚙️ Configure Pages
