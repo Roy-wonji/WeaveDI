@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # gh-pages 브랜치 푸시에 필요
   pages: write
   id-token: write
 
@@ -51,15 +51,14 @@ jobs:
             --target WeaveDI \
             --output-path site/docc \
             --transform-for-static-hosting \
-            --hosting-base-path /WeaveDI/docc \
-            --experimental-enable-symbol-variant-folding
-          # 안전한 호스팅을 위해 nojekyll 추가 (DocC도 안전하게 접근 가능)
-          touch site/docc/.nojekyll
+            --hosting-base-path /WeaveDI/docc
+          # DocC 인덱스 리다이렉트(편의)
           cat > site/docc/index.html <<'HTML'
           <!DOCTYPE html><meta charset="utf-8">
           <meta http-equiv="refresh" content="0; url=./documentation/weavedi/">
           <link rel="canonical" href="./documentation/weavedi/">
           HTML
+          touch site/docc/.nojekyll
 
       - name: 📦 Upload DocC artifact
         uses: actions/upload-artifact@v4
@@ -97,7 +96,7 @@ jobs:
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max_old_space_size=4096
-          VP_IGNORE_DEAD_LINKS: '1'
+          VP_IGNORE_DEAD_LINKS: '1'   # 문서 작성 중엔 임시 허용, 완성 후 제거 권장
         run: |
           npm run docs:build
           mkdir -p site
@@ -112,7 +111,7 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  # 3) 병합 & 배포
+  # 3) 병합 & gh-pages 배포 (git push 방식 — 콜론 파일 허용)
   merge_and_deploy:
     needs: [build_docc, build_vitepress]
     runs-on: ubuntu-latest
@@ -131,25 +130,21 @@ jobs:
 
       - name: 🗂️ List merged output
         run: |
-          echo "== site =="
+          echo "== site tree =="
           find site -maxdepth 2 -type d -print
 
-      - name: ⚙️ Configure Pages
-        uses: actions/configure-pages@v4
-
-      - name: 📤 Upload Pages artifact (merged)
-        uses: actions/upload-pages-artifact@v3
+      # gh-pages 브랜치로 직접 커밋/푸시 → Pages가 이 브랜치를 서빙
+      - name: 🚀 Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: site
-          name: github-pages
-          retention-days: 1
-
-      - name: 🚀 Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: site
+          force_orphan: true  # 깔끔한 단일 히스토리
+          commit_message: "docs: publish VitePress + DocC"
 
       - name: ✅ Summary
         run: |
-          echo "## 🚀 Deployed!" >> $GITHUB_STEP_SUMMARY
-          echo "Main (VitePress): ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
-          echo "DocC: ${{ steps.deployment.outputs.page_url }}docc/" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Deployed via gh-pages branch!" >> $GITHUB_STEP_SUMMARY
+          echo "Main (VitePress): https://roy-wonji.github.io/WeaveDI/" >> $GITHUB_STEP_SUMMARY
+          echo "DocC:            https://roy-wonji.github.io/WeaveDI/docc/" >> $GITHUB_STEP_SUMMARY
