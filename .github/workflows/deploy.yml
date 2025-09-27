@@ -36,7 +36,6 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             docs/**
-
       - name: 📦 Install deps
         run: npm ci
 
@@ -50,7 +49,6 @@ jobs:
         run: |
           echo "Expected base => /WeaveDI/ in docs/.vitepress/config.ts"
           test -f docs/.vitepress/config.ts && sed -n '1,80p' docs/.vitepress/config.ts || true
-
       - name: 🏗️ Build VitePress
         env:
           NODE_ENV: production
@@ -63,7 +61,6 @@ jobs:
             | sed -E 's/.*\]\(//; s/\)//' \
             | sort -u | head -30 || true
           npm run docs:build
-
       - name: ⚙️ Configure Pages
         uses: actions/configure-pages@v4
 
@@ -93,4 +90,3 @@ jobs:
           echo "- Home: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
           echo "- Quick Start: ${{ steps.deployment.outputs.page_url }}guide/quick-start.html" >> $GITHUB_STEP_SUMMARY
           echo "- API: ${{ steps.deployment.outputs.page_url }}api/core-apis.html" >> $GITHUB_STEP_SUMMARY
- 이거 두개 를 쓰는데 가각 다른 링크로 하고 싶어 
