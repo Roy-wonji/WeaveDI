@@ -31,8 +31,11 @@ jobs:
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'       # Node 20 권장
+          node-version: '20'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            docs/**
 
       - name: 📦 Install deps
         run: npm ci
@@ -42,16 +45,19 @@ jobs:
 
       - name: 🔎 Debug base / routes (optional)
         run: |
-          echo "base should be /WeaveDI/ in docs/.vitepress/config.ts"
-          test -f docs/.vitepress/config.ts && head -n 40 docs/.vitepress/config.ts || true
+          echo "Expected base => /WeaveDI/ in docs/.vitepress/config.ts"
+          test -f docs/.vitepress/config.ts && sed -n '1,80p' docs/.vitepress/config.ts || true
 
       - name: 🏗️ Build VitePress
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max_old_space_size=4096
-          # 필요 시 dead link 임시 무시(문서 완성되면 이 줄 삭제)
+          # 문서 미완성일 땐 dead link 임시 무시 (완성 후 제거 권장)
           VP_IGNORE_DEAD_LINKS: '1'
-        run: npm run docs:build
+        run: |
+          echo "🔗 Internal links snapshot (first 30):"
+          grep -Rho '\](/[^) ]\+)' docs 2>/dev/null | sed 's/.*]('//;s/)//' | sort -u | head -30 || true
+          npm run docs:build
 
       - name: ⚙️ Configure Pages
         uses: actions/configure-pages@v4
@@ -60,6 +66,8 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs/.vitepress/dist
+          name: github-pages
+          retention-days: 1
 
   deploy:
     needs: build
