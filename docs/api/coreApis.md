@@ -149,10 +149,10 @@ enum DIError: Error {
 
 ## See Also
 
-- [Property Wrappers](/guide/property-wrappers) - Detailed property wrapper guide
-- [Runtime Optimization](/guide/runtime-optimization) - Performance optimization
-- [UnifiedDI vs DIContainer](/guide/unified-di) - Advanced UnifiedDI features
+- [Property Wrappers](/guide/propertyWrappers) - Detailed property wrapper guide
+- [Runtime Optimization](/guide/runtimeOptimization) - Performance optimization
+- [UnifiedDI vs DIContainer](/guide/unifiedDi) - Advanced UnifiedDI features
 
 ---
 
-📖 **Documentation**: [한국어](../ko/api/core-apis) | [English](core-apis)
+📖 **Documentation**: [한국어](../ko/api/coreApis) | [English](coreApis)

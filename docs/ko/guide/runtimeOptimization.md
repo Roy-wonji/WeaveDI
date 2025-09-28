@@ -92,6 +92,6 @@ swift run -c release Benchmarks --count 100k --quick
 
 ## 관련 문서
 
-- [성능 최적화 가이드](/ko/guide/runtime-optimization)
+- [성능 최적화 가이드](/ko/guide/runtimeOptimization)
 - [벤치마크 문서](/ko/guide/benchmarks)
-- [UnifiedDI API](/ko/guide/unified-di)
+- [UnifiedDI API](/ko/guide/unifiedDi)

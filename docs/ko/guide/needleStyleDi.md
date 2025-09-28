@@ -375,7 +375,7 @@ struct MyApp: App {
 ## 추가 리소스
 
 - [WeaveDI vs Needle 성능 비교](/ko/guide/benchmarks)
-- [Actor 최적화 가이드](/ko/guide/runtime-optimization)
+- [Actor 최적화 가이드](/ko/guide/runtimeOptimization)
 - [마이그레이션 도구](https://github.com/Roy-wonji/WeaveDI-Migration-Tool)
 
 Needle에서 WeaveDI로 마이그레이션하면서 더 나은 성능과 개발자 경험을 얻어보세요! 🚀

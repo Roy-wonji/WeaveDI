@@ -154,6 +154,6 @@ let service = UnifiedDI.resolve(\.userService)
 
 ## 관련 문서
 
-- [Property Wrappers](/ko/guide/property-wrappers) - 프로퍼티 래퍼 상세 가이드
-- [Runtime Optimization](/ko/guide/runtime-optimization) - 성능 최적화
-- [UnifiedDI](/ko/guide/unified-di) - 고급 UnifiedDI 기능
+- [Property Wrappers](/ko/guide/propertyWrappers) - 프로퍼티 래퍼 상세 가이드
+- [Runtime Optimization](/ko/guide/runtimeOptimization) - 성능 최적화
+- [UnifiedDI](/ko/guide/unifiedDi) - 고급 UnifiedDI 기능

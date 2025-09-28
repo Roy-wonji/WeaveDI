@@ -598,4 +598,4 @@ extension UnifiedDI {
 
 ---
 
-📖 **문서**: [한국어](practical-guide) | [English](../api/practical-guide)
+📖 **문서**: [한국어](practicalGuide) | [English](../api/practicalGuide)

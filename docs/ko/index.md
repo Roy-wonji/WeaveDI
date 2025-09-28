@@ -20,27 +20,27 @@ features:
   - icon: 🚀
     title: 런타임 핫패스 최적화
     details: TypeID + 락-프리 읽기로 50-80% 성능 향상. 번개같이 빠른 의존성 해결.
-    link: ko/guide/runtimeOptimization
+    link: /ko/guide/runtimeOptimization
   - icon: 🎭
     title: Actor Hop 최적화
     details: 서로 다른 Actor 컨텍스트 간 전환을 지능적으로 최적화하여 최대 성능 달성.
-    link: ko/guide/diActor
+    link: /ko/guide/diActor
   - icon: 🔒
     title: 완전한 타입 안전성
     details: KeyPath 기반 등록과 강력한 타입 추론으로 컴파일 타임 검증 제공.
-    link: ko/guide/unifiedDi
+    link: /ko/guide/unifiedDi
   - icon: 📝
     title: 직관적인 Property Wrapper
     details: "@Inject, @Factory, @SafeInject - 간단하고 강력한 의존성 주입 패턴."
-    link: ko/guide/propertyWrappers
+    link: /ko/guide/propertyWrappers
   - icon: 🏗️
     title: 강력한 모듈 시스템
     details: 확장 가능한 의존성 관리를 위한 AppDIContainer, ModuleFactory, Container.
-    link: ko/guide/moduleSystem
+    link: /ko/guide/moduleSystem
   - icon: 🧪
     title: 테스트 친화적 설계
     details: 쉬운 모킹, 격리된 테스트, 신뢰할 수 있는 테스트를 위한 부트스트랩 리셋.
-    link: ko/guide/bootstrap
+    link: /ko/guide/bootstrap
 ---
 
 ## 빠른 예제

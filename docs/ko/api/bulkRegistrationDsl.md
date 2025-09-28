@@ -715,7 +715,7 @@ await modules.asyncForEach { await container.register($0) }
 
 ## 함께 보기
 
-- [모듈 시스템](/guide/module-system) - WeaveDI의 모듈 아키텍처 이해
-- [App DI 통합](/guide/app-di-integration) - 엔터프라이즈급 의존성 관리
-- [프로퍼티 래퍼](/guide/property-wrappers) - @Inject, @Factory, @SafeInject 사용법
-- [핵심 API](/api/core-apis) - WeaveDI 핵심 API 레퍼런스
+- [모듈 시스템](/guide/moduleSystem) - WeaveDI의 모듈 아키텍처 이해
+- [App DI 통합](/guide/appDiintegration) - 엔터프라이즈급 의존성 관리
+- [프로퍼티 래퍼](/guide/propertyWrappers) - @Inject, @Factory, @SafeInject 사용법
+- [핵심 API](/api/coreApis) - WeaveDI 핵심 API 레퍼런스

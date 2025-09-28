@@ -258,6 +258,6 @@ Performance regressions are automatically detected and reported:
 
 ## See Also
 
-- [Runtime Optimization](/guide/runtime-optimization) - Performance optimization guide
-- [PERFORMANCE-OPTIMIZATION.md](/guide/runtime-optimization) - Detailed optimization techniques
-- [Core APIs](/api/core-apis) - API performance characteristics
+- [Runtime Optimization](/guide/runtimeOptimization) - Performance optimization guide
+- [PERFORMANCE-OPTIMIZATION.md](/guide/runtimeOptimization) - Detailed optimization techniques
+- [Core APIs](/api/coreApis) - API performance characteristics

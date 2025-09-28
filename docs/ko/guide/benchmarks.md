@@ -258,6 +258,6 @@ jobs:
 
 ## 관련 문서
 
-- [런타임 최적화](/ko/guide/runtime-optimization) - 성능 최적화 가이드
-- [성능 최적화 가이드](/ko/guide/runtime-optimization) - 상세한 최적화 기술
-- [코어 API](/ko/api/core-apis) - API 성능 특성
+- [런타임 최적화](/ko/guide/runtimeOptimization) - 성능 최적화 가이드
+- [성능 최적화 가이드](/ko/guide/runtimeOptimization) - 상세한 최적화 기술
+- [코어 API](/ko/api/coreApis) - API 성능 특성

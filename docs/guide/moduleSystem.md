@@ -474,7 +474,7 @@ struct EnvironmentAwareModule: Module {
 
 ## Next Steps
 
-- [Core APIs](/api/core-apis)
-- [Property Wrappers](/guide/property-wrappers)
-- [Auto DI Optimizer](/guide/auto-di-optimizer)
-- [Module Factory](/guide/module-factory)
+- [Core APIs](/api/coreApis)
+- [Property Wrappers](/guide/propertyWrappers)
+- [Auto DI Optimizer](/guide/autoDiOptimizer)
+- [Module Factory](/guide/moduleFactory)

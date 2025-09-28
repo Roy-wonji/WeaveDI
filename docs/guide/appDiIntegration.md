@@ -685,7 +685,7 @@ class LegacyAppMigration {
 
 ## See Also
 
-- [Module System](/guide/module-system) - Organizing large applications with modules
-- [Property Wrappers](/guide/property-wrappers) - Using @Factory and @Inject
+- [Module System](/guide/moduleSystem) - Organizing large applications with modules
+- [Property Wrappers](/guide/propertyWrappers) - Using @Factory and @Inject
 - [Bootstrap Guide](/guide/bootstrap) - Application initialization patterns
-- [UnifiedDI vs DIContainer](/guide/unified-di) - Choosing the right API
+- [UnifiedDI vs DIContainer](/guide/unifiedDi) - Choosing the right API

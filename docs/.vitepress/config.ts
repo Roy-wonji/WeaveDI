@@ -6,6 +6,9 @@ export default defineConfig({
   description: 'Modern Dependency Injection Framework for Swift',
   base: '/WeaveDI/',
 
+  // Default locale (English)
+  lang: 'en',
+
   // ✅ Dead link 검사: 로컬에선 ON, CI에선 OFF (VP_IGNORE_DEAD_LINKS=1)
   ignoreDeadLinks: process.env.VP_IGNORE_DEAD_LINKS === '1',
   // 또는 특정 경로만 임시 무시하고 싶다면:
@@ -31,6 +34,7 @@ export default defineConfig({
         nav: [
           { text: '홈', link: '/ko/' },
           { text: '가이드', link: '/ko/guide/quickStart' },
+          { text: '튜토리얼', link: '/ko/tutorial/' },
           { text: 'API 참조', link: '/ko/api/coreApis' },
           { text: 'GitHub', link: 'https://github.com/Roy-wonji/WeaveDI' }
         ],
@@ -38,6 +42,7 @@ export default defineConfig({
           '/ko/guide/': [
             {
               text: '시작하기',
+              collapsed: false,
               items: [
                 { text: '빠른 시작', link: '/ko/guide/quickStart' },
                 { text: '부트스트랩', link: '/ko/guide/bootstrap' },
@@ -46,6 +51,7 @@ export default defineConfig({
             },
             {
               text: '핵심 개념',
+              collapsed: true,
               items: [
                 { text: 'Unified DI', link: '/ko/guide/unifiedDi' },
                 { text: '컨테이너 사용법', link: '/ko/guide/containerUsage' },
@@ -54,6 +60,7 @@ export default defineConfig({
             },
             {
               text: '고급 기능',
+              collapsed: true,
               items: [
                 { text: '모듈 시스템', link: '/ko/guide/moduleSystem' },
                 { text: '모듈 팩토리', link: '/ko/guide/moduleFactory' },
@@ -64,16 +71,19 @@ export default defineConfig({
             },
             {
               text: '통합',
+              collapsed: true,
               items: [
                 { text: '앱 DI 통합', link: '/ko/guide/appDiIntegration' },
                 { text: 'Needle 스타일 DI', link: '/ko/guide/needleStyleDi' },
                 { text: '의존성 키 패턴', link: '/ko/guide/dependencyKeyPatterns' },
                 { text: 'Bulk Registration DSL', link: '/ko/guide/bulkRegistrationDsl' },
-                { text: '실전 가이드', link: '/ko/guide/practicalGuide' }
+                { text: '실전 가이드', link: '/ko/guide/practicalGuide' },
+                { text: '프레임워크 비교', link: '/ko/guide/frameworkComparison' }
               ]
             },
             {
               text: '마이그레이션',
+              collapsed: true,
               items: [
                 { text: '마이그레이션 2.0.0', link: '/ko/guide/migration-2.0.0' },
                 { text: '마이그레이션 3.0.0', link: '/ko/guide/migration-3.0.0' }
@@ -82,13 +92,60 @@ export default defineConfig({
           ],
           '/ko/api/': [
             {
-              text: 'API 참조',
+              text: '핵심 API',
+              collapsed: false,
               items: [
-                { text: '핵심 API', link: '/ko/api/coreApis' },
+                { text: 'DIContainer', link: '/ko/api/coreApis' },
+                { text: 'UnifiedDI', link: '/ko/api/unifiedDI' },
+                { text: 'Bootstrap', link: '/ko/api/bootstrap' }
+              ]
+            },
+            {
+              text: 'Property Wrappers',
+              collapsed: true,
+              items: [
+                { text: '@Inject', link: '/ko/api/inject' },
+                { text: '@Factory', link: '/ko/api/factory' },
+                { text: '@SafeInject', link: '/ko/api/safeInject' }
+              ]
+            },
+            {
+              text: '고급 기능',
+              collapsed: true,
+              items: [
                 { text: 'WeaveDI 매크로', link: '/ko/api/weaveDiMacros' },
                 { text: 'Bulk Registration DSL', link: '/ko/api/bulkRegistrationDsl' },
                 { text: '자동 DI 최적화', link: '/ko/api/autoDiOptimizer' },
-                { text: '실전 가이드', link: '/ko/api/practicalGuide' }
+                { text: 'DIActor', link: '/ko/api/diActor' }
+              ]
+            },
+            {
+              text: '실전 가이드',
+              collapsed: true,
+              items: [
+                { text: '실전 패턴', link: '/ko/api/practicalGuide' },
+                { text: '성능 모니터링', link: '/ko/api/performanceMonitoring' },
+                { text: '디버깅 도구', link: '/ko/api/debuggingTools' }
+              ]
+            }
+          ],
+          '/ko/tutorial/': [
+            {
+              text: '기초 튜토리얼',
+              collapsed: false,
+              items: [
+                { text: '시작하기', link: '/ko/tutorial/gettingStarted' },
+                { text: 'Property Wrapper', link: '/ko/tutorial/propertyWrappers' },
+                { text: '첫 번째 앱', link: '/ko/tutorial/firstApp' }
+              ]
+            },
+            {
+              text: '고급 튜토리얼',
+              collapsed: true,
+              items: [
+                { text: '동시성 통합', link: '/ko/tutorial/concurrencyIntegration' },
+                { text: '테스팅', link: '/ko/tutorial/testing' },
+                { text: '성능 최적화', link: '/ko/tutorial/performanceOptimization' }
               ]
             }
           ]
@@ -116,6 +173,7 @@ export default defineConfig({
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/quickStart' },
+      { text: 'Tutorial', link: '/tutorial/' },
       { text: 'API Reference', link: '/api/coreApis' },
       { text: 'GitHub', link: 'https://github.com/Roy-wonji/WeaveDI' }
     ],
@@ -123,6 +181,7 @@ export default defineConfig({
       '/guide/': [
         {
           text: 'Getting Started',
+          collapsed: false,
           items: [
             { text: 'Quick Start', link: '/guide/quickStart' },
             { text: 'Bootstrap', link: '/guide/bootstrap' },
@@ -131,6 +190,7 @@ export default defineConfig({
         },
         {
           text: 'Core Concepts',
+          collapsed: true,
           items: [
             { text: 'Unified DI', link: '/guide/unifiedDi' },
             { text: 'Container Usage', link: '/guide/containerUsage' },
@@ -139,6 +199,7 @@ export default defineConfig({
         },
         {
           text: 'Advanced',
+          collapsed: true,
           items: [
             { text: 'Module System', link: '/guide/moduleSystem' },
             { text: 'Module Factory', link: '/guide/moduleFactory' },
@@ -149,16 +210,19 @@ export default defineConfig({
         },
         {
           text: 'Integration',
+          collapsed: true,
           items: [
             { text: 'App DI Integration', link: '/guide/appDiIntegration' },
             { text: 'Needle Style DI', link: '/guide/needleStyleDi' },
             { text: 'Dependency Key Patterns', link: '/guide/dependencyKeyPatterns' },
             { text: 'Bulk Registration DSL', link: '/guide/bulkRegistrationDsl' },
-            { text: 'Practical Guide', link: '/guide/practicalGuide' }
+            { text: 'Practical Guide', link: '/guide/practicalGuide' },
+            { text: 'Framework Comparison', link: '/guide/frameworkComparison' }
           ]
         },
         {
           text: 'Migration',
+          collapsed: true,
           items: [
             { text: 'Migration 2.0.0', link: '/guide/migration-2.0.0' },
             { text: 'Migration 3.0.0', link: '/guide/migration-3.0.0' }
@@ -167,13 +231,60 @@ export default defineConfig({
       ],
       '/api/': [
         {
-          text: 'API Reference',
+          text: 'Core APIs',
+          collapsed: false,
           items: [
-            { text: 'Core APIs', link: '/api/coreApis' },
+            { text: 'DIContainer', link: '/api/coreApis' },
+            { text: 'UnifiedDI', link: '/api/unifiedDI' },
+            { text: 'Bootstrap', link: '/api/bootstrap' }
+          ]
+        },
+        {
+          text: 'Property Wrappers',
+          collapsed: true,
+          items: [
+            { text: '@Inject', link: '/api/inject' },
+            { text: '@Factory', link: '/api/factory' },
+            { text: '@SafeInject', link: '/api/safeInject' }
+          ]
+        },
+        {
+          text: 'Advanced Features',
+          collapsed: true,
+          items: [
             { text: 'WeaveDI Macros', link: '/api/weaveDiMacros' },
             { text: 'Bulk Registration DSL', link: '/api/bulkRegistrationDsl' },
             { text: 'Auto DI Optimizer', link: '/api/autoDiOptimizer' },
-            { text: 'Practical Guide', link: '/api/practicalGuide' }
+            { text: 'DIActor', link: '/api/diActor' }
+          ]
+        },
+        {
+          text: 'Practical Guides',
+          collapsed: true,
+          items: [
+            { text: 'Practical Patterns', link: '/api/practicalGuide' },
+            { text: 'Performance Monitoring', link: '/api/performanceMonitoring' },
+            { text: 'Debugging Tools', link: '/api/debuggingTools' }
+          ]
+        }
+      ],
+      '/tutorial/': [
+        {
+          text: 'Basic Tutorials',
+          collapsed: false,
+          items: [
+            { text: 'Getting Started', link: '/tutorial/gettingStarted' },
+            { text: 'Property Wrappers', link: '/tutorial/propertyWrappers' },
+            { text: 'First App', link: '/tutorial/firstApp' }
+          ]
+        },
+        {
+          text: 'Advanced Tutorials',
+          collapsed: true,
+          items: [
+            { text: 'Concurrency Integration', link: '/tutorial/concurrencyIntegration' },
+            { text: 'Testing', link: '/tutorial/testing' },
+            { text: 'Performance Optimization', link: '/tutorial/performanceOptimization' }
           ]
         }
       ]

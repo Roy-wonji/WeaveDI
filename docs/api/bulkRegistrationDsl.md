@@ -715,7 +715,7 @@ await modules.asyncForEach { await container.register($0) }
 
 ## See Also
 
-- [Module System](/guide/module-system) - Understanding WeaveDI's module architecture
-- [App DI Integration](/guide/app-di-integration) - Enterprise-level dependency management
-- [Property Wrappers](/guide/property-wrappers) - Using @Inject, @Factory, and @SafeInject
-- [Core APIs](/api/core-apis) - Core WeaveDI API reference
+- [Module System](/guide/moduleSystem) - Understanding WeaveDI's module architecture
+- [App DI Integration](/guide/appDiintegration) - Enterprise-level dependency management
+- [Property Wrappers](/guide/propertyWrappers) - Using @Inject, @Factory, and @SafeInject
+- [Core APIs](/api/coreApis) - Core WeaveDI API reference
