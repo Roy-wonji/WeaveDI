@@ -149,7 +149,7 @@ class OptimizedServiceManager {
         }
 
         // DI를 통해 해결하고 결과를 캐시
-        let resolved = DependencyContainer.live.resolve(NetworkService.self)
+        let resolved = WeaveDI.Container.live.resolve(NetworkService.self)
         cachedNetworkService = resolved
 
         if resolved != nil {
@@ -169,7 +169,7 @@ class OptimizedServiceManager {
         print("📀 데이터베이스 서비스 초기화 중 (비용이 많이 드는 작업)")
         let startTime = Date()
 
-        let resolved = DependencyContainer.live.resolve(DatabaseService.self)
+        let resolved = WeaveDI.Container.live.resolve(DatabaseService.self)
         cachedDatabaseService = resolved
 
         let initTime = Date().timeIntervalSince(startTime)
@@ -185,7 +185,7 @@ class OptimizedServiceManager {
             return cached
         }
 
-        let resolved = DependencyContainer.live.resolve(LoggerProtocol.self)
+        let resolved = WeaveDI.Container.live.resolve(LoggerProtocol.self)
         cachedLogger = resolved
         print("📝 로거 캐시됨 (hot path 최적화)")
 
@@ -271,7 +271,7 @@ class MemoryEfficientManager {
 
         // 해제된 경우 새 인스턴스 해결
         print("💾 캐시 서비스 재생성 중 (메모리 최적화)")
-        let newService = DependencyContainer.live.resolve(CacheService.self)
+        let newService = WeaveDI.Container.live.resolve(CacheService.self)
         weakCacheService = newService
 
         return newService
@@ -285,7 +285,7 @@ class MemoryEfficientManager {
         }
 
         print("🖼️ 이미지 프로세서 재생성 중 (메모리 압박 복구)")
-        let newProcessor = DependencyContainer.live.resolve(ImageProcessor.self)
+        let newProcessor = WeaveDI.Container.live.resolve(ImageProcessor.self)
         weakImageProcessor = newProcessor
 
         return newProcessor
@@ -299,7 +299,7 @@ class MemoryEfficientManager {
         }
 
         print("📊 분석 서비스 재생성 중 (메모리 효율적)")
-        let newService = DependencyContainer.live.resolve(AnalyticsService.self)
+        let newService = WeaveDI.Container.live.resolve(AnalyticsService.self)
         weakAnalyticsService = newService
 
         return newService
@@ -367,7 +367,7 @@ class LazyDependencyManager {
         print("🧠 ML 서비스 초기화 중 (비용이 많이 드는 작업)")
         let startTime = Date()
 
-        let service = DependencyContainer.live.resolve(MachineLearningService.self)
+        let service = WeaveDI.Container.live.resolve(MachineLearningService.self)
 
         let initTime = Date().timeIntervalSince(startTime)
         print("🧠 ML 서비스가 \(initTime)초에 초기화됨")
@@ -382,7 +382,7 @@ class LazyDependencyManager {
 
         // 초기화 전 사용 가능한 메모리 확인
         if isMemoryAvailable() {
-            let service = DependencyContainer.live.resolve(ImageProcessingService.self)
+            let service = WeaveDI.Container.live.resolve(ImageProcessingService.self)
             print("🖼️ 이미지 프로세서 초기화됨")
             return service
         } else {
@@ -403,7 +403,7 @@ class LazyDependencyManager {
         }
 
         let startTime = Date()
-        let service = DependencyContainer.live.resolve(VideoProcessingService.self)
+        let service = WeaveDI.Container.live.resolve(VideoProcessingService.self)
         let initTime = Date().timeIntervalSince(startTime)
 
         print("🎥 비디오 프로세서가 \(initTime)초에 초기화됨")
@@ -437,19 +437,19 @@ class LazyDependencyManager {
         await withTaskGroup(of: Void.self) { group in
             // 인증 - 사용자 경험에 중요
             group.addTask {
-                _ = DependencyContainer.live.resolve(AuthService.self)
+                _ = WeaveDI.Container.live.resolve(AuthService.self)
                 print("🔐 인증 서비스 준비됨")
             }
 
             // 네트워크 서비스 - 대부분의 작업에 필요
             group.addTask {
-                _ = DependencyContainer.live.resolve(NetworkService.self)
+                _ = WeaveDI.Container.live.resolve(NetworkService.self)
                 print("🌐 네트워크 서비스 준비됨")
             }
 
             // 로거 - 디버깅과 모니터링에 필요
             group.addTask {
-                _ = DependencyContainer.live.resolve(LoggerProtocol.self)
+                _ = WeaveDI.Container.live.resolve(LoggerProtocol.self)
                 print("📝 로거 준비됨")
             }
         }
@@ -463,17 +463,17 @@ class LazyDependencyManager {
         print("📦 중요한 서비스 초기화 중...")
 
         // 리소스 사용량을 관리하기 위해 순차적으로 초기화
-        let cacheService = DependencyContainer.live.resolve(CacheService.self)
+        let cacheService = WeaveDI.Container.live.resolve(CacheService.self)
         if cacheService != nil {
             print("💾 캐시 서비스 준비됨")
         }
 
-        let pushService = DependencyContainer.live.resolve(PushNotificationService.self)
+        let pushService = WeaveDI.Container.live.resolve(PushNotificationService.self)
         if pushService != nil {
             print("🔔 푸시 알림 서비스 준비됨")
         }
 
-        let analyticsService = DependencyContainer.live.resolve(AnalyticsService.self)
+        let analyticsService = WeaveDI.Container.live.resolve(AnalyticsService.self)
         if analyticsService != nil {
             print("📊 분석 서비스 준비됨")
         }

@@ -15,7 +15,7 @@ public enum RegisterAndReturn {
 
     @discardableResult
     public static func register<T: Sendable>(
-        _ keyPath: KeyPath<DependencyContainer, T?>,
+        _ keyPath: KeyPath<WeaveDI.Container, T?>,
         factory: @escaping @Sendable () -> T,
         file: String = #fileID,
         function: String = #function,
@@ -33,7 +33,7 @@ public enum RegisterAndReturn {
 
     @discardableResult
     public static func registerAsync<T: Sendable>(
-        _ keyPath: KeyPath<DependencyContainer, T?>,
+        _ keyPath: KeyPath<WeaveDI.Container, T?>,
         factory: @escaping @Sendable () async -> T,
         file: String = #fileID,
         function: String = #function,
@@ -49,7 +49,7 @@ public enum RegisterAndReturn {
         return instance
     }
 
-    public static func extractKeyPathName<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> String {
+    public static func extractKeyPathName<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> String {
         let keyPathString = String(describing: keyPath)
         if let dotIndex = keyPathString.lastIndex(of: ".") {
             let propertyName = String(keyPathString[keyPathString.index(after: dotIndex)...])
@@ -58,8 +58,8 @@ public enum RegisterAndReturn {
         return keyPathString
     }
 
-    public static func isRegistered<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> Bool {
-        return DependencyContainer.live.resolve(T.self) != nil
+    public static func isRegistered<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> Bool {
+        return WeaveDI.Container.live.resolve(T.self) != nil
     }
 }
 
@@ -207,13 +207,13 @@ public extension RegisterModule {
 
 // MARK: - DI Extension for Token Support
 
-public extension DI {
+public extension WeaveDI {
 
     static func registerWithToken<T>(
         _ type: T.Type,
         factory: @escaping @Sendable () -> T
     ) -> RegistrationToken where T: Sendable {
-        let releaseHandler = DependencyContainer.live.register(type, build: factory)
+        let releaseHandler = WeaveDI.Container.live.register(type, build: factory)
         let typeName = String(describing: type)
         return RegistrationToken(typeName: typeName, releaseHandler: releaseHandler)
     }

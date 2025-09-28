@@ -150,7 +150,7 @@ final class PropertyWrapperTests: XCTestCase {
     @MainActor
     func testSafeInjectSuccess_안전주입성공() async throws {
         // Register service directly into live container to avoid async timing issues
-        DependencyContainer.live.register(TestUserService.self, instance: TestUserServiceImpl())
+      WeaveDI.Container.live.register(TestUserService.self, instance: TestUserServiceImpl())
 
         // Test class with safe injection
         class TestService {
@@ -294,9 +294,9 @@ final class PropertyWrapperTests: XCTestCase {
     }
 }
 
-// MARK: - DependencyContainer Extension for Tests
+// MARK: - WeaveDI.Container Extension for Tests
 
-extension DependencyContainer {
+extension WeaveDI.Container {
     var propertyTestUserService: TestUserService? {
         return resolve(TestUserService.self)
     }

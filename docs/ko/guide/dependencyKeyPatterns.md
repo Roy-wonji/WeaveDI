@@ -16,7 +16,7 @@ WeaveDI의 DependencyKey는 의존성을 타입 안전하게 관리할 수 있�
 // Pre-registration at app startup + safe resolution
 extension BookListUseCaseImpl: DependencyKey {
   public static var liveValue: BookListInterface = {
-    guard let repo = DependencyContainer.live.resolve(BookListInterface.self) else {
+    guard let repo = WeaveDI.Container.live.resolve(BookListInterface.self) else {
       return DefaultBookListRepositoryImpl()
     }
     return BookListUseCaseImpl(repository: repo)
@@ -65,7 +65,7 @@ extension APIClientKey: DependencyKey {
 
 ```swift
 Task {
-  await DependencyContainer.bootstrapAsync { c in
+  await WeaveDI.Container.bootstrapAsync { c in
     c.register(BookListInterface.self) { BookListRepositoryImpl() }
 
     // 비동기 초기화가 필요한 경우
@@ -101,7 +101,7 @@ extension TemporaryCache: DependencyKey {
 // ✅ 좋은 예: 안전한 fallback 제공
 extension UserService: DependencyKey {
   public static var liveValue: UserServiceProtocol {
-    DependencyContainer.live.resolve(UserServiceProtocol.self) ??
+              WeaveDI.Container.live.resolve(UserServiceProtocol.self) ??
     DefaultUserService()
   }
 }
@@ -109,7 +109,7 @@ extension UserService: DependencyKey {
 // ❌ 피해야 할 예: force unwrap 사용
 extension UserService: DependencyKey {
   public static var liveValue: UserServiceProtocol {
-    DependencyContainer.live.resolve(UserServiceProtocol.self)! // 위험!
+              WeaveDI.Container.live.resolve(UserServiceProtocol.self)! // 위험!
   }
 }
 ```
@@ -118,13 +118,13 @@ extension UserService: DependencyKey {
 
 ```swift
 // KeyPath를 활용한 타입 안전한 등록
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
   container.register(\.userService) { UserServiceImpl() }
   container.register(\.apiClient) { APIClientImpl() }
 }
 
 // DependencyKey 확장
-extension DependencyContainer {
+extension WeaveDI.Container {
   var userService: UserServiceProtocol {
     get { self[UserServiceKey.self] }
     set { self[UserServiceKey.self] = newValue }
@@ -145,7 +145,7 @@ extension UserService: DependencyKey {
 
 // 테스트에서 사용
 func testUserLogin() {
-  DependencyContainer.test.userService = MockUserService()
+  WeaveDI.Container.test.userService = MockUserService()
   // 테스트 로직...
 }
 ```

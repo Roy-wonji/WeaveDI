@@ -143,7 +143,7 @@ class UserViewController: UIViewController {
 }
 
 // Registration is simple and clean
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(NetworkService.self) {
         URLSessionNetworkService()
     }
@@ -987,7 +987,7 @@ class SwinjectMemoryAnalysis {
 class WeaveDIMemoryAnalysis {
     static func analyze() {
         // Optimized registry with smart caching
-        let registryOverhead = MemoryLayout<DependencyContainer>.size // ~256 bytes
+        let registryOverhead = MemoryLayout<WeaveDI.Container>.size // ~256 bytes
         let serviceMetadata = 50 * 64 // Minimal metadata per service
         let cacheMemory = 50 * 32 // Lightweight cache entries
 
@@ -1195,7 +1195,7 @@ struct WeatherApp: App {
     @DIActor
     func setupDependencies() async {
         // Clean, modern async bootstrap
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Simple registration with auto-injection
             container.register(LocationService.self) {
                 CoreLocationService()
@@ -1390,7 +1390,7 @@ func setupMigrationPhase() async {
     setupSwinjectRegistrations(swinjectContainer)
 
     // Add WeaveDI for new code
-    await DependencyContainer.bootstrap { container in
+    await WeaveDI.Container.bootstrap { container in
         // Mirror Swinject registrations in WeaveDI
         container.register(UserRepository.self) {
             UserRepositoryImpl()
@@ -1445,7 +1445,7 @@ class UserFeatureComponentImpl: UserFeatureComponent {
 
 ```swift
 // Replace complex component hierarchy with simple registration
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Mirror component dependencies as simple registrations
     container.register(NetworkService.self) {
         URLSessionNetworkService()

@@ -49,7 +49,7 @@ features:
 import WeaveDI
 
 // 1. Bootstrap dependencies at app startup
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(UserServiceProtocol.self) {
         UserService()
     }

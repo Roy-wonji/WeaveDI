@@ -34,7 +34,7 @@ struct RepositoryModuleFactory: ModuleFactory {
 
 ```swift
 // 앱 초기화 시점
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
   let repositoryFactory = RepositoryModuleFactory()
   let repositoryModule = repositoryFactory.makeModule()
 
@@ -205,7 +205,7 @@ struct WeaveDIApp: App {
   private func setupDependencies() async {
     let factory = ApplicationModuleFactory()
 
-    await DependencyContainer.bootstrap { container in
+    await WeaveDI.Container.bootstrap { container in
       // 모든 모듈을 순차적으로 등록
       for module in factory.makeAllModules() {
         await container.register(module)
@@ -291,7 +291,7 @@ struct UseCaseModuleFactory {
 ```swift
 struct OrderedModuleFactory {
   func registerModulesInOrder() async {
-    await DependencyContainer.bootstrap { container in
+    await WeaveDI.Container.bootstrap { container in
       // 1. 기반 서비스부터 등록
       await container.register(makeInfrastructureModule())
 

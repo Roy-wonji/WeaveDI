@@ -44,7 +44,7 @@ Intelligently optimizes transitions between different Actor contexts to maximize
 import WeaveDI
 
 // Bootstrap dependencies at app startup
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Register services
     container.register(UserServiceProtocol.self) {
         UserService()

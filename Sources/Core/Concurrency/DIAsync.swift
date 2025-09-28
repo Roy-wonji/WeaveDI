@@ -32,20 +32,20 @@ public enum DIAsync {
   /// Register via KeyPath and return the created instance
   @discardableResult
   public static func register<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     factory: @Sendable @escaping () async -> T
   ) async -> T where T: Sendable {
     let instance = await factory()
     await registry.register(T.self, factory: { instance })
     // Interop with sync container
-    DependencyContainer.live.register(T.self, instance: instance)
+    WeaveDI.Container.live.register(T.self, instance: instance)
     return instance
   }
 
   /// Get or create via KeyPath-style registration (idempotent)
   @discardableResult
   public static func getOrCreate<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     factory: @Sendable @escaping () async -> T
   ) async -> T where T: Sendable {
     // Check if already registered
@@ -56,7 +56,7 @@ public enum DIAsync {
     // Create and register new instance
     let instance = await factory()
     await register(T.self, factory: { instance })
-    DependencyContainer.live.register(T.self, instance: instance)
+    WeaveDI.Container.live.register(T.self, instance: instance)
     return instance
   }
 
@@ -67,7 +67,7 @@ public enum DIAsync {
   public static func resolve<T>(_ type: T.Type) async -> T? {
     if let box = await registry.resolveBox(T.self) { return box.value as? T }
     // Fallback to sync registry for mixed mode
-    return DependencyContainer.live.resolve(T.self)
+    return WeaveDI.Container.live.resolve(T.self)
   }
 
   /// Resolve or return default
@@ -102,7 +102,7 @@ public enum DIAsync {
 
   @discardableResult
   public static func registerIf<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     condition: Bool,
     factory: @Sendable @escaping () async -> T,
     fallback: @Sendable @escaping () async -> T
@@ -130,11 +130,11 @@ public enum DIAsync {
   /// Check if a type is registered in async or sync registry
   public static func isRegistered<T>(_ type: T.Type) async -> Bool {
     if await registry.resolveBox(T.self) != nil { return true }
-    return DependencyContainer.live.resolve(T.self) != nil
+    return WeaveDI.Container.live.resolve(T.self) != nil
   }
 
   /// Check if a KeyPath-identified dependency is registered
-  public static func isRegistered<T>(_ keyPath: KeyPath<DependencyContainer, T?>) async -> Bool {
+  public static func isRegistered<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) async -> Bool {
     await isRegistered(T.self)
   }
 
@@ -164,7 +164,7 @@ public struct DIAsyncRegistration: Sendable {
 
 
   public init<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     factory: @Sendable @escaping () async -> T
   ) {
     // Work around KeyPath not being Sendable - capture type instead

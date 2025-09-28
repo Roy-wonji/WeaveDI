@@ -142,7 +142,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - 핵심 3개 PropertyWrapper로 단순화: @Inject, @Factory, @SafeInject
-- DIContainer 통합: DependencyContainer + Container → DIContainer
+- DIContainer 통합: WeaveDI.Container + Container → DIContainer
 - README 간소화: 핵심 기능 중심으로 재작성
 
 ### Removed

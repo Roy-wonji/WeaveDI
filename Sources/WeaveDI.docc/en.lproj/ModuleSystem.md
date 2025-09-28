@@ -360,7 +360,7 @@ struct macOSModule: Module {
 // Platform detection and module registration
 struct PlatformModuleLoader {
     static func loadPlatformModules() async {
-        let container = DependencyContainer.live
+        let container = WeaveDI.Container.live
 
         #if os(iOS)
         await container.register(iOSModule())
@@ -404,7 +404,7 @@ struct APIModule: Module {
 }
 
 // Registration considering dependency order
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Base modules first
     await container.register(NetworkModule())
 
@@ -445,7 +445,7 @@ struct MixedModule: Module {
 // ✅ Good dependency direction: Service → UseCase → Repository
 struct LayeredArchitectureModules {
     static func register() async {
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             await container.register(RepositoryModule()) // Lower layer
             await container.register(UseCaseModule())    // Middle layer
             await container.register(ServiceModule())    // Upper layer

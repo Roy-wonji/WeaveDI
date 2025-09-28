@@ -40,8 +40,8 @@ class UserService {
 ### KeyPath 기반 주입
 
 ```swift
-// DependencyContainer 확장
-extension DependencyContainer {
+// WeaveDI.Container 확장
+extension WeaveDI.Container {
     var userRepository: UserRepositoryProtocol? {
         resolve(UserRepositoryProtocol.self)
     }

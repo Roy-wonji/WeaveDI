@@ -7,7 +7,7 @@
 
 import Foundation
 
-import DiContainer
+import WeaveDI
 
 extension ModuleFactoryManager {
       mutating func registerDefaultDependencies() {

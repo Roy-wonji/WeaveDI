@@ -7,7 +7,7 @@
 
 import SwiftUI
 import ComposableArchitecture
-import DiContainer
+import WeaveDI
 
 @ViewAction(for: ProductListFeature.self)
 public struct ProductListView: View {

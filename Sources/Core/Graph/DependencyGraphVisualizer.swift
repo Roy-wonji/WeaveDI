@@ -628,14 +628,14 @@ private struct CycleData: Codable {
 
 // MARK: - Public Convenience Functions
 
-public extension DependencyContainer {
+public extension WeaveDI.Container {
 
     /// 현재 컨테이너의 의존성 그래프를 DOT 형식으로 내보내기
     func exportDependencyGraph(to url: URL, format: GraphExportFormat = .dot) throws {
         try DependencyGraphVisualizer.exportGraph(
             to: url,
             format: format,
-            title: "DependencyContainer Graph"
+            title: "WeaveDI.Container Graph"
         )
     }
 

@@ -107,7 +107,7 @@ public enum DIError: Error, LocalizedError, CustomStringConvertible {
         case .configurationError(_):
             return "DI 컨테이너 설정을 검토하고 올바른 구성인지 확인하세요."
         case .containerNotBootstrapped(_):
-            return "앱 시작 시 DependencyContainer.bootstrap()을 호출하세요."
+            return "앱 시작 시 WeaveDI.Container.bootstrap()을 호출하세요."
 
         case .internalError(_):
             return "GitHub 이슈를 통해 문제를 제보하거나 디버그 정보를 확인하세요."

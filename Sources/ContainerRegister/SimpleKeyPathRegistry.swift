@@ -26,7 +26,7 @@ public enum SimpleKeyPathRegistry {
 
   /// KeyPath 기반 기본 등록
   public static func register<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     factory: @escaping @Sendable () -> T,
     file: String = #fileID,
     function: String = #function,
@@ -41,7 +41,7 @@ public enum SimpleKeyPathRegistry {
 
   /// KeyPath 기반 조건부 등록
   public static func registerIf<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     condition: Bool,
     factory: @escaping @Sendable () -> T,
     file: String = #fileID,
@@ -61,7 +61,7 @@ public enum SimpleKeyPathRegistry {
 
   /// KeyPath 기반 인스턴스 등록
   public static func registerInstance<T: Sendable>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     instance: T,
     file: String = #fileID,
     function: String = #function,
@@ -78,7 +78,7 @@ public enum SimpleKeyPathRegistry {
 
   /// Debug 환경에서만 등록
   public static func registerIfDebug<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     factory: @escaping @Sendable () -> T,
     file: String = #fileID,
     function: String = #function,
@@ -96,7 +96,7 @@ public enum SimpleKeyPathRegistry {
 
   /// Release 환경에서만 등록
   public static func registerIfRelease<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     factory: @escaping @Sendable () -> T,
     file: String = #fileID,
     function: String = #function,
@@ -115,7 +115,7 @@ public enum SimpleKeyPathRegistry {
   // MARK: - Debugging and Utilities
 
   /// 특정 KeyPath의 등록 상태 확인
-  public static func isRegistered<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> Bool {
+  public static func isRegistered<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> Bool {
     let keyPathName = extractKeyPathName(keyPath)
     #logInfo("🔍 [SimpleKeyPathRegistry] Checking registration for \(keyPathName)")
     // AutoRegistrationRegistry의 isRegistered 메서드 사용
@@ -123,11 +123,11 @@ public enum SimpleKeyPathRegistry {
   }
 
   /// KeyPath에서 이름 추출
-  public static func extractKeyPathName<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> String {
+  public static func extractKeyPathName<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> String {
     let keyPathString = String(describing: keyPath)
 
     // KeyPath 문자열에서 프로퍼티 이름 추출
-    // 예: \DependencyContainer.userService -> userService
+    // 예: \WeaveDI.Container.userService -> userService
     if let dotIndex = keyPathString.lastIndex(of: ".") {
       let propertyName = String(keyPathString[keyPathString.index(after: dotIndex)...])
       return propertyName
@@ -143,7 +143,7 @@ public enum SimpleKeyPathRegistry {
 public enum SimpleSafeDependencyRegister {
 
   /// KeyPath로 안전하게 의존성 해결
-  public static func safeResolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T? {
+  public static func safeResolve<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> T? {
     let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
 
     // AutoRegistrationRegistry의 resolve 메서드 사용
@@ -158,7 +158,7 @@ public enum SimpleSafeDependencyRegister {
 
   /// KeyPath로 의존성 해결 (기본값 포함)
   public static func resolveWithFallback<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     fallback: @autoclosure () -> T
   ) -> T {
     if let resolved = safeResolve(keyPath) {

@@ -1,5 +1,5 @@
 {
-  "originHash" : "2dca7853559f7864330c2dbfcce0e8773f8a6eed1a2655160e25725cb56049fc",
+  "originHash" : "c2fd4458a6e317438005d67d24775e118e33c6f5f95a28f787557ca89bf36109",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -11,21 +11,12 @@
       }
     },
     {
-      "identity" : "dicontainer",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Roy-wonji/DiContainer",
-      "state" : {
-        "branch" : "develop",
-        "revision" : "bbbf93bc0d336293d3a0387d68f1f9863e29977b"
-      }
-    },
-    {
       "identity" : "logmacro",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Roy-wonji/LogMacro.git",
       "state" : {
-        "revision" : "b3925408303ea8efa580112131d7118b09e102d1",
-        "version" : "1.1.0"
+        "branch" : "main",
+        "revision" : "593b210346cf7145074c2d94fa4206bbc70198e0"
       }
     },
     {
@@ -130,10 +121,19 @@
     {
       "identity" : "swift-syntax",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/swiftlang/swift-syntax",
+      "location" : "https://github.com/apple/swift-syntax.git",
       "state" : {
-        "revision" : "f99ae8aa18f0cf0d53481901f88a0991dc3bd4a2",
-        "version" : "601.0.1"
+        "revision" : "0687f71944021d616d34d922343dcef086855920",
+        "version" : "600.0.1"
+      }
+    },
+    {
+      "identity" : "weavedi",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Roy-wonji/WeaveDI",
+      "state" : {
+        "branch" : "main",
+        "revision" : "8ac580f6ee4e19cfb5833c1ad0c12c9830ed3daa"
       }
     },
     {

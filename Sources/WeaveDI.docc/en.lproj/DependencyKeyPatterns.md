@@ -7,7 +7,7 @@ Organize DependencyKey patterns for safe dependency resolution.
 // Pre-registration at app startup + safe resolution
 extension BookListUseCaseImpl: DependencyKey {
   public static var liveValue: BookListInterface = {
-    guard let repo = DependencyContainer.live.resolve(BookListInterface.self) else {
+    guard let repo = WeaveDI.Container.live.resolve(BookListInterface.self) else {
       return DefaultBookListRepositoryImpl()
     }
     return BookListUseCaseImpl(repository: repo)
@@ -32,7 +32,7 @@ enum BookListUseCaseFactory {
 ## Async Registration Example
 ```swift
 Task {
-  await DependencyContainer.bootstrapAsync { c in
+  await WeaveDI.Container.bootstrapAsync { c in
     c.register(BookListInterface.self) { BookListRepositoryImpl() }
   }
 }

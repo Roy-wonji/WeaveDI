@@ -47,7 +47,7 @@ TypeID + 락-프리 읽기로 50-80% 성능 향상. 자세한 내용은 <doc:Run
 import WeaveDI
 
 // 앱 시작 시 의존성 부트스트랩
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // 서비스 등록
     container.register(UserServiceProtocol.self) {
         UserService()

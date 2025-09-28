@@ -112,14 +112,14 @@ public static func registerAsync<T>(_ type: T.Type, factory: @Sendable @escaping
 // 실제 PropertyWrappers.swift에서 구현됨
 @propertyWrapper
 public struct Inject<T> {
-    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let keyPath: KeyPath<WeaveDI.Container, T?>?
     private let type: T.Type
 
     public var wrappedValue: T? {
         if let keyPath = keyPath {
-            return DependencyContainer.live[keyPath: keyPath]
+            return WeaveDI.Container.live[keyPath: keyPath]
         }
-        return DependencyContainer.live.resolve(type)
+        return WeaveDI.Container.live.resolve(type)
     }
 }
 
@@ -148,7 +148,7 @@ public enum UnifiedDI {
 
     /// 등록된 의존성을 조회 (안전한 방법)
     public static func resolve<T>(_ type: T.Type) -> T? {
-        return DependencyContainer.live.resolve(type)
+        return WeaveDI.Container.live.resolve(type)
     }
 }
 ```
@@ -176,7 +176,7 @@ public final class AutoDIOptimizer {
 #### **부트스트랩 시스템**
 ```swift
 // 실제 사용법 (소스 코드 기반)
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(UserService.self) { UserServiceImpl() }
     container.register(\.userRepository) { UserRepositoryImpl() }
 }
@@ -206,7 +206,7 @@ let resolvedService = await UnifiedDI.resolveAsync(UserService.self)
 import WeaveDI
 
 // 앱 시작 시 부트스트랩
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(UserService.self) { UserServiceImpl() }
 }
 
@@ -733,7 +733,7 @@ container.register(UserService.self) { _ in UserServiceImpl() }
 let service = container.resolve(UserService.self)!
 
 // 이후: WeaveDI
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(UserService.self) { UserServiceImpl() }
 }
 
@@ -751,7 +751,7 @@ protocol UserDependency: Dependency {
 }
 
 // 이후: WeaveDI (간단한 설정)
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(UserService.self) { UserServiceImpl() }
 }
 ```

@@ -121,7 +121,7 @@ class NewViewController {
 }
 
 // Step 2: Unify with batch registration
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Existing services
     container.register(OldService.self) { OldServiceImpl() }
 
@@ -178,7 +178,7 @@ enum DataModule {
 }
 
 // In app initialization
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     NetworkModule.register()
     DataModule.register()
 }

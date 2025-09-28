@@ -254,7 +254,7 @@ public struct DependencyGraphStatistics: Codable, Sendable {
 
 // MARK: - Safe Resolution with Circular Detection
 
-public extension DependencyContainer {
+public extension WeaveDI.Container {
 
     /// 순환 의존성 탐지와 함께 안전한 의존성 해결
     func safeResolveWithCircularDetection<T>(_ type: T.Type) async throws -> T {

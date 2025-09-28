@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7F9486042E79297F000A8C7D /* DiContainer in Frameworks */ = {isa = PBXBuildFile; productRef = 7F9486032E79297F000A8C7D /* DiContainer */; };
+		7FECCF6E2E896796005D1583 /* WeaveDI in Frameworks */ = {isa = PBXBuildFile; productRef = 7FECCF6D2E896796005D1583 /* WeaveDI */; };
 		C86384842E79142600A5371F /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = C86384832E79142600A5371F /* ComposableArchitecture */; };
 /* End PBXBuildFile section */
 
@@ -74,8 +74,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7FECCF6E2E896796005D1583 /* WeaveDI in Frameworks */,
 				C86384842E79142600A5371F /* ComposableArchitecture in Frameworks */,
-				7F9486042E79297F000A8C7D /* DiContainer in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -129,7 +129,7 @@
 			name = AppleStoreProductKiosk;
 			packageProductDependencies = (
 				C86384832E79142600A5371F /* ComposableArchitecture */,
-				7F9486032E79297F000A8C7D /* DiContainer */,
+				7FECCF6D2E896796005D1583 /* WeaveDI */,
 			);
 			productName = AppleStoreProductKiosk;
 			productReference = C8F725DE2E790F9F00C2A1DE /* AppleStoreProductKiosk.app */;
@@ -188,7 +188,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				C86384822E79142600A5371F /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
-				7F9486022E79297F000A8C7D /* XCRemoteSwiftPackageReference "DiContainer" */,
+				7FECCF6C2E896796005D1583 /* XCRemoteSwiftPackageReference "WeaveDI" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C8F725DF2E790F9F00C2A1DE /* Products */;
@@ -506,11 +506,11 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		7F9486022E79297F000A8C7D /* XCRemoteSwiftPackageReference "DiContainer" */ = {
+		7FECCF6C2E896796005D1583 /* XCRemoteSwiftPackageReference "WeaveDI" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Roy-wonji/DiContainer";
+			repositoryURL = "https://github.com/Roy-wonji/WeaveDI";
 			requirement = {
-				branch = develop;
+				branch = main;
 				kind = branch;
 			};
 		};
@@ -525,10 +525,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		7F9486032E79297F000A8C7D /* DiContainer */ = {
+		7FECCF6D2E896796005D1583 /* WeaveDI */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7F9486022E79297F000A8C7D /* XCRemoteSwiftPackageReference "DiContainer" */;
-			productName = DiContainer;
+			package = 7FECCF6C2E896796005D1583 /* XCRemoteSwiftPackageReference "WeaveDI" */;
+			productName = WeaveDI;
 		};
 		C86384832E79142600A5371F /* ComposableArchitecture */ = {
 			isa = XCSwiftPackageProductDependency;

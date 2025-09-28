@@ -228,10 +228,10 @@ public actor UnifiedRegistry {
 
     /// KeyPath를 사용한 등록
     /// - Parameters:
-    ///   - keyPath: DependencyContainer 내의 KeyPath
+    ///   - keyPath: WeaveDI.Container 내의 KeyPath
     ///   - factory: 인스턴스 생성 팩토리
     public func register<T>(
-        keyPath: KeyPath<DependencyContainer, T?>,
+        keyPath: KeyPath<WeaveDI.Container, T?>,
         factory: @escaping @Sendable () -> T
     ) where T: Sendable {
         let keyPathString = String(describing: keyPath)
@@ -405,7 +405,7 @@ public actor UnifiedRegistry {
     // (Removed) Sync resolve(keyPath:) API. Use resolveAsync(keyPath:) instead.
 
     /// KeyPath를 사용한 해결 (async)
-    public func resolveAsync<T>(keyPath: KeyPath<DependencyContainer, T?>) async -> T? where T: Sendable {
+    public func resolveAsync<T>(keyPath: KeyPath<WeaveDI.Container, T?>) async -> T? where T: Sendable {
         let keyPathString = String(describing: keyPath)
         guard keyPathMappings[keyPathString] != nil else {
             Log.debug("❌ [UnifiedRegistry] KeyPath not found: \(keyPathString)")
@@ -639,5 +639,5 @@ internal final class SimpleOptimizationManager: @unchecked Sendable {
 // MARK: - Global Instance
 
 /// 글로벌 통합 Registry 인스턴스
-/// DependencyContainer.live에서 내부적으로 사용
+/// WeaveDI.Container.live에서 내부적으로 사용
 public let GlobalUnifiedRegistry = UnifiedRegistry()

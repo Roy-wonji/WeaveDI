@@ -357,9 +357,9 @@ final class AsyncTests: XCTestCase {
     }
 }
 
-// MARK: - DependencyContainer Extension for Async Tests
+// MARK: - WeaveDI.Container Extension for Async Tests
 
-extension DependencyContainer {
+extension WeaveDI.Container {
     var asyncTestService: AsyncTestService? {
         return resolve(AsyncTestService.self)
     }

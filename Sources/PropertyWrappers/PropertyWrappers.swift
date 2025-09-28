@@ -29,14 +29,14 @@ public struct Inject<T> {
 
     // MARK: - Properties
 
-    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let keyPath: KeyPath<WeaveDI.Container, T?>?
     private let type: T.Type
 
     // MARK: - Initialization
 
     /// KeyPath를 사용한 초기화
-    /// - Parameter keyPath: DependencyContainer의 KeyPath
-    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
+    /// - Parameter keyPath: WeaveDI.Container의 KeyPath
+    public init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
         self.keyPath = keyPath
         self.type = T.self
     }
@@ -60,9 +60,9 @@ public struct Inject<T> {
     /// 의존성이 없어도 nil을 반환하므로 안전합니다.
     public var wrappedValue: T? {
         if let keyPath = keyPath {
-            return DependencyContainer.live[keyPath: keyPath]
+            return WeaveDI.Container.live[keyPath: keyPath]
         }
-        return DependencyContainer.live.resolve(type)
+        return WeaveDI.Container.live.resolve(type)
     }
 }
 
@@ -73,7 +73,7 @@ extension Inject where T: AnyObject {
     /// 의존성이 반드시 있어야 하며, 없으면 명확한 에러와 함께 앱이 종료됩니다.
     public var wrappedValue: T {
         if let keyPath = keyPath {
-            guard let resolved = DependencyContainer.live[keyPath: keyPath] else {
+            guard let resolved = WeaveDI.Container.live[keyPath: keyPath] else {
                 #if DEBUG
                 fatalError("""
                 🚨 [Inject] 필수 의존성을 찾을 수 없습니다!
@@ -94,7 +94,7 @@ extension Inject where T: AnyObject {
             return resolved
         }
 
-        guard let resolved = DependencyContainer.live.resolve(type) else {
+        guard let resolved = WeaveDI.Container.live.resolve(type) else {
             fatalError("""
             🚨 [Inject] 필수 의존성을 찾을 수 없습니다!
 
@@ -125,14 +125,14 @@ public struct Factory<T> {
 
     // MARK: - Properties
 
-    private let keyPath: KeyPath<DependencyContainer, T?>?
+  private let keyPath: KeyPath<WeaveDI.Container, T?>?
     private let directFactory: (() -> T)?
 
     // MARK: - Initialization
 
     /// KeyPath를 사용한 팩토리 초기화
     /// - Parameter keyPath: 팩토리가 등록된 KeyPath
-    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
+    public init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
         self.keyPath = keyPath
         self.directFactory = nil
     }
@@ -155,7 +155,7 @@ public struct Factory<T> {
 
         // KeyPath를 통한 팩토리 실행
         if let keyPath = keyPath {
-            guard let instance = DependencyContainer.live[keyPath: keyPath] else {
+            guard let instance = WeaveDI.Container.live[keyPath: keyPath] else {
                 fatalError("""
                 🚨 [Factory] 팩토리를 찾을 수 없습니다!
 
@@ -199,15 +199,15 @@ public struct SafeInject<T> {
 
     // MARK: - Properties
 
-    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let keyPath: KeyPath<WeaveDI.Container, T?>?
     private let type: T.Type
     private var cachedValue: T?
 
     // MARK: - Initialization
 
     /// KeyPath를 사용한 안전한 초기화
-    /// - Parameter keyPath: DependencyContainer의 KeyPath
-    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
+    /// - Parameter keyPath: WeaveDI.Container의 KeyPath
+    public init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
         self.keyPath = keyPath
         self.type = T.self
     }
@@ -251,9 +251,9 @@ public struct SafeInject<T> {
         let resolved: T?
 
         if let keyPath = keyPath {
-            resolved = DependencyContainer.live[keyPath: keyPath]
+            resolved = WeaveDI.Container.live[keyPath: keyPath]
         } else {
-            resolved = DependencyContainer.live.resolve(type)
+            resolved = WeaveDI.Container.live.resolve(type)
         }
 
         guard let value = resolved else {

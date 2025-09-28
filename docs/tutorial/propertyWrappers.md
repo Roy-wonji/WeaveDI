@@ -22,14 +22,14 @@ Let's examine the actual WeaveDI property wrapper implementations from `Property
 @propertyWrapper
 public struct Inject<T> {
     // Internal storage for dependency resolution
-    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let keyPath: KeyPath<WeaveDI.Container, T?>?
     private let type: T.Type
 
     // Three different initialization patterns
 
     /// 1. KeyPath-based initialization (Type-safe)
     /// This provides compile-time safety by using KeyPaths
-    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
+    public init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
         self.keyPath = keyPath
         self.type = T.self
     }
@@ -52,10 +52,10 @@ public struct Inject<T> {
     public var wrappedValue: T? {
         if let keyPath = keyPath {
             // KeyPath resolution - type-safe and fast
-            return DependencyContainer.live[keyPath: keyPath]
+            return WeaveDI.Container.live[keyPath: keyPath]
         }
         // Standard type resolution
-        return DependencyContainer.live.resolve(type)
+        return WeaveDI.Container.live.resolve(type)
     }
 }
 ```
@@ -71,11 +71,11 @@ public struct Inject<T> {
 // From actual WeaveDI source: PropertyWrappers.swift
 @propertyWrapper
 public struct Factory<T> {
-    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let keyPath: KeyPath<WeaveDI.Container, T?>?
     private let directFactory: (() -> T)?
 
     /// KeyPath-based factory (registered factory function)
-    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
+    public init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
         self.keyPath = keyPath
         self.directFactory = nil
     }
@@ -95,7 +95,7 @@ public struct Factory<T> {
 
         if let keyPath = keyPath {
             // KeyPath factory - resolve and call every time
-            guard let factoryFunction = DependencyContainer.live[keyPath: keyPath] else {
+            guard let factoryFunction = WeaveDI.Container.live[keyPath: keyPath] else {
                 fatalError("Factory not registered for keyPath: \(keyPath)")
             }
             return factoryFunction
@@ -167,8 +167,8 @@ class UserViewController: UIViewController {
 ### 2. KeyPath-Based Type-Safe Injection
 
 ```swift
-// First, extend DependencyContainer with KeyPaths
-extension DependencyContainer {
+// First, extend WeaveDI.Container with KeyPaths
+extension WeaveDI.Container {
     var userRepository: UserRepository? {
         resolve(UserRepository.self)
     }
@@ -266,10 +266,10 @@ class DocumentProcessor {
 // Custom SafeInject for required dependencies
 @propertyWrapper
 struct RequiredInject<T> {
-    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let keyPath: KeyPath<WeaveDI.Container, T?>?
     private let type: T.Type
 
-    init(_ keyPath: KeyPath<DependencyContainer, T?>) {
+    init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
         self.keyPath = keyPath
         self.type = T.self
     }
@@ -283,9 +283,9 @@ struct RequiredInject<T> {
         let resolved: T?
 
         if let keyPath = keyPath {
-            resolved = DependencyContainer.live[keyPath: keyPath]
+            resolved = WeaveDI.Container.live[keyPath: keyPath]
         } else {
-            resolved = DependencyContainer.live.resolve(type)
+            resolved = WeaveDI.Container.live.resolve(type)
         }
 
         guard let value = resolved else {
@@ -403,7 +403,7 @@ class NetworkManagerTests: XCTestCase {
         await super.setUp()
 
         // Clean DI state for each test
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Register test doubles
             container.register(HTTPClient.self) {
                 MockHTTPClient()

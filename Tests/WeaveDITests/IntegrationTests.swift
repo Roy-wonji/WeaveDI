@@ -502,9 +502,9 @@ final class IntegrationTests: XCTestCase {
     }
 }
 
-// MARK: - DependencyContainer Extensions for Integration Tests
+// MARK: - WeaveDI.Container Extensions for Integration Tests
 
-extension DependencyContainer {
+extension WeaveDI.Container {
     var integrationUserService: IntegrationUserService? {
         return resolve(IntegrationUserService.self)
     }

@@ -307,9 +307,9 @@ final class CoreTests: XCTestCase {
     }
 }
 
-// MARK: - DependencyContainer Extension for Tests
+// MARK: - WeaveDI.Container Extension for Tests
 
-extension DependencyContainer {
+extension WeaveDI.Container {
     var testUserService: TestUserService? {
         return resolve(TestUserService.self)
     }

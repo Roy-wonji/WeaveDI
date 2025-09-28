@@ -7,7 +7,7 @@
 
 import Foundation
 
-import DiContainer
+import WeaveDI
 
 extension RepositoryModuleFactory {
   public mutating func registerDefaultDefinitions() {

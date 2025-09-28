@@ -22,14 +22,14 @@
 @propertyWrapper
 public struct Inject<T> {
     // 의존성 해결을 위한 내부 저장소
-    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let keyPath: KeyPath<WeaveDI.Container, T?>?
     private let type: T.Type
 
     // 세 가지 다른 초기화 패턴
 
     /// 1. KeyPath 기반 초기화 (타입 안전)
     /// KeyPath를 사용하여 컴파일 타임 안전성 제공
-    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
+    public init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
         self.keyPath = keyPath
         self.type = T.self
     }
@@ -52,10 +52,10 @@ public struct Inject<T> {
     public var wrappedValue: T? {
         if let keyPath = keyPath {
             // KeyPath 해결 - 타입 안전하고 빠름
-            return DependencyContainer.live[keyPath: keyPath]
+            return WeaveDI.Container.live[keyPath: keyPath]
         }
         // 표준 타입 해결
-        return DependencyContainer.live.resolve(type)
+        return WeaveDI.Container.live.resolve(type)
     }
 }
 ```
@@ -71,11 +71,11 @@ public struct Inject<T> {
 // 실제 WeaveDI 소스: PropertyWrappers.swift
 @propertyWrapper
 public struct Factory<T> {
-    private let keyPath: KeyPath<DependencyContainer, T?>?
+    private let keyPath: KeyPath<WeaveDI.Container, T?>?
     private let directFactory: (() -> T)?
 
     /// KeyPath 기반 팩토리 (등록된 팩토리 함수)
-    public init(_ keyPath: KeyPath<DependencyContainer, T?>) {
+    public init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
         self.keyPath = keyPath
         self.directFactory = nil
     }
@@ -95,7 +95,7 @@ public struct Factory<T> {
 
         if let keyPath = keyPath {
             // KeyPath 팩토리 - 매번 해결하고 호출
-            guard let factoryFunction = DependencyContainer.live[keyPath: keyPath] else {
+            guard let factoryFunction = WeaveDI.Container.live[keyPath: keyPath] else {
                 fatalError("Factory not registered for keyPath: \(keyPath)")
             }
             return factoryFunction
@@ -167,8 +167,8 @@ class UserViewController: UIViewController {
 ### 2. KeyPath 기반 타입 안전 주입
 
 ```swift
-// 먼저 DependencyContainer를 KeyPath로 확장
-extension DependencyContainer {
+// 먼저 WeaveDI.Container를 KeyPath로 확장
+extension WeaveDI.Container {
     var userRepository: UserRepository? {
         resolve(UserRepository.self)
     }
@@ -272,7 +272,7 @@ class NetworkManagerTests: XCTestCase {
         await super.setUp()
 
         // 각 테스트마다 DI 상태 정리
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // 테스트 더블 등록
             container.register(HTTPClient.self) {
                 MockHTTPClient()

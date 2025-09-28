@@ -67,7 +67,7 @@ public enum SafeDIError: Error, LocalizedError, CustomStringConvertible {
             return "잘못된 설정: \(reason)"
 
         case .containerNotInitialized:
-            return "DI 컨테이너가 초기화되지 않았습니다. DependencyContainer.bootstrap을 먼저 호출하세요."
+            return "DI 컨테이너가 초기화되지 않았습니다. WeaveDI.Container.bootstrap을 먼저 호출하세요."
         }
     }
 
@@ -179,7 +179,7 @@ public enum SafeDependencyResolver {
 
     /// 에러와 함께 안전한 해결
     public static func safeResolve<T>(_ type: T.Type) -> SafeResolutionResult<T> {
-        if let resolved = DependencyContainer.live.resolve(type) {
+        if let resolved = WeaveDI.Container.live.resolve(type) {
             return .success(resolved)
         } else {
             return .failure(.dependencyNotFound(type: String(describing: type), keyPath: nil))

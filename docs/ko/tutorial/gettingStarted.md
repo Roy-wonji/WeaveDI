@@ -551,9 +551,9 @@ struct UserProfileApp: App {
     private func configureDependencies() async {
         print("🚀 앱 의존성 설정 시작...")
 
-        // 🔍 실제 DependencyContainer.bootstrap 사용
+        // 🔍 실제 WeaveDI.Container.bootstrap 사용
         // 이는 WeaveDI 소스코드의 DIContainer.swift에서 구현된 실제 메서드입니다
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
 
             // 1. 네트워크 서비스 등록
             // 실제 네트워크 통신을 담당하는 서비스
@@ -597,7 +597,7 @@ final class UserServiceTests: XCTestCase {
 
         // 🔍 실제 WeaveDI API를 사용한 테스트 환경 설정
         // 각 테스트마다 깨끗한 상태로 시작
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // 테스트용 모의 서비스들 등록
             container.register(NetworkService.self) {
                 MockNetworkService()
@@ -673,7 +673,7 @@ WeaveDI로 완전한 iOS 앱을 만들었습니다! 다음을 배웠습니다:
 
 ### ✅ 실제 사용한 WeaveDI 기능들:
 1. **@Inject Property Wrapper** - 자동 의존성 주입
-2. **DependencyContainer.bootstrap** - 안전한 앱 초기화
+2. **WeaveDI.Container.bootstrap** - 안전한 앱 초기화
 3. **UnifiedDI.resolve()** - 깔끔한 의존성 해결
 4. **Swift Concurrency 지원** - 네이티브 async/await 통합
 5. **테스트 친화적 설계** - 쉬운 모킹과 격리

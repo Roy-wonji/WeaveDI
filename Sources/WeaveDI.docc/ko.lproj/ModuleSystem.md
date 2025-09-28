@@ -360,7 +360,7 @@ struct macOSModule: Module {
 // 플랫폼 감지 및 모듈 등록
 struct PlatformModuleLoader {
     static func loadPlatformModules() async {
-        let container = DependencyContainer.live
+        let container = WeaveDI.Container.live
 
         #if os(iOS)
         await container.register(iOSModule())
@@ -404,7 +404,7 @@ struct APIModule: Module {
 }
 
 // 의존성 순서를 고려한 등록
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // 기본 모듈 먼저
     await container.register(NetworkModule())
 
@@ -477,7 +477,7 @@ await container.register(heavyModule)
 ```swift
 struct ConditionalModuleLoader {
     static func loadModules() async {
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // 기본 모듈은 항상 로드
             await container.register(CoreModule())
 
@@ -508,10 +508,10 @@ class UserModuleTests: XCTestCase {
         await super.setUp()
 
         // 테스트용 깨끗한 컨테이너
-        await DependencyContainer.releaseAll()
+        await WeaveDI.Container.releaseAll()
 
         // 테스트용 의존성만 등록
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             await container.register(TestUserModule())
         }
     }
@@ -597,7 +597,7 @@ await AppDIContainer.shared.registerDependencies { container in
 class ModulePreloader {
     static func preloadCriticalModules() async {
         // 앱 시작 시 중요한 모듈들만 미리 로드
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             await container.register(CoreModule())
             await container.register(AuthModule())
             await container.register(NavigationModule())
@@ -606,7 +606,7 @@ class ModulePreloader {
 
     static func loadRemainingModules() async {
         // 나머지 모듈들은 필요시 로드
-        let container = DependencyContainer.live
+        let container = WeaveDI.Container.live
         await container.register(AnalyticsModule())
         await container.register(SocialModule())
         await container.register(PremiumModule())
@@ -646,7 +646,7 @@ struct MixedModule: Module {
 // ✅ 좋은 의존성 방향: Service → UseCase → Repository
 struct LayeredArchitectureModules {
     static func register() async {
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             await container.register(RepositoryModule()) // 하위 계층
             await container.register(UseCaseModule())    // 중간 계층
             await container.register(ServiceModule())    // 상위 계층

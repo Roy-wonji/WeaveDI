@@ -42,7 +42,7 @@
       └───────────┼───────────┘
                   │
 ┌─────────────────▼───────────────────┐
-│        DependencyContainer.live     │
+│        WeaveDI.Container.live     │
 │          (Global Registry)          │
 └─────────────────────────────────────┘
 ```
@@ -82,14 +82,14 @@ await AppDIContainer.shared.registerDependencies { container in
 **내부 처리(Internal Process):**
 1. Repository 팩토리가 모든 Repository 모듈을 생성
 2. UseCase 팩토리가 Repository와 연결된 UseCase 모듈을 생성
-3. 모든 모듈을 병렬로 `DependencyContainer.live` 에 등록
+3. 모든 모듈을 병렬로 `WeaveDI.Container.live` 에 등록
 
 ### 3단계: 의존성 사용 (Dependency Usage)
 
 ```swift
 // 어디서든 등록된 의존성을 사용
-let userService = DependencyContainer.live.resolve(UserServiceProtocol.self)
-let userUseCase = DependencyContainer.live.resolve(UserUseCaseProtocol.self)
+let userService = WeaveDI.Container.live.resolve(UserServiceProtocol.self)
+let userUseCase = WeaveDI.Container.live.resolve(UserUseCaseProtocol.self)
 ```
 
 ## 호환성 및 환경 지원(Compatibility and Environment Support)
@@ -126,7 +126,7 @@ struct MyApp {
         }
 
         // Use registered dependencies
-        let useCase: UserUseCaseProtocol = DependencyContainer.live.resolveOrDefault(
+        let useCase: UserUseCaseProtocol = WeaveDI.Container.live.resolveOrDefault(
             UserUseCaseProtocol.self,
             default: UserUseCase(userRepo: UserRepository())
         )
@@ -148,8 +148,8 @@ extension RepositoryModuleFactory {
             // User Repository
             registerModuleCopy.makeDependency(UserRepositoryProtocol.self) {
                 UserRepositoryImpl(
-                    networkService: DependencyContainer.live.resolve(NetworkService.self)!,
-                    cacheService: DependencyContainer.live.resolve(CacheService.self)!
+                    networkService: WeaveDI.Container.live.resolve(NetworkService.self)!,
+                    cacheService: WeaveDI.Container.live.resolve(CacheService.self)!
                 )
             },
 
@@ -157,14 +157,14 @@ extension RepositoryModuleFactory {
             registerModuleCopy.makeDependency(AuthRepositoryProtocol.self) {
                 AuthRepositoryImpl(
                     keychain: KeychainService(),
-                    networkService: DependencyContainer.live.resolve(NetworkService.self)!
+                    networkService: WeaveDI.Container.live.resolve(NetworkService.self)!
                 )
             },
 
             // Order Repository
             registerModuleCopy.makeDependency(OrderRepositoryProtocol.self) {
                 OrderRepositoryImpl(
-                    database: DependencyContainer.live.resolve(DatabaseService.self)!
+                    database: WeaveDI.Container.live.resolve(DatabaseService.self)!
                 )
             }
         ]
@@ -187,7 +187,7 @@ extension UseCaseModuleFactory {
                 AuthUseCase(
                     repository: repo,
                     validator: AuthValidator(),
-                    logger: DependencyContainer.live.resolve(LoggerProtocol.self)!
+                    logger: WeaveDI.Container.live.resolve(LoggerProtocol.self)!
                 )
             },
 
@@ -199,7 +199,7 @@ extension UseCaseModuleFactory {
             ) { repo in
                 UserUseCase(
                     repository: repo,
-                    authUseCase: DependencyContainer.live.resolve(AuthUseCaseProtocol.self)!,
+                    authUseCase: WeaveDI.Container.live.resolve(AuthUseCaseProtocol.self)!,
                     validator: UserValidator()
                 )
             },
@@ -212,8 +212,8 @@ extension UseCaseModuleFactory {
             ) { repo in
                 OrderUseCase(
                     repository: repo,
-                    userUseCase: DependencyContainer.live.resolve(UserUseCaseProtocol.self)!,
-                    paymentService: DependencyContainer.live.resolve(PaymentService.self)!
+                    userUseCase: WeaveDI.Container.live.resolve(UserUseCaseProtocol.self)!,
+                    paymentService: WeaveDI.Container.live.resolve(PaymentService.self)!
                 )
             }
         ]
@@ -344,7 +344,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 타입 안전한 의존성 접근을 위해 `ContainerRegister` 패턴을 사용할 수 있습니다:
 
 ```swift
-extension DependencyContainer {
+extension WeaveDI.Container {
     var authUseCase: AuthUseCaseProtocol? {
         ContainerRegister(\.authUseCase).wrappedValue
     }
@@ -521,7 +521,7 @@ class AppDIContainerTests: XCTestCase {
         }
 
         // 등록 검증
-        let userRepo = DependencyContainer.live.resolve(UserRepositoryProtocol.self)
+        let userRepo = WeaveDI.Container.live.resolve(UserRepositoryProtocol.self)
         XCTAssertNotNil(userRepo)
     }
 
@@ -542,7 +542,7 @@ class AppDIContainerTests: XCTestCase {
         }
 
         // UseCase 등록 검증
-        let authUseCase = DependencyContainer.live.resolve(AuthUseCaseProtocol.self)
+        let authUseCase = WeaveDI.Container.live.resolve(AuthUseCaseProtocol.self)
         XCTAssertNotNil(authUseCase)
     }
 }
@@ -554,7 +554,7 @@ class AppDIContainerTests: XCTestCase {
 class IntegrationTests: XCTestCase {
     override func setUp() async throws {
         // 테스트마다 컨테이너 초기화
-        DependencyContainer.live = DependencyContainer()
+         WeaveDI.Container.live = WeaveDI.Container()
 
         await AppDIContainer.shared.registerDependencies { container in
             // 테스트 전용 의존성 등록
@@ -575,8 +575,8 @@ class IntegrationTests: XCTestCase {
     }
 
     func testUserAuthenticationFlow() async throws {
-        let authUseCase = DependencyContainer.live.resolve(AuthUseCaseProtocol.self)!
-        let userUseCase = DependencyContainer.live.resolve(UserUseCaseProtocol.self)!
+        let authUseCase = WeaveDI.Container.live.resolve(AuthUseCaseProtocol.self)!
+        let userUseCase = WeaveDI.Container.live.resolve(UserUseCaseProtocol.self)!
 
         // 전체 인증 플로우 테스트
         let authResult = try await authUseCase.login(email: "test@example.com", password: "password")

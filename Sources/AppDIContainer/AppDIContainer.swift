@@ -52,7 +52,7 @@ import LogMacro
 ///       └───────────┼───────────┘
 ///                   │
 /// ┌─────────────────▼───────────────────┐
-/// │        DependencyContainer.live     │
+/// │        WeaveDI.Container.live     │
 /// │          (Global Registry)          │
 /// └─────────────────────────────────────┘
 /// ```
@@ -75,13 +75,13 @@ import LogMacro
 /// // 내부적으로:
 /// // 1. Repository Factory에서 모든 Repository 모듈 생성
 /// // 2. UseCase Factory에서 Repository와 연동된 UseCase 모듈 생성  
-/// // 3. 모든 모듈을 병렬로 DependencyContainer.live에 등록
+/// // 3. 모든 모듈을 병렬로 WeaveDI.Container.live에 등록
 /// ```
 ///
 /// ### 3단계: 의존성 사용
 /// ```swift
 /// // 어디서든 등록된 의존성 사용 가능
-/// let userService = DependencyContainer.live.resolve(UserServiceProtocol.self)
+/// let userService = WeaveDI.Container.live.resolve(UserServiceProtocol.self)
 /// ```
 ///
 /// ## 지원 환경 및 호환성
@@ -111,7 +111,7 @@ import LogMacro
 ///         }
 ///
 ///         // 등록된 UseCase 사용
-///         let useCase: UserUseCaseProtocol = DependencyContainer.live.resolveOrDefault(
+///         let useCase: UserUseCaseProtocol = WeaveDI.Container.live.resolveOrDefault(
 ///             UserUseCaseProtocol.self,
 ///             default: UserUseCase(userRepo: UserRepository())
 ///         )
@@ -150,7 +150,7 @@ import LogMacro
 ///
 /// ### ContainerResgister 사용
 /// ```swift
-/// extension DependencyContainer {
+/// extension WeaveDI.Container {
 ///     var authUseCase: AuthUseCaseProtocol? {
 ///         ContainerResgister(\.authUseCase).wrappedValue
 ///     }

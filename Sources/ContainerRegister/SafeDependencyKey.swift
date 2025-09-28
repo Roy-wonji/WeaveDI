@@ -38,7 +38,7 @@ public enum SafeDependencyKeyPatterns {
     extension BookListUseCaseImpl: DependencyKey {
         public static var liveValue: BookListInterface = {
             // ✅ 이미 등록된 의존성 사용
-            guard let repository = DependencyContainer.shared.resolve(BookListInterface.self) else {
+            guard let repository = WeaveDI.Container.shared.resolve(BookListInterface.self) else {
                 #logInfo("⚠️ BookListInterface not registered, using default")
                 return DefaultBookListRepositoryImpl()
             }
@@ -117,7 +117,7 @@ public enum SafeDependencyRegister {
   public static func safeResolve<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> T? {
     let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
 
-    // DependencyContainer를 통해 의존성 해결
+    // WeaveDI.Container를 통해 의존성 해결
     if let resolved: T = WeaveDI.Container.live[keyPath: keyPath] {
       #logInfo("✅ [SafeDependencyRegister] Resolved \(keyPathName): \(type(of: resolved))")
       return resolved
@@ -151,9 +151,9 @@ extension WeaveDI.Container {
     // 등록 여부 확인 후 안전하게 해결
     let resolved = resolve(type)
     if resolved != nil {
-      #logInfo("✅ [DependencyContainer] Successfully resolved \(type)")
+      #logInfo("✅ [WeaveDI.Container] Successfully resolved \(type)")
     } else {
-      #logInfo("⚠️ [DependencyContainer] Type \(type) not registered")
+      #logInfo("⚠️ [WeaveDI.Container] Type \(type) not registered")
     }
     return resolved
   }

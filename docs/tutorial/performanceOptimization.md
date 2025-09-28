@@ -148,8 +148,8 @@ class OptimizedServiceManager {
             return cached
         }
 
-        // Resolve via DI and cache the result
-        let resolved = DependencyContainer.live.resolve(NetworkService.self)
+        // Resolve via WeaveDI.Container and cache the result
+        let resolved = WeaveDI.Container.live.resolve(NetworkService.self)
         cachedNetworkService = resolved
 
         if resolved != nil {
@@ -169,7 +169,7 @@ class OptimizedServiceManager {
         print("📀 Initializing database service (expensive operation)")
         let startTime = Date()
 
-        let resolved = DependencyContainer.live.resolve(DatabaseService.self)
+        let resolved = WeaveDI.Container.live.resolve(DatabaseService.self)
         cachedDatabaseService = resolved
 
         let initTime = Date().timeIntervalSince(startTime)
@@ -185,7 +185,7 @@ class OptimizedServiceManager {
             return cached
         }
 
-        let resolved = DependencyContainer.live.resolve(LoggerProtocol.self)
+        let resolved = WeaveDI.Container.live.resolve(LoggerProtocol.self)
         cachedLogger = resolved
         print("📝 Logger cached (hot path optimization)")
 
@@ -271,7 +271,7 @@ class MemoryEfficientManager {
 
         // Resolve new instance if deallocated
         print("💾 Recreating cache service (memory optimized)")
-        let newService = DependencyContainer.live.resolve(CacheService.self)
+        let newService = WeaveDI.Container.live.resolve(CacheService.self)
         weakCacheService = newService
 
         return newService
@@ -285,7 +285,7 @@ class MemoryEfficientManager {
         }
 
         print("🖼️ Recreating image processor (memory pressure recovery)")
-        let newProcessor = DependencyContainer.live.resolve(ImageProcessor.self)
+        let newProcessor = WeaveDI.Container.live.resolve(ImageProcessor.self)
         weakImageProcessor = newProcessor
 
         return newProcessor
@@ -299,7 +299,7 @@ class MemoryEfficientManager {
         }
 
         print("📊 Recreating analytics service (memory efficient)")
-        let newService = DependencyContainer.live.resolve(AnalyticsService.self)
+        let newService = WeaveDI.Container.live.resolve(AnalyticsService.self)
         weakAnalyticsService = newService
 
         return newService
@@ -367,7 +367,7 @@ class LazyDependencyManager {
         print("🧠 Initializing ML service (expensive operation)")
         let startTime = Date()
 
-        let service = DependencyContainer.live.resolve(MachineLearningService.self)
+        let service = WeaveDI.Container.live.resolve(MachineLearningService.self)
 
         let initTime = Date().timeIntervalSince(startTime)
         print("🧠 ML service initialized in \(initTime)s")
@@ -382,7 +382,7 @@ class LazyDependencyManager {
 
         // Check available memory before initialization
         if isMemoryAvailable() {
-            let service = DependencyContainer.live.resolve(ImageProcessingService.self)
+            let service = WeaveDI.Container.live.resolve(ImageProcessingService.self)
             print("🖼️ Image processor initialized")
             return service
         } else {
@@ -403,7 +403,7 @@ class LazyDependencyManager {
         }
 
         let startTime = Date()
-        let service = DependencyContainer.live.resolve(VideoProcessingService.self)
+        let service = WeaveDI.Container.live.resolve(VideoProcessingService.self)
         let initTime = Date().timeIntervalSince(startTime)
 
         print("🎥 Video processor initialized in \(initTime)s")
@@ -437,19 +437,19 @@ class LazyDependencyManager {
         await withTaskGroup(of: Void.self) { group in
             // Authentication - critical for user experience
             group.addTask {
-                _ = DependencyContainer.live.resolve(AuthService.self)
+                _ = WeaveDI.Container.live.resolve(AuthService.self)
                 print("🔐 Auth service ready")
             }
 
             // Network service - needed for most operations
             group.addTask {
-                _ = DependencyContainer.live.resolve(NetworkService.self)
+                _ = WeaveDI.Container.live.resolve(NetworkService.self)
                 print("🌐 Network service ready")
             }
 
             // Logger - needed for debugging and monitoring
             group.addTask {
-                _ = DependencyContainer.live.resolve(LoggerProtocol.self)
+                _ = WeaveDI.Container.live.resolve(LoggerProtocol.self)
                 print("📝 Logger ready")
             }
         }
@@ -463,17 +463,17 @@ class LazyDependencyManager {
         print("📦 Initializing important services...")
 
         // Initialize these services sequentially to manage resource usage
-        let cacheService = DependencyContainer.live.resolve(CacheService.self)
+        let cacheService = WeaveDI.Container.live.resolve(CacheService.self)
         if cacheService != nil {
             print("💾 Cache service ready")
         }
 
-        let pushService = DependencyContainer.live.resolve(PushNotificationService.self)
+        let pushService = WeaveDI.Container.live.resolve(PushNotificationService.self)
         if pushService != nil {
             print("🔔 Push notification service ready")
         }
 
-        let analyticsService = DependencyContainer.live.resolve(AnalyticsService.self)
+        let analyticsService = WeaveDI.Container.live.resolve(AnalyticsService.self)
         if analyticsService != nil {
             print("📊 Analytics service ready")
         }
@@ -578,7 +578,7 @@ class WeaveDIPerformanceBenchmarks: XCTestCase {
     /// Measures how fast WeaveDI can resolve a single dependency
     func testBasicResolutionPerformance() {
         // Setup: Register a simple service
-        let container = DependencyContainer.live
+        let container = WeaveDI.Container.live
         container.register(TestService.self) {
             TestService()
         }
@@ -596,7 +596,7 @@ class WeaveDIPerformanceBenchmarks: XCTestCase {
     /// Benchmark cached vs non-cached resolution performance
     /// Compares performance of singleton vs factory patterns
     func testCachedVsNonCachedResolution() {
-        let container = DependencyContainer.live
+        let container = WeaveDI.Container.live
 
         // Register singleton (cached)
         container.register(TestService.self, scope: .singleton) {
@@ -633,7 +633,7 @@ class WeaveDIPerformanceBenchmarks: XCTestCase {
     /// Benchmark resolution performance with many registered dependencies
     /// Tests how performance scales with container size
     func testScalabilityWithManyDependencies() {
-        let container = DependencyContainer.live
+        let container = WeaveDI.Container.live
 
         // Register many different service types
         for i in 0..<dependencyTypeCount {
@@ -664,7 +664,7 @@ class WeaveDIPerformanceBenchmarks: XCTestCase {
     /// Benchmark concurrent dependency resolution performance
     /// Tests thread safety and concurrent access performance
     func testConcurrentResolutionPerformance() async {
-        let container = DependencyContainer.live
+        let container = WeaveDI.Container.live
 
         // Register thread-safe service
         container.register(ThreadSafeService.self) {
@@ -709,7 +709,7 @@ class WeaveDIPerformanceBenchmarks: XCTestCase {
     /// Benchmark memory usage during dependency resolution
     /// Tests for memory leaks and excessive memory allocation
     func testMemoryUsageDuringResolution() {
-        let container = DependencyContainer.live
+        let container = WeaveDI.Container.live
 
         container.register(MemoryIntensiveService.self) {
             MemoryIntensiveService()
@@ -742,7 +742,7 @@ class WeaveDIPerformanceBenchmarks: XCTestCase {
             @Inject var service: TestService?
         }
 
-        let container = DependencyContainer.live
+        let container = WeaveDI.Container.live
         container.register(TestService.self) {
             TestService()
         }

@@ -140,7 +140,7 @@ class APIController {
 
 ```swift
 // Extension으로 KeyPath 정의
-extension DependencyContainer {
+extension WeaveDI.Container {
     var userService: UserService? {
         resolve(UserService.self)
     }

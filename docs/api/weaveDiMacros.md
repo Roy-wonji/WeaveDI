@@ -331,7 +331,7 @@ class ManualUserService: UserServiceProtocol {
     // Implementation
 }
 
-extension DependencyContainer {
+extension WeaveDI.Container {
     func registerUserService() {
         register(UserServiceProtocol.self) {
             ManualUserService()

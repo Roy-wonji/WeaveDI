@@ -315,7 +315,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
 
     /// KeyPath 기반 의존성 조회 서브스크립트
     ///
-    /// - Parameter keyPath: DependencyContainer의 T?를 가리키는 키패스
+    /// - Parameter keyPath: WeaveDI.Container의 T?를 가리키는 키패스
     /// - Returns: resolve(T.self) 결과
     public subscript<T>(keyPath: KeyPath<DIContainer, T?>) -> T? {
         get { resolve(T.self) }
@@ -571,14 +571,13 @@ public extension DIContainer {
 
 // MARK: - Legacy Compatibility
 
-/// 기존 DependencyContainer와의 호환성을 위한 별칭
-public typealias DependencyContainer = DIContainer
+/// 기존 WeaveDI.Container와의 호환성을 위한 별칭
 
 public enum WeaveDI {
   public typealias Container = DIContainer
 }
 
-/// DependencyContainer.live 호환성
+/// WeaveDI.Container.live 호환성
 public extension DIContainer {
     static var live: DIContainer {
         get { shared }

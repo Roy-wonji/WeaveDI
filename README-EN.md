@@ -205,7 +205,7 @@ UnifiedDI.setLogLevel(.off)          // Turn off logging
 
 ```swift
 // v2.x
-let service = DependencyContainer.live.resolve(UserService.self)
+let service = WeaveDI.Container.live.resolve(UserService.self)
 
 // v3.x (recommended)
 let service = await UnifiedDI.resolve(UserService.self)

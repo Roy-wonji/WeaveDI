@@ -81,7 +81,7 @@ public struct DependencyValidation {
     /// - Parameter type: 확인할 의존성 타입
     /// - Returns: 등록 여부
     public static func isRegistered<T>(_ type: T.Type) -> Bool {
-        return DependencyContainer.live.resolve(type) != nil
+        return WeaveDI.Container.live.resolve(type) != nil
     }
     
     /// 여러 의존성이 모두 등록되어 있는지 확인합니다.

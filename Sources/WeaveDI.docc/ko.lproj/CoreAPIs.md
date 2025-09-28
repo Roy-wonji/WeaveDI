@@ -61,12 +61,12 @@ DI.releaseScope(.request, id: requestID)
 DI.releaseScoped(UserService.self, kind: .request, id: requestID)
 ```
 
-### DependencyContainer.bootstrap
+### WeaveDI.Container.bootstrap
 
 가장 일반적인 등록 방법입니다:
 
 ```swift
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // 타입 등록
     container.register(UserService.self) {
         UserServiceImpl()
@@ -120,7 +120,7 @@ struct UserModule: Module {
 }
 
 // 모듈 등록
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     await container.register(UserModule())
 }
 ```
@@ -221,7 +221,7 @@ let userService: UserService? = UnifiedDI.resolve(UserService.self)
 let userService: UserService? = await UnifiedDI.resolveAsync(UserService.self)
 
 // KeyPath를 통한 타입 안전 해결
-extension DependencyContainer {
+extension WeaveDI.Container {
     var userService: UserService? {
         resolve(UserService.self)
     }
@@ -256,7 +256,7 @@ let result = await DIAsync.resolveResult(UserService.self)
 ScopeContext.shared.setCurrent(.session, id: "user-123")
 
 // 스코프 기반 등록 (동기)
-await DependencyContainer.bootstrap { _ in
+await WeaveDI.Container.bootstrap { _ in
     await GlobalUnifiedRegistry.registerScoped(UserService.self, scope: .session) {
         UserServiceImpl()
     }
@@ -295,7 +295,7 @@ let config: RemoteConfig? = await UnifiedDI.resolveAsync(RemoteConfig.self)
 ### 조건부 등록 및 해결
 
 ```swift
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // 환경에 따른 조건부 등록
     #if DEBUG
     container.register(LoggerService.self) {
@@ -325,12 +325,12 @@ await DependencyContainer.bootstrap { container in
 ```swift
 // 싱글턴 등록
 let sharedCache = CacheManager()
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(CacheManager.self) { sharedCache }
 }
 
 // 매번 새 인스턴스 생성
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(RequestHandler.self) {
         RequestHandler() // 매번 새로 생성
     }
@@ -368,7 +368,7 @@ AutoDIOptimizer.shared.setRealtimeGraphEnabled(true)
 ### 의존성 체인 관리
 
 ```swift
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // 하위 의존성 먼저 등록
     container.register(NetworkService.self) {
         URLSessionNetworkService()
@@ -394,7 +394,7 @@ protocol DatabaseService {
     func load() async throws -> Data
 }
 
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // 구체 타입을 추상 타입으로 등록
     container.register(DatabaseService.self) {
         CoreDataService() // DatabaseService 구현체

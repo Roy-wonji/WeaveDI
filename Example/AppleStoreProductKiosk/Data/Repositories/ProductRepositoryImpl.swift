@@ -6,7 +6,7 @@
 //
 
 import Combine
-import DiContainer
+import WeaveDI
 
 
 class ProductRepositoryImpl: ProductInterface , ObservableObject {
@@ -27,7 +27,7 @@ class ProductRepositoryImpl: ProductInterface , ObservableObject {
 
 
 extension RegisterModule {
-  var productRepositoryImplModule: () -> Module {
+  var productRepositoryImplModule: @Sendable () -> Module {
     makeDependencyImproved(ProductInterface.self) {
       ProductRepositoryImpl()
     }

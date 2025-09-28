@@ -12,7 +12,7 @@ struct ProdAnalytics: AnalyticsService, Sendable { func track(_ event: String) {
 struct NoopAnalytics: AnalyticsService, Sendable { func track(_ event: String) { /* ignore */ } }
 
 // KeyPath 사용을 위한 접근자 추가 (예시)
-extension DependencyContainer {
+extension WeaveDI.Container {
     var logger: Logger? { resolve(Logger.self) }
     var analytics: AnalyticsService? { resolve(AnalyticsService.self) }
 }

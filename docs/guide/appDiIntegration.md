@@ -42,7 +42,7 @@ Complete guide to using AppDIContainer for enterprise-level dependency injection
       └───────────┼───────────┘
                   │
 ┌─────────────────▼───────────────────┐
-│        DependencyContainer.live     │
+│        WeaveDI.Container.live     │
 │          (Global Registry)          │
 └─────────────────────────────────────┘
 ```
@@ -82,14 +82,14 @@ await AppDIContainer.shared.registerDependencies { container in
 **Internal Process:**
 1. Repository Factory creates all Repository modules
 2. UseCase Factory creates UseCase modules linked with Repositories
-3. All modules are registered in parallel to `DependencyContainer.live`
+3. All modules are registered in parallel to `WeaveDI.Container.live`
 
 ### Step 3: Dependency Usage
 
 ```swift
 // Use registered dependencies anywhere
-let userService = DependencyContainer.live.resolve(UserServiceProtocol.self)
-let userUseCase = DependencyContainer.live.resolve(UserUseCaseProtocol.self)
+let userService = WeaveDI.Container.live.resolve(UserServiceProtocol.self)
+let userUseCase = WeaveDI.Container.live.resolve(UserUseCaseProtocol.self)
 ```
 
 ## Compatibility and Environment Support
@@ -126,7 +126,7 @@ struct MyApp {
         }
 
         // Use registered dependencies
-        let useCase: UserUseCaseProtocol = DependencyContainer.live.resolveOrDefault(
+        let useCase: UserUseCaseProtocol = WeaveDI.Container.live.resolveOrDefault(
             UserUseCaseProtocol.self,
             default: UserUseCase(userRepo: UserRepository())
         )
@@ -148,8 +148,8 @@ extension RepositoryModuleFactory {
             // User Repository
             registerModuleCopy.makeDependency(UserRepositoryProtocol.self) {
                 UserRepositoryImpl(
-                    networkService: DependencyContainer.live.resolve(NetworkService.self)!,
-                    cacheService: DependencyContainer.live.resolve(CacheService.self)!
+                    networkService: WeaveDI.Container.live.resolve(NetworkService.self)!,
+                    cacheService: WeaveDI.Container.live.resolve(CacheService.self)!
                 )
             },
 
@@ -157,14 +157,14 @@ extension RepositoryModuleFactory {
             registerModuleCopy.makeDependency(AuthRepositoryProtocol.self) {
                 AuthRepositoryImpl(
                     keychain: KeychainService(),
-                    networkService: DependencyContainer.live.resolve(NetworkService.self)!
+                    networkService: WeaveDI.Container.live.resolve(NetworkService.self)!
                 )
             },
 
             // Order Repository
             registerModuleCopy.makeDependency(OrderRepositoryProtocol.self) {
                 OrderRepositoryImpl(
-                    database: DependencyContainer.live.resolve(DatabaseService.self)!
+                    database: WeaveDI.Container.live.resolve(DatabaseService.self)!
                 )
             }
         ]
@@ -187,7 +187,7 @@ extension UseCaseModuleFactory {
                 AuthUseCase(
                     repository: repo,
                     validator: AuthValidator(),
-                    logger: DependencyContainer.live.resolve(LoggerProtocol.self)!
+                    logger: WeaveDI.Container.live.resolve(LoggerProtocol.self)!
                 )
             },
 
@@ -199,7 +199,7 @@ extension UseCaseModuleFactory {
             ) { repo in
                 UserUseCase(
                     repository: repo,
-                    authUseCase: DependencyContainer.live.resolve(AuthUseCaseProtocol.self)!,
+                    authUseCase: WeaveDI.Container.live.resolve(AuthUseCaseProtocol.self)!,
                     validator: UserValidator()
                 )
             },
@@ -212,8 +212,8 @@ extension UseCaseModuleFactory {
             ) { repo in
                 OrderUseCase(
                     repository: repo,
-                    userUseCase: DependencyContainer.live.resolve(UserUseCaseProtocol.self)!,
-                    paymentService: DependencyContainer.live.resolve(PaymentService.self)!
+                    userUseCase: WeaveDI.Container.live.resolve(UserUseCaseProtocol.self)!,
+                    paymentService: WeaveDI.Container.live.resolve(PaymentService.self)!
                 )
             }
         ]
@@ -344,7 +344,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 Using the `ContainerRegister` pattern for type-safe dependency access:
 
 ```swift
-extension DependencyContainer {
+extension WeaveDI.Container {
     var authUseCase: AuthUseCaseProtocol? {
         ContainerRegister(\.authUseCase).wrappedValue
     }
@@ -521,7 +521,7 @@ class AppDIContainerTests: XCTestCase {
         }
 
         // Verify registrations
-        let userRepo = DependencyContainer.live.resolve(UserRepositoryProtocol.self)
+        let userRepo = WeaveDI.Container.live.resolve(UserRepositoryProtocol.self)
         XCTAssertNotNil(userRepo)
     }
 
@@ -542,7 +542,7 @@ class AppDIContainerTests: XCTestCase {
         }
 
         // Verify use case registration
-        let authUseCase = DependencyContainer.live.resolve(AuthUseCaseProtocol.self)
+        let authUseCase = WeaveDI.Container.live.resolve(AuthUseCaseProtocol.self)
         XCTAssertNotNil(authUseCase)
     }
 }
@@ -554,7 +554,7 @@ class AppDIContainerTests: XCTestCase {
 class IntegrationTests: XCTestCase {
     override func setUp() async throws {
         // Reset container for each test
-        DependencyContainer.live = DependencyContainer()
+          WeaveDI.Container.live = WeaveDI.Container()
 
         await AppDIContainer.shared.registerDependencies { container in
             // Register test-specific dependencies
@@ -575,8 +575,8 @@ class IntegrationTests: XCTestCase {
     }
 
     func testUserAuthenticationFlow() async throws {
-        let authUseCase = DependencyContainer.live.resolve(AuthUseCaseProtocol.self)!
-        let userUseCase = DependencyContainer.live.resolve(UserUseCaseProtocol.self)!
+        let authUseCase = WeaveDI.Container.live.resolve(AuthUseCaseProtocol.self)!
+        let userUseCase = WeaveDI.Container.live.resolve(UserUseCaseProtocol.self)!
 
         // Test complete authentication flow
         let authResult = try await authUseCase.login(email: "test@example.com", password: "password")

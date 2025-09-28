@@ -549,7 +549,7 @@ class DependencyBootstrap {
     /// 모든 의존성을 등록합니다
     /// 이 메서드는 앱 시작 시 한 번만 호출되어야 합니다
     static func setupDependencies() async {
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
 
             // MARK: - 네트워크 서비스 등록
 
@@ -606,7 +606,7 @@ class DependencyBootstrap {
     /// 테스트용 의존성을 등록합니다
     /// 테스트 실행 시 Mock 객체들로 교체됩니다
     static func setupTestDependencies() async {
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
 
             // Mock 서비스들 등록
             container.register(WeatherServiceProtocol.self) {

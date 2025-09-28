@@ -30,7 +30,7 @@ class WeaveDITestCase: XCTestCase {
         await super.setUp()
 
         // 기존 DI 상태를 정리하여 새로 시작
-        await DependencyContainer.reset()
+        await WeaveDI.Container.reset()
 
         // 테스트 전용 의존성 설정
         await setupTestDependencies()
@@ -42,7 +42,7 @@ class WeaveDITestCase: XCTestCase {
     /// 테스트 오염을 방지하기 위해 DI 상태를 정리합니다
     override func tearDown() async throws {
         // 각 테스트 후 DI 컨테이너 정리
-        await DependencyContainer.reset()
+        await WeaveDI.Container.reset()
 
         await super.tearDown()
         print("🧹 테스트 환경 정리됨")
@@ -51,7 +51,7 @@ class WeaveDITestCase: XCTestCase {
     /// 서브클래스에서 이 메서드를 오버라이드하여 테스트별 의존성을 등록하세요
     /// 각 테스트 클래스가 자체 모킹 객체를 정의할 수 있습니다
     func setupTestDependencies() async {
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // 기본 테스트 의존성
             container.register(LoggerProtocol.self) {
                 MockLogger()
@@ -76,7 +76,7 @@ class TestBootstrap {
     /// 유닛 테스팅을 위한 모킹 의존성 설정
     /// 모든 외부 의존성이 제어 가능한 모킹으로 교체됩니다
     static func setupUnitTestDependencies() async {
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
 
             // MARK: - 네트워크 레이어 모킹
 
@@ -135,7 +135,7 @@ class TestBootstrap {
     /// 통합 테스트 의존성 설정
     /// 가능한 곳에서 실제 구현을 사용하고, 외부 서비스만 모킹합니다
     static func setupIntegrationTestDependencies() async {
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
 
             // MARK: - 실제 내부 서비스
 
@@ -177,7 +177,7 @@ class TestBootstrap {
     /// E2E 테스트 의존성 설정
     /// 테스트 데이터베이스와 스테이징 API로 실제 서비스를 사용합니다
     static func setupE2ETestDependencies() async {
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
 
             // MARK: - 테스트 구성을 가진 실제 서비스
 

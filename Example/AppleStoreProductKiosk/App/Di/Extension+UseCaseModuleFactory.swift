@@ -7,15 +7,15 @@
 
 import Foundation
 
-import DiContainer
+import WeaveDI
 
 extension UseCaseModuleFactory {
   public mutating func registerDefaultDefinitions() {
     let register = registerModule
 
-    definitions = {
+    self.definitions = {
       return [
-        register.productUseCaseImplModule,
+          register.productUseCaseImplModule,
       ]
     }()
   }

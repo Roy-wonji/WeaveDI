@@ -8,7 +8,7 @@
 import Foundation
 
 import ComposableArchitecture
-import DiContainer
+import WeaveDI
 
 public struct ProductUseCaseImpl: ProductInterface {
   private let repository: ProductInterface
@@ -28,7 +28,7 @@ public struct ProductUseCaseImpl: ProductInterface {
   }
 }
 
-extension DependencyContainer {
+extension WeaveDI.Container {
   var productInterface: ProductInterface? {
     resolve(ProductInterface.self)
   }
@@ -52,7 +52,7 @@ public extension DependencyValues {
 }
 
 extension RegisterModule {
-  var productUseCaseImplModule: () -> Module {
+  var productUseCaseImplModule: @Sendable () -> Module {
     makeUseCaseWithRepository(
       ProductInterface.self,
       repositoryProtocol: ProductInterface.self,

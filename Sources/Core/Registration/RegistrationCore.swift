@@ -12,7 +12,7 @@ import LogMacro
 
 /// `Module`은 DI(의존성 주입)를 위한 **단일 모듈**을 나타내는 구조체입니다.
 ///
-/// 이 타입을 사용하면, 특정 타입의 인스턴스를 `DependencyContainer`에
+/// 이 타입을 사용하면, 특정 타입의 인스턴스를 `WeaveDI.Container`에
 /// **비동기적으로 등록**하는 작업을 하나의 객체로 캡슐화할 수 있습니다.
 public struct Module: Sendable {
     private let registrationClosure: @Sendable () async -> Void
@@ -30,7 +30,7 @@ public struct Module: Sendable {
         line: UInt = #line
     ) where T: Sendable {
         self.registrationClosure = {
-            DependencyContainer.live.register(type, build: factory)
+          WeaveDI.Container.live.register(type, build: factory)
         }
         self.debugTypeName = String(describing: T.self)
         self.debugFile = String(describing: file)
@@ -89,7 +89,7 @@ public struct RegisterModule: Sendable {
 
         return { [repositoryProtocol] in
             Module(useCaseProtocol, factory: {
-                if let repo: Repo = DependencyContainer.live.resolve(repositoryProtocol) {
+                if let repo: Repo = WeaveDI.Container.live.resolve(repositoryProtocol) {
                     return factory(repo)
                 } else {
                     let fallbackRepo = repositoryFallback()
@@ -105,7 +105,7 @@ public struct RegisterModule: Sendable {
         for type: T.Type,
         fallback: @Sendable @autoclosure @escaping () -> T
     ) -> T {
-        if let resolved: T = DependencyContainer.live.resolve(type) {
+        if let resolved: T = WeaveDI.Container.live.resolve(type) {
             return resolved
         }
         return fallback()

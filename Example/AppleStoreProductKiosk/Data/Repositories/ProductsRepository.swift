@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import DiContainer
+import WeaveDI
 
 public struct DefaultProductsRepository: ProductsRepository {
   public init() {}

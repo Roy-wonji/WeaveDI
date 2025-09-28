@@ -7,7 +7,7 @@
 // 앱 시작 시 사전 등록 + 안전한 해석
 extension BookListUseCaseImpl: DependencyKey {
   public static var liveValue: BookListInterface = {
-    guard let repo = DependencyContainer.live.resolve(BookListInterface.self) else {
+    guard let repo = WeaveDI.Container.live.resolve(BookListInterface.self) else {
       return DefaultBookListRepositoryImpl()
     }
     return BookListUseCaseImpl(repository: repo)
@@ -32,7 +32,7 @@ enum BookListUseCaseFactory {
 ## 비동기 등록 예시
 ```swift
 Task {
-  await DependencyContainer.bootstrapAsync { c in
+  await WeaveDI.Container.bootstrapAsync { c in
     c.register(BookListInterface.self) { BookListRepositoryImpl() }
   }
 }

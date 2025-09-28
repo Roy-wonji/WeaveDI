@@ -7,7 +7,7 @@
 
 import Foundation
 import Dependencies
-import DiContainer
+import WeaveDI
 
 public protocol FetchProductsUseCase {
   func execute() async throws -> ProductCatalog
@@ -25,7 +25,7 @@ public struct FetchProducts: FetchProductsUseCase {
   }
 }
 
-extension DependencyContainer {
+extension WeaveDI.Container {
   var fetchProducts: FetchProductsUseCase? {
     resolve(FetchProductsUseCase.self)
   }

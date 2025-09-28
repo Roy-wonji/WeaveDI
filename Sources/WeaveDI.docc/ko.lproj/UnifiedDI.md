@@ -121,7 +121,7 @@ class NewViewController {
 }
 
 // 2단계: 배치 등록으로 통합
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // 기존 서비스들
     container.register(OldService.self) { OldServiceImpl() }
 
@@ -178,7 +178,7 @@ enum DataModule {
 }
 
 // 앱 초기화에서
-await DependencyContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     NetworkModule.register()
     DataModule.register()
 }

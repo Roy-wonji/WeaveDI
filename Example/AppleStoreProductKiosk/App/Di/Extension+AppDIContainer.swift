@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import DiContainer
+import WeaveDI
 
 extension AppDIContainer {
   func registerDefaultDependencies() async {

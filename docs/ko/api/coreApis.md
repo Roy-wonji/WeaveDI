@@ -136,7 +136,7 @@ let userService: UserService? = UnifiedDI.resolve(UserService.self)
 let userService: UserService? = await UnifiedDI.resolveAsync(UserService.self)
 
 // KeyPath를 통한 타입 안전 해결
-extension DependencyContainer {
+extension WeaveDI.Container {
     var userService: UserService? {
         resolve(UserService.self)
     }

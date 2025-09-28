@@ -10,14 +10,14 @@ WeaveDI 2.0.0 is a major update that fully embraces Swift Concurrency and introd
 
 ### ✅ New Features
 - **Unified DI API**: Three levels of APIs: `UnifiedDI`, `DI`, `DIAsync`
-- **Bootstrap System**: Safe app initialization with `DependencyContainer.bootstrap`
+- **Bootstrap System**: Safe app initialization with `WeaveDI.Container.bootstrap`
 - **Actor Hop Optimization**: Performance optimization fully compatible with Swift Concurrency
 - **Enhanced Property Wrappers**: Support for `@Inject`, `@RequiredInject`, `@Factory`
 - **AppDIContainer**: Unified container for app-level dependency management
 - **ModuleFactory System**: Repository, UseCase, Scope factory patterns
 
 ### 🔄 Changed APIs
-- `DependencyContainer.live.register` → `UnifiedDI.register` or `DI.register`
+- `WeaveDI.Container.live.register` → `UnifiedDI.register` or `DI.register`
 - `RegisterAndReturn.register` → `UnifiedDI.register` or KeyPath-based registration
 - Property Wrapper unification: `@Inject` supports both optional and required dependencies
 - Bootstrap system: Must call `bootstrap` at app startup
@@ -26,12 +26,12 @@ WeaveDI 2.0.0 is a major update that fully embraces Swift Concurrency and introd
 
 | 1.x (Before) | 2.0.0 (After) |
 | --- | --- |
-| `DependencyContainer.live.register(T.self) { ... }` | `DI.register(T.self) { ... }` |
-| `DependencyContainer.live.resolve(T.self)` | `DI.resolve(T.self)` or `await DIAsync.resolve(T.self)` |
+| `WeaveDI.Container.live.register(T.self) { ... }` | `DI.register(T.self) { ... }` |
+| `WeaveDI.Container.live.resolve(T.self)` | `DI.resolve(T.self)` or `await DIAsync.resolve(T.self)` |
 | `RegisterAndReturn.register(\.key) { ... }` | `DI.register(\.key) { ... }` or `await DIAsync.register(\.key) { ... }` |
 | Direct instance cache management | Use `DI.register(T.self) { ... }` |
 | GCD-based batch registration | `await DIAsync.registerMany { ... }` (TaskGroup parallel) |
-| Complex locks + temporary bootstrap | Fixed to single path with `DependencyContainer.bootstrap(…)` |
+| Complex locks + temporary bootstrap | Fixed to single path with `WeaveDI.Container.bootstrap(…)` |
 
 ## Bootstrap - Why Needed and How to Use
 
@@ -39,13 +39,13 @@ This is for safely initializing all dependencies at once before the app starts u
 
 ```swift
 // Synchronous initial registration
-await DependencyContainer.bootstrap { c in
+await WeaveDI.Container.bootstrap { c in
   c.register(Logger.self) { ConsoleLogger() }
   c.register(Config.self) { AppConfig() }
 }
 
 // Asynchronous initial registration (e.g., DB open, remote config load)
-await DependencyContainer.bootstrapAsync { c in
+await WeaveDI.Container.bootstrapAsync { c in
   let db = await Database.open()
   c.register(Database.self, instance: db)
 }
@@ -58,7 +58,7 @@ If `resolve`/`@Inject` is called before bootstrap, crashes or failures may occur
 Provides both readability and type safety.
 
 ```swift
-extension DependencyContainer {
+extension WeaveDI.Container {
   var bookListInterface: BookListInterface? { resolve(BookListInterface.self) }
 }
 
@@ -110,7 +110,7 @@ let ok2 = await DIAsync.isRegistered(Service.self)
 
 ## Using UnifiedDI as Single Entry Point
 
-If your team wants to unify with one API instead of `DI`/`DIAsync`, we recommend `UnifiedDI`. Internally, it uses `DependencyContainer.live` to provide type-safe registration/resolution.
+If your team wants to unify with one API instead of `DI`/`DIAsync`, we recommend `UnifiedDI`. Internally, it uses `WeaveDI.Container.live` to provide type-safe registration/resolution.
 
 Cheat sheet (Before → UnifiedDI)
 
@@ -119,7 +119,7 @@ Cheat sheet (Before → UnifiedDI)
 - `DI.requireResolve(T.self)` → `UnifiedDI.requireResolve(T.self)`
 - `DI.resolve(T.self, default: …)` → `UnifiedDI.resolve(T.self, default: …)`
 - `DI.registerMany { … }` → `UnifiedDI.registerMany { … }`
-- `DIAsync.registerMany { … }` → If async initialization is needed, create instances inside `DependencyContainer.bootstrapAsync` and register with `container.register(_:instance:)`, or register with `UnifiedDI.register`/`DependencyContainer.live.register` after creation.
+- `DIAsync.registerMany { … }` → If async initialization is needed, create instances inside `WeaveDI.Container.bootstrapAsync` and register with `container.register(_:instance:)`, or register with `UnifiedDI.register`/`WeaveDI.Container.live.register` after creation.
 
 Example
 
@@ -153,8 +153,8 @@ UnifiedDI.registerMany {
 
 ```swift
 // Before (1.x)
-DependencyContainer.live.register(ServiceProtocol.self) { Service() }
-let s = DependencyContainer.live.resolve(ServiceProtocol.self)
+WeaveDI.Container.live.register(ServiceProtocol.self) { Service() }
+let s = WeaveDI.Container.live.resolve(ServiceProtocol.self)
 
 // After (2.0.0)
 DI.register(ServiceProtocol.self) { Service() }
@@ -233,7 +233,7 @@ await DIAsync.register(ServiceProtocol.self) { await ServiceImpl.make() }
 
 ```swift
 // Before
-DependencyContainer.live.register(ServiceProtocol.self) { ServiceImpl() }
+WeaveDI.Container.live.register(ServiceProtocol.self) { ServiceImpl() }
 RegisterAndReturn.register(\.userRepository) { UserRepository() }
 
 // After
@@ -249,7 +249,7 @@ UnifiedDI.register(\.userRepository) { UserRepository() }
 struct MyApp: App {
     init() {
         Task {
-            await DependencyContainer.bootstrap { container in
+            await WeaveDI.Container.bootstrap { container in
                 // Register all dependencies
                 container.register(LoggerProtocol.self) { Logger() }
                 container.register(NetworkProtocol.self) { NetworkService() }
@@ -280,10 +280,10 @@ class MyTests: XCTestCase {
         await super.setUp()
 
         // Reset test container
-        await DependencyContainer.resetForTesting()
+        await WeaveDI.Container.resetForTesting()
 
         // Register test dependencies
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(ServiceProtocol.self) { MockService() }
         }
     }

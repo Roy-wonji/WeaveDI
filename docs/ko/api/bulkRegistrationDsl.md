@@ -44,14 +44,14 @@ let userEntries = registerModule.registerInterfacePattern(
     UserInterface.self,
     repositoryFactory: {
         UserRepositoryImpl(
-            networkService: DependencyContainer.live.resolve(NetworkService.self)!,
-            cacheService: DependencyContainer.live.resolve(CacheService.self)!
+            networkService: WeaveDI.Container.live.resolve(NetworkService.self)!,
+            cacheService: WeaveDI.Container.live.resolve(CacheService.self)!
         )
     },
     useCaseFactory: { repository in
         UserUseCaseImpl(
             repository: repository,
-            authService: DependencyContainer.live.resolve(AuthService.self)!,
+            authService: WeaveDI.Container.live.resolve(AuthService.self)!,
             validator: UserValidator()
         )
     },
@@ -83,7 +83,7 @@ let networkEntries = registerModule.registerInterfacePattern(
         NetworkUseCaseImpl(
             repository: repository,
             retryCount: Configuration.isProduction ? 3 : 1,
-            logger: DependencyContainer.live.resolve(LoggerProtocol.self)!
+            logger: WeaveDI.Container.live.resolve(LoggerProtocol.self)!
         )
     },
     repositoryFallback: {
@@ -143,7 +143,7 @@ let modules = registerModule.bulkInterfaces {
         useCase: { repository in
             NetworkUseCaseImpl(
                 repository: repository,
-                reachability: DependencyContainer.live.resolve(ReachabilityService.self)!
+                reachability: WeaveDI.Container.live.resolve(ReachabilityService.self)!
             )
         },
         fallback: { OfflineNetworkRepository() }
@@ -153,8 +153,8 @@ let modules = registerModule.bulkInterfaces {
     UserInterface.self => (
         repository: {
             UserRepositoryImpl(
-                networkService: DependencyContainer.live.resolve(NetworkInterface.self)!,
-                cacheService: DependencyContainer.live.resolve(CacheService.self)!
+                networkService: WeaveDI.Container.live.resolve(NetworkInterface.self)!,
+                cacheService: WeaveDI.Container.live.resolve(CacheService.self)!
             )
         },
         useCase: { repository in
@@ -171,14 +171,14 @@ let modules = registerModule.bulkInterfaces {
     OrderInterface.self => (
         repository: {
             OrderRepositoryImpl(
-                database: DependencyContainer.live.resolve(DatabaseService.self)!,
-                networkService: DependencyContainer.live.resolve(NetworkInterface.self)!
+                database: WeaveDI.Container.live.resolve(DatabaseService.self)!,
+                networkService: WeaveDI.Container.live.resolve(NetworkInterface.self)!
             )
         },
         useCase: { repository in
             OrderUseCaseImpl(
                 repository: repository,
-                userUseCase: DependencyContainer.live.resolve(UserInterface.self)!,
+                userUseCase: WeaveDI.Container.live.resolve(UserInterface.self)!,
                 paymentValidator: PaymentValidator()
             )
         },
@@ -261,31 +261,31 @@ let modules = registerModule.easyScopes {
     register(NetworkService.self) {
         NetworkServiceImpl(
             session: URLSession.shared,
-            logger: DependencyContainer.live.resolve(LoggerProtocol.self)!
+            logger: WeaveDI.Container.live.resolve(LoggerProtocol.self)!
         )
     }
 
     register(DatabaseService.self) {
         SQLiteDatabaseService(
             path: Configuration.databasePath,
-            logger: DependencyContainer.live.resolve(LoggerProtocol.self)!
+            logger: WeaveDI.Container.live.resolve(LoggerProtocol.self)!
         )
     }
 
     // 의존성이 있는 애플리케이션 레이어
     register(UserService.self) {
         UserServiceImpl(
-            networkService: DependencyContainer.live.resolve(NetworkService.self)!,
-            databaseService: DependencyContainer.live.resolve(DatabaseService.self)!,
-            logger: DependencyContainer.live.resolve(LoggerProtocol.self)!
+            networkService: WeaveDI.Container.live.resolve(NetworkService.self)!,
+            databaseService: WeaveDI.Container.live.resolve(DatabaseService.self)!,
+            logger: WeaveDI.Container.live.resolve(LoggerProtocol.self)!
         )
     }
 
     register(OrderService.self) {
         OrderServiceImpl(
-            userService: DependencyContainer.live.resolve(UserService.self)!,
-            databaseService: DependencyContainer.live.resolve(DatabaseService.self)!,
-            paymentService: DependencyContainer.live.resolve(PaymentService.self)!
+            userService: WeaveDI.Container.live.resolve(UserService.self)!,
+            databaseService: WeaveDI.Container.live.resolve(DatabaseService.self)!,
+            paymentService: WeaveDI.Container.live.resolve(PaymentService.self)!
         )
     }
 }
@@ -362,13 +362,13 @@ class AppDependencyConfiguration {
                 repositoryFactory: {
                     StripePaymentRepository(
                         apiKey: Configuration.stripeAPIKey,
-                        networkService: DependencyContainer.live.resolve(NetworkService.self)!
+                        networkService: WeaveDI.Container.live.resolve(NetworkService.self)!
                     )
                 },
                 useCaseFactory: { repository in
                     PaymentUseCaseImpl(
                         repository: repository,
-                        fraudDetection: DependencyContainer.live.resolve(FraudDetectionService.self)!,
+                        fraudDetection: WeaveDI.Container.live.resolve(FraudDetectionService.self)!,
                         validator: PaymentValidator()
                     )
                 },
@@ -434,7 +434,7 @@ extension AppDependencyConfiguration {
                 repository: {
                     CachedNetworkRepository(
                         underlying: HTTPNetworkRepository(),
-                        cache: DependencyContainer.live.resolve(CacheService.self)!
+                        cache: WeaveDI.Container.live.resolve(CacheService.self)!
                     )
                 },
                 useCase: { OptimizedNetworkUseCase(repository: $0) },

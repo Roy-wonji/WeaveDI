@@ -35,7 +35,7 @@ public enum DIAdvanced {
     /// - Returns: 해결된 인스턴스 (없으면 nil)
     public static func resolveWithTracking<T>(_ type: T.Type) -> T? {
       Task { @DIActor in AutoDIOptimizer.shared.trackResolution(type) }
-      return DependencyContainer.live.resolve(type)
+      return WeaveDI.Container.live.resolve(type)
     }
     
     /// 자주 사용되는 타입으로 표시하여 성능을 최적화합니다
@@ -176,7 +176,7 @@ public struct BatchRegistration {
   /// 기본값 포함 등록
   public init<T>(_ type: T.Type, default defaultValue: T) where T: Sendable {
     self.registerAction = {
-      DependencyContainer.live.register(type, instance: defaultValue)
+      WeaveDI.Container.live.register(type, instance: defaultValue)
     }
   }
   

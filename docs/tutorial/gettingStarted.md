@@ -417,8 +417,8 @@ struct UserProfileApp: App {
     private func configureDependencies() async {
         print("🚀 Configuring app dependencies...")
 
-        // Using actual DependencyContainer.bootstrap from WeaveDI source
-        await DependencyContainer.bootstrap { container in
+        // Using actual WeaveDI.Container.bootstrap from WeaveDI source
+        await WeaveDI.Container.bootstrap { container in
 
             // Register network service
             container.register(NetworkService.self) {
@@ -455,7 +455,7 @@ final class UserServiceTests: XCTestCase {
         await super.setUp()
 
         // Clean slate for each test using actual WeaveDI APIs
-        await DependencyContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Register mock services for testing
             container.register(NetworkService.self) {
                 MockNetworkService()
@@ -527,7 +527,7 @@ You've just built a complete iOS app with WeaveDI! Here's what you learned:
 
 ### ✅ Real WeaveDI Features Used:
 1. **@Inject Property Wrapper** - Automatic dependency injection
-2. **DependencyContainer.bootstrap** - Safe app initialization
+2. **WeaveDI.Container.bootstrap** - Safe app initialization
 3. **UnifiedDI.resolve()** - Clean dependency resolution
 4. **Swift Concurrency Support** - Native async/await integration
 5. **Test-Friendly Design** - Easy mocking and isolation

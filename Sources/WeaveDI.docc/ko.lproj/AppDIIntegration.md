@@ -7,7 +7,7 @@
 @main
 struct MyApp: App {
   init() {
-    Task { await DependencyContainer.bootstrap { c in
+    Task { await WeaveDI.Container.bootstrap { c in
       c.register(LoggerProtocol.self) { ConsoleLogger() }
     }}
   }
@@ -21,7 +21,7 @@ struct MyApp: App {
 class AppDelegate: UIResponder, UIApplicationDelegate {
   func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions opts: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    Task { await DependencyContainer.bootstrapAsync { c in
+    Task { await WeaveDI.Container.bootstrapAsync { c in
       let db = await Database.initialize()
       c.register(Database.self, instance: db)
     }}
