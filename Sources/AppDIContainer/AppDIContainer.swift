@@ -241,20 +241,20 @@ public final actor AppDIContainer {
   /// 기본 Factory들을 DI 컨테이너에 등록합니다.
   nonisolated private func setupDefaultFactories() {
     // Repository Factory 등록
-    DependencyContainer.live.register(RepositoryModuleFactory.self, instance: RepositoryModuleFactory())
+    WeaveDI.Container.live.register(RepositoryModuleFactory.self, instance: RepositoryModuleFactory())
 
     // UseCase Factory 등록
-    DependencyContainer.live.register(UseCaseModuleFactory.self, instance: UseCaseModuleFactory())
+    WeaveDI.Container.live.register(UseCaseModuleFactory.self, instance: UseCaseModuleFactory())
 
     // Scope Factory 등록
-    DependencyContainer.live.register(ScopeModuleFactory.self, instance: ScopeModuleFactory())
+    WeaveDI.Container.live.register(ScopeModuleFactory.self, instance: ScopeModuleFactory())
 
     // 통합 Factory Manager 등록
-    DependencyContainer.live.register(ModuleFactoryManager.self, instance: ModuleFactoryManager())
+    WeaveDI.Container.live.register(ModuleFactoryManager.self, instance: ModuleFactoryManager())
   }
 
   /// 내부적으로 모듈 등록과 빌드를 수행하는 ``Container`` 인스턴스입니다.
-  private let container = Container()
+  private let container = WeaveDI.Container()
 
   // MARK: - 메서드
 
@@ -270,7 +270,7 @@ public final actor AppDIContainer {
   /// - `registerModule.makeDependency(...)`, `makeUseCaseWithRepository(...)` 등을
   ///   활용해 여러 모듈을 한 번에 등록할 수 있습니다.
   public func registerDependencies(
-    registerModules: @escaping @Sendable (Container) async -> Void
+    registerModules: @escaping @Sendable (WeaveDI.Container) async -> Void
   ) async {
     // Enable runtime optimization and minimize logging for performance-sensitive builds
     UnifiedDI.configureOptimization(debounceMs: 100, threshold: 10, realTimeUpdate: true)

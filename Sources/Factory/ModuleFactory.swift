@@ -120,7 +120,7 @@ public struct ModuleFactoryManager: Sendable {
     }
 
     /// 모든 모듈을 DI 컨테이너에 등록
-    public func registerAll(to container: Container) async {
+    public func registerAll(to container: WeaveDI.Container) async {
         // Repository 모듈들 등록
         let repositoryModules = self.repositoryFactory.makeAllModules()
         for module in repositoryModules {

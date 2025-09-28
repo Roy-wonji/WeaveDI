@@ -114,11 +114,11 @@ public enum SafeDependencyRegister {
   }
 
   /// KeyPath로 안전하게 의존성 해결
-  public static func safeResolve<T>(_ keyPath: KeyPath<DependencyContainer, T?>) -> T? {
+  public static func safeResolve<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> T? {
     let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
 
     // DependencyContainer를 통해 의존성 해결
-    if let resolved: T = DependencyContainer.live[keyPath: keyPath] {
+    if let resolved: T = WeaveDI.Container.live[keyPath: keyPath] {
       #logInfo("✅ [SafeDependencyRegister] Resolved \(keyPathName): \(type(of: resolved))")
       return resolved
     } else {
@@ -129,7 +129,7 @@ public enum SafeDependencyRegister {
 
   /// KeyPath로 의존성 해결 (기본값 포함)
   public static func resolveWithFallback<T>(
-    _ keyPath: KeyPath<DependencyContainer, T?>,
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
     fallback: @autoclosure () -> T
   ) -> T {
     if let resolved = safeResolve(keyPath) {
@@ -145,7 +145,7 @@ public enum SafeDependencyRegister {
 
 // MARK: - DependencyKey 확장
 
-extension DependencyContainer {
+extension WeaveDI.Container {
   /// DependencyKey 지원을 위한 안전한 resolver
   func resolveSafely<T>(_ type: T.Type) -> T? {
     // 등록 여부 확인 후 안전하게 해결

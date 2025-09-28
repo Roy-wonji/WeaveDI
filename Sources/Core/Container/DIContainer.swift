@@ -574,8 +574,9 @@ public extension DIContainer {
 /// 기존 DependencyContainer와의 호환성을 위한 별칭
 public typealias DependencyContainer = DIContainer
 
-/// 기존 Container와의 호환성을 위한 별칭
-public typealias Container = DIContainer
+public enum WeaveDI {
+  public typealias Container = DIContainer
+}
 
 /// DependencyContainer.live 호환성
 public extension DIContainer {
