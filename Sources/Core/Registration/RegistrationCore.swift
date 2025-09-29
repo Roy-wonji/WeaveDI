@@ -76,28 +76,25 @@ public struct RegisterModule: Sendable {
 
     // MARK: - UseCase with Repository 패턴
 
-    public func makeUseCaseWithRepository<UseCase, Repo>(
-        _ useCaseProtocol: UseCase.Type,
-        repositoryProtocol: Repo.Type,
-        repositoryFallback: @Sendable @autoclosure @escaping () -> Repo,
-        factory: @Sendable @escaping (Repo) -> UseCase
-    ) -> @Sendable () -> Module where UseCase: Sendable {
-        // Graph: record edge UseCase -> Repository
-        Task.detached { @Sendable in
-            await DependencyGraph.shared.addEdge(from: useCaseProtocol, to: repositoryProtocol, label: "uses")
-        }
-
-        return { [repositoryProtocol] in
-            Module(useCaseProtocol, factory: {
-                if let repo: Repo = WeaveDI.Container.live.resolve(repositoryProtocol) {
-                    return factory(repo)
-                } else {
-                    let fallbackRepo = repositoryFallback()
-                    return factory(fallbackRepo)
-                }
-            })
-        }
+  public func makeUseCaseWithRepository<UseCase, Repo>(
+    _ useCaseProtocol: UseCase.Type,
+    repositoryProtocol: Repo.Type,
+    repositoryFallback: @Sendable @autoclosure @escaping () -> Repo,
+    factory: @Sendable @escaping (Repo) -> UseCase
+  ) -> @Sendable () -> Module where UseCase: Sendable {
+    Task.detached { @Sendable in
+      await DependencyGraph.shared.addEdge(from: useCaseProtocol, to: repositoryProtocol, label: "uses")
     }
+    return { [repositoryProtocol] in
+      Module(useCaseProtocol, factory: {
+        if let repo: Repo = WeaveDI.Container.live.resolve(repositoryProtocol) {
+          return factory(repo)
+        } else {
+          return factory(repositoryFallback())
+        }
+      })
+    }
+  }
 
     // MARK: - 의존성 조회 헬퍼
 
