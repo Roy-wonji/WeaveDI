@@ -552,7 +552,7 @@ struct UserProfileApp: App {
         print("🚀 앱 의존성 설정 시작...")
 
         // 🔍 실제 WeaveDI.Container.bootstrap 사용
-        // 이는 WeaveDI 소스코드의 DIContainer.swift에서 구현된 실제 메서드입니다
+        // 이는 WeaveDI 소스코드의 WeaveDI.Container.swift에서 구현된 실제 메서드입니다
         await WeaveDI.Container.bootstrap { container in
 
             // 1. 네트워크 서비스 등록

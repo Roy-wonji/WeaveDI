@@ -1150,21 +1150,21 @@ func exampleRegisterAndResolve_UnifiedDI() {
     print("👋 인사말: \(greeting ?? "실패")")
 }
 
-// MARK: Option B) DIContainer.live (명시적 컨테이너)
-func exampleRegisterAndResolve_DIContainer() {
-    print("🔄 DIContainer.live API 사용 예제")
+// MARK: Option B) WeaveDI.Container.live (명시적 컨테이너)
+func exampleRegisterAndResolve_WeaveDI.Container() {
+    print("🔄 WeaveDI.Container.live API 사용 예제")
 
     // 1) 등록 (즉시 인스턴스 등록)
-    let repo = DIContainer.live.register(UserRepository.self) {
-        print("📦 UserRepository 인스턴스 생성 (DIContainer)")
+    let repo = WeaveDI.Container.live.register(UserRepository.self) {
+        print("📦 UserRepository 인스턴스 생성 (WeaveDI.Container)")
         return UserRepositoryImpl()
     }
 
-    DIContainer.live.register(UserUseCase.self, instance: UserUseCaseImpl(repo: repo))
-    print("📦 UserUseCase 인스턴스 등록 (DIContainer)")
+    WeaveDI.Container.live.register(UserUseCase.self, instance: UserUseCaseImpl(repo: repo))
+    print("📦 UserUseCase 인스턴스 등록 (WeaveDI.Container)")
 
     // 2) 해석
-    let useCase = DIContainer.live.resolve(UserUseCase.self)
+    let useCase = WeaveDI.Container.live.resolve(UserUseCase.self)
     let greeting = useCase?.greet(id: "7")
     print("👋 인사말: \(greeting ?? "실패")")
 }
@@ -1173,7 +1173,7 @@ func exampleRegisterAndResolve_DIContainer() {
 func exampleBootstrap() async {
     print("🚀 부트스트랩 예제 시작")
 
-    await DIContainer.bootstrap { container in
+    await WeaveDI.Container.bootstrap { container in
         print("📋 의존성 일괄 등록 시작")
 
         _ = container.register(UserRepository.self) {
@@ -1191,7 +1191,7 @@ func exampleBootstrap() async {
     }
 
     // 부트스트랩 후 사용
-    let useCase = DIContainer.shared.resolve(UserUseCase.self)
+    let useCase = WeaveDI.Container.shared.resolve(UserUseCase.self)
     let greeting = useCase?.greet(id: "부트스트랩")
     print("👋 부트스트랩 인사말: \(greeting ?? "실패")")
 }
@@ -1203,8 +1203,8 @@ func runTutorialExamples() async {
     print("\n1️⃣ UnifiedDI 예제:")
     exampleRegisterAndResolve_UnifiedDI()
 
-    print("\n2️⃣ DIContainer.live 예제:")
-    exampleRegisterAndResolve_DIContainer()
+    print("\n2️⃣ WeaveDI.Container.live 예제:")
+    exampleRegisterAndResolve_WeaveDI.Container()
 
     print("\n3️⃣ 부트스트랩 예제:")
     await exampleBootstrap()
@@ -1216,7 +1216,7 @@ func runTutorialExamples() async {
 **🔍 코드 설명:**
 
 1. **UnifiedDI API**: 가장 간결한 API로 빠른 의존성 등록/해결
-2. **DIContainer.live**: 명시적 컨테이너 접근 방식
+2. **WeaveDI.Container.live**: 명시적 컨테이너 접근 방식
 3. **Bootstrap 패턴**: 앱 시작 시 모든 의존성을 안전하게 초기화
 4. **Sendable 프로토콜**: Swift 동시성 안전성 보장
 5. **안전한 해결**: resolve 결과가 옵셔널이므로 안전한 처리 가능
@@ -1320,9 +1320,9 @@ struct SettingsView: View {
         logger?.info("🔍 의존성 상태 확인 시작")
 
         // 등록된 의존성들 확인
-        let weatherService = DIContainer.shared.resolve(WeatherServiceProtocol.self)
-        let counterRepo = DIContainer.shared.resolve(CounterRepository.self)
-        let cacheService = DIContainer.shared.resolve(CacheServiceProtocol.self)
+        let weatherService = WeaveDI.Container.shared.resolve(WeatherServiceProtocol.self)
+        let counterRepo = WeaveDI.Container.shared.resolve(CounterRepository.self)
+        let cacheService = WeaveDI.Container.shared.resolve(CacheServiceProtocol.self)
 
         logger?.info("WeatherService: \(weatherService != nil ? "✅" : "❌")")
         logger?.info("CounterRepository: \(counterRepo != nil ? "✅" : "❌")")
@@ -1332,7 +1332,7 @@ struct SettingsView: View {
 
 /// 통합 의존성 설정 함수
 func setupAllDependencies() async {
-    await DIContainer.bootstrap { container in
+    await WeaveDI.Container.bootstrap { container in
         print("🔧 통합 의존성 설정 시작")
 
         // MARK: - 공통 서비스

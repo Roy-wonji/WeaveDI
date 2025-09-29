@@ -315,8 +315,8 @@ If you were previously using manual optimization:
 
 ```swift
 // Before (manual)
-DIContainer.enableOptimization(for: UserService.self)
-DIContainer.setCacheSize(100)
+WeaveDI.Container.enableOptimization(for: UserService.self)
+WeaveDI.Container.setCacheSize(100)
 
 // After (automatic)
 // Nothing needed - automatic optimization handles this

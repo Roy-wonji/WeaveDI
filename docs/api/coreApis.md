@@ -100,14 +100,14 @@ class DataManager {
 }
 ```
 
-## DIContainer
+## WeaveDI.Container
 
 Low-level container for advanced scenarios.
 
 ### Registration
 
 ```swift
-DIContainer.shared.register(UserService.self) {
+WeaveDI.Container.shared.register(UserService.self) {
     UserServiceImpl()
 }
 ```
@@ -115,7 +115,7 @@ DIContainer.shared.register(UserService.self) {
 ### Resolution
 
 ```swift
-let service = DIContainer.shared.resolve(UserService.self)
+let service = WeaveDI.Container.shared.resolve(UserService.self)
 ```
 
 ## Runtime Optimization
@@ -151,7 +151,7 @@ enum DIError: Error {
 
 - [Property Wrappers](/guide/propertyWrappers) - Detailed property wrapper guide
 - [Runtime Optimization](/guide/runtimeOptimization) - Performance optimization
-- [UnifiedDI vs DIContainer](/guide/unifiedDi) - Advanced UnifiedDI features
+- [UnifiedDI vs WeaveDI.Container](/guide/unifiedDi) - Advanced UnifiedDI features
 
 ---
 

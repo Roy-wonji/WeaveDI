@@ -35,7 +35,7 @@ features:
     link: /ko/guide/propertyWrappers
   - icon: 🏗️
     title: 강력한 모듈 시스템
-    details: 확장 가능한 의존성 관리를 위한 AppDIContainer, ModuleFactory, Container.
+    details: 확장 가능한 의존성 관리를 위한 AppWeaveDI.Container, ModuleFactory, Container.
     link: /ko/guide/moduleSystem
   - icon: 🧪
     title: 테스트 친화적 설계

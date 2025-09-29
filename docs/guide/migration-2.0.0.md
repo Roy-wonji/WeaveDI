@@ -13,7 +13,7 @@ WeaveDI 2.0.0 is a major update that fully embraces Swift Concurrency and introd
 - **Bootstrap System**: Safe app initialization with `WeaveDI.Container.bootstrap`
 - **Actor Hop Optimization**: Performance optimization fully compatible with Swift Concurrency
 - **Enhanced Property Wrappers**: Support for `@Inject`, `@RequiredInject`, `@Factory`
-- **AppDIContainer**: Unified container for app-level dependency management
+- **AppWeaveDI.Container**: Unified container for app-level dependency management
 - **ModuleFactory System**: Repository, UseCase, Scope factory patterns
 
 ### 🔄 Changed APIs
@@ -295,17 +295,17 @@ class MyTests: XCTestCase {
 }
 ```
 
-### Step 6: Utilize Advanced Features (AppDIContainer)
+### Step 6: Utilize Advanced Features (AppWeaveDI.Container)
 
-For large projects, utilize AppDIContainer:
+For large projects, utilize AppWeaveDI.Container:
 
 ```swift
-// Utilize AppDIContainer
-await AppDIContainer.shared.registerDefaultDependencies()
+// Utilize AppWeaveDI.Container
+await AppWeaveDI.Container.shared.registerDefaultDependencies()
 
 // Or custom registration
-await AppDIContainer.shared.registerDependencies { container in
-    var repositoryFactory = AppDIContainer.shared.repositoryFactory
+await AppWeaveDI.Container.shared.registerDependencies { container in
+    var repositoryFactory = AppWeaveDI.Container.shared.repositoryFactory
     repositoryFactory.registerDefaultDefinitions()
 
     await repositoryFactory.makeAllModules().asyncForEach { module in

@@ -1,11 +1,11 @@
-# DIActor & @DIContainerActor
+# DIActor & @WeaveDI.ContainerActor
 
 Swift Concurrency를 활용한 안전하고 고성능의 의존성 주입 시스템입니다. Thread safety와 Actor 모델을 통해 동시성 문제를 해결합니다.
 
 ## 🎯 이 문서에서 배우는 것
 
 - **@DIActor**: WeaveDI의 글로벌 액터 시스템
-- **@DIContainerActor**: 컨테이너 수준의 액터 격리
+- **@WeaveDI.ContainerActor**: 컨테이너 수준의 액터 격리
 - **Thread Safety**: 여러 스레드에서 안전한 의존성 관리
 - **Performance**: 고성능 캐싱과 최적화 기법
 
@@ -205,14 +205,14 @@ func resolveWithThrows() async throws {
 }
 ```
 
-## @DIContainerActor
+## @WeaveDI.ContainerActor
 
 컨테이너 레벨 Actor 격리를 위해:
 
 ```swift
-@DIContainerActor
-public final class AppDIContainer {
-    public static let shared: AppDIContainer = .init()
+@WeaveDI.ContainerActor
+public final class AppWeaveDI.Container {
+    public static let shared: AppWeaveDI.Container = .init()
 
     public func setupDependencies() async {
         // 모든 연산이 Actor로 격리됨
@@ -388,4 +388,4 @@ func monitorPerformance() async {
 
 - [자동 DI 최적화](/ko/guide/autoDiOptimizer) - 자동 성능 최적화
 - [동시성 가이드](/ko/guide/concurrency) - Swift Concurrency 패턴
-- [UnifiedDI vs DIContainer](/ko/guide/unifiedDi) - 올바른 API 선택
+- [UnifiedDI vs WeaveDI.Container](/ko/guide/unifiedDi) - 올바른 API 선택

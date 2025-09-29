@@ -1,6 +1,6 @@
-# UnifiedDI vs DIContainer: Comprehensive Comparison
+# UnifiedDI vs WeaveDI.Container: Comprehensive Comparison
 
-Complete guide to choosing between WeaveDI's two main APIs: the modern UnifiedDI approach and the advanced DIContainer system.
+Complete guide to choosing between WeaveDI's two main APIs: the modern UnifiedDI approach and the advanced WeaveDI.Container system.
 
 ## Overview
 
@@ -11,11 +11,11 @@ WeaveDI provides two distinct APIs for dependency injection, each designed for d
 | Use Case | Recommended API | Reason |
 |----------|----------------|--------|
 | **Simple applications** | `UnifiedDI` | Minimal learning curve, one-line registration |
-| **Complex enterprise apps** | `DIContainer` | Advanced features, modular architecture |
+| **Complex enterprise apps** | `WeaveDI.Container` | Advanced features, modular architecture |
 | **Rapid prototyping** | `UnifiedDI` | Immediate registration and usage |
-| **Production systems** | `DIContainer` | Bootstrap safety, async initialization |
-| **Testing** | Both supported | UnifiedDI simpler, DIContainer more isolated |
-| **Library development** | `DIContainer` | Better encapsulation and scoping |
+| **Production systems** | `WeaveDI.Container` | Bootstrap safety, async initialization |
+| **Testing** | Both supported | UnifiedDI simpler, WeaveDI.Container more isolated |
+| **Library development** | `WeaveDI.Container` | Better encapsulation and scoping |
 
 ## UnifiedDI: Modern Simple API
 
@@ -123,15 +123,15 @@ let apiService = UnifiedDI.Conditional.registerIf(
 - Building large modular applications
 - Need advanced bootstrap patterns
 
-## DIContainer: Advanced Enterprise System
+## WeaveDI.Container: Advanced Enterprise System
 
 ### Design Philosophy
 
-DIContainer follows **"Power and Control"** - providing enterprise-grade features for complex applications.
+WeaveDI.Container follows **"Power and Control"** - providing enterprise-grade features for complex applications.
 
 ```swift
-// ✅ DIContainer: Bootstrap pattern for safe initialization
-await DIContainer.bootstrap { container in
+// ✅ WeaveDI.Container: Bootstrap pattern for safe initialization
+await WeaveDI.Container.bootstrap { container in
     // Core infrastructure first
     container.register(DatabaseService.self) { DatabaseImpl() }
     container.register(NetworkService.self) { NetworkServiceImpl() }
@@ -152,13 +152,13 @@ await DIContainer.bootstrap { container in
 
 ```swift
 // ✅ Synchronous bootstrap
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(Logger.self) { ConsoleLogger() }
     container.register(ConfigService.self) { ConfigServiceImpl() }
 }
 
 // ✅ Asynchronous bootstrap for complex initialization
-let success = await DIContainer.bootstrapAsync { container in
+let success = await WeaveDI.Container.bootstrapAsync { container in
     // Initialize database connection
     let database = try await DatabaseConnection.establish()
     container.register(DatabaseService.self, instance: database)
@@ -169,7 +169,7 @@ let success = await DIContainer.bootstrapAsync { container in
 }
 
 // ✅ Mixed bootstrap (sync + async)
-await DIContainer.bootstrapMixed(
+await WeaveDI.Container.bootstrapMixed(
     sync: { container in
         // Immediate dependencies
         container.register(Logger.self) { ConsoleLogger() }
@@ -186,7 +186,7 @@ await DIContainer.bootstrapMixed(
 
 ```swift
 // ✅ Create hierarchical containers
-let appContainer = DIContainer()
+let appContainer = WeaveDI.Container()
 appContainer.register(DatabaseService.self) { DatabaseImpl() }
 
 // Child container inherits parent dependencies
@@ -209,10 +209,10 @@ orderModule.register(OrderRepository.self) {
 // ✅ Define modules for organized registration
 struct UserModule: Module {
     func register() async {
-        await DIContainer.shared.register(UserService.self) {
+        await WeaveDI.Container.shared.register(UserService.self) {
             UserServiceImpl()
         }
-        await DIContainer.shared.register(UserRepository.self) {
+        await WeaveDI.Container.shared.register(UserRepository.self) {
             UserRepositoryImpl()
         }
     }
@@ -220,17 +220,17 @@ struct UserModule: Module {
 
 struct NetworkModule: Module {
     func register() async {
-        await DIContainer.shared.register(NetworkService.self) {
+        await WeaveDI.Container.shared.register(NetworkService.self) {
             NetworkServiceImpl()
         }
-        await DIContainer.shared.register(APIClient.self) {
+        await WeaveDI.Container.shared.register(APIClient.self) {
             APIClientImpl()
         }
     }
 }
 
 // ✅ Parallel module building for performance
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.addModule(UserModule())
     container.addModule(NetworkModule())
     container.addModule(AnalyticsModule())
@@ -244,17 +244,17 @@ await DIContainer.bootstrap { container in
 
 ```swift
 // ✅ Factory registration (lazy evaluation)
-let releaseHandler = DIContainer.shared.register(ExpensiveService.self, build: {
+let releaseHandler = WeaveDI.Container.shared.register(ExpensiveService.self, build: {
     // Only created when first resolved
     ExpensiveServiceImpl()
 })
 
 // ✅ Instance registration (immediate)
 let logger = ConsoleLogger()
-DIContainer.shared.register(Logger.self, instance: logger)
+WeaveDI.Container.shared.register(Logger.self, instance: logger)
 
 // ✅ Factory registration with immediate instance
-let networkService = DIContainer.shared.register(NetworkService.self) {
+let networkService = WeaveDI.Container.shared.register(NetworkService.self) {
     NetworkServiceImpl()
 }
 ```
@@ -263,13 +263,13 @@ let networkService = DIContainer.shared.register(NetworkService.self) {
 
 ```swift
 // ✅ Swift 6 actor-isolated operations
-@DIContainerActor
+@WeaveDI.ContainerActor
 func registerServices() async {
-    let container = DIContainer.actorShared
+    let container = WeaveDI.Container.actorShared
 
     await container.actorRegister(UserService.self, instance: UserServiceImpl())
 
-    let resolvedService = await DIContainer.resolveAsync(UserService.self)
+    let resolvedService = await WeaveDI.Container.resolveAsync(UserService.self)
 }
 ```
 
@@ -277,7 +277,7 @@ func registerServices() async {
 
 ```swift
 // ✅ Module build metrics
-let metrics = await DIContainer.shared.buildModulesWithMetrics()
+let metrics = await WeaveDI.Container.shared.buildModulesWithMetrics()
 print("""
 Performance Report:
 - Modules built: \(metrics.moduleCount)
@@ -286,12 +286,12 @@ Performance Report:
 """)
 
 // ✅ Container status monitoring
-print("Container is bootstrapped: \(DIContainer.isBootstrapped)")
-print("Module count: \(DIContainer.shared.moduleCount)")
-print("Is empty: \(DIContainer.shared.isEmpty)")
+print("Container is bootstrapped: \(WeaveDI.Container.isBootstrapped)")
+print("Module count: \(WeaveDI.Container.shared.moduleCount)")
+print("Is empty: \(WeaveDI.Container.shared.isEmpty)")
 ```
 
-### When to Choose DIContainer
+### When to Choose WeaveDI.Container
 
 **✅ Perfect for:**
 - **Enterprise applications**: Complex initialization sequences
@@ -318,9 +318,9 @@ let service1 = UnifiedDI.register(TestService.self) { TestServiceImpl() }
 let duration1 = CFAbsoluteTimeGetCurrent() - start1
 // ~0.01ms per registration
 
-// DIContainer: Deferred registration with bootstrap
+// WeaveDI.Container: Deferred registration with bootstrap
 let start2 = CFAbsoluteTimeGetCurrent()
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(TestService.self) { TestServiceImpl() }
 }
 let duration2 = CFAbsoluteTimeGetCurrent() - start2
@@ -336,8 +336,8 @@ let start = CFAbsoluteTimeGetCurrent()
 // UnifiedDI resolution
 let service1 = UnifiedDI.resolve(TestService.self)
 
-// DIContainer resolution
-let service2 = DIContainer.shared.resolve(TestService.self)
+// WeaveDI.Container resolution
+let service2 = WeaveDI.Container.shared.resolve(TestService.self)
 
 let duration = CFAbsoluteTimeGetCurrent() - start
 // Both: ~0.001ms per resolution (negligible difference)
@@ -346,11 +346,11 @@ let duration = CFAbsoluteTimeGetCurrent() - start
 ### Module Building Performance
 
 ```swift
-// DIContainer: Parallel module building advantage
+// WeaveDI.Container: Parallel module building advantage
 let modules = [UserModule(), NetworkModule(), AnalyticsModule(), PaymentModule()]
 
 let start = CFAbsoluteTimeGetCurrent()
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     for module in modules {
         container.addModule(module)
     }
@@ -366,7 +366,7 @@ modules.forEach { module in
 }
 let sequentialDuration = CFAbsoluteTimeGetCurrent() - start2
 
-// DIContainer can be 3-5x faster for large module sets
+// WeaveDI.Container can be 3-5x faster for large module sets
 ```
 
 ## Auto DI Optimizer Integration
@@ -393,11 +393,11 @@ let asyncStats = await UnifiedDI.asyncPerformanceStats
 let actorHops = await UnifiedDI.actorHopStats
 ```
 
-### DIContainer Integration
+### WeaveDI.Container Integration
 
 ```swift
 // ✅ Container-specific monitoring
-let container = DIContainer.shared
+let container = WeaveDI.Container.shared
 print("Auto graph: \(container.getAutoGeneratedGraph())")
 print("Optimized types: \(container.getOptimizedTypes())")
 print("Circular dependencies: \(container.getDetectedCircularDependencies())")
@@ -435,20 +435,20 @@ class UserServiceTests: XCTestCase {
 }
 ```
 
-### DIContainer Testing
+### WeaveDI.Container Testing
 
 ```swift
 class UserServiceTests: XCTestCase {
-    var testContainer: DIContainer!
+    var testContainer: WeaveDI.Container!
 
     override func setUp() async throws {
         try await super.setUp()
 
         // ✅ Isolated test container
-        testContainer = DIContainer()
+        testContainer = WeaveDI.Container()
 
         // ✅ Test-specific bootstrap
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(UserRepository.self) { MockUserRepository() }
             container.register(UserService.self) {
                 UserServiceImpl(repository: container.resolve(UserRepository.self)!)
@@ -458,7 +458,7 @@ class UserServiceTests: XCTestCase {
 
     override func tearDown() async throws {
         // ✅ Container cleanup
-        await DIContainer.resetForTesting()
+        await WeaveDI.Container.resetForTesting()
         try await super.tearDown()
     }
 
@@ -472,7 +472,7 @@ class UserServiceTests: XCTestCase {
 
 ## Migration Strategies
 
-### From UnifiedDI to DIContainer
+### From UnifiedDI to WeaveDI.Container
 
 ```swift
 // Before: UnifiedDI simple registration
@@ -480,19 +480,19 @@ let userService = UnifiedDI.register(UserService.self) {
     UserServiceImpl()
 }
 
-// After: DIContainer with bootstrap
-await DIContainer.bootstrap { container in
+// After: WeaveDI.Container with bootstrap
+await WeaveDI.Container.bootstrap { container in
     container.register(UserService.self) {
         UserServiceImpl()
     }
 }
 ```
 
-### From DIContainer to UnifiedDI
+### From WeaveDI.Container to UnifiedDI
 
 ```swift
-// Before: DIContainer bootstrap
-await DIContainer.bootstrap { container in
+// Before: WeaveDI.Container bootstrap
+await WeaveDI.Container.bootstrap { container in
     container.register(Logger.self) { ConsoleLogger() }
     container.register(NetworkService.self) { NetworkServiceImpl() }
 }
@@ -522,11 +522,11 @@ if UnifiedDI.logLevel == .optimization {
 }
 ```
 
-### DIContainer Best Practices
+### WeaveDI.Container Best Practices
 
 ```swift
 // ✅ Always use bootstrap for initialization
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Register dependencies in dependency order
     container.register(Logger.self) { ConsoleLogger() }
     container.register(ConfigService.self) {
@@ -537,18 +537,18 @@ await DIContainer.bootstrap { container in
 // ✅ Use modules for organization
 struct CoreModule: Module {
     func register() async {
-        let container = DIContainer.shared
+        let container = WeaveDI.Container.shared
         await container.register(Logger.self) { ConsoleLogger() }
         await container.register(ConfigService.self) { ConfigServiceImpl() }
     }
 }
 
 // ✅ Check bootstrap status
-DIContainer.ensureBootstrapped()
-let service = DIContainer.shared.resolve(MyService.self)
+WeaveDI.Container.ensureBootstrapped()
+let service = WeaveDI.Container.shared.resolve(MyService.self)
 
 // ✅ Use child containers for isolation
-let testContainer = DIContainer.shared.createChild()
+let testContainer = WeaveDI.Container.shared.createChild()
 testContainer.register(TestService.self) { MockTestService() }
 ```
 
@@ -558,21 +558,21 @@ Both APIs can be used together in the same application:
 
 ```swift
 // ✅ Mix both APIs
-await DIContainer.bootstrap { container in
-    // Bootstrap core services with DIContainer
+await WeaveDI.Container.bootstrap { container in
+    // Bootstrap core services with WeaveDI.Container
     container.register(DatabaseService.self) { DatabaseImpl() }
 }
 
 // Register additional services with UnifiedDI
 let analyticsService = UnifiedDI.register(AnalyticsService.self) {
     AnalyticsServiceImpl(
-        database: DIContainer.shared.resolve(DatabaseService.self)!
+        database: WeaveDI.Container.shared.resolve(DatabaseService.self)!
     )
 }
 
 // Both resolve from the same underlying container
 let database1 = UnifiedDI.resolve(DatabaseService.self)
-let database2 = DIContainer.shared.resolve(DatabaseService.self)
+let database2 = WeaveDI.Container.shared.resolve(DatabaseService.self)
 // database1 and database2 are the same instance
 ```
 
@@ -585,7 +585,7 @@ let database2 = DIContainer.shared.resolve(DatabaseService.self)
 - Minimal setup overhead is important
 - Auto-optimization insights are valuable
 
-### Choose DIContainer when:
+### Choose WeaveDI.Container when:
 - Building enterprise or complex applications
 - Need advanced bootstrap patterns
 - Require parent-child container relationships

@@ -13,7 +13,7 @@ WeaveDI 2.0.0은 Swift Concurrency를 완전히 수용하고, Actor Hop 최적�
 - **부트스트랩 시스템**: 안전한 앱 초기화를 위한 `WeaveDI.Container.bootstrap`
 - **Actor Hop 최적화**: Swift Concurrency와 완벽 호환되는 성능 최적화
 - **강화된 Property Wrapper**: `@Inject`, `@RequiredInject`, `@Factory` 지원
-- **AppDIContainer**: 앱 수준의 의존성 관리를 위한 통합 컨테이너
+- **AppWeaveDI.Container**: 앱 수준의 의존성 관리를 위한 통합 컨테이너
 - **ModuleFactory 시스템**: Repository, UseCase, Scope 팩토리 패턴
 
 ### 🔄 변경된 API
@@ -295,17 +295,17 @@ class MyTests: XCTestCase {
 }
 ```
 
-### 6단계: 고급 기능 활용 (AppDIContainer)
+### 6단계: 고급 기능 활용 (AppWeaveDI.Container)
 
-대규모 프로젝트에서는 AppDIContainer를 활용하세요:
+대규모 프로젝트에서는 AppWeaveDI.Container를 활용하세요:
 
 ```swift
-// AppDIContainer 활용
-await AppDIContainer.shared.registerDefaultDependencies()
+// AppWeaveDI.Container 활용
+await AppWeaveDI.Container.shared.registerDefaultDependencies()
 
 // 또는 커스텀 등록
-await AppDIContainer.shared.registerDependencies { container in
-    var repositoryFactory = AppDIContainer.shared.repositoryFactory
+await AppWeaveDI.Container.shared.registerDependencies { container in
+    var repositoryFactory = AppWeaveDI.Container.shared.repositoryFactory
     repositoryFactory.registerDefaultDefinitions()
 
     await repositoryFactory.makeAllModules().asyncForEach { module in

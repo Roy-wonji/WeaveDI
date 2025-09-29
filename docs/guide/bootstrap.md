@@ -20,14 +20,14 @@ How to safely and consistently prepare dependencies at app startup. WeaveDI prov
 ```swift
 import WeaveDI
 
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(Logger.self) { ConsoleLogger() }
     container.register(Networking.self) { DefaultNetworking() }
     container.register(UserRepository.self) { UserRepositoryImpl() }
 }
 
-// Afterwards, DIContainer.shared.resolve(...) can be used anywhere
-let logger = DIContainer.shared.resolve(Logger.self)
+// Afterwards, WeaveDI.Container.shared.resolve(...) can be used anywhere
+let logger = WeaveDI.Container.shared.resolve(Logger.self)
 ```
 
 ## Asynchronous Bootstrap
@@ -35,7 +35,7 @@ let logger = DIContainer.shared.resolve(Logger.self)
 When asynchronous initialization is needed (e.g., remote configuration, database connections), use `bootstrapAsync`.
 
 ```swift
-let ok = await DIContainer.bootstrapAsync { container in
+let ok = await WeaveDI.Container.bootstrapAsync { container in
     // Example: Load remote configuration
     let config = try await RemoteConfig.load()
     container.register(AppConfig.self) { config }
@@ -56,7 +56,7 @@ Useful when you want core dependencies immediately and supplementary dependencie
 
 ```swift
 @MainActor
-await DIContainer.bootstrapMixed(
+await WeaveDI.Container.bootstrapMixed(
     sync: { container in
         container.register(Logger.self) { ConsoleLogger() }
         container.register(Networking.self) { DefaultNetworking() }
@@ -74,7 +74,7 @@ await DIContainer.bootstrapMixed(
 When you want to minimize app startup delay, you can perform asynchronous bootstrap in the background.
 
 ```swift
-DIContainer.bootstrapInTask { container in
+WeaveDI.Container.bootstrapInTask { container in
     let featureFlags = try await FeatureFlags.fetch()
     container.register(FeatureFlags.self) { featureFlags }
 }
@@ -85,7 +85,7 @@ DIContainer.bootstrapInTask { container in
 Use when you want to skip if already initialized.
 
 ```swift
-let didInit = await DIContainer.bootstrapIfNeeded { container in
+let didInit = await WeaveDI.Container.bootstrapIfNeeded { container in
     container.register(Logger.self) { ConsoleLogger() }
 }
 
@@ -97,7 +97,7 @@ if !didInit {
 Asynchronous version is also provided.
 
 ```swift
-let didInit = await DIContainer.bootstrapAsyncIfNeeded { container in
+let didInit = await WeaveDI.Container.bootstrapAsyncIfNeeded { container in
     let config = try await RemoteConfig.load()
     container.register(AppConfig.self) { config }
 }
@@ -109,9 +109,9 @@ In test environments, you can reset and reconfigure the container.
 
 ```swift
 // In test setup
-await DIContainer.resetForTesting()
+await WeaveDI.Container.resetForTesting()
 
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Register test doubles
     container.register(Logger.self) { MockLogger() }
     container.register(UserRepository.self) { TestUserRepository() }
@@ -140,7 +140,7 @@ struct MyApp: App {
     }
 
     private func initializeDependencies() async {
-        await DIContainer.bootstrapMixed(
+        await WeaveDI.Container.bootstrapMixed(
             sync: { container in
                 // Core dependencies
                 container.register(Logger.self) { ProductionLogger() }

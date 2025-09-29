@@ -126,7 +126,7 @@ class CriticalService {
 **Before (2.x):**
 ```swift
 // Manual optimization setup
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(UserService.self) { UserServiceImpl() }
     container.register(OrderService.self) { OrderServiceImpl() }
 }
@@ -138,7 +138,7 @@ UnifiedDI.enableOptimization()
 **After (3.0.0):**
 ```swift
 // Auto optimization - no manual setup needed
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(UserService.self) { UserServiceImpl() }
     container.register(OrderService.self) { OrderServiceImpl() }
 }
@@ -336,7 +336,7 @@ func monitorOptimization() {
 
 ```swift
 // Organize dependencies by modules for better performance
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Core infrastructure first
     let infrastructureModules = InfrastructureModuleFactory().makeAllModules()
     for module in infrastructureModules {
@@ -372,7 +372,7 @@ class UserServiceTests: XCTestCase {
         // Reset optimization statistics for clean tests
         UnifiedDI.resetStats()
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(UserService.self) { MockUserService() }
         }
     }

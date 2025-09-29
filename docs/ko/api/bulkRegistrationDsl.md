@@ -332,7 +332,7 @@ let coreModules = registerModule.easyScopes {
 ```swift
 class AppDependencyConfiguration {
     static func configure() async {
-        await AppDIContainer.shared.registerDependencies { container in
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             // Easy Scope로 코어 인프라 구성
             let coreModules = registerModule.easyScopes {
                 register(LoggerProtocol.self) { OSLogLogger(category: "WeaveDI") }
@@ -392,7 +392,7 @@ class AppDependencyConfiguration {
 ```swift
 extension AppDependencyConfiguration {
     static func configureForEnvironment(_ environment: AppEnvironment) async {
-        await AppDIContainer.shared.registerDependencies { container in
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             let modules: [Module]
 
             switch environment {

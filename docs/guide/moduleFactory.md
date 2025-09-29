@@ -217,7 +217,7 @@ struct WeaveDIApp: App {
 
         let allModules = applicationFactory.getAllModules()
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             for module in allModules {
                 await container.register(module)
             }
@@ -310,7 +310,7 @@ struct AsyncModuleFactory {
 // Usage
 let asyncFactory = AsyncModuleFactory()
 
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Register sync modules first
     var syncFactory = ApplicationModuleFactory()
     syncFactory.setupAll()
@@ -335,7 +335,7 @@ await DIContainer.bootstrap { container in
 ```swift
 struct OrderedModuleRegistration {
     static func registerInOrder() async {
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // 1. Infrastructure layer
             let infraModules = InfrastructureModuleFactory().makeAllModules()
             for module in infraModules {

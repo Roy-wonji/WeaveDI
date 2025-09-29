@@ -315,8 +315,8 @@ if current.averageResolutionTime > baseline.averageResolutionTime * 1.5 {
 
 ```swift
 // 이전 (수동)
-DIContainer.enableOptimization(for: UserService.self)
-DIContainer.setCacheSize(100)
+WeaveDI.Container.enableOptimization(for: UserService.self)
+WeaveDI.Container.setCacheSize(100)
 
 // 이후 (자동)
 // 아무것도 필요 없음 - 자동 최적화가 이를 처리합니다

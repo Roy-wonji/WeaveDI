@@ -92,16 +92,16 @@ class UserViewController {
 ### 실제 구현된 기능들
 WeaveDI의 실제 소스 코드를 분석한 결과, 다음과 같은 핵심 기능들이 구현되어 있습니다:
 
-#### 1. **@DIContainerActor** 기반 동시성 안전성
+#### 1. **@WeaveDI.ContainerActor** 기반 동시성 안전성
 ```swift
-// 실제 DIContainer.swift에서 구현됨
+// 실제 WeaveDI.Container.swift에서 구현됨
 @globalActor
-public actor DIContainerActor {
-    public static let shared = DIContainerActor()
+public actor WeaveDI.ContainerActor {
+    public static let shared = WeaveDI.ContainerActor()
 }
 
 // Actor 보호하에 의존성 등록
-@DIContainerActor
+@WeaveDI.ContainerActor
 public static func registerAsync<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) -> T where T: Sendable {
     return actorShared.register(type, factory: factory)
 }
@@ -142,7 +142,7 @@ public enum UnifiedDI {
         factory: @escaping @Sendable () -> T
     ) -> T where T: Sendable {
         let instance = factory()
-        Task { await DIContainer.shared.actorRegister(type, instance: instance) }
+        Task { await WeaveDI.Container.shared.actorRegister(type, instance: instance) }
         return instance
     }
 
@@ -364,10 +364,10 @@ final class DefaultConfigService: ConfigService {
 }
 
 // MARK: - 2. 서비스 등록 및 부트스트랩
-extension DIContainer {
+extension WeaveDI.Container {
     static func setupDependencies() async {
         // 동기 부트스트랩으로 모든 서비스 등록
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // 인사 서비스 등록
             container.register(GreetingService.self) {
                 SimpleGreetingService()
@@ -419,7 +419,7 @@ struct WeaveDIDemoApp: App {
     init() {
         // 앱 시작 시 의존성 설정
         Task {
-            await DIContainer.setupDependencies()
+            await WeaveDI.Container.setupDependencies()
         }
     }
 
@@ -708,7 +708,7 @@ struct ProdAPI: APIClient, Sendable { let baseURL = "https://api.example.com" }
 
 func exampleEnvironmentConfig(isProd: Bool) async {
     // 1) 앱 시작 시 부트스트랩으로 일괄 등록
-    await DIContainer.bootstrap { c in
+    await WeaveDI.Container.bootstrap { c in
         if isProd {
             _ = c.register(APIClient.self) { ProdAPI() }
         } else {

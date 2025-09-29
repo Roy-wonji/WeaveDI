@@ -38,7 +38,7 @@ import WeaveDI
 **사용 가능한 기능:**
 - `@Inject`, `@Factory`, `@SafeInject` 프로퍼티 래퍼 접근
 - UnifiedDI 등록 및 해결 API
-- DIContainer 부트스트랩 기능
+- WeaveDI.Container 부트스트랩 기능
 - 모든 WeaveDI 유틸리티 클래스와 프로토콜
 
 ### 2. 서비스 정의
@@ -302,7 +302,7 @@ Bootstrap 패턴은 한 곳에서 모든 의존성을 설정하는 권장 방법
 ```swift
 // 앱 시작 시 모든 의존성 부트스트랩
 // 이는 일반적으로 App.swift나 AppDelegate에서 호출됩니다
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // 논리적 순서로 서비스 등록
 
     // 1. 핵심 인프라 서비스 먼저
@@ -335,13 +335,13 @@ await DIContainer.bootstrap { container in
 
 // 대안: 환경별 부트스트랩
 #if DEBUG
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // 개발용 모킹 서비스 사용
     container.register(UserService.self) { MockUserService() }
     container.register(NetworkService.self) { MockNetworkService() }
 }
 #else
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // 프로덕션용 실제 서비스 사용
     container.register(UserService.self) { UserServiceImpl() }
     container.register(NetworkService.self) { URLSessionNetworkService() }

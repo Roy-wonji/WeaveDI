@@ -157,7 +157,7 @@ class UserUseCaseImpl: UserUseCase {
 // MARK: - Clean Architecture용 의존성 설정
 extension UnifiedDI {
     static func setupCleanArchitecture() async {
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Domain Layer - Use Cases
             _ = container.register(UserUseCase.self) { UserUseCaseImpl() }
             _ = container.register(AuthUseCase.self) { AuthUseCaseImpl() }
@@ -208,7 +208,7 @@ class UserViewModelTests: XCTestCase {
         mockLogger = MockLogger()
 
         // Mock 의존성 등록
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             _ = container.register(UserRepository.self) { self.mockRepository }
             _ = container.register(LoggerProtocol.self) { self.mockLogger }
         }
@@ -296,7 +296,7 @@ class IntegrationTests: XCTestCase {
         // 통합 테스트 의존성 설정 (실제 구현 + 일부 Mock)
         await UnifiedDI.releaseAll()
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // 실제 구현 사용
             _ = container.register(ValidationService.self) { DefaultValidationService() }
             _ = container.register(CacheService.self) { NSCacheService() }
@@ -508,7 +508,7 @@ class AppDependencySetup {
         let factory: ServiceFactory = isProduction ?
             ProductionServiceFactory() : DevelopmentServiceFactory()
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             _ = container.register(ServiceFactory.self) { factory }
             _ = container.register(UserService.self) { factory.createUserService() }
             _ = container.register(NetworkService.self) { factory.createNetworkService() }
@@ -566,7 +566,7 @@ extension UnifiedDI {
     static func setupObservableServices() async {
         let stateMonitor = ServiceStateMonitor()
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             _ = container.register(ServiceStateMonitor.self) { stateMonitor }
             _ = container.register(ObservableService.self) {
                 let service = ObservableService()
@@ -581,14 +581,14 @@ extension UnifiedDI {
 ## 💡 베스트 프랙티스 요약
 
 ### ✅ DO
-1. **일관된 API 사용**: UnifiedDI 또는 DIContainer 중 하나를 선택해서 일관되게 사용
+1. **일관된 API 사용**: UnifiedDI 또는 WeaveDI.Container 중 하나를 선택해서 일관되게 사용
 2. **모듈 기반 등록**: 관련 의존성들을 모듈별로 그룹화
 3. **테스트 Mock 분리**: 테스트에서는 항상 깨끗한 컨테이너로 시작
 4. **메모리 관리**: 순환 참조를 피하고 생명주기를 적절히 관리
 5. **성능 모니터링**: 초기 성능 이슈 감지를 위해 해결 과정 추적
 
 ### ❌ DON'T
-1. **혼합 API 사용 금지**: UnifiedDI와 DIContainer를 동시에 사용하지 말 것
+1. **혼합 API 사용 금지**: UnifiedDI와 WeaveDI.Container를 동시에 사용하지 말 것
 2. **런타임 등록 남용 피하기**: 앱 실행 중 빈번한 등록/해제 피하기
 3. **강한 참조 체인**: 순환 의존성을 야기하는 강한 참조 피하기
 4. **전역 상태 남용**: 의존성 주입으로 해결할 수 있는 문제를 전역 상태로 해결하지 말 것

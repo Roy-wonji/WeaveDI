@@ -1,10 +1,23 @@
 # @SafeInject Property Wrapper
 
-The `@SafeInject` property wrapper provides guaranteed dependency injection with compile-time safety. Unlike `@Inject` which returns optionals, `@SafeInject` ensures your dependencies are always available by providing fallback mechanisms.
+The `@SafeInject` property wrapper provides guaranteed dependency injection with compile-time safety and runtime resilience. Unlike `@Inject` which returns optionals, `@SafeInject` ensures your dependencies are always available by implementing sophisticated fallback mechanisms that eliminate nil-related crashes and simplify code structure.
 
 ## Overview
 
-`@SafeInject` eliminates the need for optional handling by guaranteeing that a dependency will always be resolved. It provides several fallback strategies when a dependency is not registered, making your code more robust and easier to work with.
+`@SafeInject` fundamentally transforms dependency injection from an optional-based pattern to a guaranteed-resolution pattern. It eliminates the cognitive overhead and boilerplate code associated with optional handling by guaranteeing that a dependency will always be resolved. The wrapper implements multiple fallback strategies when a dependency is not registered in the container, making your code significantly more robust, maintainable, and easier to work with.
+
+**Key Benefits**:
+- **Guaranteed Resolution**: Dependencies are never nil, eliminating optional unwrapping
+- **Fallback Strategies**: Multiple approaches for handling missing dependencies
+- **Code Simplicity**: Cleaner, more readable code without optional handling
+- **Runtime Safety**: Prevents crashes from missing dependencies
+- **Testing Support**: Built-in fallbacks make testing easier and more reliable
+
+**Performance Characteristics**:
+- **Resolution Speed**: Identical to `@Inject` for registered dependencies
+- **Fallback Overhead**: Minimal overhead when fallbacks are used
+- **Memory Usage**: Small additional memory for storing fallback instances
+- **Thread Safety**: Thread-safe resolution and fallback mechanisms
 
 ```swift
 import WeaveDI
@@ -29,6 +42,20 @@ class UserService {
 
 ### Simple SafeInject with Fallback
 
+**Purpose**: Basic guaranteed dependency injection with explicit fallback instances for robust error handling.
+
+**Pattern Benefits**:
+- **Explicit Fallbacks**: Clear, compile-time definition of fallback behavior
+- **Type Safety**: Fallback instances must conform to the same protocol
+- **Immediate Availability**: Dependencies are available immediately without optional checks
+- **Error Prevention**: Eliminates runtime errors from missing dependencies
+
+**Use Cases**:
+- Services that must always function, even without proper registration
+- Development environments where not all services may be configured
+- Graceful degradation scenarios
+- Testing environments with partial dependency mocking
+
 ```swift
 class WeatherService {
     @SafeInject(fallback: ConsoleLogger())
@@ -47,6 +74,19 @@ class WeatherService {
 ```
 
 ### With Default Factory
+
+**Purpose**: Lazy fallback creation using closure-based factory patterns for memory-efficient fallback management.
+
+**Factory Benefits**:
+- **Lazy Creation**: Fallback instances created only when needed
+- **Memory Efficiency**: Avoids creating unused fallback instances
+- **Dynamic Creation**: Fallbacks can be created with runtime parameters
+- **Flexible Configuration**: Different creation patterns based on conditions
+
+**Performance Optimization**:
+- **Deferred Instantiation**: Fallbacks created only when container resolution fails
+- **Resource Management**: Efficient use of memory for fallback objects
+- **Initialization Control**: Control over when and how fallbacks are created
 
 ```swift
 class DocumentService {
@@ -276,6 +316,20 @@ class MockHTTPClient: HTTPClientProtocol {
 
 ### 1. Fallback Instance
 
+**Purpose**: Provide a concrete, pre-instantiated fallback instance for immediate availability and predictable behavior.
+
+**Strategy Benefits**:
+- **Immediate Availability**: Fallback instance is ready for immediate use
+- **Predictable Behavior**: Known fallback implementation with expected behavior
+- **Simple Configuration**: Straightforward setup with minimal complexity
+- **Testing Reliability**: Consistent fallback behavior across test runs
+
+**Best Practices**:
+- **Lightweight Instances**: Use minimal, efficient fallback implementations
+- **Safe Operations**: Ensure fallback instances have no harmful side effects
+- **Clear Semantics**: Choose fallbacks that clearly indicate their purpose (e.g., NoOpAnalytics)
+- **Resource Management**: Consider memory and resource usage of fallback instances
+
 Provide a concrete fallback instance:
 
 ```swift
@@ -298,6 +352,20 @@ class NoOpAnalytics: AnalyticsProtocol {
 
 ### 2. Factory Closure
 
+**Purpose**: Use closure-based factory patterns to create fallback instances dynamically, providing flexibility and memory efficiency.
+
+**Factory Pattern Benefits**:
+- **Dynamic Creation**: Create fallbacks with runtime-specific parameters
+- **Memory Efficiency**: Instances created only when container resolution fails
+- **Flexible Configuration**: Different creation logic based on runtime conditions
+- **Resource Optimization**: Avoid allocating resources for unused fallbacks
+
+**Implementation Strategies**:
+- **Parameter Injection**: Pass runtime parameters to factory closures
+- **Environment Detection**: Create different fallbacks based on environment
+- **Configuration Access**: Use configuration values during fallback creation
+- **Dependency Chaining**: Create fallbacks that use other dependencies
+
 Use a closure to create fallback instances:
 
 ```swift
@@ -317,6 +385,20 @@ class ImageService {
 ```
 
 ### 3. Protocol with Default Implementation
+
+**Purpose**: Leverage Swift protocol extensions to provide default implementations that serve as comprehensive fallback strategies.
+
+**Protocol Extension Benefits**:
+- **Default Behavior**: Protocols provide sensible default implementations
+- **Code Reuse**: Shared default behavior across multiple implementations
+- **Extensibility**: Easy to override specific methods while keeping defaults
+- **Type Safety**: All conforming types automatically get default behavior
+
+**Design Patterns**:
+- **Safe Defaults**: Default implementations that are safe for production use
+- **Graceful Degradation**: Defaults that provide reduced functionality rather than failure
+- **Configuration Fallbacks**: Default values for configuration services
+- **Mock-like Behavior**: Defaults that simulate real behavior for testing
 
 ```swift
 protocol ConfigurationService {
@@ -347,6 +429,26 @@ class AppService {
 ## Compared to @Inject
 
 ### Code Comparison
+
+**Comparison Analysis**: `@SafeInject` vs `@Inject` demonstrates the trade-offs between safety and flexibility in dependency injection patterns.
+
+**@Inject Characteristics**:
+- **Optional Dependencies**: Returns optional values that require unwrapping
+- **Explicit Nil Handling**: Requires guard statements and optional chaining
+- **Runtime Flexibility**: Can handle truly optional dependencies
+- **Memory Efficiency**: No fallback instances stored in memory
+
+**@SafeInject Characteristics**:
+- **Guaranteed Dependencies**: Never returns nil, always provides working instances
+- **Simplified Code**: No optional unwrapping or guard statements needed
+- **Built-in Resilience**: Automatic fallback when dependencies are missing
+- **Predictable Behavior**: Always have working dependencies, even if they're fallbacks
+
+**Performance Impact**:
+- **@Inject**: Slightly faster for registered dependencies (no fallback overhead)
+- **@SafeInject**: Minimal overhead for fallback storage, identical speed for registered dependencies
+- **Memory**: @SafeInject uses additional memory for fallback instances
+- **Code Size**: @SafeInject reduces code size by eliminating optional handling
 
 ```swift
 // With @Inject (optional handling required)
@@ -389,10 +491,23 @@ class UserServiceWithSafeInject {
 
 ### Normal Registration
 
+**Purpose**: `@SafeInject` seamlessly integrates with WeaveDI's standard dependency registration system, providing fallback behavior only when needed.
+
+**Resolution Priority**:
+1. **Container Resolution**: First attempts to resolve from WeaveDI container
+2. **Fallback Resolution**: Uses provided fallback if container resolution fails
+3. **Type Safety**: Both container and fallback instances must conform to the same protocol
+
+**Integration Benefits**:
+- **Transparent Operation**: Works identically to `@Inject` when dependencies are registered
+- **Fallback Safety**: Automatic fallback when dependencies are missing
+- **Development Flexibility**: Easy switching between registered and fallback dependencies
+- **Testing Support**: Simplified testing with reliable fallback behavior
+
 SafeInject works with normal dependency registration:
 
 ```swift
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(LoggerProtocol.self) { FileLogger() }
     container.register(UserRepository.self) { DatabaseUserRepository() }
 }
@@ -403,12 +518,45 @@ let service = UserServiceWithSafeInject() // Uses FileLogger and DatabaseUserRep
 
 ### Fallback When Not Registered
 
+**Purpose**: Demonstrate graceful degradation when dependencies are not registered in the container.
+
+**Fallback Activation Scenarios**:
+- **Missing Registration**: Dependency not registered in container
+- **Container Reset**: Container cleared during testing or development
+- **Partial Configuration**: Some dependencies registered, others missing
+- **Environment Differences**: Different registrations across environments
+
+**Fallback Behavior**:
+- **Automatic Switching**: Seamless transition to fallback implementation
+- **No Error Throwing**: No exceptions or crashes from missing dependencies
+- **Consistent Interface**: Fallback provides same interface as registered dependency
+- **Transparent Operation**: Calling code unaware of fallback vs registered dependency
+
 ```swift
 // If no dependencies are registered
 let service = UserServiceWithSafeInject() // Uses ConsoleLogger and MockUserRepository fallbacks
 ```
 
 ## Thread Safety
+
+**Thread Safety Guarantees**: `@SafeInject` provides comprehensive thread safety through multiple layers of protection and concurrent access handling.
+
+**Safety Mechanisms**:
+- **Container Thread Safety**: Underlying WeaveDI container is thread-safe
+- **Fallback Thread Safety**: Fallback resolution is protected against race conditions
+- **Instance Thread Safety**: Fallback instances must be thread-safe (implementation responsibility)
+- **Property Access Safety**: Property wrapper ensures thread-safe access to resolved dependencies
+
+**Concurrency Considerations**:
+- **Parallel Access**: Multiple threads can safely access `@SafeInject` properties
+- **Resolution Caching**: Resolved dependencies are cached safely across threads
+- **Fallback Creation**: Fallback factory closures executed safely in concurrent environments
+- **Memory Barriers**: Automatic memory barrier handling for consistent visibility
+
+**Performance in Concurrent Environments**:
+- **Scalable Access**: Performance scales well with concurrent thread access
+- **Minimal Contention**: Low lock contention for dependency resolution
+- **Cache Efficiency**: Resolved dependencies cached for fast subsequent access
 
 @SafeInject is thread-safe and works across different queues:
 
@@ -434,12 +582,26 @@ class ConcurrentService {
 
 ### Test Setup
 
+**Testing Strategy**: `@SafeInject` provides superior testing capabilities through guaranteed dependency availability and flexible fallback configuration.
+
+**Testing Benefits**:
+- **Reliable Test Dependencies**: Tests never fail due to missing dependencies
+- **Flexible Mock Strategies**: Easy switching between real and mock dependencies
+- **Fallback Testing**: Verify application behavior when services are unavailable
+- **Integration Testing**: Test complete systems with partial mocking
+
+**Test Configuration Patterns**:
+- **Full Mock Environment**: Register all dependencies as mocks
+- **Partial Mock Environment**: Register some mocks, rely on fallbacks for others
+- **Fallback Testing**: Test with no registrations to verify fallback behavior
+- **Mixed Environment**: Combine real and mock dependencies for integration testing
+
 ```swift
 class SafeInjectServiceTests: XCTestCase {
 
     func testWithRegisteredDependencies() async throws {
         // Register test dependencies
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(LoggerProtocol.self) { TestLogger() }
             container.register(UserRepository.self) { TestUserRepository() }
         }
@@ -454,7 +616,7 @@ class SafeInjectServiceTests: XCTestCase {
 
     func testWithoutRegisteredDependencies() async throws {
         // Reset container (no dependencies registered)
-        await DIContainer.resetForTesting()
+        await WeaveDI.Container.resetForTesting()
 
         let service = UserServiceWithSafeInject()
 
@@ -467,6 +629,20 @@ class SafeInjectServiceTests: XCTestCase {
 ```
 
 ### Mocking Fallbacks
+
+**Purpose**: Advanced testing patterns that allow custom fallback configuration for specific test scenarios.
+
+**Custom Fallback Benefits**:
+- **Test-Specific Mocks**: Provide specialized mocks for specific test scenarios
+- **Behavior Verification**: Verify interactions with custom test doubles
+- **State Control**: Control initial state and behavior of fallback dependencies
+- **Isolation Testing**: Test components in complete isolation with controlled fallbacks
+
+**Advanced Testing Patterns**:
+- **Constructor Injection**: Override fallbacks through constructor parameters
+- **Property Injection**: Modify fallbacks after instance creation
+- **Protocol Mocking**: Use protocol-based mocks for maximum flexibility
+- **State Verification**: Verify state changes in custom fallback instances
 
 ```swift
 class TestableService {
@@ -495,6 +671,20 @@ class ServiceTests: XCTestCase {
 
 ### Memory Usage
 
+**Memory Management Strategy**: `@SafeInject` implements efficient memory management while maintaining guaranteed dependency availability.
+
+**Memory Characteristics**:
+- **Fallback Storage**: Maintains reference to fallback instance for immediate availability
+- **Resolution Caching**: Caches resolved dependencies to avoid repeated container lookups
+- **Lifecycle Management**: Fallback instances follow normal Swift memory management rules
+- **Resource Optimization**: Lazy factory closures avoid creating unnecessary instances
+
+**Memory Optimization Guidelines**:
+- **Lightweight Fallbacks**: Choose minimal implementations for fallback instances
+- **Resource Sharing**: Share resources between fallback instances when appropriate
+- **Lazy Creation**: Use factory closures for expensive fallback instances
+- **Memory Monitoring**: Monitor memory usage patterns in production environments
+
 SafeInject keeps a reference to the fallback instance:
 
 ```swift
@@ -511,6 +701,20 @@ class EfficientService {
 
 ### Lazy Fallback Creation
 
+**Purpose**: Optimize memory usage and initialization performance through deferred fallback creation.
+
+**Lazy Creation Benefits**:
+- **Memory Efficiency**: Fallback instances created only when container resolution fails
+- **Initialization Performance**: Avoid expensive fallback creation during property wrapper initialization
+- **Resource Conservation**: Don't allocate resources for unused fallbacks
+- **Dynamic Configuration**: Create fallbacks with runtime-specific parameters
+
+**Implementation Strategies**:
+- **Closure-Based Factories**: Use closures to defer instance creation
+- **Conditional Creation**: Create different fallbacks based on runtime conditions
+- **Resource Management**: Manage expensive resources efficiently in fallback instances
+- **Performance Monitoring**: Track fallback creation patterns and performance impact
+
 ```swift
 class LazyFallbackService {
     @SafeInject {
@@ -524,6 +728,26 @@ class LazyFallbackService {
 ## Best Practices
 
 ### 1. Choose Appropriate Fallbacks
+
+**Strategy**: Select fallback implementations that provide safe, predictable behavior without harmful side effects.
+
+**Fallback Selection Criteria**:
+- **Safety First**: Fallbacks should never cause data loss or security issues
+- **Minimal Side Effects**: Avoid fallbacks that perform destructive operations
+- **Clear Intent**: Use fallbacks that clearly indicate their purpose (e.g., NoOp, Mock, Console)
+- **Resource Efficiency**: Choose lightweight implementations that don't consume excessive resources
+
+**Fallback Categories**:
+- **No-Op Implementations**: Safe fallbacks that perform no operations
+- **Console/Debug Implementations**: Fallbacks that log to console for debugging
+- **In-Memory Implementations**: Temporary fallbacks that work without external dependencies
+- **Mock Implementations**: Test-friendly fallbacks that simulate real behavior
+
+**Risk Assessment**:
+- **Production Safety**: Ensure fallbacks are safe for production environments
+- **Data Integrity**: Verify fallbacks don't compromise data consistency
+- **Security Implications**: Assess security impact of fallback implementations
+- **Performance Impact**: Monitor performance characteristics of fallback implementations
 
 ```swift
 // ✅ Good - safe, no-op fallback
@@ -541,6 +765,20 @@ var emailService: EmailService // Might send real emails!
 
 ### 2. Document Fallback Behavior
 
+**Documentation Strategy**: Clearly document fallback behavior to help team members understand the implications of missing dependencies.
+
+**Documentation Elements**:
+- **Fallback Purpose**: Explain why specific fallbacks were chosen
+- **Behavior Description**: Document what the fallback implementation does
+- **Safety Guarantees**: Describe the safety characteristics of fallbacks
+- **Performance Impact**: Note any performance implications of fallback usage
+
+**Documentation Best Practices**:
+- **Inline Comments**: Add clear comments explaining fallback choices
+- **README Documentation**: Document fallback strategies in project documentation
+- **Code Examples**: Provide examples of expected fallback behavior
+- **Migration Notes**: Document any changes to fallback behavior over time
+
 ```swift
 class PaymentService {
     /// Analytics service with no-op fallback (safe for production)
@@ -555,6 +793,26 @@ class PaymentService {
 
 ### 3. Test Both Paths
 
+**Testing Strategy**: Comprehensive testing should verify both normal dependency resolution and fallback behavior.
+
+**Dual Path Testing Benefits**:
+- **Complete Coverage**: Ensure both success and fallback scenarios work correctly
+- **Behavior Verification**: Verify that fallbacks provide expected functionality
+- **Regression Prevention**: Catch issues in either resolution path
+- **Integration Confidence**: Build confidence in system reliability
+
+**Testing Approaches**:
+- **Registered Dependency Tests**: Test with all dependencies properly registered
+- **Fallback Dependency Tests**: Test with missing or unregistered dependencies
+- **Mixed Scenario Tests**: Test with some dependencies registered, others missing
+- **Performance Tests**: Verify performance characteristics of both paths
+
+**Test Organization**:
+- **Separate Test Cases**: Create distinct tests for each scenario
+- **Parametrized Tests**: Use test parameters to cover multiple scenarios
+- **Integration Suites**: Include both paths in integration test suites
+- **Continuous Testing**: Ensure both paths are tested in CI/CD pipelines
+
 ```swift
 func testServiceWithRegisteredDependencies() {
     // Test with real dependencies
@@ -566,6 +824,26 @@ func testServiceWithFallbackDependencies() {
 ```
 
 ### 4. Use for Critical Dependencies
+
+**Usage Strategy**: Apply `@SafeInject` strategically to dependencies that are critical for application functionality.
+
+**Critical Dependency Identification**:
+- **Core Functionality**: Dependencies required for basic application operation
+- **Error Handling**: Services needed for proper error handling and recovery
+- **Security Services**: Dependencies critical for application security
+- **Data Integrity**: Services required for maintaining data consistency
+
+**Decision Framework**:
+- **Must Always Work**: Use `@SafeInject` for dependencies that cannot be optional
+- **Can Be Optional**: Use `@Inject` for features that can be disabled gracefully
+- **Enhanced Features**: Use `@Inject` for dependencies that provide enhanced but non-essential functionality
+- **Development Tools**: Use appropriate wrapper based on development vs production needs
+
+**Architecture Considerations**:
+- **Service Layers**: Different injection strategies for different architectural layers
+- **Feature Flags**: Consider feature availability when choosing injection strategies
+- **Environment Differences**: Different strategies for different deployment environments
+- **Migration Paths**: Plan for transitioning between injection strategies as requirements evolve
 
 ```swift
 class CriticalService {

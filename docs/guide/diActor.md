@@ -1,11 +1,11 @@
-# DIActor & @DIContainerActor
+# DIActor & @WeaveDI.ContainerActor
 
 A safe and high-performance dependency injection system using Swift Concurrency. Solves concurrency issues through thread safety and the Actor model.
 
 ## 🎯 What You'll Learn
 
 - **@DIActor**: WeaveDI's global actor system
-- **@DIContainerActor**: Container-level actor isolation
+- **@WeaveDI.ContainerActor**: Container-level actor isolation
 - **Thread Safety**: Safe dependency management across multiple threads
 - **Performance**: High-performance caching and optimization techniques
 
@@ -205,14 +205,14 @@ func resolveWithThrows() async throws {
 }
 ```
 
-## @DIContainerActor
+## @WeaveDI.ContainerActor
 
 For container-level actor isolation:
 
 ```swift
-@DIContainerActor
-public final class AppDIContainer {
-    public static let shared: AppDIContainer = .init()
+@WeaveDI.ContainerActor
+public final class AppWeaveDI.Container {
+    public static let shared: AppWeaveDI.Container = .init()
 
     public func setupDependencies() async {
         // All operations are actor-isolated
@@ -388,4 +388,4 @@ func monitorPerformance() async {
 
 - [Auto DI Optimizer](/guide/autoDiOptimizer) - Automatic performance optimization
 - [Concurrency Guide](/guide/concurrency) - Swift Concurrency patterns
-- [UnifiedDI vs DIContainer](/guide/unifiedDi) - Choosing the right API
+- [UnifiedDI vs WeaveDI.Container](/guide/unifiedDi) - Choosing the right API

@@ -24,27 +24,124 @@ class WeatherViewModel: ObservableObject {
 
 ### Simple Injection
 
+**Purpose**: Basic dependency injection using the `@Inject` property wrapper for automatic dependency resolution.
+
+**How it works**:
+- **Lazy Resolution**: Dependencies are resolved only when first accessed
+- **Optional Safety**: Returns `nil` if dependency is not registered, preventing crashes
+- **Automatic Caching**: Once resolved, the same instance is reused for subsequent accesses
+- **Thread Safety**: Resolution is thread-safe and can be accessed from any queue
+
+**Performance Characteristics**:
+- **First Access**: Small overhead for dependency resolution (~0.1-1ms)
+- **Subsequent Access**: Near-zero overhead (direct property access)
+- **Memory Usage**: Minimal memory overhead for tracking resolved dependencies
+
 ```swift
+/// **Example: Basic dependency injection in a view controller**
+///
+/// **Key Benefits**:
+/// - Clean separation of concerns
+/// - Easy testing with dependency substitution
+/// - Resilient to missing dependencies
+/// - Automatic lifecycle management
 class UserViewController: UIViewController {
+    /// **UserService Injection**
+    /// - Resolves automatically on first access
+    /// - Returns nil if service not registered
+    /// - Thread-safe resolution
+    /// - Cached after first resolution
     @Inject var userService: UserService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        userService?.loadUserData()
+
+        // **Safe Usage Pattern**
+        // Check for nil to handle missing dependencies gracefully
+        guard let service = userService else {
+            print("⚠️ UserService not available - using fallback behavior")
+            showOfflineMode()
+            return
+        }
+
+        // **Normal Operation**
+        service.loadUserData()
+    }
+
+    private func showOfflineMode() {
+        // Fallback behavior when dependency is unavailable
     }
 }
 ```
 
 ### With Protocol Types
 
-Always inject protocols rather than concrete types for better testability:
+**Best Practice**: Always inject protocols rather than concrete types for better testability, flexibility, and adherence to dependency inversion principle.
+
+**Benefits of Protocol Injection**:
+- **Testability**: Easy to substitute mock implementations during testing
+- **Flexibility**: Can swap implementations without changing client code
+- **Loose Coupling**: Reduces dependencies between modules
+- **Interface Segregation**: Clients depend only on interfaces they use
+
+**Implementation Guidelines**:
+- Define clear, focused protocols for your services
+- Use protocol composition for complex behaviors
+- Avoid exposing implementation details through protocols
 
 ```swift
-// ✅ Good - inject protocol
+/// **Protocol-Based Injection Examples**
+
+// ✅ **EXCELLENT** - Inject focused protocol
+/// Benefits:
+/// - Clear interface contract
+/// - Easy to mock for testing
+/// - Implementation can be swapped
+/// - Follows dependency inversion principle
 @Inject var networkClient: NetworkClientProtocol?
 
-// ❌ Avoid - inject concrete type
+// ✅ **GOOD** - Inject composed protocol for complex behavior
+/// Use when service needs multiple capabilities
+@Inject var dataManager: DataManagerProtocol & CacheProtocol?
+
+// ⚠️ **AVOID** - Inject concrete type
+/// Problems:
+/// - Hard to test (requires real implementation)
+/// - Tight coupling to specific implementation
+/// - Difficult to swap implementations
+/// - Violates dependency inversion principle
 @Inject var networkClient: URLSessionNetworkClient?
+
+/// **Example Protocol Definition**
+protocol NetworkClientProtocol {
+    func fetchData(from url: URL) async throws -> Data
+    func post(data: Data, to url: URL) async throws -> Data
+}
+
+/// **Example Usage with Proper Error Handling**
+class DataService {
+    @Inject var networkClient: NetworkClientProtocol?
+    @Inject var logger: LoggerProtocol?
+
+    func fetchUserData() async throws -> UserData {
+        // **Dependency Validation**
+        guard let client = networkClient else {
+            let error = ServiceError.networkClientUnavailable
+            logger?.error("Network client not available: \(error)")
+            throw error
+        }
+
+        // **Safe Usage with Proper Error Handling**
+        do {
+            let data = try await client.fetchData(from: userDataURL)
+            logger?.info("✅ User data fetched successfully")
+            return try JSONDecoder().decode(UserData.self, from: data)
+        } catch {
+            logger?.error("❌ Failed to fetch user data: \(error)")
+            throw error
+        }
+    }
+}
 ```
 
 ## Real-World Examples
@@ -207,9 +304,9 @@ class BackgroundService {
 ```swift
 class UserServiceTests: XCTestCase {
     override func setUp() async throws {
-        await DIContainer.resetForTesting()
+        await WeaveDI.Container.resetForTesting()
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Register mocks for testing
             container.register(UserRepository.self) { MockUserRepository() }
             container.register(Logger.self) { MockLogger() }

@@ -20,14 +20,14 @@
 ```swift
 import WeaveDI
 
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     container.register(Logger.self) { ConsoleLogger() }
     container.register(Networking.self) { DefaultNetworking() }
     container.register(UserRepository.self) { UserRepositoryImpl() }
 }
 
-// 이후 어디서든 DIContainer.shared.resolve(...) 사용 가능
-let logger = DIContainer.shared.resolve(Logger.self)
+// 이후 어디서든 WeaveDI.Container.shared.resolve(...) 사용 가능
+let logger = WeaveDI.Container.shared.resolve(Logger.self)
 ```
 
 ## 비동기 부트스트랩
@@ -35,7 +35,7 @@ let logger = DIContainer.shared.resolve(Logger.self)
 비동기 초기화가 필요한 경우(예: 원격 설정, 데이터베이스 연결 등)에는 `bootstrapAsync`를 사용합니다.
 
 ```swift
-let ok = await DIContainer.bootstrapAsync { container in
+let ok = await WeaveDI.Container.bootstrapAsync { container in
     // 예: 원격 설정 로드
     let config = try await RemoteConfig.load()
     container.register(AppConfig.self) { config }
@@ -56,7 +56,7 @@ guard ok else { /* 실패 처리 (스플래시/알림/재시도) */ return }
 
 ```swift
 @MainActor
-await DIContainer.bootstrapMixed(
+await WeaveDI.Container.bootstrapMixed(
     sync: { container in
         container.register(Logger.self) { ConsoleLogger() }
         container.register(Networking.self) { DefaultNetworking() }
@@ -74,7 +74,7 @@ await DIContainer.bootstrapMixed(
 앱 시작 지연을 최소화하고 싶을 때 백그라운드에서 비동기 부트스트랩을 수행할 수 있습니다.
 
 ```swift
-DIContainer.bootstrapInTask { container in
+WeaveDI.Container.bootstrapInTask { container in
     let featureFlags = try await FeatureFlags.fetch()
     container.register(FeatureFlags.self) { featureFlags }
 }
@@ -85,7 +85,7 @@ DIContainer.bootstrapInTask { container in
 이미 초기화된 경우는 건너뛰고 싶을 때 사용합니다.
 
 ```swift
-let didInit = await DIContainer.bootstrapIfNeeded { container in
+let didInit = await WeaveDI.Container.bootstrapIfNeeded { container in
     container.register(Logger.self) { ConsoleLogger() }
 }
 
@@ -97,7 +97,7 @@ if !didInit {
 비동기 버전도 제공합니다.
 
 ```swift
-let didInit = await DIContainer.bootstrapAsyncIfNeeded { container in
+let didInit = await WeaveDI.Container.bootstrapAsyncIfNeeded { container in
     let remote = try await RemoteConfig.load()
     container.register(RemoteConfig.self) { remote }
 }
@@ -108,7 +108,7 @@ let didInit = await DIContainer.bootstrapAsyncIfNeeded { container in
 부트스트랩 전에 DI에 접근하지 않도록 강제할 때 사용합니다.
 
 ```swift
-DIContainer.ensureBootstrapped() // 미부트스트랩 시 precondition 실패
+WeaveDI.Container.ensureBootstrapped() // 미부트스트랩 시 precondition 실패
 ```
 
 ## 테스트 가이드
@@ -119,10 +119,10 @@ DIContainer.ensureBootstrapped() // 미부트스트랩 시 precondition 실패
 @MainActor
 override func setUp() async throws {
     try await super.setUp()
-    await DIContainer.resetForTesting() // DEBUG 빌드에서만 허용
+    await WeaveDI.Container.resetForTesting() // DEBUG 빌드에서만 허용
 
     // 테스트 전용 등록
-    DIContainer.shared.register(MockService.self) { MockService() }
+    WeaveDI.Container.shared.register(MockService.self) { MockService() }
 }
 ```
 

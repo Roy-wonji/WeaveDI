@@ -1,10 +1,23 @@
 # Performance Monitoring API
 
-WeaveDI provides comprehensive performance monitoring tools to help you optimize dependency injection performance and identify bottlenecks in your application.
+WeaveDI provides comprehensive, enterprise-grade performance monitoring tools designed to help you optimize dependency injection performance, identify bottlenecks, and maintain optimal application performance in production environments. This sophisticated monitoring system offers real-time metrics, historical analysis, and automated alerting capabilities.
 
 ## Overview
 
-The performance monitoring system tracks dependency resolution times, memory usage, and registration patterns to provide insights into your DI container's performance characteristics.
+The performance monitoring system implements advanced instrumentation to track dependency resolution times, memory usage patterns, registration efficiency, and container performance characteristics. This comprehensive monitoring provides actionable insights for performance optimization, capacity planning, and proactive issue detection.
+
+**Key Monitoring Capabilities**:
+- **Real-time Metrics**: Live performance data collection and analysis
+- **Historical Tracking**: Long-term performance trend analysis
+- **Memory Profiling**: Detailed memory usage patterns and leak detection
+- **Bottleneck Identification**: Automatic identification of performance bottlenecks
+- **Custom Metrics**: Extensible framework for application-specific metrics
+
+**Performance Benefits**:
+- **Proactive Optimization**: Identify issues before they impact users
+- **Capacity Planning**: Data-driven insights for infrastructure scaling
+- **Regression Detection**: Automatic detection of performance regressions
+- **Resource Optimization**: Optimize memory and CPU usage patterns
 
 ```swift
 import WeaveDI
@@ -14,7 +27,7 @@ PerformanceMonitor.shared.enable()
 
 // Monitor specific operations
 let metrics = await PerformanceMonitor.shared.measureResolution {
-    let service = DIContainer.shared.resolve(ExpensiveService.self)
+    let service = WeaveDI.Container.shared.resolve(ExpensiveService.self)
     return service
 }
 
@@ -25,6 +38,26 @@ print("Memory used: \(metrics.memoryDelta) bytes")
 ## Core Monitoring Features
 
 ### Resolution Performance Tracking
+
+**Purpose**: Comprehensive tracking of dependency resolution performance to identify slow dependencies and optimize resolution patterns.
+
+**Tracking Capabilities**:
+- **Resolution Time Measurement**: Precise timing of individual dependency resolutions
+- **Aggregate Statistics**: Average, median, and percentile resolution times
+- **Performance Trending**: Historical performance trends and regression detection
+- **Dependency Hotspots**: Identification of frequently resolved dependencies
+
+**Metrics Collected**:
+- **Individual Resolution Times**: Per-dependency resolution timing
+- **Aggregate Performance**: Overall container performance statistics
+- **Cache Hit/Miss Ratios**: Effectiveness of dependency caching
+- **Memory Allocation Patterns**: Memory usage during resolution operations
+
+**Performance Optimization Insights**:
+- **Slow Dependencies**: Identify dependencies with high resolution times
+- **Cache Effectiveness**: Measure cache performance and optimization opportunities
+- **Resolution Patterns**: Analyze resolution patterns for optimization
+- **Resource Usage**: Monitor resource consumption during resolution
 
 ```swift
 // Automatic resolution timing
@@ -47,13 +80,33 @@ class PerformanceAwareService {
 
 ### Memory Usage Monitoring
 
+**Purpose**: Advanced memory profiling and monitoring to detect memory leaks, optimize memory usage, and ensure efficient resource utilization.
+
+**Memory Monitoring Features**:
+- **Real-time Memory Tracking**: Continuous monitoring of memory usage patterns
+- **Leak Detection**: Automatic detection of potential memory leaks
+- **Allocation Profiling**: Detailed analysis of memory allocation patterns
+- **Growth Rate Analysis**: Monitoring memory growth rates and trends
+
+**Memory Metrics**:
+- **Current Usage**: Real-time memory consumption
+- **Peak Usage**: Maximum memory usage during operations
+- **Growth Rate**: Rate of memory usage increase over time
+- **Allocation Patterns**: Detailed breakdown of memory allocations
+
+**Optimization Opportunities**:
+- **Memory Hotspots**: Identify components consuming excessive memory
+- **Optimization Targets**: Prioritize optimization efforts based on memory impact
+- **Resource Planning**: Data for capacity planning and resource allocation
+- **Performance Correlation**: Correlate memory usage with performance metrics
+
 ```swift
 // Monitor memory consumption
 class MemoryAwareBootstrap {
     static func setupWithMonitoring() async {
         let initialMemory = PerformanceMonitor.shared.getCurrentMemoryUsage()
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Register many services
             for i in 0..<1000 {
                 container.register(TestService.self, name: "service_\(i)") {
@@ -285,6 +338,26 @@ struct WeatherPerformanceReport {
 
 ### Custom Metrics Collection
 
+**Purpose**: Extensible framework for collecting application-specific performance metrics beyond standard dependency injection metrics.
+
+**Custom Metrics Benefits**:
+- **Application-Specific Insights**: Monitor metrics specific to your application domain
+- **Business Logic Performance**: Track performance of critical business operations
+- **Integration Points**: Monitor performance of external service integrations
+- **User Experience Metrics**: Correlate technical metrics with user experience
+
+**Metrics Framework Features**:
+- **Type-Safe Metrics**: Strongly typed metric definitions prevent errors
+- **Aggregate Functions**: Built-in support for averages, percentiles, and trends
+- **Historical Storage**: Long-term storage of custom metrics for trend analysis
+- **Real-time Analysis**: Real-time processing and analysis of custom metrics
+
+**Implementation Patterns**:
+- **Domain-Specific Metrics**: Metrics tailored to specific business domains
+- **Performance Benchmarks**: Custom benchmarks for performance validation
+- **Integration Monitoring**: Monitor performance of external integrations
+- **User Journey Tracking**: Track performance across user interaction flows
+
 ```swift
 // Define custom metrics
 enum CustomMetric: String, CaseIterable {
@@ -316,6 +389,26 @@ class CustomMetricsCollector {
 ```
 
 ### Performance Alerts System
+
+**Purpose**: Proactive alerting system that automatically detects performance issues and notifies stakeholders before problems impact users.
+
+**Alert System Features**:
+- **Threshold-Based Alerts**: Configurable thresholds for various performance metrics
+- **Trend-Based Detection**: Detect performance degradation trends
+- **Multi-Channel Notifications**: Support for various notification channels
+- **Alert Prioritization**: Prioritize alerts based on severity and impact
+
+**Alert Types**:
+- **Performance Degradation**: Detect when performance drops below acceptable levels
+- **Resource Exhaustion**: Alert on memory or CPU resource exhaustion
+- **Anomaly Detection**: Identify unusual patterns in performance metrics
+- **Threshold Breaches**: Alert when metrics exceed configured thresholds
+
+**Integration Capabilities**:
+- **External Monitoring Systems**: Integration with external monitoring platforms
+- **Incident Management**: Integration with incident management systems
+- **Team Notifications**: Configurable notifications for different teams
+- **Escalation Policies**: Automatic escalation for critical performance issues
 
 ```swift
 protocol PerformanceAlert {
@@ -383,6 +476,26 @@ class PerformanceAlertManager {
 ```
 
 ### Continuous Performance Monitoring
+
+**Purpose**: Automated, continuous monitoring system that provides ongoing visibility into application performance without manual intervention.
+
+**Continuous Monitoring Benefits**:
+- **24/7 Visibility**: Round-the-clock monitoring of application performance
+- **Automatic Detection**: Autonomous detection of performance issues
+- **Trend Analysis**: Long-term trend analysis for capacity planning
+- **Proactive Optimization**: Identify optimization opportunities before issues occur
+
+**Monitoring Capabilities**:
+- **Health Checks**: Regular health assessments of performance metrics
+- **Baseline Establishment**: Automatic establishment of performance baselines
+- **Deviation Detection**: Detection of deviations from established baselines
+- **Performance Regression**: Automatic detection of performance regressions
+
+**Actor-Based Architecture**:
+- **Thread Safety**: Safe concurrent monitoring using Swift actors
+- **Resource Efficiency**: Efficient monitoring with minimal performance impact
+- **Scalable Design**: Scalable architecture for high-throughput applications
+- **Fault Tolerance**: Resilient monitoring that continues even during failures
 
 ```swift
 actor ContinuousMonitor {
@@ -452,6 +565,26 @@ actor ContinuousMonitor {
 
 ### Dependency Resolution Optimization
 
+**Purpose**: Advanced optimization strategies for improving dependency resolution performance through caching, batching, and intelligent resolution patterns.
+
+**Optimization Strategies**:
+- **Resolution Caching**: Cache frequently resolved dependencies for faster access
+- **Batch Resolution**: Group multiple resolutions for improved efficiency
+- **Lazy Loading**: Defer resolution until dependencies are actually needed
+- **Preloading**: Preload critical dependencies during application startup
+
+**Caching Implementation**:
+- **Thread-Safe Caching**: Concurrent-safe caching for multi-threaded applications
+- **Cache Invalidation**: Intelligent cache invalidation strategies
+- **Memory Management**: Efficient memory usage for cached dependencies
+- **Performance Monitoring**: Monitor cache effectiveness and hit rates
+
+**Performance Benefits**:
+- **Reduced Resolution Time**: Significantly faster resolution for cached dependencies
+- **Improved Throughput**: Higher overall application throughput
+- **Resource Efficiency**: More efficient use of CPU and memory resources
+- **Scalability**: Better scalability under high load conditions
+
 ```swift
 class OptimizedDependencyManager {
     // Cache frequently resolved dependencies
@@ -468,7 +601,7 @@ class OptimizedDependencyManager {
             }
 
             // Resolve and cache
-            guard let service = DIContainer.shared.resolve(type) else { return nil }
+            guard let service = WeaveDI.Container.shared.resolve(type) else { return nil }
 
             cacheQueue.async(flags: .barrier) {
                 self.resolutionCache[key] = service
@@ -489,11 +622,31 @@ class OptimizedDependencyManager {
 
 ### Memory Usage Optimization
 
+**Purpose**: Comprehensive memory optimization strategies to minimize memory usage, prevent leaks, and improve overall application memory efficiency.
+
+**Memory Optimization Techniques**:
+- **Weak References**: Use weak references to prevent retain cycles
+- **Memory Warning Handling**: Responsive handling of memory pressure conditions
+- **Cache Management**: Intelligent cache sizing and cleanup strategies
+- **Resource Cleanup**: Automatic cleanup of unused resources
+
+**Memory Management Features**:
+- **Automatic Cleanup**: Automatic cleanup during memory pressure
+- **Leak Prevention**: Proactive prevention of common memory leak patterns
+- **Memory Monitoring**: Continuous monitoring of memory usage patterns
+- **Resource Recycling**: Efficient recycling of expensive resources
+
+**Optimization Benefits**:
+- **Reduced Memory Footprint**: Lower overall memory usage
+- **Improved Stability**: Better application stability under memory pressure
+- **Better Performance**: Improved performance through efficient memory usage
+- **Resource Efficiency**: More efficient use of available memory resources
+
 ```swift
 class MemoryOptimizedContainer {
-    private weak var container: DIContainer?
+    private weak var container: WeaveDI.Container?
 
-    init(container: DIContainer) {
+    init(container: WeaveDI.Container) {
         self.container = container
         setupMemoryWarningObserver()
     }
@@ -526,6 +679,26 @@ class MemoryOptimizedContainer {
 
 ### Xcode Instruments Integration
 
+**Purpose**: Seamless integration with Xcode Instruments for comprehensive performance profiling and analysis using industry-standard development tools.
+
+**Instruments Integration Features**:
+- **Custom Signposts**: Custom signposts for dependency injection operations
+- **Performance Tracking**: Detailed performance tracking in Instruments timeline
+- **Memory Profiling**: Integration with Instruments memory profiling tools
+- **Thread Analysis**: Thread usage analysis for concurrent operations
+
+**Profiling Capabilities**:
+- **Time Profiling**: Detailed timing analysis of dependency operations
+- **Memory Analysis**: Comprehensive memory usage analysis
+- **CPU Usage**: CPU usage patterns during dependency resolution
+- **Thread Safety**: Analysis of thread safety and concurrency patterns
+
+**Development Workflow Integration**:
+- **Debug Builds**: Enhanced profiling for debug builds
+- **Performance Testing**: Integration with performance test suites
+- **Continuous Integration**: Automated performance testing in CI/CD pipelines
+- **Performance Regression Detection**: Automatic detection of performance regressions
+
 ```swift
 class InstrumentsIntegration {
     static func startProfiling() {
@@ -548,6 +721,26 @@ class InstrumentsIntegration {
 
 ### Performance Testing Integration
 
+**Purpose**: Comprehensive performance testing framework that validates performance characteristics and ensures performance requirements are met.
+
+**Testing Framework Features**:
+- **Automated Performance Tests**: Automated test suites for performance validation
+- **Benchmark Testing**: Standardized benchmarks for consistent performance measurement
+- **Load Testing**: Performance testing under various load conditions
+- **Regression Testing**: Automatic detection of performance regressions
+
+**Test Categories**:
+- **Resolution Performance**: Measure dependency resolution performance
+- **Memory Usage**: Validate memory usage patterns and limits
+- **Concurrent Access**: Test performance under concurrent access
+- **Bootstrap Performance**: Measure container initialization performance
+
+**Performance Validation**:
+- **Performance Assertions**: Automated assertions for performance requirements
+- **Threshold Validation**: Validate performance against defined thresholds
+- **Trend Analysis**: Long-term performance trend analysis
+- **Performance Reporting**: Comprehensive performance test reporting
+
 ```swift
 class PerformanceTestSuite {
     func runPerformanceTests() async {
@@ -562,7 +755,7 @@ class PerformanceTestSuite {
         let startTime = CFAbsoluteTimeGetCurrent()
 
         for _ in 0..<iterations {
-            _ = DIContainer.shared.resolve(TestService.self)
+            _ = WeaveDI.Container.shared.resolve(TestService.self)
         }
 
         let endTime = CFAbsoluteTimeGetCurrent()
@@ -577,7 +770,7 @@ class PerformanceTestSuite {
 
         // Register many services
         for i in 0..<10000 {
-            DIContainer.shared.register(TestService.self, name: "test_\(i)") {
+            WeaveDI.Container.shared.register(TestService.self, name: "test_\(i)") {
                 TestServiceImpl()
             }
         }
@@ -595,6 +788,20 @@ class PerformanceTestSuite {
 
 ### 1. Enable Monitoring Early
 
+**Strategy**: Implement performance monitoring from the earliest stages of development to establish baselines and catch performance issues early.
+
+**Early Monitoring Benefits**:
+- **Baseline Establishment**: Establish performance baselines during development
+- **Early Issue Detection**: Catch performance issues before they become problems
+- **Development Feedback**: Provide immediate feedback on performance impact of changes
+- **Optimization Opportunities**: Identify optimization opportunities early in development
+
+**Implementation Guidelines**:
+- **Application Startup**: Enable monitoring during application initialization
+- **Development Environment**: Use monitoring in all development environments
+- **Continuous Integration**: Include monitoring in CI/CD pipelines
+- **Team Adoption**: Encourage team-wide adoption of monitoring practices
+
 ```swift
 @main
 struct App: App {
@@ -608,6 +815,20 @@ struct App: App {
 
 ### 2. Monitor Critical Paths
 
+**Strategy**: Focus monitoring efforts on performance-critical code paths to maximize the impact of optimization efforts.
+
+**Critical Path Identification**:
+- **User-Facing Operations**: Monitor operations that directly impact user experience
+- **High-Frequency Operations**: Focus on operations that execute frequently
+- **Resource-Intensive Operations**: Monitor operations that consume significant resources
+- **Business-Critical Functions**: Prioritize monitoring of business-critical functionality
+
+**Monitoring Implementation**:
+- **Selective Instrumentation**: Instrument critical paths without overwhelming the system
+- **Performance Thresholds**: Set appropriate performance thresholds for critical operations
+- **Alert Configuration**: Configure alerts for critical path performance issues
+- **Optimization Prioritization**: Prioritize optimization efforts based on monitoring data
+
 ```swift
 // Monitor performance-critical operations
 func performCriticalOperation() async {
@@ -619,6 +840,20 @@ func performCriticalOperation() async {
 
 ### 3. Set Up Automated Alerts
 
+**Strategy**: Implement automated alerting to ensure timely notification of performance issues and enable proactive response.
+
+**Alert Configuration Best Practices**:
+- **Threshold Tuning**: Carefully tune alert thresholds to minimize false positives
+- **Alert Prioritization**: Prioritize alerts based on business impact and urgency
+- **Escalation Policies**: Implement appropriate escalation policies for different alert types
+- **Team Distribution**: Distribute alerts to appropriate team members based on expertise
+
+**Automation Benefits**:
+- **Proactive Response**: Enable proactive response to performance issues
+- **Reduced Downtime**: Minimize downtime through early issue detection
+- **Team Efficiency**: Improve team efficiency through automated monitoring
+- **Continuous Improvement**: Enable continuous improvement through automated feedback
+
 ```swift
 // Set up regular performance checks
 Task {
@@ -629,6 +864,26 @@ Task {
 
 ### 4. Profile in Different Scenarios
 
+**Strategy**: Comprehensive performance profiling across different usage scenarios to ensure robust performance under all conditions.
+
+**Profiling Scenarios**:
+- **Load Testing**: Profile performance under expected production loads
+- **Stress Testing**: Test performance under extreme conditions
+- **Concurrent Usage**: Profile concurrent usage patterns
+- **Edge Cases**: Test performance under edge case conditions
+
+**Scenario-Based Testing Benefits**:
+- **Comprehensive Coverage**: Ensure performance across all usage scenarios
+- **Bottleneck Identification**: Identify bottlenecks under different conditions
+- **Capacity Planning**: Inform capacity planning with realistic performance data
+- **Performance Validation**: Validate performance requirements across scenarios
+
+**Implementation Strategies**:
+- **Automated Testing**: Automate scenario-based performance testing
+- **Environment Consistency**: Ensure consistent testing environments
+- **Data Collection**: Collect comprehensive data across all scenarios
+- **Analysis and Reporting**: Provide detailed analysis and reporting of scenario results
+
 ```swift
 // Test performance under different conditions
 func profileUnderLoad() async {
@@ -638,7 +893,7 @@ func profileUnderLoad() async {
         for _ in 0..<100 {
             group.addTask {
                 // Simulate concurrent usage
-                _ = DIContainer.shared.resolve(HeavyService.self)
+                _ = WeaveDI.Container.shared.resolve(HeavyService.self)
             }
         }
     }

@@ -35,7 +35,7 @@ features:
     link: /guide/propertyWrappers
   - icon: 🏗️
     title: Powerful Module System
-    details: AppDIContainer, ModuleFactory, Container for scalable dependency management.
+    details: AppWeaveDI.Container, ModuleFactory, Container for scalable dependency management.
     link: /guide/moduleSystem
   - icon: 🧪
     title: Test-Friendly Design

@@ -49,25 +49,25 @@ let asyncResult = await UnifiedDI.resolveAsync(AsyncService.self)
 
 ## Advanced Patterns
 
-### 3. DIContainer Bootstrap Pattern
+### 3. WeaveDI.Container Bootstrap Pattern
 
 The actual bootstrap API from the source code:
 
 ```swift
 // Synchronous bootstrap
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     _ = container.register(UserService.self) { UserServiceImpl() }
     _ = container.register(DataRepository.self) { DataRepositoryImpl() }
 }
 
 // Asynchronous bootstrap
-let success = await DIContainer.bootstrapAsync { container in
+let success = await WeaveDI.Container.bootstrapAsync { container in
     let config = await RemoteConfig.fetch()
     _ = container.register(Configuration.self) { config }
 }
 
 // Mixed bootstrap (sync + async)
-await DIContainer.bootstrapMixed(
+await WeaveDI.Container.bootstrapMixed(
     sync: { container in
         _ = container.register(Logger.self) { LoggerImpl() }
     },
@@ -78,7 +78,7 @@ await DIContainer.bootstrapMixed(
 )
 
 // Conditional bootstrap
-let wasNeeded = await DIContainer.bootstrapIfNeeded { container in
+let wasNeeded = await WeaveDI.Container.bootstrapIfNeeded { container in
     _ = container.register(DevService.self) { DevServiceImpl() }
 }
 ```
@@ -174,7 +174,7 @@ let userModule = Module(UserService.self) {
     UserServiceImpl()
 }
 
-await DIContainer.shared.register(userModule)
+await WeaveDI.Container.shared.register(userModule)
 
 // Register with error handling
 do {
@@ -307,11 +307,11 @@ UnifiedDI.register(ExpensiveService.self) {
 
 ```swift
 #if DEBUG
-extension DIContainer {
+extension WeaveDI.Container {
     static func setupForTesting() async {
-        await DIContainer.releaseAll() // Clear all dependencies
+        await WeaveDI.Container.releaseAll() // Clear all dependencies
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             _ = container.register(UserService.self) { MockUserService() }
             _ = container.register(NetworkService.self) { MockNetworkService() }
         }

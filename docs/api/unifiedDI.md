@@ -1,6 +1,6 @@
 # UnifiedDI API Reference
 
-The `UnifiedDI` class provides a simplified, static interface for dependency injection in WeaveDI. It acts as a convenient wrapper around the underlying `DIContainer` system.
+The `UnifiedDI` class provides a simplified, static interface for dependency injection in WeaveDI. It acts as a convenient wrapper around the underlying `WeaveDI.Container` system.
 
 ## Overview
 
@@ -22,7 +22,23 @@ let userService = UnifiedDI.resolve(UserService.self)
 
 #### `register(_:factory:)`
 
-Registers a dependency with an immediate factory execution.
+**Purpose**: Registers a dependency with immediate factory execution, creating the instance during registration and storing it for future resolution. This is ideal for eager initialization of critical services.
+
+**When to use**:
+- **Critical Services**: Services that must be available immediately
+- **Expensive Initialization**: Services with costly setup that should happen once
+- **Validation**: When you want to verify service creation during app startup
+- **Singleton Pattern**: For services that should exist as single instances
+
+**Performance Characteristics**:
+- **Memory**: Instance is created immediately and held in memory
+- **Startup Time**: May increase app startup time but improves later resolution speed
+- **Thread Safety**: Registration is thread-safe but factory execution happens once
+
+**Memory Management**:
+- Instance is retained by the container until app termination
+- Consider weak references for large objects if appropriate
+- Automatic cleanup when container is reset
 
 ```swift
 @discardableResult
@@ -30,10 +46,11 @@ static func register<T>(_ type: T.Type, factory: @escaping @Sendable () -> T) ->
 ```
 
 **Parameters:**
-- `type`: The protocol or class type to register
-- `factory`: A closure that creates the instance
+- `type: T.Type` - The protocol or class type to register. Must conform to `Sendable` for thread safety.
+- `factory: @escaping @Sendable () -> T` - A closure that creates the instance. Executed immediately during registration.
 
-**Returns:** The created instance
+**Returns:**
+- `T` - The created instance, allowing immediate use after registration.
 
 **Example:**
 ```swift
@@ -252,13 +269,13 @@ func performAction() {
 }
 ```
 
-## Migration from DIContainer
+## Migration from WeaveDI.Container
 
-If you're migrating from direct `DIContainer` usage:
+If you're migrating from direct `WeaveDI.Container` usage:
 
 ```swift
 // Old way
-let service = DIContainer.shared.register(UserService.self) {
+let service = WeaveDI.Container.shared.register(UserService.self) {
     UserServiceImpl()
 }
 
@@ -270,6 +287,6 @@ let service = UnifiedDI.register(UserService.self) {
 
 ## See Also
 
-- [DIContainer API](./coreApis.md) - Lower-level container API
+- [WeaveDI.Container API](./coreApis.md) - Lower-level container API
 - [Bootstrap](./bootstrap.md) - Initialization patterns
 - [@Inject Property Wrapper](./inject.md) - Automatic dependency injection

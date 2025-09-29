@@ -38,7 +38,7 @@ import WeaveDI
 **What this enables:**
 - Access to `@Inject`, `@Factory`, and `@SafeInject` property wrappers
 - UnifiedDI registration and resolution APIs
-- DIContainer bootstrap functionality
+- WeaveDI.Container bootstrap functionality
 - All WeaveDI utility classes and protocols
 
 ### 2. Define Services
@@ -302,7 +302,7 @@ The bootstrap pattern is the recommended way to set up all your dependencies in 
 ```swift
 // Bootstrap all dependencies at app startup
 // This is typically called in your App.swift or AppDelegate
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Register services in logical order
 
     // 1. Core infrastructure services first
@@ -335,13 +335,13 @@ await DIContainer.bootstrap { container in
 
 // Alternative: Environment-specific bootstrap
 #if DEBUG
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Use mock services for development
     container.register(UserService.self) { MockUserService() }
     container.register(NetworkService.self) { MockNetworkService() }
 }
 #else
-await DIContainer.bootstrap { container in
+await WeaveDI.Container.bootstrap { container in
     // Use real services for production
     container.register(UserService.self) { UserServiceImpl() }
     container.register(NetworkService.self) { URLSessionNetworkService() }

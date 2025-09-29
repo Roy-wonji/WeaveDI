@@ -1,5 +1,5 @@
 //
-//  AppDIContainer.swift
+//  AppDIManager.swift
 //  DiContainer
 //
 //  Created by Wonji Suh  on 3/20/25.
@@ -8,12 +8,13 @@
 import Foundation
 import LogMacro
 
-// MARK: - AppDIContainer
+
+// MARK: - AppDIManager
 
 /// ## 개요
-/// 
-/// `AppDIContainer`는 애플리케이션 전체의 의존성 주입을 체계적으로 관리하는 
-/// 최상위 컨테이너 클래스입니다. Clean Architecture의 각 계층(Repository, UseCase, Service)을 
+///
+/// `AppDIManager`는 애플리케이션 전체의 의존성 주입을 체계적으로 관리하는
+/// 최상위 DI 관리자 클래스입니다. Clean Architecture의 각 계층(Repository, UseCase, Service)을
 /// 자동화된 Factory 패턴을 통해 효율적으로 구성하고 관리합니다.
 ///
 /// ## 핵심 철학
@@ -38,7 +39,7 @@ import LogMacro
 ///
 /// ```
 /// ┌─────────────────────────────────────┐
-/// │           AppDIContainer            │
+/// │            AppDIManager             │
 /// │                                     │
 /// └─────────────────┬───────────────────┘
 ///                   │
@@ -52,7 +53,7 @@ import LogMacro
 ///       └───────────┼───────────┘
 ///                   │
 /// ┌─────────────────▼───────────────────┐
-/// │        WeaveDI.Container.live     │
+/// │        WeaveDI.Container.live       │
 /// │          (Global Registry)          │
 /// └─────────────────────────────────────┘
 /// ```
@@ -61,26 +62,23 @@ import LogMacro
 ///
 /// ### 1단계: Factory 준비
 /// ```swift
-/// // @Factory 프로퍼티 래퍼를 통한 자동 주입
-/// @Factory(\.repositoryFactory) 
+/// @Factory(\.repositoryFactory)
 /// var repositoryFactory: RepositoryModuleFactory
-/// 
+///
 /// @Factory(\.useCaseFactory)
 /// var useCaseFactory: UseCaseModuleFactory
 /// ```
 ///
 /// ### 2단계: 모듈 등록
 /// ```swift
-/// await AppDIContainer.shared.registerDefaultDependencies()
-/// // 내부적으로:
-/// // 1. Repository Factory에서 모든 Repository 모듈 생성
-/// // 2. UseCase Factory에서 Repository와 연동된 UseCase 모듈 생성  
-/// // 3. 모든 모듈을 병렬로 WeaveDI.Container.live에 등록
+/// await AppDIManager.shared.registerDependencies { container in
+///     container.register(UserRepositoryModule())
+///     container.register(UserUseCaseModule())
+/// }
 /// ```
 ///
 /// ### 3단계: 의존성 사용
 /// ```swift
-/// // 어디서든 등록된 의존성 사용 가능
 /// let userService = WeaveDI.Container.live.resolve(UserServiceProtocol.self)
 /// ```
 ///
@@ -97,20 +95,17 @@ import LogMacro
 /// - **Thread Safe**: 모든 작업이 스레드 안전하게 처리
 ///
 /// ## Example
+///
 /// ### 기본 사용
 /// ```swift
 /// @main
 /// struct MyApp {
 ///     static func main() async {
-///         await AppDIContainer.shared.registerDependencies { container in
-///             // Repository 모듈 등록
+///         await AppDIManager.shared.registerDependencies { container in
 ///             container.register(UserRepositoryModule())
-///
-///             // UseCase 모듈 등록
 ///             container.register(UserUseCaseModule())
 ///         }
 ///
-///         // 등록된 UseCase 사용
 ///         let useCase: UserUseCaseProtocol = WeaveDI.Container.live.resolveOrDefault(
 ///             UserUseCaseProtocol.self,
 ///             default: UserUseCase(userRepo: UserRepository())
@@ -120,7 +115,7 @@ import LogMacro
 /// }
 /// ```
 ///
-/// ### RepositoryModuleFactory & UseCaseModuleFactory 확장
+/// ### Factory 확장
 /// ```swift
 /// extension RepositoryModuleFactory {
 ///     public mutating func registerDefaultDefinitions() {
@@ -148,59 +143,38 @@ import LogMacro
 /// }
 /// ```
 ///
-/// ### ContainerResgister 사용
-/// ```swift
-/// extension WeaveDI.Container {
-///     var authUseCase: AuthUseCaseProtocol? {
-///         ContainerResgister(\.authUseCase).wrappedValue
-///     }
-/// }
-///
-/// // 사용 예시
-/// let authUC: AuthUseCaseProtocol = ContainerResgister(\.authUseCase).wrappedValue
-/// ```
-///
-/// ### SwiftUI 기반 앱에서 DI 적용
+/// ### SwiftUI 앱에서 DI 적용
 /// ```swift
 /// @main
 /// struct TestApp: App {
-///     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-///
 ///     init() {
-///         registerDependencies()
-///     }
-///
-///     var body: some Scene {
-///         WindowGroup {
-///             let store = Store(initialState: AppReducer.State()) {
-///                 AppReducer()._printChanges()
-///             }
-///             AppView(store: store)
-///         }
-///     }
-///
-///     private func registerDependencies() {
 ///         Task {
-///             await AppDIContainer.shared.registerDependencies { container in
-///                 var repoFactory = AppDIContainer.shared.repositoryFactory
+///             await AppDIManager.shared.registerDependencies { container in
+///                 var repoFactory = AppDIManager.shared.repositoryFactory
 ///                 repoFactory.registerDefaultDefinitions()
 ///                 await repoFactory.makeAllModules().asyncForEach { module in
 ///                     await container.register(module)
 ///                 }
 ///
-///                 let useCaseFactory = AppDIContainer.shared.useCaseFactory
+///                 let useCaseFactory = AppDIManager.shared.useCaseFactory
 ///                 await useCaseFactory.makeAllModules().asyncForEach { module in
 ///                     await container.register(module)
 ///                 }
 ///             }
 ///         }
 ///     }
+///
+///     var body: some Scene {
+///         WindowGroup {
+///             AppView()
+///         }
+///     }
 /// }
 /// ```
 ///
 /// ## Discussion
-/// - `AppDIContainer`는 단일 진입점(single entry point) 역할을 합니다.
-/// - 앱 초기화 시점에 모듈을 한꺼번에 등록해두면, 런타임에서 빠르고 안정적으로
+/// - `AppDIManager`는 단일 진입점(single entry point) 역할을 합니다.
+/// - 앱 초기화 시점에 모듈을 한꺼번에 등록하면, 런타임에서 빠르고 안정적으로
 ///   의존성 객체를 생성·조회할 수 있습니다.
 /// - 내부 ``Container``가 등록된 모든 모듈을 **병렬로 실행**하여 성능을 최적화합니다.
 /// - Factory 패턴을 통해 Repository, UseCase, Scope 계층을 체계적으로 관리합니다.
@@ -211,7 +185,14 @@ import LogMacro
 /// - ``Factory``: 자동 주입 프로퍼티 래퍼
 /// - ``RepositoryModuleFactory``: Repository 계층 팩토리
 /// - ``UseCaseModuleFactory``: UseCase 계층 팩토리
-public final actor AppDIContainer {
+///
+
+public enum AppWeaveDI {
+  typealias Container = AppDIManager
+}
+
+
+public final actor AppDIManager {
   // MARK: - 프로퍼티
 
   /// Repository 계층에서 사용할 모듈(팩토리) 인스턴스를
@@ -230,7 +211,7 @@ public final actor AppDIContainer {
   public var scopeFactory: ScopeModuleFactory
 
   /// 앱 전역에서 사용할 수 있는 싱글턴 인스턴스입니다.
-  public static let shared: AppDIContainer = .init()
+  public static let shared: AppDIManager = .init()
 
   /// 외부 생성을 막기 위한 `private init()`.
   private init() {

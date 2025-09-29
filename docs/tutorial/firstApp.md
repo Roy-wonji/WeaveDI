@@ -764,7 +764,7 @@ final class WeatherViewModelTests: XCTestCase {
 
     override func setUpWithError() throws {
         // Setup test dependencies
-        DIContainer.shared.removeAll()
+        WeaveDI.Container.shared.removeAll()
     }
 
     func testWeatherLoading() async throws {
@@ -774,9 +774,9 @@ final class WeatherViewModelTests: XCTestCase {
         let mockLogger = MockLogger()
 
         // Register mocks
-        DIContainer.shared.register(WeatherService.self, instance: mockWeatherService)
-        DIContainer.shared.register(LocationService.self, instance: mockLocationService)
-        DIContainer.shared.register(LoggerProtocol.self, instance: mockLogger)
+        WeaveDI.Container.shared.register(WeatherService.self, instance: mockWeatherService)
+        WeaveDI.Container.shared.register(LocationService.self, instance: mockLocationService)
+        WeaveDI.Container.shared.register(LoggerProtocol.self, instance: mockLogger)
 
         // When: Load weather
         let viewModel = WeatherViewModel()

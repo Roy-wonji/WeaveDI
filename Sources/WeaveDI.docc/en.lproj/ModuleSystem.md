@@ -131,9 +131,9 @@ struct MyApp: App {
     }
 
     private func setupModules() async {
-        await AppDIContainer.shared.registerDependencies { container in
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             // 1. Register Repository modules
-            var repositoryFactory = AppDIContainer.shared.repositoryFactory
+            var repositoryFactory = AppWeaveDI.Container.shared.repositoryFactory
             repositoryFactory.registerDefaultDefinitions()
 
             await repositoryFactory.makeAllModules().asyncForEach { module in
@@ -141,13 +141,13 @@ struct MyApp: App {
             }
 
             // 2. Register UseCase modules (Repository dependencies auto-resolved)
-            let useCaseFactory = AppDIContainer.shared.useCaseFactory
+            let useCaseFactory = AppWeaveDI.Container.shared.useCaseFactory
             await useCaseFactory.makeAllModules().asyncForEach { module in
                 await container.register(module)
             }
 
             // 3. Register Scope modules
-            let scopeFactory = AppDIContainer.shared.scopeFactory
+            let scopeFactory = AppWeaveDI.Container.shared.scopeFactory
             await scopeFactory.makeAllModules().asyncForEach { module in
                 await container.register(module)
             }

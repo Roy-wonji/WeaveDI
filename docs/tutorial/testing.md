@@ -33,10 +33,10 @@ class UserServiceTests: XCTestCase {
 
     override func setUp() async throws {
         // Reset container for each test
-        await DIContainer.resetForTesting()
+        await WeaveDI.Container.resetForTesting()
 
         // Register test dependencies
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(UserRepository.self) { MockUserRepository() }
             container.register(Logger.self) { MockLogger() }
             container.register(NetworkClient.self) { MockNetworkClient() }
@@ -45,7 +45,7 @@ class UserServiceTests: XCTestCase {
 
     override func tearDown() async throws {
         // Clean up after each test
-        await DIContainer.resetForTesting()
+        await WeaveDI.Container.resetForTesting()
     }
 }
 ```
@@ -62,7 +62,7 @@ class CounterServiceTests: XCTestCase {
         let mockRepository = MockCounterRepository()
         let mockLogger = MockLogger()
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(CounterRepository.self, instance: mockRepository)
             container.register(LoggerProtocol.self, instance: mockLogger)
         }
@@ -84,7 +84,7 @@ class CounterServiceTests: XCTestCase {
         let weatherData = createMockWeatherData()
         mockHTTPClient.responses[weatherURL] = weatherData
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(HTTPClientProtocol.self, instance: mockHTTPClient)
             container.register(LoggerProtocol.self) { MockLogger() }
         }
@@ -212,7 +212,7 @@ class WeatherAppIntegrationTests: XCTestCase {
         let weatherJSONData = createWeatherJSONData()
         mockNetworkClient.responses[URL(string: "https://api.openweathermap.org/data/2.5/weather?q=London&appid=test&units=metric")!] = weatherJSONData
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Mock network but real other services
             container.register(HTTPClientProtocol.self, instance: mockNetworkClient)
             container.register(CacheServiceProtocol.self) { UserDefaultsCacheService() }
@@ -223,8 +223,8 @@ class WeatherAppIntegrationTests: XCTestCase {
         }
 
         // Test the full integration
-        let weatherService = DIContainer.shared.resolve(WeatherServiceProtocol.self)!
-        let cacheService = DIContainer.shared.resolve(CacheServiceProtocol.self)!
+        let weatherService = WeaveDI.Container.shared.resolve(WeatherServiceProtocol.self)!
+        let cacheService = WeaveDI.Container.shared.resolve(CacheServiceProtocol.self)!
 
         // Fetch weather
         let weather = try await weatherService.fetchCurrentWeather(for: "London")
@@ -241,13 +241,13 @@ class WeatherAppIntegrationTests: XCTestCase {
 
     func testCounterAppFullIntegration() async throws {
         // Test the complete CountApp workflow
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(LoggerProtocol.self) { MockLogger() }
             container.register(CounterRepository.self) { UserDefaultsCounterRepository() }
         }
 
         // Test repository integration
-        let repository = DIContainer.shared.resolve(CounterRepository.self)!
+        let repository = WeaveDI.Container.shared.resolve(CounterRepository.self)!
 
         // Initial state
         await repository.resetCount()
@@ -285,7 +285,7 @@ class DatabaseIntegrationTests: XCTestCase {
         // Setup in-memory test database
         testDatabase = try await TestCoreDataStack.create()
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(DatabaseProtocol.self, instance: testDatabase)
             container.register(UserRepository.self) { CoreDataUserRepository() }
             container.register(LoggerProtocol.self) { MockLogger() }
@@ -297,7 +297,7 @@ class DatabaseIntegrationTests: XCTestCase {
     }
 
     func testUserPersistence() async throws {
-        let repository = DIContainer.shared.resolve(UserRepository.self)!
+        let repository = WeaveDI.Container.shared.resolve(UserRepository.self)!
 
         let user = User(name: "Test User", email: "test@example.com")
         try await repository.save(user)
@@ -318,7 +318,7 @@ class DependencyPerformanceTests: XCTestCase {
 
     func testResolutionPerformance() async throws {
         // Setup complex dependency graph
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Register many dependencies
             for i in 0..<1000 {
                 container.register(TestService.self, name: "service_\(i)") {
@@ -338,7 +338,7 @@ class DependencyPerformanceTests: XCTestCase {
         // Measure resolution performance
         measure {
             for _ in 0..<1000 {
-                let service = DIContainer.shared.resolve(ComplexService.self)
+                let service = WeaveDI.Container.shared.resolve(ComplexService.self)
                 XCTAssertNotNil(service)
             }
         }
@@ -347,7 +347,7 @@ class DependencyPerformanceTests: XCTestCase {
     func testContainerBootstrapPerformance() async throws {
         measure {
             Task {
-                await DIContainer.bootstrap { container in
+                await WeaveDI.Container.bootstrap { container in
                     // Register 1000 services to test bootstrap performance
                     for i in 0..<1000 {
                         container.register(TestService.self, name: "service_\(i)") {
@@ -363,7 +363,7 @@ class DependencyPerformanceTests: XCTestCase {
         let initialMemory = getCurrentMemoryUsage()
 
         // Create many dependencies
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             for i in 0..<5000 {
                 container.register(MemoryTestService.self, name: "service_\(i)") {
                     MemoryTestServiceImpl(data: Array(repeating: i, count: 100))
@@ -374,7 +374,7 @@ class DependencyPerformanceTests: XCTestCase {
         // Resolve all dependencies
         var resolvedServices: [MemoryTestService] = []
         for i in 0..<5000 {
-            if let service = DIContainer.shared.resolve(MemoryTestService.self, name: "service_\(i)") {
+            if let service = WeaveDI.Container.shared.resolve(MemoryTestService.self, name: "service_\(i)") {
                 resolvedServices.append(service)
             }
         }
@@ -408,7 +408,7 @@ class DependencyPerformanceTests: XCTestCase {
 class ConcurrentPerformanceTests: XCTestCase {
 
     func testConcurrentResolution() async throws {
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(ThreadSafeService.self) { ThreadSafeServiceImpl() }
             container.register(CounterRepository.self) { UserDefaultsCounterRepository() }
         }
@@ -417,8 +417,8 @@ class ConcurrentPerformanceTests: XCTestCase {
         await withTaskGroup(of: Bool.self) { group in
             for _ in 0..<100 {
                 group.addTask {
-                    let service = DIContainer.shared.resolve(ThreadSafeService.self)
-                    let repository = DIContainer.shared.resolve(CounterRepository.self)
+                    let service = WeaveDI.Container.shared.resolve(ThreadSafeService.self)
+                    let repository = WeaveDI.Container.shared.resolve(CounterRepository.self)
                     return service != nil && repository != nil
                 }
             }
@@ -433,12 +433,12 @@ class ConcurrentPerformanceTests: XCTestCase {
     }
 
     func testCounterConcurrentOperations() async throws {
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(CounterRepository.self) { UserDefaultsCounterRepository() }
             container.register(LoggerProtocol.self) { MockLogger() }
         }
 
-        let repository = DIContainer.shared.resolve(CounterRepository.self)!
+        let repository = WeaveDI.Container.shared.resolve(CounterRepository.self)!
         await repository.resetCount()
 
         // Perform concurrent increments
@@ -474,7 +474,7 @@ class SwiftUIViewTests: XCTestCase {
         mockRepository.savedCount = 5
         let mockLogger = MockLogger()
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(CounterRepository.self, instance: mockRepository)
             container.register(LoggerProtocol.self, instance: mockLogger)
         }
@@ -504,7 +504,7 @@ class SwiftUIViewTests: XCTestCase {
             timestamp: Date()
         )
 
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             container.register(WeatherServiceProtocol.self, instance: mockWeatherService)
             container.register(LoggerProtocol.self) { MockLogger() }
         }
@@ -821,7 +821,7 @@ enum TestConfiguration {
     static func setupTestEnvironment() async {
         guard isRunningTests else { return }
 
-        await DIContainer.resetForTesting()
+        await WeaveDI.Container.resetForTesting()
 
         if useMockServices {
             await setupMockDependencies()
@@ -831,7 +831,7 @@ enum TestConfiguration {
     }
 
     private static func setupMockDependencies() async {
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Register all mock services for UI testing
             container.register(WeatherServiceProtocol.self) { MockWeatherService() }
             container.register(CounterRepository.self) { MockCounterRepository() }
@@ -841,7 +841,7 @@ enum TestConfiguration {
     }
 
     private static func setupTestDependencies() async {
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Register test implementations for unit/integration tests
             container.register(LoggerProtocol.self) { TestLogger() }
             container.register(DatabaseProtocol.self) { InMemoryDatabase() }
@@ -870,7 +870,7 @@ Ensure each test is independent:
 
 ```swift
 override func setUp() async throws {
-    await DIContainer.resetForTesting()
+    await WeaveDI.Container.resetForTesting()
     await setupTestDependencies()
 }
 ```

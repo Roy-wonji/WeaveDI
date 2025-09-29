@@ -41,7 +41,7 @@ struct UserModule: Module {
 }
 ```
 
-## AppDIContainer를 통한 모듈 관리
+## AppDIManger를 통한 모듈 관리
 
 ### Repository 모듈 팩토리
 
@@ -131,9 +131,9 @@ struct MyApp: App {
     }
 
     private func setupModules() async {
-        await AppDIContainer.shared.registerDependencies { container in
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             // 1. Repository 모듈들 등록
-            var repositoryFactory = AppDIContainer.shared.repositoryFactory
+            var repositoryFactory = AppWeaveDI.Container.shared.repositoryFactory
             repositoryFactory.registerDefaultDefinitions()
 
             await repositoryFactory.makeAllModules().asyncForEach { module in
@@ -141,13 +141,13 @@ struct MyApp: App {
             }
 
             // 2. UseCase 모듈들 등록 (Repository 의존성 자동 해결)
-            let useCaseFactory = AppDIContainer.shared.useCaseFactory
+            let useCaseFactory = AppWeaveDI.Container.shared.useCaseFactory
             await useCaseFactory.makeAllModules().asyncForEach { module in
                 await container.register(module)
             }
 
             // 3. Scope 모듈들 등록
-            let scopeFactory = AppDIContainer.shared.scopeFactory
+            let scopeFactory = AppWeaveDI.Container.shared.scopeFactory
             await scopeFactory.makeAllModules().asyncForEach { module in
                 await container.register(module)
             }
@@ -551,7 +551,7 @@ struct TestUserModule: Module {
 class ModuleIntegrationTests: XCTestCase {
     func testCompleteModuleStack() async throws {
         // 전체 모듈 스택 테스트
-        await AppDIContainer.shared.registerDefaultDependencies()
+        await AppWeaveDI.Container.shared.registerDefaultDependencies()
 
         // Repository → UseCase 의존성 체인 검증
         let userUseCase = DI.resolve(UserUseCaseProtocol.self)
@@ -569,7 +569,7 @@ class ModuleIntegrationTests: XCTestCase {
 ### 병렬 모듈 등록
 
 ```swift
-await AppDIContainer.shared.registerDependencies { container in
+await AppWeaveDI.Container.shared.registerDependencies { container in
     // 독립적인 모듈들을 병렬로 등록
     await withTaskGroup(of: Void.self) { group in
         group.addTask {

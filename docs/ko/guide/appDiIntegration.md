@@ -1,10 +1,10 @@
-# App DI 통합: AppDIContainer
+# App DI 통합: AppWeaveDI.Container
 
-실제 애플리케이션에서 **엔터프라이즈 수준**의 의존성 주입(Dependency Injection) 아키텍처를 구현하기 위해 `AppDIContainer`를 사용하는 완전 가이드입니다.
+실제 애플리케이션에서 **엔터프라이즈 수준**의 의존성 주입(Dependency Injection) 아키텍처를 구현하기 위해 `AppWeaveDI.Container`를 사용하는 완전 가이드입니다.
 
 ## 개요(Overview)
 
-`AppDIContainer`는 애플리케이션 전반의 의존성 주입을 **체계적으로 관리**하는 최상위 컨테이너 클래스입니다. 자동화된 **Factory 패턴**을 통해 각 레이어(Repository, UseCase, Service)를 효율적으로 구성·관리하며, **Clean Architecture**를 지원합니다.
+`AppWeaveDI.Container`는 애플리케이션 전반의 의존성 주입을 **체계적으로 관리**하는 최상위 컨테이너 클래스입니다. 자동화된 **Factory 패턴**을 통해 각 레이어(Repository, UseCase, Service)를 효율적으로 구성·관리하며, **Clean Architecture**를 지원합니다.
 
 ### 아키텍처 철학(Architecture Philosophy)
 
@@ -28,7 +28,7 @@
 
 ```
 ┌─────────────────────────────────────┐
-│           AppDIContainer            │
+│           AppWeaveDI.Container            │
 │                                     │
 └─────────────────┬───────────────────┘
                   │
@@ -51,7 +51,7 @@
 
 ### 1단계: 팩토리 준비 (Factory Preparation)
 
-`AppDIContainer`는 자동 주입을 위해 `@Factory` 프로퍼티 래퍼를 사용합니다:
+`AppWeaveDI.Container`는 자동 주입을 위해 `@Factory` 프로퍼티 래퍼를 사용합니다:
 
 ```swift
 @Factory(\.repositoryFactory)
@@ -67,7 +67,7 @@ var scopeFactory: ScopeModuleFactory
 ### 2단계: 모듈 등록 (Module Registration)
 
 ```swift
-await AppDIContainer.shared.registerDependencies { container in
+await AppWeaveDI.Container.shared.registerDependencies { container in
     // Repository 모듈 등록
     container.register(UserRepositoryModule())
 
@@ -112,7 +112,7 @@ let userUseCase = WeaveDI.Container.live.resolve(UserUseCaseProtocol.self)
 @main
 struct MyApp {
     static func main() async {
-        await AppDIContainer.shared.registerDependencies { container in
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             // Repository modules
             container.register(UserRepositoryModule())
             container.register(OrderRepositoryModule())
@@ -245,9 +245,9 @@ struct TestApp: App {
 
     private func registerDependencies() {
         Task {
-            await AppDIContainer.shared.registerDependencies { container in
+            await AppWeaveDI.Container.shared.registerDependencies { container in
                 // Repository layer setup
-                var repoFactory = AppDIContainer.shared.repositoryFactory
+                var repoFactory = AppWeaveDI.Container.shared.repositoryFactory
                 repoFactory.registerDefaultDefinitions()
 
                 await repoFactory.makeAllModules().asyncForEach { module in
@@ -255,7 +255,7 @@ struct TestApp: App {
                 }
 
                 // UseCase layer setup
-                let useCaseFactory = AppDIContainer.shared.useCaseFactory
+                let useCaseFactory = AppWeaveDI.Container.shared.useCaseFactory
                 await useCaseFactory.makeAllModules().asyncForEach { module in
                     await container.register(module)
                 }
@@ -283,9 +283,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
-        // Configure AppDIContainer for UIKit apps
+        // Configure AppWeaveDI.Container for UIKit apps
         Task {
-            await AppDIContainer.shared.registerDependencies { container in
+            await AppWeaveDI.Container.shared.registerDependencies { container in
                 // Core infrastructure
                 await setupCoreInfrastructure(container)
 
@@ -314,7 +314,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     private func setupFeatureModules(_ container: Container) async {
         // Repository factory
-        var repoFactory = AppDIContainer.shared.repositoryFactory
+        var repoFactory = AppWeaveDI.Container.shared.repositoryFactory
         repoFactory.registerDefaultDefinitions()
 
         let repoModules = await repoFactory.makeAllModules()
@@ -323,7 +323,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
 
         // UseCase factory
-        let useCaseFactory = AppDIContainer.shared.useCaseFactory
+        let useCaseFactory = AppWeaveDI.Container.shared.useCaseFactory
         let useCaseModules = await useCaseFactory.makeAllModules()
         for module in useCaseModules {
             await container.register(module)
@@ -383,7 +383,7 @@ class AuthenticationViewModel: ObservableObject {
 ```swift
 class EnterpriseAppBootstrap {
     static func configure() async {
-        await AppDIContainer.shared.registerDependencies { container in
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             // Infrastructure layer
             await setupInfrastructure(container)
 
@@ -412,7 +412,7 @@ class EnterpriseAppBootstrap {
 
     private static func setupDataLayer(_ container: Container) async {
         // Repository factory setup
-        var repoFactory = AppDIContainer.shared.repositoryFactory
+        var repoFactory = AppWeaveDI.Container.shared.repositoryFactory
         repoFactory.registerDefaultDefinitions()
 
         let modules = await repoFactory.makeAllModules()
@@ -423,7 +423,7 @@ class EnterpriseAppBootstrap {
 
     private static func setupDomainLayer(_ container: Container) async {
         // UseCase factory setup
-        let useCaseFactory = AppDIContainer.shared.useCaseFactory
+        let useCaseFactory = AppWeaveDI.Container.shared.useCaseFactory
         let modules = await useCaseFactory.makeAllModules()
 
         for module in modules {
@@ -452,7 +452,7 @@ class EnterpriseAppBootstrap {
 
 ### 자동 최적화 구성(Automatic Optimization Configuration)
 
-`AppDIContainer`는 성능 최적화를 자동 구성합니다:
+`AppWeaveDI.Container`는 성능 최적화를 자동 구성합니다:
 
 ```swift
 public func registerDependencies(
@@ -481,7 +481,7 @@ await container.build()            // 모두 완료될 때까지 대기
 
 ### 메모리 관리(Memory Management)
 
-`AppDIContainer`는 효율적인 메모리 관리를 구현합니다:
+`AppWeaveDI.Container`는 효율적인 메모리 관리를 구현합니다:
 
 ```swift
 // 지연 초기화 - 필요할 때만 생성
@@ -496,15 +496,15 @@ private func cleanupUnusedDependencies() {
 
 ## 테스트 전략(Testing Strategies)
 
-### AppDIContainer 기반 단위 테스트(Unit Testing)
+### AppWeaveDI.Container 기반 단위 테스트(Unit Testing)
 
 ```swift
-class AppDIContainerTests: XCTestCase {
-    var container: AppDIContainer!
+class AppWeaveDI.ContainerTests: XCTestCase {
+    var container: AppWeaveDI.Container!
 
     override func setUp() async throws {
         try await super.setUp()
-        container = AppDIContainer()
+        container = AppWeaveDI.Container()
     }
 
     func testRepositoryFactoryRegistration() async {
@@ -556,7 +556,7 @@ class IntegrationTests: XCTestCase {
         // 테스트마다 컨테이너 초기화
           WeaveDI.Container.live = WeaveDI.Container()
 
-        await AppDIContainer.shared.registerDependencies { container in
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             // 테스트 전용 의존성 등록
             await self.registerTestDependencies(container)
         }
@@ -568,7 +568,7 @@ class IntegrationTests: XCTestCase {
         await container.register(MockAuthRepositoryModule())
 
         // 통합 테스트에 실제 UseCase 사용
-        let useCaseFactory = AppDIContainer.shared.useCaseFactory
+        let useCaseFactory = AppWeaveDI.Container.shared.useCaseFactory
         await useCaseFactory.makeAllModules().asyncForEach { module in
             await container.register(module)
         }
@@ -621,7 +621,7 @@ struct OrderFeatureModule {
 ### 2) 환경별 구성(Environment-Specific Configuration)
 
 ```swift
-extension AppDIContainer {
+extension AppWeaveDI.Container {
     func registerDependenciesForEnvironment(_ environment: AppEnvironment) async {
         await registerDependencies { container in
             switch environment {
@@ -655,8 +655,8 @@ extension AppDIContainer {
 
 ```swift
 class LegacyAppMigration {
-    static func migrateToAppDIContainer() async {
-        await AppDIContainer.shared.registerDependencies { container in
+    static func migrateToAppWeaveDI.Container() async {
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             // 기존 의존성을 점진적으로 마이그레이션
             await migrateCoreServices(container)
             await migrateUserServices(container)
@@ -677,7 +677,7 @@ class LegacyAppMigration {
 
 ## 논의(Discussion)
 
-- `AppDIContainer`는 **의존성 관리의 단일 진입점** 역할을 합니다.
+- `AppWeaveDI.Container`는 **의존성 관리의 단일 진입점** 역할을 합니다.
 - 앱 초기화 시 모듈을 등록해두면 런타임에서 **빠르고 신뢰성 있게** 의존성 객체를 생성·조회할 수 있습니다.
 - 내부 `Container`는 등록된 모든 모듈을 **병렬로 실행**하여 성능을 최적화합니다.
 - Factory 패턴으로 Repository, UseCase, Scope 레이어를 **체계적으로 관리**합니다.
@@ -688,4 +688,4 @@ class LegacyAppMigration {
 - [Module System](/ko/guide/moduleSystem) — 대규모 앱을 모듈로 조직화
 - [Property Wrappers](/ko/guide/propertyWrappers) — `@Factory` 와 `@Inject` 사용법
 - [Bootstrap Guide](/ko/guide/bootstrap) — 애플리케이션 초기화 패턴
-- [UnifiedDI vs DIContainer](/ko/guide/unifiedDi) — 어떤 API를 선택할지 가이드
+- [UnifiedDI vs WeaveDI.Container](/ko/guide/unifiedDi) — 어떤 API를 선택할지 가이드

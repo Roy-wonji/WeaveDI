@@ -436,7 +436,7 @@ extension RepositoryModuleFactory {
 ```swift
 class MacroEnabledBootstrap {
     static func configure() async {
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // 자동 등록된 서비스가 자동으로 사용 가능
             // @AutoRegister 클래스에 대한 수동 등록 불필요
 

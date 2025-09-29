@@ -224,20 +224,20 @@ func exampleRegisterAndResolve_UnifiedDI() {
     _ = useCase?.greet(id: "42")
 }
 
-// MARK: Option B) DIContainer.live (Explicit container)
-func exampleRegisterAndResolve_DIContainer() {
+// MARK: Option B) WeaveDI.Container.live (Explicit container)
+func exampleRegisterAndResolve_WeaveDI.Container() {
     // 1) Registration (immediate instance registration)
-    let repo = DIContainer.live.register(UserRepository.self) { UserRepositoryImpl() }
-    DIContainer.live.register(UserUseCase.self, instance: UserUseCaseImpl(repo: repo))
+    let repo = WeaveDI.Container.live.register(UserRepository.self) { UserRepositoryImpl() }
+    WeaveDI.Container.live.register(UserUseCase.self, instance: UserUseCaseImpl(repo: repo))
 
     // 2) Resolution
-    let useCase = DIContainer.live.resolve(UserUseCase.self)
+    let useCase = WeaveDI.Container.live.resolve(UserUseCase.self)
     _ = useCase?.greet(id: "7")
 }
 
 // MARK: Bootstrap Example (Bulk registration at app start)
 func exampleBootstrap() async {
-    await DIContainer.bootstrap { container in
+    await WeaveDI.Container.bootstrap { container in
         _ = container.register(UserRepository.self) { UserRepositoryImpl() }
         _ = container.register(UserUseCase.self) {
             let repo = container.resolveOrDefault(UserRepository.self, default: UserRepositoryImpl())
@@ -497,7 +497,7 @@ struct ProdAPI: APIClient, Sendable { let baseURL = "https://api.example.com" }
 
 func exampleEnvironmentConfig(isProd: Bool) async {
     // 1) Bootstrap registration at app start
-    await DIContainer.bootstrap { c in
+    await WeaveDI.Container.bootstrap { c in
         if isProd {
             _ = c.register(APIClient.self) { ProdAPI() }
         } else {
@@ -608,10 +608,10 @@ final class DefaultConfigService: ConfigService {
 }
 
 // MARK: - 2. Service Registration & Bootstrap
-extension DIContainer {
+extension WeaveDI.Container {
     static func setupDependencies() async {
         // Synchronous bootstrap registering all services
-        await DIContainer.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Register greeting service
             container.register(GreetingService.self) {
                 SimpleGreetingService()
@@ -663,7 +663,7 @@ struct WeaveDIDemoApp: App {
     init() {
         // Setup dependencies on app start
         Task {
-            await DIContainer.setupDependencies()
+            await WeaveDI.Container.setupDependencies()
         }
     }
 
@@ -763,7 +763,7 @@ final class BusinessLogic: Sendable {
 // MARK: - Usage Example
 func exampleUsage() async {
     // 1. Setup dependencies
-    await DIContainer.setupDependencies()
+    await WeaveDI.Container.setupDependencies()
 
     // 2. Direct resolution
     let service = UnifiedDI.resolve(GreetingService.self)
@@ -797,7 +797,7 @@ final class ModuleFactoryTests: XCTestCase {
     override func setUp() {
         super.setUp()
         // Initialize container and optimization system before tests
-        DIContainer.shared.removeAll()
+        WeaveDI.Container.shared.removeAll()
         AutoDIOptimizer.shared.reset()
     }
 
@@ -810,8 +810,8 @@ final class ModuleFactoryTests: XCTestCase {
         optimizer.setLogLevel(.errors)
         optimizer.setDebounceInterval(ms: 100)
 
-        // Step 2: AppDIContainer bootstrap
-        let appContainer = AppDIContainer.shared
+        // Step 2: AppWeaveDI.Container bootstrap
+        let appContainer = AppWeaveDI.Container.shared
         await appContainer.registerDefaultDependencies()
 
         // Step 3: Registration status monitoring
@@ -831,7 +831,7 @@ final class ModuleFactoryTests: XCTestCase {
         // Given: ModuleFactory pattern setup
         var manager = ModuleFactoryManager()
         manager.registerDefaultDependencies()
-        await manager.registerAll(to: DIContainer.shared)
+        await manager.registerAll(to: WeaveDI.Container.shared)
 
         // When: Concurrent dependency resolution from multiple Tasks
         let tasks = (0..<10).map { index in
