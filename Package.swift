@@ -24,7 +24,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/Roy-wonji/LogMacro.git", branch: "main"),
+        .package(url: "https://github.com/Roy-wonji/LogMacro.git", exact: "1.1.1"),
         .package(url: "https://github.com/apple/swift-docc-plugin.git", from: "1.4.5"),
         .package(
           url: "https://github.com/apple/swift-syntax.git", from: "600.0.0"),
