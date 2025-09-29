@@ -1,13 +1,13 @@
 {
-  "originHash" : "35d93321a0122f06dc2e0faa348b0a8feb7c37db222f205fedca9434d378efe6",
+  "originHash" : "03c226f05fdb1ab4fac49d1d85e703f755d1e93f93258b57eac6f63a8cb16730",
   "pins" : [
     {
       "identity" : "logmacro",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Roy-wonji/LogMacro.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "593b210346cf7145074c2d94fa4206bbc70198e0"
+        "revision" : "593b210346cf7145074c2d94fa4206bbc70198e0",
+        "version" : "1.1.1"
       }
     },
     {

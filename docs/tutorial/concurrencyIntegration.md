@@ -1,28 +1,28 @@
-# WeaveDI Swift 동시성 통합
+# WeaveDI Swift Concurrency Integration
 
-@DIActor, async/await 패턴, actor 안전 의존성 주입을 포함한 WeaveDI의 Swift 동시성 기능을 마스터하세요.
+Master WeaveDI's Swift concurrency features including @DIActor, async/await patterns, and actor-safe dependency injection.
 
-## 🎯 학습 목표
+## 🎯 Learning Objectives
 
-- **@DIActor**: 스레드 안전 의존성 관리
-- **비동기 등록**: 백그라운드 의존성 설정
-- **Actor 격리**: 안전한 동시 접근
-- **성능 최적화**: Hot path 캐싱
-- **실제 패턴**: 실용적인 async/await 사용법
+- **@DIActor**: Thread-safe dependency management
+- **Async Registration**: Background dependency setup
+- **Actor Isolation**: Safe concurrent access
+- **Performance Optimization**: Hot path caching
+- **Real-world Patterns**: Practical async/await usage
 
-## 🧵 스레드 안전 의존성 주입
+## 🧵 Thread-Safe Dependency Injection
 
-### 안전한 작업을 위한 @DIActor 사용
+### Using @DIActor for Safe Operations
 
 ```swift
 import WeaveDI
 
-// @DIActor를 사용하여 안전하게 의존성 등록
+// Register dependencies safely using @DIActor
 @DIActor
 func setupAppDependencies() async {
-    print("🚀 백그라운드 스레드에서 의존성 설정 중...")
+    print("🚀 Setting up dependencies on background thread...")
 
-    // 실제 WeaveDI @DIActor를 사용한 스레드 안전 등록
+    // Thread-safe registration using actual WeaveDI @DIActor
     let networkService = await DIActor.shared.register(NetworkService.self) {
         URLSessionNetworkService()
     }
@@ -31,37 +31,37 @@ func setupAppDependencies() async {
         CoreDataCacheService()
     }
 
-    print("✅ 의존성이 안전하게 등록되었습니다")
+    print("✅ Dependencies registered safely")
 }
 
-// 의존성을 안전하게 해결
+// Resolve dependencies safely
 @DIActor
 func getDependencies() async {
     let networkService = await DIActor.shared.resolve(NetworkService.self)
     let cacheService = await DIActor.shared.resolve(CacheService.self)
 
-    print("📦 의존성 해결됨: \(networkService != nil)")
+    print("📦 Dependencies resolved: \(networkService != nil)")
 }
 ```
 
-**🔍 코드 설명:**
+**🔍 Code Explanation:**
 
-1. **@DIActor 함수**: `@DIActor` 속성을 사용하면 함수가 DIActor 컨텍스트에서 실행됩니다
-2. **스레드 안전 등록**: `DIActor.shared.register`는 동시 등록을 안전하게 처리합니다
-3. **비동기 해결**: `await`를 사용하여 의존성을 비동기적으로 해결합니다
-4. **백그라운드 실행**: 메인 스레드를 차단하지 않고 의존성을 설정합니다
+1. **@DIActor Functions**: Using the `@DIActor` attribute ensures functions execute in DIActor context
+2. **Thread-safe Registration**: `DIActor.shared.register` safely handles concurrent registrations
+3. **Async Resolution**: Use `await` to resolve dependencies asynchronously
+4. **Background Execution**: Dependencies are set up without blocking the main thread
 
-### Actor 안전 프로퍼티 주입
+### Actor-Safe Property Injection
 
 ```swift
 @MainActor
 class WeatherViewModel: ObservableObject {
-    // 메인 액터에서 UI 업데이트
+    // UI updates on main actor
     @Published var weather: Weather?
     @Published var isLoading = false
     @Published var error: String?
 
-    // 서비스를 안전하게 주입 가능
+    // Services can be injected safely
     @Inject var weatherService: WeatherService?
 
     func loadWeather(for city: String) async {
@@ -69,15 +69,15 @@ class WeatherViewModel: ObservableObject {
         error = nil
 
         do {
-            // 주입된 서비스로 백그라운드 작업
+            // Background work with injected service
             guard let service = weatherService else {
                 throw WeatherError.serviceUnavailable
             }
 
-            // 백그라운드 스레드에서 실행
+            // Execute on background thread
             let weatherData = try await service.fetchWeather(for: city)
 
-            // UI 업데이트는 자동으로 메인 액터에서
+            // UI updates automatically on main actor
             self.weather = weatherData
         } catch {
             self.error = error.localizedDescription
@@ -88,92 +88,92 @@ class WeatherViewModel: ObservableObject {
 }
 ```
 
-**🔍 코드 설명:**
+**🔍 Code Explanation:**
 
-1. **@MainActor 클래스**: 모든 메서드와 프로퍼티가 메인 스레드에서 실행됩니다
-2. **@Published 프로퍼티**: UI 바인딩을 위한 SwiftUI 호환 상태
-3. **@Inject 프로퍼티**: WeaveDI를 통한 안전한 의존성 주입
-4. **백그라운드 작업**: 네트워크 호출은 백그라운드에서 수행됩니다
-5. **자동 UI 업데이트**: 상태 변경이 메인 스레드에서 자동으로 처리됩니다
+1. **@MainActor Class**: All methods and properties execute on the main thread
+2. **@Published Properties**: SwiftUI-compatible state for UI binding
+3. **@Inject Properties**: Safe dependency injection through WeaveDI
+4. **Background Work**: Network calls performed in the background
+5. **Automatic UI Updates**: State changes automatically handled on main thread
 
-## 🏭 고급 동시성 패턴
+## 🏭 Advanced Concurrency Patterns
 
-### 병렬 의존성 초기화
+### Parallel Dependency Initialization
 
 ```swift
-/// 여러 서비스를 병렬로 초기화하는 고급 부트스트랩 (실제 tutorial 코드 기반)
+/// Advanced bootstrap with parallel service initialization (based on actual tutorial code)
 class ConcurrentBootstrap {
 
     @DIActor
     static func setupServicesInParallel() async {
-        print("⚡ 병렬 서비스 초기화 시작")
+        print("⚡ Starting parallel service initialization")
 
-        // TaskGroup을 사용하여 여러 서비스를 동시에 초기화
+        // Use TaskGroup to initialize multiple services concurrently
         await withTaskGroup(of: Void.self) { group in
 
-            // 네트워크 서비스 초기화 (시간이 오래 걸림)
+            // Initialize network service (time-consuming)
             group.addTask {
                 let service = await initializeNetworkService()
                 await DIActor.shared.register(NetworkService.self) {
                     service
                 }
-                print("🌐 NetworkService 초기화 완료")
+                print("🌐 NetworkService initialization complete")
             }
 
-            // 데이터베이스 서비스 초기화 (시간이 오래 걸림)
+            // Initialize database service (time-consuming)
             group.addTask {
                 let service = await initializeDatabaseService()
                 await DIActor.shared.register(DatabaseService.self) {
                     service
                 }
-                print("🗄️ DatabaseService 초기화 완료")
+                print("🗄️ DatabaseService initialization complete")
             }
 
-            // 캐시 서비스 초기화 (빠름)
+            // Initialize cache service (fast)
             group.addTask {
                 let service = await initializeCacheService()
                 await DIActor.shared.register(CacheService.self) {
                     service
                 }
-                print("💾 CacheService 초기화 완료")
+                print("💾 CacheService initialization complete")
             }
 
-            // 인증 서비스 초기화 (의존성 있음)
+            // Initialize auth service (has dependencies)
             group.addTask {
-                // 네트워크 서비스가 준비될 때까지 대기
+                // Wait for network service to be ready
                 let networkService = await DIActor.shared.resolve(NetworkService.self)
                 let authService = await initializeAuthService(networkService: networkService)
 
                 await DIActor.shared.register(AuthService.self) {
                     authService
                 }
-                print("🔐 AuthService 초기화 완료")
+                print("🔐 AuthService initialization complete")
             }
         }
 
-        print("✅ 모든 서비스 병렬 초기화 완료")
+        print("✅ All services parallel initialization complete")
     }
 
-    /// 네트워크 서비스를 비동기적으로 초기화
+    /// Initialize network service asynchronously
     private static func initializeNetworkService() async -> NetworkService {
-        // 시뮬레이션: 네트워크 설정에 시간이 걸림
-        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1초
+        // Simulation: network setup takes time
+        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
         return URLSessionNetworkService()
     }
 
-    /// 데이터베이스 서비스를 비동기적으로 초기화
+    /// Initialize database service asynchronously
     private static func initializeDatabaseService() async -> DatabaseService {
-        // 시뮬레이션: 데이터베이스 연결에 시간이 걸림
-        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2초
+        // Simulation: database connection takes time
+        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
         return CoreDataService()
     }
 
-    /// 캐시 서비스를 비동기적으로 초기화 (빠름)
+    /// Initialize cache service asynchronously (fast)
     private static func initializeCacheService() async -> CacheService {
         return InMemoryCacheService()
     }
 
-    /// 인증 서비스를 비동기적으로 초기화 (의존성 있음)
+    /// Initialize auth service asynchronously (has dependencies)
     private static func initializeAuthService(networkService: NetworkService?) async -> AuthService {
         guard let network = networkService else {
             fatalError("AuthService requires NetworkService")
@@ -183,160 +183,341 @@ class ConcurrentBootstrap {
 }
 ```
 
-**🔍 코드 설명:**
+**🔍 Code Explanation:**
 
-1. **TaskGroup**: 여러 작업을 병렬로 실행하기 위한 Swift 동시성 API
-2. **비동기 초기화**: 각 서비스가 독립적으로 초기화됩니다
-3. **의존성 해결**: AuthService처럼 다른 서비스에 의존하는 경우 순서 보장
-4. **성능 향상**: 순차 초기화 대신 병렬 초기화로 시간 단축
+1. **TaskGroup**: Swift concurrency API for running multiple tasks in parallel
+2. **Async Initialization**: Each service initializes independently
+3. **Dependency Resolution**: Services like AuthService ensure order when they depend on others
+4. **Performance Improvement**: Parallel initialization instead of sequential reduces time
 
-### Actor 기반 서비스 설계
+### Actor Hop Patterns
+
+**Actor hopping** is a crucial concept in Swift concurrency that occurs when execution moves between different actors. Understanding and optimizing actor hops is essential for performance.
 
 ```swift
-/// Actor를 사용한 스레드 안전 서비스 구현 (실제 tutorial 패턴)
+/// Advanced actor hop optimization patterns
+actor DataProcessor {
+    private var cache: [String: ProcessedData] = [:]
+
+    @Inject var networkService: NetworkService?
+    @Inject var logger: LoggerProtocol?
+
+    /// Example of controlled actor hopping
+    func processDataWithOptimizedHops(input: String) async -> ProcessedData? {
+        // ✅ We're on DataProcessor actor
+        logger?.info("🔄 Starting data processing on DataProcessor actor")
+
+        // Check cache first (no actor hop needed)
+        if let cached = cache[input] {
+            logger?.info("📋 Cache hit, no processing needed")
+            return cached
+        }
+
+        // ❌ AVOID: Multiple unnecessary actor hops
+        // Bad pattern that causes multiple hops:
+        /*
+        await MainActor.run {
+            // Hop to MainActor
+            updateUI()
+        }
+        let networkData = await networkService?.fetchData(input) // Hop to network actor
+        await MainActor.run {
+            // Another hop to MainActor
+            updateProgress()
+        }
+        */
+
+        // ✅ OPTIMAL: Batch operations to minimize hops
+
+        // Batch all network operations together
+        guard let networkService = networkService else { return nil }
+        let networkData = await networkService.fetchData(input)
+
+        // Process on current actor (no hop)
+        let processed = await processInternalData(networkData)
+
+        // Cache result (no hop needed, we're still on DataProcessor actor)
+        cache[input] = processed
+
+        // Single hop to MainActor for UI updates at the end
+        await MainActor.run {
+            NotificationCenter.default.post(
+                name: .dataProcessingComplete,
+                object: processed
+            )
+        }
+
+        return processed
+    }
+
+    /// Internal processing that stays on the same actor
+    private func processInternalData(_ data: Data?) async -> ProcessedData {
+        // This method runs on DataProcessor actor - no hop
+        guard let data = data else {
+            return ProcessedData.empty
+        }
+
+        // Simulate processing work
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+
+        return ProcessedData(
+            id: UUID().uuidString,
+            content: String(data: data, encoding: .utf8) ?? "",
+            timestamp: Date(),
+            processingDuration: 0.1
+        )
+    }
+
+    /// Efficient batch processing that minimizes actor hops
+    func processBatchWithMinimalHops(_ inputs: [String]) async -> [ProcessedData] {
+        var results: [ProcessedData] = []
+
+        // Process all inputs on current actor
+        for input in inputs {
+            if let result = await processDataWithOptimizedHops(input: input) {
+                results.append(result)
+            }
+        }
+
+        // Single hop to MainActor for final notification
+        await MainActor.run {
+            NotificationCenter.default.post(
+                name: .batchProcessingComplete,
+                object: results.count
+            )
+        }
+
+        return results
+    }
+}
+
+/// Main actor coordinator that demonstrates proper actor hop management
+@MainActor
+class ActorHopCoordinator: ObservableObject {
+    @Published var processingStatus: String = "Ready"
+    @Published var results: [ProcessedData] = []
+
+    @Inject var dataProcessor: DataProcessor?
+    @Inject var logger: LoggerProtocol?
+
+    /// Demonstrates optimal actor hop patterns
+    func performOptimizedProcessing(inputs: [String]) async {
+        // ✅ Start on MainActor (UI updates)
+        processingStatus = "Starting processing..."
+        logger?.info("🚀 Starting optimized processing")
+
+        // ✅ Single hop to DataProcessor actor for all work
+        guard let processor = dataProcessor else {
+            processingStatus = "Error: No processor available"
+            return
+        }
+
+        // All processing happens on DataProcessor actor
+        let processedResults = await processor.processBatchWithMinimalHops(inputs)
+
+        // ✅ Return to MainActor for UI updates (automatic hop)
+        self.results = processedResults
+        self.processingStatus = "Completed: \(processedResults.count) items"
+
+        logger?.info("✅ Processing completed with minimal actor hops")
+    }
+
+    /// Example of what NOT to do - excessive actor hopping
+    func performPoorlyOptimizedProcessing(inputs: [String]) async {
+        // ❌ This is a bad example - too many actor hops
+
+        for input in inputs {
+            // Hop 1: Update UI for each item
+            processingStatus = "Processing \(input)..."
+
+            // Hop 2: Go to processor
+            let result = await dataProcessor?.processDataWithOptimizedHops(input: input)
+
+            // Hop 3: Back to MainActor
+            if let result = result {
+                results.append(result)
+            }
+
+            // This creates 3 * inputs.count actor hops!
+        }
+    }
+}
+
+struct ProcessedData {
+    let id: String
+    let content: String
+    let timestamp: Date
+    let processingDuration: TimeInterval
+
+    static let empty = ProcessedData(
+        id: "",
+        content: "",
+        timestamp: Date(),
+        processingDuration: 0
+    )
+}
+
+extension Notification.Name {
+    static let dataProcessingComplete = Notification.Name("dataProcessingComplete")
+    static let batchProcessingComplete = Notification.Name("batchProcessingComplete")
+}
+```
+
+**🔍 Actor Hop Optimization Principles:**
+
+1. **Minimize Hops**: Group operations that need to happen on the same actor
+2. **Batch UI Updates**: Update UI once at the end rather than continuously
+3. **Stay on Actor**: Prefer private methods that stay on the current actor
+4. **Measure Performance**: Use Instruments to identify hop bottlenecks
+5. **Strategic Hopping**: Plan when and where actor switches are necessary
+
+### Actor-Based Service Design
+
+```swift
+/// Thread-safe service implementation using actor (actual tutorial pattern)
 actor ThreadSafeDataService {
     private var cache: [String: Data] = [:]
     private var isInitialized = false
 
-    /// WeaveDI를 통해 의존성 주입 (Actor 내부에서 안전)
+    /// Dependency injection through WeaveDI (safe within actor)
     @Inject var networkService: NetworkService?
     @Inject var logger: LoggerProtocol?
 
-    /// Actor 내부 상태를 안전하게 초기화
+    /// Safely initialize actor internal state
     func initialize() async {
         guard !isInitialized else { return }
 
-        logger?.info("🔄 ThreadSafeDataService 초기화 시작")
+        logger?.info("🔄 ThreadSafeDataService initialization started")
 
-        // 네트워크 서비스 확인
+        // Verify network service
         guard let network = networkService else {
-            logger?.error("❌ NetworkService를 사용할 수 없습니다")
+            logger?.error("❌ NetworkService unavailable")
             return
         }
 
-        // 초기 데이터 로드
+        // Load initial data
         do {
             let initialData = try await network.fetchInitialData()
             cache["initial"] = initialData
             isInitialized = true
-            logger?.info("✅ ThreadSafeDataService 초기화 완료")
+            logger?.info("✅ ThreadSafeDataService initialization complete")
         } catch {
-            logger?.error("❌ 초기화 실패: \(error)")
+            logger?.error("❌ Initialization failed: \(error)")
         }
     }
 
-    /// 데이터를 안전하게 저장 (Actor 컨텍스트에서 실행)
+    /// Safely store data (executes in actor context)
     func storeData(_ data: Data, forKey key: String) {
         cache[key] = data
-        logger?.info("💾 데이터 저장됨: \(key)")
+        logger?.info("💾 Data stored: \(key)")
     }
 
-    /// 데이터를 안전하게 조회 (Actor 컨텍스트에서 실행)
+    /// Safely retrieve data (executes in actor context)
     func retrieveData(forKey key: String) -> Data? {
         let data = cache[key]
-        logger?.info("📖 데이터 조회: \(key) -> \(data != nil ? "성공" : "실패")")
+        logger?.info("📖 Data retrieved: \(key) -> \(data != nil ? "success" : "failure")")
         return data
     }
 
-    /// 캐시 상태 확인 (외부에서 안전하게 호출 가능)
+    /// Check cache status (safely callable from outside)
     var cacheSize: Int {
         cache.count
     }
 }
 ```
 
-**🔍 코드 설명:**
+**🔍 Code Explanation:**
 
-1. **Actor 키워드**: 클래스 대신 actor를 사용하여 자동 동기화
-2. **내부 상태 보호**: cache와 isInitialized가 동시 접근으로부터 보호됨
-3. **@Inject 안전성**: Actor 내부에서도 WeaveDI 주입이 안전하게 작동
-4. **비동기 메서드**: Actor 메서드는 외부에서 await로 호출
+1. **Actor Keyword**: Using actor instead of class for automatic synchronization
+2. **Internal State Protection**: cache and isInitialized are protected from concurrent access
+3. **@Inject Safety**: WeaveDI injection works safely within actors
+4. **Async Methods**: Actor methods are called with await from outside
 
-### 동시성 최적화 패턴
+### Concurrency Optimization Patterns
 
 ```swift
-/// 성능 최적화된 동시성 서비스 매니저 (tutorial 기반 고급 패턴)
+/// Performance-optimized concurrency service manager (tutorial-based advanced pattern)
 @MainActor
 class ConcurrencyOptimizedServiceManager {
 
-    // MARK: - 의존성 (WeaveDI를 통해 주입)
+    // MARK: - Dependencies (injected through WeaveDI)
     @Inject var dataService: ThreadSafeDataService?
     @Inject var networkService: NetworkService?
     @Inject var logger: LoggerProtocol?
 
-    // MARK: - 내부 상태
+    // MARK: - Internal State
     private var operationQueue: [UUID: Task<Void, Never>] = [:]
     private var resultCache: [String: Any] = [:]
 
-    /// 여러 작업을 효율적으로 병렬 처리
+    /// Efficiently handle multiple operations in parallel
     func performBatchOperations<T: Sendable>(
         _ operations: [(id: String, operation: () async throws -> T)]
     ) async -> [String: Result<T, Error>] {
 
-        logger?.info("🚀 배치 작업 시작: \(operations.count)개 작업")
+        logger?.info("🚀 Batch operations started: \(operations.count) operations")
 
         var results: [String: Result<T, Error>] = [:]
 
-        // TaskGroup을 사용한 병렬 처리
+        // Parallel processing using TaskGroup
         await withTaskGroup(of: (String, Result<T, Error>).self) { group in
 
             for (id, operation) in operations {
                 group.addTask { [weak self] in
-                    // 캐시 확인 (메인 액터에서 안전)
+                    // Check cache (safe on main actor)
                     if let cached = await self?.getCachedResult(id: id) as? T {
-                        self?.logger?.info("📋 캐시된 결과 사용: \(id)")
+                        self?.logger?.info("📋 Using cached result: \(id)")
                         return (id, .success(cached))
                     }
 
-                    // 실제 작업 수행
+                    // Perform actual operation
                     do {
                         let result = try await operation()
                         await self?.cacheResult(id: id, result: result)
                         return (id, .success(result))
                     } catch {
-                        self?.logger?.error("❌ 작업 실패 [\(id)]: \(error)")
+                        self?.logger?.error("❌ Operation failed [\(id)]: \(error)")
                         return (id, .failure(error))
                     }
                 }
             }
 
-            // 모든 결과 수집
+            // Collect all results
             for await (id, result) in group {
                 results[id] = result
             }
         }
 
-        logger?.info("✅ 배치 작업 완료: \(results.count)개 결과")
+        logger?.info("✅ Batch operations complete: \(results.count) results")
         return results
     }
 
-    /// 작업 취소 가능한 장기 실행 작업
+    /// Cancellable long-running task
     func startLongRunningTask(id: String) -> UUID {
         let taskId = UUID()
 
         let task = Task { [weak self] in
             guard let self = self else { return }
 
-            await self.logger?.info("⏳ 장기 작업 시작: \(id)")
+            await self.logger?.info("⏳ Long-running task started: \(id)")
 
-            // 작업 시뮬레이션 (취소 가능)
+            // Task simulation (cancellable)
             for i in 1...100 {
-                // 취소 확인
+                // Check for cancellation
                 if Task.isCancelled {
-                    await self.logger?.info("🛑 작업 취소됨: \(id)")
+                    await self.logger?.info("🛑 Task cancelled: \(id)")
                     return
                 }
 
-                // 진행률 업데이트
+                // Progress update
                 if i % 10 == 0 {
-                    await self.logger?.info("📊 진행률 [\(id)]: \(i)%")
+                    await self.logger?.info("📊 Progress [\(id)]: \(i)%")
                 }
 
-                // 작업 시뮬레이션
-                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1초
+                // Work simulation
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
             }
 
-            await self.logger?.info("✅ 장기 작업 완료: \(id)")
+            await self.logger?.info("✅ Long-running task complete: \(id)")
             await self.removeTask(taskId: taskId)
         }
 
@@ -344,16 +525,16 @@ class ConcurrencyOptimizedServiceManager {
         return taskId
     }
 
-    /// 작업 취소
+    /// Cancel task
     func cancelTask(taskId: UUID) {
         operationQueue[taskId]?.cancel()
         operationQueue.removeValue(forKey: taskId)
-        logger?.info("🛑 작업 취소 요청: \(taskId)")
+        logger?.info("🛑 Task cancellation requested: \(taskId)")
     }
 
-    /// 모든 작업 취소
+    /// Cancel all tasks
     func cancelAllTasks() {
-        logger?.info("🛑 모든 작업 취소")
+        logger?.info("🛑 Cancelling all tasks")
         for task in operationQueue.values {
             task.cancel()
         }
@@ -362,42 +543,42 @@ class ConcurrencyOptimizedServiceManager {
 
     // MARK: - Private Methods
 
-    /// 캐시된 결과 조회 (메인 액터에서 안전)
+    /// Retrieve cached result (safe on main actor)
     private func getCachedResult(id: String) -> Any? {
         return resultCache[id]
     }
 
-    /// 결과 캐시 (메인 액터에서 안전)
+    /// Cache result (safe on main actor)
     private func cacheResult<T>(id: String, result: T) {
         resultCache[id] = result
-        logger?.info("💾 결과 캐시됨: \(id)")
+        logger?.info("💾 Result cached: \(id)")
     }
 
-    /// 완료된 작업 제거
+    /// Remove completed task
     private func removeTask(taskId: UUID) {
         operationQueue.removeValue(forKey: taskId)
     }
 }
 ```
 
-**🔍 코드 설명:**
+**🔍 Code Explanation:**
 
-1. **@MainActor 관리**: UI와 관련된 상태를 메인 액터에서 안전하게 관리
-2. **TaskGroup 활용**: 여러 작업의 병렬 처리와 결과 수집
-3. **취소 가능한 작업**: Task.isCancelled를 체크하여 우아한 취소 처리
-4. **결과 캐싱**: 중복 작업 방지를 위한 결과 캐싱
-5. **작업 추적**: 실행 중인 작업들을 추적하고 관리
+1. **@MainActor Management**: Safely manage UI-related state on main actor
+2. **TaskGroup Utilization**: Parallel processing and result collection for multiple tasks
+3. **Cancellable Tasks**: Graceful cancellation handling using Task.isCancelled
+4. **Result Caching**: Prevent duplicate work through result caching
+5. **Task Tracking**: Track and manage running tasks
 
-## 📋 실제 사용 예제
+## 📋 Real-World Examples
 
-### 실제 앱에서의 통합
+### Integration in Real Apps
 
 ```swift
-/// 실제 앱에서 WeaveDI 동시성 기능을 사용하는 예제
+/// Example of using WeaveDI concurrency features in a real app
 @main
 struct ConcurrentApp: App {
 
-    /// 앱 시작 시 비동기 초기화
+    /// Async initialization on app startup
     init() {
         Task {
             await initializeApp()
@@ -408,62 +589,62 @@ struct ConcurrentApp: App {
         WindowGroup {
             ContentView()
                 .task {
-                    // 뷰가 나타날 때 추가 초기화
+                    // Additional initialization when view appears
                     await finalizeAppSetup()
                 }
         }
     }
 
-    /// 앱 초기화 (백그라운드에서 수행)
+    /// App initialization (performed in background)
     @DIActor
     private func initializeApp() async {
-        print("🚀 앱 초기화 시작")
+        print("🚀 App initialization started")
 
-        // 병렬 서비스 초기화
+        // Parallel service initialization
         await ConcurrentBootstrap.setupServicesInParallel()
 
-        // 추가 설정
+        // Additional setup
         await configureLogging()
         await setupAnalytics()
 
-        print("✅ 앱 초기화 완료")
+        print("✅ App initialization complete")
     }
 
-    /// 마지막 설정 단계
+    /// Final setup steps
     private func finalizeAppSetup() async {
-        // UI가 준비된 후 수행할 작업들
+        // Tasks to perform after UI is ready
         await preloadCriticalData()
         await startBackgroundTasks()
     }
 
     @DIActor
     private func configureLogging() async {
-        // 로깅 시스템 설정
-        print("📝 로깅 시스템 설정 완료")
+        // Configure logging system
+        print("📝 Logging system setup complete")
     }
 
     @DIActor
     private func setupAnalytics() async {
-        // 분석 시스템 설정
-        print("📊 분석 시스템 설정 완료")
+        // Configure analytics system
+        print("📊 Analytics system setup complete")
     }
 
     private func preloadCriticalData() async {
-        // 중요한 데이터 미리 로드
-        print("📥 중요 데이터 프리로드 완료")
+        // Preload critical data
+        print("📥 Critical data preload complete")
     }
 
     private func startBackgroundTasks() async {
-        // 백그라운드 작업 시작
-        print("🔄 백그라운드 작업 시작")
+        // Start background tasks
+        print("🔄 Background tasks started")
     }
 }
 ```
 
-### SwiftUI와 동시성 통합
+### SwiftUI and Concurrency Integration
 
 ```swift
-/// WeaveDI를 사용한 비동기 데이터 로딩을 보여주는 SwiftUI 뷰
+/// SwiftUI view demonstrating async data loading with WeaveDI
 struct AsyncDataView: View {
     @StateObject private var viewModel = AsyncDataViewModel()
     @State private var isLoading = false
@@ -474,16 +655,16 @@ struct AsyncDataView: View {
         NavigationView {
             VStack {
                 if isLoading {
-                    ProgressView("데이터 로딩 중...")
+                    ProgressView("Loading data...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let error = error {
                     VStack {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.largeTitle)
                             .foregroundColor(.red)
-                        Text("오류: \(error)")
+                        Text("Error: \(error)")
                             .multilineTextAlignment(.center)
-                        Button("다시 시도") {
+                        Button("Retry") {
                             Task {
                                 await loadData()
                             }
@@ -496,7 +677,7 @@ struct AsyncDataView: View {
                     }
                 }
             }
-            .navigationTitle("비동기 데이터")
+            .navigationTitle("Async Data")
             .task {
                 await loadData()
             }
@@ -521,7 +702,7 @@ struct AsyncDataView: View {
     }
 }
 
-/// WeaveDI를 사용한 비동기 작업이 있는 ViewModel
+/// ViewModel with async operations using WeaveDI
 @MainActor
 class AsyncDataViewModel: ObservableObject {
     @Inject var dataService: ThreadSafeDataService?
@@ -529,19 +710,19 @@ class AsyncDataViewModel: ObservableObject {
     @Inject var logger: LoggerProtocol?
 
     func fetchData() async throws -> [DataItem] {
-        logger?.info("📥 데이터 가져오기 시작")
+        logger?.info("📥 Data fetch started")
 
-        // 데이터 서비스 초기화 확인
+        // Ensure data service initialization
         await dataService?.initialize()
 
-        // 먼저 캐시된 데이터 확인
+        // Check cached data first
         if let cachedData = await dataService?.retrieveData(forKey: "main_data"),
            let items = try? JSONDecoder().decode([DataItem].self, from: cachedData) {
-            logger?.info("📋 캐시된 데이터 사용")
+            logger?.info("📋 Using cached data")
             return items
         }
 
-        // 새로운 데이터 가져오기
+        // Fetch fresh data
         guard let network = networkService else {
             throw DataError.serviceUnavailable
         }
@@ -550,7 +731,7 @@ class AsyncDataViewModel: ObservableObject {
         let encoded = try JSONEncoder().encode(freshData)
         await dataService?.storeData(encoded, forKey: "main_data")
 
-        logger?.info("✅ 새로운 데이터 가져오기 및 캐시 완료")
+        logger?.info("✅ Fresh data fetch and cache complete")
         return freshData
     }
 }
@@ -583,20 +764,20 @@ enum DataError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .serviceUnavailable:
-            return "데이터 서비스를 사용할 수 없습니다"
+            return "Data service is unavailable"
         case .networkError:
-            return "네트워크 오류가 발생했습니다"
+            return "Network error occurred"
         }
     }
 }
 ```
 
-## 🎯 실제 Tutorial 코드 활용 예제
+## 🎯 Real Tutorial Code Examples
 
-### CountApp과 동시성 통합
+### CountApp with Concurrency Integration
 
 ```swift
-/// Tutorial에서 사용된 CountApp을 동시성 기능과 통합한 예제
+/// Example integrating CountApp from tutorial with concurrency features
 struct AsyncCounterView: View {
     @State private var count = 0
     @State private var isLoading = false
@@ -605,7 +786,7 @@ struct AsyncCounterView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("비동기 WeaveDI 카운터")
+            Text("Async WeaveDI Counter")
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
@@ -628,7 +809,7 @@ struct AsyncCounterView: View {
                 }
             }
 
-            Button("히스토리 보기") {
+            Button("View History") {
                 Task {
                     await showHistory()
                 }
@@ -646,7 +827,7 @@ struct AsyncCounterView: View {
         isLoading = true
         count = await counterRepository?.getCurrentCount() ?? 0
         isLoading = false
-        logger?.info("📊 초기 카운트 로드: \(count)")
+        logger?.info("📊 Initial count loaded: \(count)")
     }
 
     @MainActor
@@ -655,7 +836,7 @@ struct AsyncCounterView: View {
         count += 1
         await counterRepository?.saveCount(count)
         isLoading = false
-        logger?.info("⬆️ 카운터 증가: \(count)")
+        logger?.info("⬆️ Counter incremented: \(count)")
     }
 
     @MainActor
@@ -664,12 +845,12 @@ struct AsyncCounterView: View {
         count -= 1
         await counterRepository?.saveCount(count)
         isLoading = false
-        logger?.info("⬇️ 카운터 감소: \(count)")
+        logger?.info("⬇️ Counter decremented: \(count)")
     }
 
     private func showHistory() async {
         let history = await counterRepository?.getCountHistory() ?? []
-        logger?.info("📈 히스토리: \(history.count)개 항목")
+        logger?.info("📈 History: \(history.count) items")
     }
 }
 
@@ -695,6 +876,6 @@ struct AsyncButton: View {
 
 ---
 
-**축하합니다!** WeaveDI의 Swift 동시성 통합을 마스터했습니다. 이제 안전하고 효율적인 동시 프로그래밍을 통해 고성능 iOS 앱을 구축할 수 있습니다.
+**Congratulations!** You've mastered WeaveDI's Swift concurrency integration. You can now build high-performance iOS apps with safe and efficient concurrent programming.
 
-📖 **관련 문서**: [시작하기](/ko/tutorial/gettingStarted) | [Property Wrappers](/ko/tutorial/propertyWrappers)
+📖 **Related Documentation**: [Getting Started](/en/tutorial/gettingStarted) | [Property Wrappers](/en/tutorial/propertyWrappers)

@@ -2,6 +2,230 @@
 
 A safe and high-performance dependency injection system using Swift Concurrency. Solves concurrency issues through thread safety and the Actor model.
 
+## Understanding Actor Hops
+
+### What is an Actor Hop?
+
+An **actor hop** is a fundamental concept in Swift's actor model that occurs when execution switches from one actor context to another. Understanding and optimizing actor hops is crucial for building high-performance applications with WeaveDI.
+
+```swift
+// Example demonstrating actor hop concept
+@MainActor
+class UIViewController {
+    @Inject var userService: UserService?
+
+    func updateUI() async {
+        // 1. Currently on MainActor (UI thread)
+        print("📱 On MainActor: \(Thread.isMainThread)")
+
+        // 2. Actor hop occurs here - switching to DIActor context
+        let service = await DIActor.shared.resolve(UserService.self)
+        // ⚡ ACTOR HOP: MainActor → DIActor
+
+        // 3. Now on DIActor context
+        guard let userService = service else { return }
+
+        // 4. Another actor hop - DIActor back to MainActor for UI update
+        await MainActor.run {
+            // ⚡ ACTOR HOP: DIActor → MainActor
+            self.displayUsers(users)
+        }
+    }
+}
+```
+
+### Actor Hop Performance Impact
+
+Each actor hop involves:
+- **Context Switching**: CPU switches execution context between actors
+- **Memory Synchronization**: Ensures memory consistency across actor boundaries
+- **Task Suspension**: Current task may be suspended and resumed later
+- **Queue Coordination**: Actor message passing through internal queues
+
+**Performance Characteristics:**
+- **Typical Latency**: 50-200 microseconds per hop
+- **Memory Overhead**: 16-64 bytes per suspended task
+- **CPU Impact**: ~2-5% overhead for frequent hopping
+- **Battery Impact**: Increased power consumption on mobile devices
+
+### WeaveDI's Actor Hop Optimizations
+
+WeaveDI implements several strategies to minimize actor hop overhead:
+
+#### 1. Hot Path Caching
+```swift
+// First resolution requires actor hop
+let service1 = await DIActor.shared.resolve(UserService.self)
+// ⚡ ACTOR HOP: Current context → DIActor
+
+// Subsequent resolutions are cached and optimized
+let service2 = await DIActor.shared.resolve(UserService.self)
+// ✨ OPTIMIZED: Cached resolution, minimal actor hop overhead
+```
+
+#### 2. Batch Resolution Optimization
+```swift
+// ❌ INEFFICIENT: Multiple actor hops
+@DIActor
+func inefficientSetup() async {
+    let userService = await DIActor.shared.resolve(UserService.self)     // Hop 1
+    let networkService = await DIActor.shared.resolve(NetworkService.self) // Hop 2
+    let cacheService = await DIActor.shared.resolve(CacheService.self)   // Hop 3
+}
+
+// ✅ OPTIMIZED: Single actor context, multiple operations
+@DIActor
+func optimizedSetup() async {
+    // All operations occur within DIActor context - no additional hops
+    let userService = await DIActor.shared.resolve(UserService.self)
+    let networkService = await DIActor.shared.resolve(NetworkService.self)
+    let cacheService = await DIActor.shared.resolve(CacheService.self)
+}
+```
+
+#### 3. Contextual Resolution Strategy
+```swift
+actor BusinessLogicActor {
+    @Inject var userService: UserService?
+
+    func processUserData() async {
+        // Property wrapper injection minimizes actor hops
+        // Service is resolved once and cached within actor instance
+        guard let service = userService else { return }
+
+        // All subsequent calls use cached instance - no actor hops
+        let users = await service.fetchUsers()
+        let processed = await service.processUsers(users)
+        await service.saveProcessedUsers(processed)
+    }
+}
+```
+
+### Actor Hop Detection and Monitoring
+
+WeaveDI provides comprehensive actor hop monitoring capabilities:
+
+```swift
+// Enable actor hop monitoring
+@DIActor
+func enableMonitoring() async {
+    await DIActor.shared.enableActorHopMonitoring()
+
+    // Perform operations
+    let service = await DIActor.shared.resolve(UserService.self)
+
+    // Check actor hop statistics
+    let stats = await DIActor.shared.getActorHopStats()
+    print("🔍 Actor Hop Analysis:")
+    print("  Total hops: \(stats.totalHops)")
+    print("  Average latency: \(stats.averageLatency)ms")
+    print("  Peak latency: \(stats.peakLatency)ms")
+    print("  Optimization opportunities: \(stats.optimizationSuggestions)")
+}
+
+// Real-time actor hop logging
+@DIActor
+func demonstrateHopLogging() async {
+    // Enable detailed logging
+    await DIActor.shared.setActorHopLoggingLevel(.detailed)
+
+    let service = await DIActor.shared.resolve(UserService.self)
+    // Console output:
+    // 🎭 [ActorHop] MainActor → DIActor (85μs)
+    // 🎭 [ActorHop] DIActor → MainActor (92μs)
+    // ⚡ [Optimization] Consider batching operations to reduce hops
+}
+```
+
+### Best Practices for Actor Hop Optimization
+
+#### 1. Minimize Cross-Actor Communication
+```swift
+// ❌ AVOID: Frequent cross-actor communication
+@MainActor
+class BadViewController {
+    func loadData() async {
+        for i in 1...10 {
+            // 10 actor hops - very inefficient!
+            let user = await DIActor.shared.resolve(UserService.self)
+            await updateUI(with: user)
+        }
+    }
+}
+
+// ✅ GOOD: Batch operations within single actor context
+@MainActor
+class GoodViewController {
+    func loadData() async {
+        // Single actor hop to batch resolve all services
+        let services = await DIActor.shared.batchResolve([
+            UserService.self,
+            NetworkService.self,
+            CacheService.self
+        ])
+
+        // Process all data within MainActor context
+        await processServices(services)
+    }
+}
+```
+
+#### 2. Use Actor-Specific Patterns
+```swift
+// ✅ GOOD: Actor-aware service design
+actor DataProcessingActor {
+    private var cachedServices: [String: Any] = [:]
+
+    func processWithOptimizedHops() async {
+        // Resolve services once and cache within actor
+        if cachedServices.isEmpty {
+            // Single actor hop for all service resolution
+            await resolveDependencies()
+        }
+
+        // All processing occurs within actor - no additional hops
+        await performDataProcessing()
+    }
+
+    @DIActor
+    private func resolveDependencies() async {
+        let userService = await DIActor.shared.resolve(UserService.self)
+        let networkService = await DIActor.shared.resolve(NetworkService.self)
+
+        await MainActor.run {
+            // Cache services in main actor context
+            self.cachedServices["user"] = userService
+            self.cachedServices["network"] = networkService
+        }
+    }
+}
+```
+
+#### 3. Strategic Property Wrapper Usage
+```swift
+// ✅ OPTIMAL: Property wrappers minimize actor hops
+class OptimizedService {
+    @Inject var userService: UserService?
+    @Factory var logger: Logger  // New instance each access, but optimized
+    @SafeInject var database: Database?
+
+    func performOperations() async {
+        // Property wrappers handle actor hop optimization automatically
+        // Services are resolved once and cached per instance
+
+        guard let user = userService,
+              let db = database else { return }
+
+        // All subsequent operations use cached instances
+        let data = await user.fetchData()
+        await db.save(data)
+
+        // Factory instances are optimized for creation patterns
+        logger.info("Operations completed")
+    }
+}
+```
+
 ## 🎯 What You'll Learn
 
 - **@DIActor**: WeaveDI's global actor system

@@ -23,7 +23,132 @@ export default defineConfig({
       label: 'English',
       lang: 'en',
       title: 'WeaveDI',
-      description: 'Modern Dependency Injection Framework for Swift'
+      description: 'Modern Dependency Injection Framework for Swift',
+      themeConfig: {
+        nav: [
+          { text: 'Home', link: '/' },
+          { text: 'Guide', link: '/guide/quickStart' },
+          { text: 'Tutorial', link: '/tutorial/' },
+          { text: 'API Reference', link: '/api/coreApis' },
+          { text: 'GitHub', link: 'https://github.com/Roy-wonji/WeaveDI' }
+        ],
+        sidebar: {
+          '/guide/': [
+            {
+              text: 'Getting Started',
+              collapsed: false,
+              items: [
+                { text: 'Quick Start', link: '/guide/quickStart' },
+                { text: 'Bootstrap', link: '/guide/bootstrap' },
+                { text: 'Property Wrappers', link: '/guide/propertyWrappers' }
+              ]
+            },
+            {
+              text: 'Core Concepts',
+              collapsed: true,
+              items: [
+                { text: 'Unified DI', link: '/guide/unifiedDi' },
+                { text: 'Container Usage', link: '/guide/containerUsage' },
+                { text: 'Scopes', link: '/guide/scopes' }
+              ]
+            },
+            {
+              text: 'Advanced',
+              collapsed: true,
+              items: [
+                { text: 'Module System', link: '/guide/moduleSystem' },
+                { text: 'Module Factory', link: '/guide/moduleFactory' },
+                { text: 'Auto DI Optimizer', link: '/guide/autoDiOptimizer' },
+                { text: 'Runtime Optimization', link: '/guide/runtimeOptimization' },
+                { text: 'DI Actor', link: '/guide/diActor' }
+              ]
+            },
+            {
+              text: 'Integration',
+              collapsed: true,
+              items: [
+                { text: 'App DI Integration', link: '/guide/appDiIntegration' },
+                { text: 'Needle Style DI', link: '/guide/needleStyleDi' },
+                { text: 'Dependency Key Patterns', link: '/guide/dependencyKeyPatterns' },
+                { text: 'Bulk Registration DSL', link: '/guide/bulkRegistrationDsl' },
+                { text: 'Practical Guide', link: '/guide/practicalGuide' },
+                { text: 'Framework Comparison', link: '/guide/frameworkComparison' }
+              ]
+            },
+            {
+              text: 'Migration',
+              collapsed: true,
+              items: [
+                { text: 'Migration 2.0.0', link: '/guide/migration-2.0.0' },
+                { text: 'Migration 3.0.0', link: '/guide/migration-3.0.0' }
+              ]
+            }
+          ],
+          '/api/': [
+            {
+              text: 'Core APIs',
+              collapsed: false,
+              items: [
+                { text: 'DIContainer', link: '/api/coreApis' },
+                { text: 'UnifiedDI', link: '/api/unifiedDI' },
+                { text: 'Bootstrap', link: '/api/bootstrap' }
+              ]
+            },
+            {
+              text: 'Property Wrappers',
+              collapsed: true,
+              items: [
+                { text: '@Inject', link: '/api/inject' },
+                { text: '@Factory', link: '/api/factory' },
+                { text: '@SafeInject', link: '/api/safeInject' }
+              ]
+            },
+            {
+              text: 'Advanced Features',
+              collapsed: true,
+              items: [
+                { text: 'WeaveDI Macros', link: '/api/weaveDiMacros' },
+                { text: 'Bulk Registration DSL', link: '/api/bulkRegistrationDsl' },
+                { text: 'Auto DI Optimizer', link: '/api/autoDiOptimizer' },
+                { text: 'DIActor', link: '/api/diActor' }
+              ]
+            },
+            {
+              text: 'Practical Guides',
+              collapsed: true,
+              items: [
+                { text: 'Practical Patterns', link: '/api/practicalGuide' },
+                { text: 'Performance Monitoring', link: '/api/performanceMonitoring' },
+                { text: 'Debugging Tools', link: '/api/debuggingTools' }
+              ]
+            }
+          ],
+          '/tutorial/': [
+            {
+              text: 'Basic Tutorials',
+              collapsed: false,
+              items: [
+                { text: 'Getting Started', link: '/tutorial/gettingStarted' },
+                { text: 'Property Wrappers', link: '/tutorial/propertyWrappers' },
+                { text: 'First App', link: '/tutorial/firstApp' }
+              ]
+            },
+            {
+              text: 'Advanced Tutorials',
+              collapsed: true,
+              items: [
+                { text: 'Concurrency Integration', link: '/tutorial/concurrencyIntegration' },
+                { text: 'Testing', link: '/tutorial/testing' },
+                { text: 'Performance Optimization', link: '/tutorial/performanceOptimization' }
+              ]
+            }
+          ]
+        },
+        footer: {
+          message: 'Released under the MIT License.',
+          copyright: 'Copyright © 2025 WeaveDI Team'
+        }
+      }
     },
     ko: {
       label: '한국어',
@@ -170,132 +295,7 @@ export default defineConfig({
 
     lastUpdated: { text: 'Last updated' },
 
-    nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/guide/quickStart' },
-      { text: 'Tutorial', link: '/tutorial/' },
-      { text: 'API Reference', link: '/api/coreApis' },
-      { text: 'GitHub', link: 'https://github.com/Roy-wonji/WeaveDI' }
-    ],
-    sidebar: {
-      '/guide/': [
-        {
-          text: 'Getting Started',
-          collapsed: false,
-          items: [
-            { text: 'Quick Start', link: '/guide/quickStart' },
-            { text: 'Bootstrap', link: '/guide/bootstrap' },
-            { text: 'Property Wrappers', link: '/guide/propertyWrappers' }
-          ]
-        },
-        {
-          text: 'Core Concepts',
-          collapsed: true,
-          items: [
-            { text: 'Unified DI', link: '/guide/unifiedDi' },
-            { text: 'Container Usage', link: '/guide/containerUsage' },
-            { text: 'Scopes', link: '/guide/scopes' }
-          ]
-        },
-        {
-          text: 'Advanced',
-          collapsed: true,
-          items: [
-            { text: 'Module System', link: '/guide/moduleSystem' },
-            { text: 'Module Factory', link: '/guide/moduleFactory' },
-            { text: 'Auto DI Optimizer', link: '/guide/autoDiOptimizer' },
-            { text: 'Runtime Optimization', link: '/guide/runtimeOptimization' },
-            { text: 'DI Actor', link: '/guide/diActor' }
-          ]
-        },
-        {
-          text: 'Integration',
-          collapsed: true,
-          items: [
-            { text: 'App DI Integration', link: '/guide/appDiIntegration' },
-            { text: 'Needle Style DI', link: '/guide/needleStyleDi' },
-            { text: 'Dependency Key Patterns', link: '/guide/dependencyKeyPatterns' },
-            { text: 'Bulk Registration DSL', link: '/guide/bulkRegistrationDsl' },
-            { text: 'Practical Guide', link: '/guide/practicalGuide' },
-            { text: 'Framework Comparison', link: '/guide/frameworkComparison' }
-          ]
-        },
-        {
-          text: 'Migration',
-          collapsed: true,
-          items: [
-            { text: 'Migration 2.0.0', link: '/guide/migration-2.0.0' },
-            { text: 'Migration 3.0.0', link: '/guide/migration-3.0.0' }
-          ]
-        }
-      ],
-      '/api/': [
-        {
-          text: 'Core APIs',
-          collapsed: false,
-          items: [
-            { text: 'DIContainer', link: '/api/coreApis' },
-            { text: 'UnifiedDI', link: '/api/unifiedDI' },
-            { text: 'Bootstrap', link: '/api/bootstrap' }
-          ]
-        },
-        {
-          text: 'Property Wrappers',
-          collapsed: true,
-          items: [
-            { text: '@Inject', link: '/api/inject' },
-            { text: '@Factory', link: '/api/factory' },
-            { text: '@SafeInject', link: '/api/safeInject' }
-          ]
-        },
-        {
-          text: 'Advanced Features',
-          collapsed: true,
-          items: [
-            { text: 'WeaveDI Macros', link: '/api/weaveDiMacros' },
-            { text: 'Bulk Registration DSL', link: '/api/bulkRegistrationDsl' },
-            { text: 'Auto DI Optimizer', link: '/api/autoDiOptimizer' },
-            { text: 'DIActor', link: '/api/diActor' }
-          ]
-        },
-        {
-          text: 'Practical Guides',
-          collapsed: true,
-          items: [
-            { text: 'Practical Patterns', link: '/api/practicalGuide' },
-            { text: 'Performance Monitoring', link: '/api/performanceMonitoring' },
-            { text: 'Debugging Tools', link: '/api/debuggingTools' }
-          ]
-        }
-      ],
-      '/tutorial/': [
-        {
-          text: 'Basic Tutorials',
-          collapsed: false,
-          items: [
-            { text: 'Getting Started', link: '/tutorial/gettingStarted' },
-            { text: 'Property Wrappers', link: '/tutorial/propertyWrappers' },
-            { text: 'First App', link: '/tutorial/firstApp' }
-          ]
-        },
-        {
-          text: 'Advanced Tutorials',
-          collapsed: true,
-          items: [
-            { text: 'Concurrency Integration', link: '/tutorial/concurrencyIntegration' },
-            { text: 'Testing', link: '/tutorial/testing' },
-            { text: 'Performance Optimization', link: '/tutorial/performanceOptimization' }
-          ]
-        }
-      ]
-    },
-
-    socialLinks: [{ icon: 'github', link: 'https://github.com/Roy-wonji/WeaveDI' }],
-    footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2025 WeaveDI Team'
-    },
-
+    socialLinks: [{ icon: 'github', link: 'https://github.com/Roy-wonji/WeaveDI' }]
   },
 
   markdown: {

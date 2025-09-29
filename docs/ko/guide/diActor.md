@@ -2,6 +2,230 @@
 
 Swift Concurrency를 활용한 안전하고 고성능의 의존성 주입 시스템입니다. Thread safety와 Actor 모델을 통해 동시성 문제를 해결합니다.
 
+## Actor Hop 이해하기
+
+### Actor Hop이란 무엇인가요?
+
+**Actor hop**은 Swift의 액터 모델에서 실행이 한 액터 컨텍스트에서 다른 액터 컨텍스트로 전환될 때 발생하는 핵심 개념입니다. Actor hop을 이해하고 최적화하는 것은 WeaveDI로 고성능 애플리케이션을 구축하는 데 중요합니다.
+
+```swift
+// Actor hop 개념을 보여주는 예제
+@MainActor
+class UIViewController {
+    @Inject var userService: UserService?
+
+    func updateUI() async {
+        // 1. 현재 MainActor (UI 스레드)에 있음
+        print("📱 MainActor에 있음: \(Thread.isMainThread)")
+
+        // 2. 여기서 actor hop 발생 - DIActor 컨텍스트로 전환
+        let service = await DIActor.shared.resolve(UserService.self)
+        // ⚡ ACTOR HOP: MainActor → DIActor
+
+        // 3. 이제 DIActor 컨텍스트에 있음
+        guard let userService = service else { return }
+
+        // 4. 또 다른 actor hop - DIActor에서 MainActor로 UI 업데이트를 위해 복귀
+        await MainActor.run {
+            // ⚡ ACTOR HOP: DIActor → MainActor
+            self.displayUsers(users)
+        }
+    }
+}
+```
+
+### Actor Hop 성능 영향
+
+각 actor hop은 다음을 포함합니다:
+- **컨텍스트 스위칭**: CPU가 액터 간 실행 컨텍스트를 전환
+- **메모리 동기화**: 액터 경계 간 메모리 일관성 보장
+- **작업 일시정지**: 현재 작업이 일시정지되고 나중에 재개될 수 있음
+- **큐 조정**: 내부 큐를 통한 액터 메시지 전달
+
+**성능 특성:**
+- **일반적인 지연 시간**: hop당 50-200 마이크로초
+- **메모리 오버헤드**: 일시정지된 작업당 16-64바이트
+- **CPU 영향**: 빈번한 hopping 시 ~2-5% 오버헤드
+- **배터리 영향**: 모바일 기기에서 전력 소모 증가
+
+### WeaveDI의 Actor Hop 최적화
+
+WeaveDI는 actor hop 오버헤드를 최소화하기 위한 여러 전략을 구현합니다:
+
+#### 1. Hot Path 캐싱
+```swift
+// 첫 번째 해결은 actor hop이 필요함
+let service1 = await DIActor.shared.resolve(UserService.self)
+// ⚡ ACTOR HOP: 현재 컨텍스트 → DIActor
+
+// 후속 해결은 캐시되고 최적화됨
+let service2 = await DIActor.shared.resolve(UserService.self)
+// ✨ 최적화됨: 캐시된 해결, 최소한의 actor hop 오버헤드
+```
+
+#### 2. 배치 해결 최적화
+```swift
+// ❌ 비효율적: 여러 actor hop
+@DIActor
+func inefficientSetup() async {
+    let userService = await DIActor.shared.resolve(UserService.self)     // Hop 1
+    let networkService = await DIActor.shared.resolve(NetworkService.self) // Hop 2
+    let cacheService = await DIActor.shared.resolve(CacheService.self)   // Hop 3
+}
+
+// ✅ 최적화됨: 단일 액터 컨텍스트, 여러 작업
+@DIActor
+func optimizedSetup() async {
+    // 모든 작업이 DIActor 컨텍스트 내에서 발생 - 추가 hop 없음
+    let userService = await DIActor.shared.resolve(UserService.self)
+    let networkService = await DIActor.shared.resolve(NetworkService.self)
+    let cacheService = await DIActor.shared.resolve(CacheService.self)
+}
+```
+
+#### 3. 컨텍스트 해결 전략
+```swift
+actor BusinessLogicActor {
+    @Inject var userService: UserService?
+
+    func processUserData() async {
+        // 프로퍼티 래퍼 주입이 actor hop을 최소화
+        // 서비스는 한 번 해결되고 액터 인스턴스 내에 캐시됨
+        guard let service = userService else { return }
+
+        // 모든 후속 호출은 캐시된 인스턴스 사용 - actor hop 없음
+        let users = await service.fetchUsers()
+        let processed = await service.processUsers(users)
+        await service.saveProcessedUsers(processed)
+    }
+}
+```
+
+### Actor Hop 감지 및 모니터링
+
+WeaveDI는 포괄적인 actor hop 모니터링 기능을 제공합니다:
+
+```swift
+// Actor hop 모니터링 활성화
+@DIActor
+func enableMonitoring() async {
+    await DIActor.shared.enableActorHopMonitoring()
+
+    // 작업 수행
+    let service = await DIActor.shared.resolve(UserService.self)
+
+    // Actor hop 통계 확인
+    let stats = await DIActor.shared.getActorHopStats()
+    print("🔍 Actor Hop 분석:")
+    print("  총 hop 수: \(stats.totalHops)")
+    print("  평균 지연 시간: \(stats.averageLatency)ms")
+    print("  최대 지연 시간: \(stats.peakLatency)ms")
+    print("  최적화 기회: \(stats.optimizationSuggestions)")
+}
+
+// 실시간 actor hop 로깅
+@DIActor
+func demonstrateHopLogging() async {
+    // 상세 로깅 활성화
+    await DIActor.shared.setActorHopLoggingLevel(.detailed)
+
+    let service = await DIActor.shared.resolve(UserService.self)
+    // 콘솔 출력:
+    // 🎭 [ActorHop] MainActor → DIActor (85μs)
+    // 🎭 [ActorHop] DIActor → MainActor (92μs)
+    // ⚡ [최적화] hop을 줄이기 위해 작업을 배치하는 것을 고려하세요
+}
+```
+
+### Actor Hop 최적화를 위한 모범 사례
+
+#### 1. 액터 간 통신 최소화
+```swift
+// ❌ 피해야 할 패턴: 빈번한 액터 간 통신
+@MainActor
+class BadViewController {
+    func loadData() async {
+        for i in 1...10 {
+            // 10개의 actor hop - 매우 비효율적!
+            let user = await DIActor.shared.resolve(UserService.self)
+            await updateUI(with: user)
+        }
+    }
+}
+
+// ✅ 좋은 패턴: 단일 액터 컨텍스트 내에서 작업 배치
+@MainActor
+class GoodViewController {
+    func loadData() async {
+        // 모든 서비스를 배치 해결하기 위한 단일 actor hop
+        let services = await DIActor.shared.batchResolve([
+            UserService.self,
+            NetworkService.self,
+            CacheService.self
+        ])
+
+        // MainActor 컨텍스트 내에서 모든 데이터 처리
+        await processServices(services)
+    }
+}
+```
+
+#### 2. 액터별 패턴 사용
+```swift
+// ✅ 좋은 패턴: 액터를 고려한 서비스 설계
+actor DataProcessingActor {
+    private var cachedServices: [String: Any] = [:]
+
+    func processWithOptimizedHops() async {
+        // 액터 내에서 서비스를 한 번 해결하고 캐시
+        if cachedServices.isEmpty {
+            // 모든 서비스 해결을 위한 단일 actor hop
+            await resolveDependencies()
+        }
+
+        // 모든 처리가 액터 내에서 발생 - 추가 hop 없음
+        await performDataProcessing()
+    }
+
+    @DIActor
+    private func resolveDependencies() async {
+        let userService = await DIActor.shared.resolve(UserService.self)
+        let networkService = await DIActor.shared.resolve(NetworkService.self)
+
+        await MainActor.run {
+            // 메인 액터 컨텍스트에서 서비스 캐시
+            self.cachedServices["user"] = userService
+            self.cachedServices["network"] = networkService
+        }
+    }
+}
+```
+
+#### 3. 전략적 프로퍼티 래퍼 사용
+```swift
+// ✅ 최적: 프로퍼티 래퍼가 actor hop을 최소화
+class OptimizedService {
+    @Inject var userService: UserService?
+    @Factory var logger: Logger  // 각 접근마다 새 인스턴스이지만 최적화됨
+    @SafeInject var database: Database?
+
+    func performOperations() async {
+        // 프로퍼티 래퍼가 actor hop 최적화를 자동으로 처리
+        // 서비스는 한 번 해결되고 인스턴스별로 캐시됨
+
+        guard let user = userService,
+              let db = database else { return }
+
+        // 모든 후속 작업은 캐시된 인스턴스 사용
+        let data = await user.fetchData()
+        await db.save(data)
+
+        // 팩토리 인스턴스는 생성 패턴에 최적화됨
+        logger.info("작업 완료")
+    }
+}
+```
+
 ## 🎯 이 문서에서 배우는 것
 
 - **@DIActor**: WeaveDI의 글로벌 액터 시스템
