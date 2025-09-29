@@ -1,10 +1,22 @@
 # @Inject Property Wrapper
 
-The `@Inject` property wrapper provides automatic dependency injection for properties in your classes and structs. It's the most commonly used WeaveDI feature for clean dependency management.
+The `@Inject` property wrapper is a core feature of WeaveDI that provides automatic dependency injection for properties in classes and structs. This is the most widely used feature that enhances code readability and improves testability through clean and declarative dependency management.
 
 ## Overview
 
-`@Inject` automatically resolves dependencies from the DI container when the property is first accessed. It provides optional resolution, making your code resilient to missing dependencies.
+`@Inject` uses lazy evaluation to automatically resolve dependencies from the DI container when the property is first accessed. It provides optional resolution to make your code resilient to missing dependencies, preventing runtime crashes and enabling graceful degradation.
+
+**Core Features**:
+- **Lazy Resolution**: Dependencies are resolved only on first access for performance optimization
+- **Optional Safety**: Returns `nil` if dependency is not registered, preventing crashes
+- **Automatic Caching**: Once resolved, dependencies are reused for improved performance
+- **Thread Safety**: Thread-safe implementation that can be safely accessed from any queue
+
+**Performance Characteristics**:
+- **First Access**: Small overhead for dependency resolution (~0.1-1ms)
+- **Subsequent Access**: Near-zero overhead (direct property access)
+- **Memory Usage**: Minimal memory overhead for tracking resolved dependencies
+- **Thread Safety**: Safe access from all queues
 
 ```swift
 import WeaveDI
@@ -28,48 +40,23 @@ class WeatherViewModel: ObservableObject {
 
 **How it works**:
 - **Lazy Resolution**: Dependencies are resolved only when first accessed
-- **Optional Safety**: Returns `nil` if dependency is not registered, preventing crashes
-- **Automatic Caching**: Once resolved, the same instance is reused for subsequent accesses
-- **Thread Safety**: Resolution is thread-safe and can be accessed from any queue
+- **Optional Safety**: Returns `nil` if service is not registered, preventing crashes
+- **Automatic Caching**: Reuses the same instance after first resolution
+- **Thread Safety**: Thread-safe resolution across all queues
 
 **Performance Characteristics**:
 - **First Access**: Small overhead for dependency resolution (~0.1-1ms)
 - **Subsequent Access**: Near-zero overhead (direct property access)
 - **Memory Usage**: Minimal memory overhead for tracking resolved dependencies
+- **Thread Safety**: Safe access from all queues
 
 ```swift
-/// **Example: Basic dependency injection in a view controller**
-///
-/// **Key Benefits**:
-/// - Clean separation of concerns
-/// - Easy testing with dependency substitution
-/// - Resilient to missing dependencies
-/// - Automatic lifecycle management
 class UserViewController: UIViewController {
-    /// **UserService Injection**
-    /// - Resolves automatically on first access
-    /// - Returns nil if service not registered
-    /// - Thread-safe resolution
-    /// - Cached after first resolution
     @Inject var userService: UserService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // **Safe Usage Pattern**
-        // Check for nil to handle missing dependencies gracefully
-        guard let service = userService else {
-            print("⚠️ UserService not available - using fallback behavior")
-            showOfflineMode()
-            return
-        }
-
-        // **Normal Operation**
-        service.loadUserData()
-    }
-
-    private func showOfflineMode() {
-        // Fallback behavior when dependency is unavailable
+        userService?.loadUserData()
     }
 }
 ```
@@ -89,82 +76,50 @@ class UserViewController: UIViewController {
 - Use protocol composition for complex behaviors
 - Avoid exposing implementation details through protocols
 
-```swift
-/// **Protocol-Based Injection Examples**
+Always inject protocols rather than concrete types for better testability:
 
-// ✅ **EXCELLENT** - Inject focused protocol
-/// Benefits:
-/// - Clear interface contract
-/// - Easy to mock for testing
-/// - Implementation can be swapped
-/// - Follows dependency inversion principle
+```swift
+// ✅ Good - Protocol injection
 @Inject var networkClient: NetworkClientProtocol?
 
-// ✅ **GOOD** - Inject composed protocol for complex behavior
-/// Use when service needs multiple capabilities
-@Inject var dataManager: DataManagerProtocol & CacheProtocol?
-
-// ⚠️ **AVOID** - Inject concrete type
-/// Problems:
-/// - Hard to test (requires real implementation)
-/// - Tight coupling to specific implementation
-/// - Difficult to swap implementations
-/// - Violates dependency inversion principle
+// ❌ Avoid - Concrete type injection
 @Inject var networkClient: URLSessionNetworkClient?
-
-/// **Example Protocol Definition**
-protocol NetworkClientProtocol {
-    func fetchData(from url: URL) async throws -> Data
-    func post(data: Data, to url: URL) async throws -> Data
-}
-
-/// **Example Usage with Proper Error Handling**
-class DataService {
-    @Inject var networkClient: NetworkClientProtocol?
-    @Inject var logger: LoggerProtocol?
-
-    func fetchUserData() async throws -> UserData {
-        // **Dependency Validation**
-        guard let client = networkClient else {
-            let error = ServiceError.networkClientUnavailable
-            logger?.error("Network client not available: \(error)")
-            throw error
-        }
-
-        // **Safe Usage with Proper Error Handling**
-        do {
-            let data = try await client.fetchData(from: userDataURL)
-            logger?.info("✅ User data fetched successfully")
-            return try JSONDecoder().decode(UserData.self, from: data)
-        } catch {
-            logger?.error("❌ Failed to fetch user data: \(error)")
-            throw error
-        }
-    }
-}
 ```
 
 ## Real-World Examples
 
 ### CountApp with @Inject (from Tutorial)
 
-Based on our actual tutorial code:
+**Purpose**: Real-world `@Inject` usage patterns and practical dependency injection applications based on actual CountApp tutorial code.
+
+**Architecture Patterns**:
+- **Repository Pattern**: Abstraction of data access layer
+- **MVVM Pattern**: Model-View-ViewModel architecture implementation
+- **Dependency Injection**: Loose coupling through dependency management
+- **Logging Integration**: Unified logging across all layers
+
+**Performance Optimizations**:
+- **Lazy Initialization**: Services are initialized only when actually used
+- **Singleton Pattern**: Repository and Logger managed as singletons
+- **Memory Efficiency**: Prevents unnecessary instance creation
+
+Based on actual tutorial code:
 
 ```swift
 /// Counter Repository using @Inject for dependencies
 class UserDefaultsCounterRepository: CounterRepository {
-    /// WeaveDI를 통해 Logger 주입
+    /// Logger injected via WeaveDI
     @Inject var logger: LoggerProtocol?
 
     func getCurrentCount() async -> Int {
         let count = UserDefaults.standard.integer(forKey: "saved_count")
-        logger?.info("📊 현재 카운트 로드: \(count)")
+        logger?.info("📊 Current count loaded: \(count)")
         return count
     }
 
     func saveCount(_ count: Int) async {
         UserDefaults.standard.set(count, forKey: "saved_count")
-        logger?.info("💾 카운트 저장: \(count)")
+        logger?.info("💾 Count saved: \(count)")
     }
 }
 
@@ -186,12 +141,25 @@ class CounterViewModel: ObservableObject {
         await repo.saveCount(count)
         isLoading = false
 
-        logger?.info("⬆️ 카운트 증가: \(count)")
+        logger?.info("⬆️ Count incremented: \(count)")
     }
 }
 ```
 
 ### WeatherApp with @Inject
+
+**Purpose**: Complex dependency injection patterns in WeatherApp with error handling, caching strategies, and real-world implementation cases.
+
+**Architecture Features**:
+- **Layered Architecture**: Service → Repository → Network layer structure
+- **Error Handling**: Comprehensive error handling and recovery strategies
+- **Caching Strategy**: Multi-level caching for performance improvement
+- **Asynchronous Processing**: Modern async patterns using async/await
+
+**Performance Considerations**:
+- **Network Optimization**: Minimize unnecessary network calls
+- **Cache Utilization**: Improve responsiveness by prioritizing cached data
+- **Error Recovery**: Graceful recovery with cached data on network failure
 
 ```swift
 /// Weather Service with injected HTTP client
@@ -241,6 +209,19 @@ class WeatherViewModel: ObservableObject {
 
 ### With StateObject
 
+**Purpose**: Integration of SwiftUI's StateObject with `@Inject` combining declarative UI and dependency injection for modern iOS app development patterns.
+
+**Integration Benefits**:
+- **Declarative Code**: Natural combination of SwiftUI's declarative paradigm with DI
+- **Lifecycle Management**: StateObject automatically manages ViewModel lifecycle
+- **Data Binding**: Automatic UI updates through @Published properties
+- **Testability**: Easy unit testing of ViewModels
+
+**Performance Characteristics**:
+- **Lazy Loading**: ViewModel dependencies loaded when needed
+- **Memory Efficiency**: SwiftUI efficiently manages ViewModel lifecycle
+- **UI Responsiveness**: Dependency resolution doesn't block UI thread
+
 ```swift
 struct CounterView: View {
     @StateObject private var viewModel = CounterViewModel()
@@ -263,6 +244,20 @@ struct CounterView: View {
 
 ### Direct Injection in Views
 
+**Purpose**: Direct dependency injection in SwiftUI Views for simple service access and rapid prototyping patterns.
+
+**Benefits of Direct Injection**:
+- **Simplicity**: Direct service access without ViewModels
+- **Rapid Development**: Quick implementation for simple features
+- **Flexibility**: Different service combinations per view
+- **Testing**: Independent testing of individual view behaviors
+
+**Usage Scenarios**:
+- Simple views like settings screens
+- Features that don't need state management
+- Prototyping and rapid development
+- Views performing one-time operations
+
 ```swift
 struct SettingsView: View {
     @Inject var settingsService: SettingsService?
@@ -282,6 +277,25 @@ struct SettingsView: View {
 
 ## Thread Safety
 
+**Thread Safety Guarantee**: `@Inject` provides comprehensive thread safety, ensuring safe dependency access in multi-threaded environments.
+
+**Safety Mechanisms**:
+- **Independent Instances**: Each property access creates isolated instances safely shared, not creating new isolated instances
+- **Thread-Safe Resolution**: Container resolution is internally synchronized
+- **Concurrent Access**: Multiple threads can safely access factory properties
+- **Memory Barriers**: Automatic memory barrier handling for consistent visibility
+
+**Concurrency Benefits**:
+- **Parallel Processing**: Each thread gets independent instances
+- **No Manual Synchronization**: No need for manual thread synchronization
+- **Race Condition Prevention**: Instance isolation prevents race conditions
+- **Scalable Concurrency**: Performance scales with number of threads
+
+**Performance Characteristics**:
+- **Resolution Overhead**: Minimal synchronized access overhead during resolution
+- **Instance Creation**: No synchronization after instance creation
+- **Memory Barriers**: Automatic memory barrier handling
+
 `@Inject` is thread-safe and can be used across different queues:
 
 ```swift
@@ -300,6 +314,19 @@ class BackgroundService {
 ## Testing with @Inject
 
 ### Mock Injection for Tests
+
+**Testing Strategy**: `@Inject` provides powerful testing patterns through fresh mock instances and state isolation.
+
+**Testing Benefits**:
+- **Reliable Test Dependencies**: No test failures due to missing dependencies
+- **Flexible Mock Strategies**: Easy switching between real and mock dependencies
+- **Isolated Tests**: Each test has independent container state
+- **Integration Testing**: Full system testing with partial mocks
+
+**Test Configuration Patterns**:
+- **Full Mock Environment**: Register all dependencies as mocks
+- **Partial Mock Environment**: Mix of mock and real implementations
+- **Integration Testing**: Mixed use of real and mock dependencies
 
 ```swift
 class UserServiceTests: XCTestCase {
@@ -325,6 +352,20 @@ class UserServiceTests: XCTestCase {
 
 ### Graceful Degradation
 
+**Purpose**: Resilient error handling patterns that allow applications to continue functioning even when dependencies are unavailable.
+
+**Benefits of Graceful Degradation**:
+- **Application Stability**: Prevents crashes due to missing dependencies
+- **User Experience**: Application remains usable even with some missing features
+- **Development Flexibility**: Development can continue without all services implemented
+- **Progressive Deployment**: Enables gradual feature deployment and rollback
+
+**Pattern Implementation**:
+- **Optional Chaining**: Use optional chaining for safe method calls
+- **Default Values**: Provide default behavior when services are unavailable
+- **Logging**: Appropriate logging for missing services
+- **User Feedback**: User notifications about feature limitations
+
 ```swift
 class AnalyticsManager {
     @Inject var analyticsService: AnalyticsService?
@@ -340,7 +381,20 @@ class AnalyticsManager {
 }
 ```
 
-### Validation at Runtime
+### Runtime Validation
+
+**Purpose**: Validate critical dependency availability at runtime to ensure core application functionality works correctly.
+
+**Validation Strategies**:
+- **Early Validation**: Validate critical dependencies at app startup
+- **Fail Fast**: Immediately fail when critical dependencies are missing
+- **Clear Error Messages**: Provide clear descriptions of missing dependencies
+- **Developer Guidance**: Guide developers on how to resolve missing dependencies
+
+**Validation Levels**:
+- **Critical**: Dependencies essential for core application functionality
+- **Optional**: Optional dependencies for enhanced features
+- **Development**: Dependencies for development and debugging
 
 ```swift
 class CriticalService {
@@ -359,6 +413,19 @@ class CriticalService {
 ## Performance Considerations
 
 ### Lazy Resolution
+
+**Performance Optimization Strategy**: Dependencies are resolved lazily only on first access, optimizing application startup time and reducing memory usage.
+
+**Benefits of Lazy Resolution**:
+- **Fast App Startup**: Unused dependencies are not initialized
+- **Memory Efficiency**: Memory allocation only when needed
+- **Conditional Usage**: Efficient management of services used only under specific conditions
+- **Progressive Loading**: Gradual feature loading based on user interaction
+
+**Performance Characteristics**:
+- **Initialization Cost**: Defer heavy dependency initialization cost to actual usage time
+- **Memory Usage**: Prevent memory waste from unused services
+- **CPU Efficiency**: Improve CPU efficiency by preventing unnecessary initialization work
 
 Dependencies are resolved lazily on first access:
 
@@ -380,6 +447,20 @@ class ExpensiveService {
 
 ### Caching
 
+**Caching Strategy**: Once resolved, dependency references are automatically cached, providing excellent performance on subsequent accesses.
+
+**Caching Benefits**:
+- **Performance Improvement**: Near-zero overhead access after first resolution
+- **Consistency**: Maintain consistent state with same instance references
+- **Memory Efficiency**: Prevent duplicate instance creation
+- **Predictability**: Predictable performance characteristics
+
+**Caching Mechanisms**:
+- **Automatic Caching**: Automatically store references on first resolution
+- **Thread Safety**: Safe cache access in multi-threaded environments
+- **Memory Management**: Prevent memory leaks with proper memory management
+- **Lifecycle**: Cache management tied to property wrapper lifecycle
+
 Once resolved, the dependency reference is cached:
 
 ```swift
@@ -397,6 +478,20 @@ class CachedService {
 ## Common Patterns
 
 ### Repository Pattern
+
+**Purpose**: Application of `@Inject` in the Repository pattern to abstract the data access layer and separate business logic from data sources.
+
+**Benefits of Repository Pattern**:
+- **Layer Separation**: Clear separation of data access logic and business logic
+- **Testability**: Easy unit testing through mock repositories
+- **Flexibility**: Easy switching between different data sources
+- **Caching Strategy**: Unified caching and performance optimization
+
+**Implementation Features**:
+- **Multiple Data Sources**: Combination of network, cache, and local database
+- **Error Handling**: Comprehensive error handling and recovery strategies
+- **Performance Optimization**: Performance optimization through cache-first access
+- **Logging Integration**: Unified logging for all data access
 
 ```swift
 class DataRepository {
@@ -427,6 +522,20 @@ class DataRepository {
 
 ### Service Layer
 
+**Purpose**: Service layer patterns that encapsulate business logic and coordinate between multiple repositories and services.
+
+**Service Layer Features**:
+- **Business Logic Encapsulation**: Centralized management of complex business rules
+- **Transaction Management**: Transaction coordination across multiple repositories
+- **Dependency Coordination**: Dependency management between multiple sub-services
+- **Error Handling**: Business-level error handling and recovery
+
+**Architecture Benefits**:
+- **Separation of Concerns**: Each service focuses on specific business domains
+- **Reusability**: Reuse same service logic across multiple UI layers
+- **Testability**: Independent testing of business logic
+- **Scalability**: Flexible response to changing business requirements
+
 ```swift
 class UserService {
     @Inject var userRepository: UserRepository?
@@ -454,6 +563,19 @@ class UserService {
 
 ### 1. Always Use Optionals
 
+**Guideline**: `@Inject` provides optional resolution to handle missing dependencies gracefully, so always use optional types.
+
+**Benefits of Using Optionals**:
+- **Crash Prevention**: Prevents runtime crashes due to missing dependencies
+- **Development Flexibility**: Development can continue without all dependencies implemented
+- **Testing Ease**: Flexible test environment configuration through partial mocks
+- **Progressive Development**: Gradual development and deployment by feature
+
+**Compile-Time Safety**:
+- **Type Safety**: Safety through Swift's optional type system
+- **Explicit Handling**: Explicit nil handling through optional binding
+- **Code Readability**: Clear expression of optional nature of dependencies in code
+
 `@Inject` provides optional resolution to handle missing dependencies gracefully:
 
 ```swift
@@ -466,7 +588,21 @@ class UserService {
 
 ### 2. Handle Nil Cases
 
-Always handle the case where injection might fail:
+**Strategy**: Properly handle all cases where dependency injection might fail to ensure application stability and user experience.
+
+**Nil Handling Patterns**:
+- **Guard Statements**: Clear error handling through early returns
+- **Optional Binding**: Safe value extraction through if-let
+- **Nil Coalescing Operator**: Graceful degradation through default values
+- **Optional Chaining**: Safe method call chains
+
+**Error Handling Strategies**:
+- **Logging**: Appropriate logging for missing dependencies
+- **User Feedback**: User notifications about feature limitations
+- **Alternative Behavior**: Alternative logic when dependencies are unavailable
+- **Developer Tools**: Debugging information in development environments
+
+Always handle cases where injection might fail:
 
 ```swift
 func performAction() {
@@ -480,6 +616,20 @@ func performAction() {
 
 ### 3. Inject Protocols, Not Implementations
 
+**Design Principle**: Inject protocols rather than concrete implementations to adhere to the Dependency Inversion Principle and increase code flexibility.
+
+**Benefits of Protocol Injection**:
+- **Testability**: Easy and reliable unit testing through mock implementations
+- **Flexibility**: Can replace implementations at runtime
+- **Extensibility**: Minimal changes to existing code when adding new implementations
+- **Modularity**: Reduced coupling between modules through interfaces
+
+**Design Guidelines**:
+- **Single Responsibility**: Each protocol has one clear responsibility
+- **Interface Segregation**: Clients depend only on interfaces they use
+- **Minimal Interfaces**: Define only necessary methods in protocols
+- **Meaningful Names**: Use names that clearly express the protocol's role
+
 ```swift
 // ✅ Good - testable and flexible
 @Inject var logger: LoggerProtocol?
@@ -489,6 +639,26 @@ func performAction() {
 ```
 
 ### 4. Document Dependencies
+
+**Documentation Strategy**: Clearly document the purpose and role of each dependency to improve code readability and maintainability.
+
+**Documentation Elements**:
+- **Dependency Purpose**: Explain why the dependency is needed
+- **Usage Patterns**: Describe how the dependency is used
+- **Lifecycle**: Dependency lifecycle and management approach
+- **Substitutability**: Specify whether the dependency is optional or required
+
+**Documentation Benefits**:
+- **Team Collaboration**: Team members can easily understand and modify code
+- **Maintenance**: Easy impact assessment when changing dependencies
+- **Onboarding**: Quick codebase understanding for new team members
+- **Architecture Understanding**: Grasp overall system dependency structure
+
+**Documentation Tools**:
+- **Inline Comments**: Direct explanations within code
+- **DocC**: Utilize Swift's official documentation tool
+- **README**: Project-level dependency descriptions
+- **Architecture Diagrams**: Visual representation of dependency relationships
 
 ```swift
 class WeatherService {

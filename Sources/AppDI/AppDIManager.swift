@@ -188,7 +188,7 @@ import LogMacro
 ///
 
 public enum AppWeaveDI {
-  typealias Container = AppDIManager
+  public typealias Container = AppDIManager
 }
 
 

@@ -92,16 +92,16 @@ class UserViewController {
 ### 실제 구현된 기능들
 WeaveDI의 실제 소스 코드를 분석한 결과, 다음과 같은 핵심 기능들이 구현되어 있습니다:
 
-#### 1. **@WeaveDI.ContainerActor** 기반 동시성 안전성
+#### 1. **@DIContainerActor** 기반 동시성 안전성
 ```swift
 // 실제 WeaveDI.Container.swift에서 구현됨
 @globalActor
-public actor WeaveDI.ContainerActor {
-    public static let shared = WeaveDI.ContainerActor()
+public actor DIContainerActor {
+    public static let shared = DIContainerActor()
 }
 
 // Actor 보호하에 의존성 등록
-@WeaveDI.ContainerActor
+@DIContainerActor
 public static func registerAsync<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) -> T where T: Sendable {
     return actorShared.register(type, factory: factory)
 }

@@ -263,7 +263,7 @@ let networkService = WeaveDI.Container.shared.register(NetworkService.self) {
 
 ```swift
 // ✅ Swift 6 actor-isolated operations
-@WeaveDI.ContainerActor
+@DIContainerActor
 func registerServices() async {
     let container = WeaveDI.Container.actorShared
 
