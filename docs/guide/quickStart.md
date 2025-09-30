@@ -1,16 +1,38 @@
 # Quick Start Guide
 
-Get up and running with WeaveDI in 5 minutes.
+Get up and running with WeaveDI in 5 minutes. This comprehensive guide covers Swift 5 and Swift 6 compatibility, detailed code explanations, and real-world integration examples.
 
 ## Installation
+
+### Swift Version Requirements
+
+WeaveDI supports a wide range of Swift versions with optimized features for each:
+
+| Swift Version | iOS Version | macOS Version | Features |
+|---------------|-------------|---------------|---------|
+| **Swift 6.0+** | iOS 17.0+ | macOS 14.0+ | 🔥 Full concurrency features, strict Sendable compliance, actor isolation |
+| **Swift 5.9+** | iOS 16.0+ | macOS 13.0+ | ✅ Complete async/await support, property wrappers, performance optimizations |
+| **Swift 5.8+** | iOS 15.0+ | macOS 12.0+ | ✅ Core dependency injection, basic concurrency support |
+| **Swift 5.7+** | iOS 14.0+ | macOS 11.0+ | ⚠️ Limited concurrency, fallback implementations |
 
 ### Swift Package Manager
 
 Add WeaveDI to your project's Package.swift file. This configuration tells Swift Package Manager to download WeaveDI version 3.1.0 or later from the GitHub repository:
 
 ```swift
+// Package.swift
 dependencies: [
     .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.1.0")
+],
+targets: [
+    .target(
+        name: "YourApp",
+        dependencies: ["WeaveDI"],
+        // Swift 6 specific compiler flags for strict concurrency
+        swiftSettings: [
+            .enableExperimentalFeature("StrictConcurrency") // Swift 6 only
+        ]
+    )
 ]
 ```
 
@@ -18,12 +40,35 @@ dependencies: [
 - Downloads the WeaveDI framework from the official repository
 - Ensures you get version 3.1.0 or newer (with latest features and bug fixes)
 - Integrates seamlessly with your Swift project's build system
+- Enables Swift 6 strict concurrency checking for maximum safety
 
-### Xcode
+### Xcode Integration
 
+#### For Swift 6 Projects
 1. File → Add Package Dependencies
 2. Enter: `https://github.com/Roy-wonji/WeaveDI.git`
-3. Add Package
+3. Choose "Up to Next Major Version" from "3.1.0"
+4. Add to Target
+5. **Configure Swift 6 Settings:**
+   - Target → Build Settings → Swift Language Version → Swift 6
+   - Target → Build Settings → Other Swift Flags → Add `-strict-concurrency=complete`
+
+#### For Swift 5 Projects
+1. File → Add Package Dependencies
+2. Enter: `https://github.com/Roy-wonji/WeaveDI.git`
+3. Choose version range that matches your Swift version:
+   - Swift 5.9+: Use latest (3.1.0+)
+   - Swift 5.8: Use 3.0.x branch
+   - Swift 5.7: Use 2.x.x for compatibility
+
+**Verification:**
+```swift
+// Add this to verify WeaveDI is properly integrated
+import WeaveDI
+
+print("WeaveDI Version: \(WeaveDI.version)") // Should print current version
+print("Swift Version: \(#if swift(>=6.0) "6.0+" #elseif swift(>=5.9) "5.9+" #else "5.8 or below" #endif)")
+```
 
 ## Basic Usage
 

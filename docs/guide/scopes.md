@@ -1,55 +1,55 @@
 # Scopes Guide (Screen / Session / Request)
 
-WeaveDI's scope system provides powerful dependency isolation and caching capabilities by organizing dependencies into context-specific containers. This enables efficient memory management and proper lifecycle control for different types of application state including screen-level, session-level, and request-level dependencies.
+WeaveDI's scope system provides powerful dependency isolation and caching capabilities by organizing dependencies into context-specific containers. This enables efficient memory management and proper lifecycle control for various application states at screen level, session level, and request level.
 
 ## Overview
 
-Scopes solve the fundamental problem of dependency lifecycle management in complex applications. Without scopes, all dependencies would either be global singletons (sharing state inappropriately) or recreated on every access (inefficient). Scopes provide a middle ground where dependencies can be cached and reused within appropriate boundaries while being automatically cleaned up when those boundaries are crossed.
+Scopes solve the fundamental problem of dependency lifecycle management in complex applications. Without scopes, all dependencies would need to be either global singletons (inappropriate state sharing) or recreated every time (inefficient). Scopes provide a middle ground where dependencies are cached and reused within appropriate boundaries, and automatically cleaned up when those boundaries are crossed.
 
 **Key Benefits**:
-- **Memory Efficiency**: Dependencies are cached within scope boundaries and cleaned up automatically
+- **Memory Efficiency**: Dependencies are cached within scope boundaries and automatically cleaned up
 - **State Isolation**: Screen-specific or session-specific state doesn't leak between contexts
-- **Performance Optimization**: Avoid unnecessary object recreation within the same scope
+- **Performance Optimization**: Prevents unnecessary object recreation within the same scope
 - **Lifecycle Management**: Automatic cleanup when scopes are cleared
 
 ## Why Do We Need Scopes?
 
-Scopes address specific architectural patterns and performance requirements in modern applications:
+Scopes address specific architectural patterns and performance requirements of modern applications:
 
 ### 1. Screen-Level State Management
-**Problem**: UI components need to share state within a screen but isolate it from other screens.
+**Problem**: UI components need to share state within a screen but be isolated from other screens.
 
-**Solution**: Screen scopes ensure ViewModels, caches, and screen-specific services are shared within one screen but cleaned up when navigating away.
+**Solution**: Screen scopes ensure that ViewModels, caches, and screen-specific services are shared within one screen but cleaned up when navigating to other screens.
 
 ```swift
-// Example: Image cache should be shared within photo gallery screen
-// but cleared when user navigates to different screen
+// Example: Image cache should be shared within photo gallery screen but
+// cleaned up when user navigates to other screens
 ```
 
 ### 2. User Session Management
-**Problem**: User-specific services should be available throughout the user's session but completely cleaned up on logout.
+**Problem**: User-specific services should be available throughout the user session but completely cleaned up on logout.
 
-**Solution**: Session scopes automatically manage user-specific dependencies with proper cleanup on session termination.
+**Solution**: Session scopes automatically manage user-specific dependencies and perform proper cleanup on session termination.
 
 ```swift
-// Example: User preferences, notification settings, and personalization data
-// should persist during session but be cleared on logout
+// Example: User preferences, notification settings, personalization data should
+// persist during session but be cleaned up on logout
 ```
 
 ### 3. Request Context Management
-**Problem**: In server-side or request-heavy applications, request-specific data should be isolated and cleaned up after request completion.
+**Problem**: In server-side or applications handling many requests, request-specific data should be isolated and cleaned up after request completion.
 
-**Solution**: Request scopes ensure thread-safe isolation of request-specific data with automatic cleanup.
+**Solution**: Request scopes ensure thread-safe isolation of request-specific data and automatic cleanup.
 
 ```swift
-// Example: HTTP request context, tracing information, and temporary processing data
-// should be isolated per request and cleaned up after response is sent
+// Example: HTTP request context, tracing information, temporary processing data should
+// be isolated per request and cleaned up after response is sent
 ```
 
-## Core Types and APIs
+## Core Types and API
 
 ### ScopeKind
-Defines the three built-in scope types, each optimized for different use cases:
+Defines three built-in scope types optimized for different use cases:
 
 ```swift
 enum ScopeKind {
@@ -60,9 +60,9 @@ enum ScopeKind {
 ```
 
 **Scope Characteristics**:
-- **Screen**: Typically short-lived (seconds to minutes), UI-focused
-- **Session**: Medium to long-lived (minutes to hours), user-focused
-- **Request**: Very short-lived (milliseconds to seconds), operation-focused
+- **Screen**: Typically short-lived (seconds~minutes), UI-focused
+- **Session**: Medium~long-lived (minutes~hours), user-focused
+- **Request**: Very short-lived (milliseconds~seconds), operation-focused
 
 ### ScopeContext
 Central management system for scope lifecycle and identification:
@@ -72,7 +72,7 @@ class ScopeContext {
     // Set current scope with unique identifier
     func setCurrent(_ kind: ScopeKind, id: String)
 
-    // Clear specific scope and cleanup all associated dependencies
+    // Clear specific scope and all related dependencies
     func clear(_ kind: ScopeKind)
 
     // Check current scope ID (useful for debugging)
@@ -85,18 +85,18 @@ class ScopeContext {
 - **Automatic Cleanup**: Always pair `setCurrent` with `clear` for proper memory management
 - **Thread Safety**: All ScopeContext operations are thread-safe and actor-compatible
 
-### Registration APIs
-Scoped registration methods provide both synchronous and asynchronous dependency creation:
+### Registration API
+Scope registration methods provide both synchronous and asynchronous dependency creation:
 
 ```swift
-// Synchronous scoped registration
+// Synchronous scope registration
 func registerScoped<T>(
     _ type: T.Type,
     scope: ScopeKind,
     factory: @escaping () -> T
 )
 
-// Asynchronous scoped registration
+// Asynchronous scope registration
 func registerAsyncScoped<T>(
     _ type: T.Type,
     scope: ScopeKind,
@@ -110,9 +110,9 @@ func registerAsyncScoped<T>(
 
 Screen scopes are perfect for managing UI-specific dependencies that should be isolated between different screens or view controllers.
 
-**Purpose**: Manage dependencies that should persist during screen lifetime but be cleaned up on navigation.
+**Purpose**: Manages dependencies that should persist during screen lifecycle but be cleaned up on navigation.
 
-**Lifecycle**: Created on screen appearance, cached during screen lifetime, destroyed on screen disappearance.
+**Lifecycle**: Created when screen appears, cached during screen lifecycle, destroyed when screen disappears.
 
 ```swift
 class HomeViewController: UIViewController {
@@ -122,7 +122,7 @@ class HomeViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
-        // Set up screen scope with unique identifier
+        // Set screen scope with unique identifier
         ScopeContext.shared.setCurrent(.screen, id: "HomeScreen")
 
         // Register screen-specific dependencies
@@ -146,14 +146,14 @@ class HomeViewController: UIViewController {
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
 
-        // Clear screen scope - automatically cleans up HomeViewModel and ImageCache
+        // Clear screen scope - HomeViewModel and ImageCache automatically cleaned up
         ScopeContext.shared.clear(.screen)
 
-        print("✅ Screen dependencies cleaned up")
+        print("✅ Screen dependencies have been cleaned up")
     }
 
     private func setupUI() {
-        // These will resolve to the same cached instances
+        // These resolve to the same cached instances
         let vm1 = UnifiedDI.resolve(HomeViewModel.self)
         let vm2 = UnifiedDI.resolve(HomeViewModel.self)
         // vm1 === vm2 (same instance)
@@ -165,7 +165,7 @@ class HomeViewController: UIViewController {
 }
 ```
 
-**Advanced Screen Scope Pattern**:
+**Advanced Screen Scope Patterns**:
 
 ```swift
 // Screen scope with child scopes for complex UI
@@ -182,7 +182,7 @@ class DetailViewController: UIViewController {
                 DetailViewModel(itemID: self.itemID)
             }
 
-            // Register child component dependencies with hierarchical IDs
+            // Register child component dependencies with hierarchical ID
             await GlobalUnifiedRegistry.registerScoped(CommentListViewModel.self, scope: .screen) {
                 CommentListViewModel(itemID: self.itemID)
             }
@@ -199,14 +199,14 @@ class DetailViewController: UIViewController {
 
 Session scopes manage user-specific dependencies that should persist across multiple screens within a user session.
 
-**Purpose**: Cache user-specific services and data throughout the user's authenticated session.
+**Purpose**: Caches user-specific services and data throughout the user's authenticated session.
 
-**Lifecycle**: Created on successful authentication, persists across app usage, destroyed on logout or session expiration.
+**Lifecycle**: Created on successful authentication, persists throughout app usage, destroyed on logout or session expiration.
 
 ```swift
 class AuthenticationManager {
     func handleSuccessfulLogin(user: User) async {
-        // Set up session scope with user identifier
+        // Set session scope with user identifier
         ScopeContext.shared.setCurrent(.session, id: "UserSession_\(user.id)")
 
         // Register session-specific dependencies
@@ -237,7 +237,7 @@ class AuthenticationManager {
     }
 
     func handleLogout() {
-        // Clear session scope - automatically cleans up all user-specific dependencies
+        // Clear session scope - all user-specific dependencies automatically cleaned up
         ScopeContext.shared.clear(.session)
 
         print("✅ User session cleared, all user-specific dependencies cleaned up")
@@ -247,7 +247,7 @@ class AuthenticationManager {
     }
 }
 
-// Usage across the app - session dependencies are available everywhere
+// Usage throughout the app - session dependencies available everywhere
 class ProfileViewController: UIViewController {
     @Inject var userSession: UserSession?
     @Inject var personalization: PersonalizationService?
@@ -255,7 +255,7 @@ class ProfileViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // These resolve to the same cached instances established during login
+        // These resolve to the same cached instances set during login
         guard let session = userSession else { return }
         guard let personalizer = personalization else { return }
 
@@ -285,9 +285,9 @@ class SessionManager {
 
 ### Request Scope - Server-Side Pattern
 
-Request scopes are ideal for server-side applications or client applications that process many independent operations.
+Request scopes are ideal for server-side applications or client applications that handle many independent operations.
 
-**Purpose**: Isolate dependencies per request/operation to prevent data mixing and enable proper cleanup.
+**Purpose**: Isolates dependencies per request/operation to prevent data mixing and enable proper cleanup.
 
 **Lifecycle**: Created at request start, used throughout request processing, destroyed at request completion.
 
@@ -324,7 +324,7 @@ class APIRequestHandler {
             // Process request with scoped dependencies
             let response = await processRequest(httpRequest)
 
-            // Commit transaction if successful
+            // Commit transaction on success
             if let transaction = await UnifiedDI.resolveAsync(DatabaseTransaction.self) {
                 await transaction.commit()
             }
@@ -361,7 +361,7 @@ class APIRequestHandler {
 ```swift
 class ConcurrentAPIServer {
     func handleMultipleRequests(_ requests: [HTTPRequest]) async {
-        // Process multiple requests concurrently, each with isolated scope
+        // Handle multiple requests concurrently, each with isolated scope
         await withTaskGroup(of: HTTPResponse.self) { group in
             for request in requests {
                 group.addTask {
@@ -381,12 +381,12 @@ class ConcurrentAPIServer {
 ```swift
 class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Set up app-level scope if needed
+        // Set app-level scope if needed
         ScopeContext.shared.setCurrent(.session, id: "AppSession_\(Date().timeIntervalSince1970)")
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // Clear temporary scopes to free memory
+        // Clear temporary scopes for memory relief
         ScopeContext.shared.clear(.screen)
 
         // Keep session scope for when app returns to foreground
@@ -426,7 +426,7 @@ struct HomeView: View {
             // UI content
         }
         .task {
-            // Set up screen scope
+            // Set screen scope
             ScopeContext.shared.setCurrent(.screen, id: "HomeView")
 
             // Register scoped dependencies
@@ -443,13 +443,13 @@ struct HomeView: View {
 ### Hierarchical Scopes
 
 ```swift
-// Parent scope for major sections
+// Parent scope for major section
 ScopeContext.shared.setCurrent(.session, id: "ShoppingSession")
 
 // Child scope for specific flow
 ScopeContext.shared.setCurrent(.screen, id: "CheckoutFlow")
 
-// When clearing, clear child scopes first
+// When cleaning up, clear child scopes first
 ScopeContext.shared.clear(.screen)  // Clear checkout flow
 // Session continues until user logs out
 ```
@@ -474,7 +474,7 @@ func registerDependencies() async {
 }
 ```
 
-### Scope Transition Handling
+### Handling Scope Transitions
 
 ```swift
 class NavigationManager {
@@ -494,8 +494,8 @@ class NavigationManager {
 ## Performance Considerations
 
 ### Memory Management
-- **Scope Size**: Keep scope boundaries appropriate to avoid excessive memory usage
-- **Cleanup Timing**: Clear scopes promptly when contexts end
+- **Scope Size**: Keep appropriate scope boundaries to avoid excessive memory usage
+- **Cleanup Timing**: Clear scopes immediately when context ends
 - **Cache Limits**: Consider memory limits when caching large objects in scopes
 
 ### Concurrency Performance
@@ -506,7 +506,7 @@ class NavigationManager {
 ### Debugging and Monitoring
 
 ```swift
-// Check current scope status
+// Check current scope state
 func debugScopes() {
     let screenID = ScopeContext.shared.currentID(for: .screen)
     let sessionID = ScopeContext.shared.currentID(for: .session)
@@ -530,8 +530,8 @@ class ScopeMonitor {
 
 ### Common Issues and Solutions
 
-#### "Scope is not applied"
-**Symptoms**: Dependencies not being cached, new instances created every time
+#### "Scopes Not Taking Effect"
+**Symptom**: Dependencies aren't being cached, new instances created every time
 **Cause**: Scope ID not set before registration
 **Solution**:
 ```swift
@@ -544,9 +544,9 @@ ScopeContext.shared.setCurrent(.screen, id: "MyScreen")
 await GlobalUnifiedRegistry.registerScoped(MyService.self, scope: .screen) { MyService() }
 ```
 
-#### "Memory leak detected"
-**Symptoms**: Memory usage growing over time, objects not being released
-**Cause**: Forgot to call `clear()` when scope ends
+#### "Memory Leaks Detected"
+**Symptom**: Memory usage grows over time, objects not being deallocated
+**Cause**: Forgetting to call `clear()` when scope ends
 **Solution**:
 ```swift
 // ✅ Always pair setCurrent with clear
@@ -560,8 +560,8 @@ override func viewDidDisappear(_ animated: Bool) {
 }
 ```
 
-#### "Concurrency issues"
-**Symptoms**: Race conditions, unexpected behavior in multi-threaded code
+#### "Concurrency Issues"
+**Symptom**: Race conditions, unexpected behavior in multithreaded code
 **Solution**: WeaveDI scopes are inherently thread-safe, but ensure proper async/await usage:
 ```swift
 // ✅ Proper async registration
@@ -573,14 +573,14 @@ await GlobalUnifiedRegistry.registerAsyncScoped(AsyncService.self, scope: .reque
 let service = await UnifiedDI.resolveAsync(AsyncService.self)
 ```
 
-#### "Dependencies not found"
-**Symptoms**: Resolution returns nil even after registration
+#### "Dependencies Not Found"
+**Symptom**: Resolution returns nil even after registration
 **Cause**: Scope cleared between registration and resolution
-**Solution**: Verify scope lifecycle matches dependency usage:
+**Solution**: Ensure scope lifecycle matches dependency usage:
 ```swift
 func checkScopeStatus() {
     if ScopeContext.shared.currentID(for: .screen) == nil {
-        print("⚠️ Screen scope not set - dependencies will not be cached")
+        print("⚠️ Screen scope not set - dependencies won't be cached")
     }
 }
 ```
@@ -589,8 +589,8 @@ func checkScopeStatus() {
 
 ### 1. Scope Lifecycle Management
 - Always pair `setCurrent` with `clear`
-- Use meaningful, unique scope IDs
-- Clear scopes promptly when contexts end
+- Use meaningful and unique scope IDs
+- Clear scopes immediately when context ends
 
 ### 2. Dependency Design
 - Group related dependencies in the same scope
@@ -600,14 +600,14 @@ func checkScopeStatus() {
 ### 3. Performance Optimization
 - Monitor memory usage in long-lived scopes
 - Use request scopes for short-lived operations
-- Clear unused scopes proactively
+- Proactively clear unused scopes
 
 ### 4. Error Handling
 - Use defer blocks to ensure cleanup
 - Handle scope transitions gracefully
-- Provide fallback behavior when scopes are not available
+- Provide fallback behavior when scopes unavailable
 
-> **Important**: If scope ID is not set, scope registration behaves as one-time creation (no caching). This can lead to unexpected behavior where you expect caching but get new instances every time.
+> **Important**: If scope ID is not set, scoped registrations will behave as one-time creations (no caching). This can lead to unexpected behavior where you expect caching but get new instances every time.
 
 ## See Also
 

@@ -1,16 +1,38 @@
 # 빠른 시작 가이드
 
-5분 안에 WeaveDI를 시작해보세요.
+5분 안에 WeaveDI를 시작해보세요. 이 포괄적인 가이드는 Swift 5와 Swift 6 호환성, 상세한 코드 설명, 실제 통합 예제를 다룹니다.
 
 ## 설치
+
+### Swift 버전 요구사항
+
+WeaveDI는 다양한 Swift 버전을 지원하며 각 버전에 최적화된 기능을 제공합니다:
+
+| Swift 버전 | iOS 버전 | macOS 버전 | 기능 |
+|------------|----------|------------|---------|
+| **Swift 6.0+** | iOS 17.0+ | macOS 14.0+ | 🔥 완전한 동시성 기능, 엄격한 Sendable 준수, actor 격리 |
+| **Swift 5.9+** | iOS 16.0+ | macOS 13.0+ | ✅ 완전한 async/await 지원, 프로퍼티 래퍼, 성능 최적화 |
+| **Swift 5.8+** | iOS 15.0+ | macOS 12.0+ | ✅ 핵심 의존성 주입, 기본 동시성 지원 |
+| **Swift 5.7+** | iOS 14.0+ | macOS 11.0+ | ⚠️ 제한적 동시성, 폴백 구현 |
 
 ### Swift Package Manager
 
 프로젝트의 Package.swift 파일에 WeaveDI를 추가하세요. 이 설정은 Swift Package Manager가 GitHub 리포지토리에서 WeaveDI 버전 3.1.0 이상을 다운로드하도록 지시합니다:
 
 ```swift
+// Package.swift
 dependencies: [
     .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.1.0")
+],
+targets: [
+    .target(
+        name: "YourApp",
+        dependencies: ["WeaveDI"],
+        // Swift 6 엄격한 동시성을 위한 컴파일러 플래그
+        swiftSettings: [
+            .enableExperimentalFeature("StrictConcurrency") // Swift 6 전용
+        ]
+    )
 ]
 ```
 
@@ -18,12 +40,35 @@ dependencies: [
 - 공식 리포지토리에서 WeaveDI 프레임워크를 다운로드합니다
 - 최신 기능과 버그 수정이 포함된 3.1.0 이상 버전을 보장합니다
 - Swift 프로젝트의 빌드 시스템과 원활하게 통합됩니다
+- 최대 안전성을 위한 Swift 6 엄격한 동시성 검사를 활성화합니다
 
-### Xcode
+### Xcode 통합
 
+#### Swift 6 프로젝트용
 1. File → Add Package Dependencies
 2. 입력: `https://github.com/Roy-wonji/WeaveDI.git`
-3. Add Package
+3. "3.1.0"부터 "Up to Next Major Version" 선택
+4. Add to Target
+5. **Swift 6 설정 구성:**
+   - Target → Build Settings → Swift Language Version → Swift 6
+   - Target → Build Settings → Other Swift Flags → `-strict-concurrency=complete` 추가
+
+#### Swift 5 프로젝트용
+1. File → Add Package Dependencies
+2. 입력: `https://github.com/Roy-wonji/WeaveDI.git`
+3. Swift 버전에 맞는 버전 범위 선택:
+   - Swift 5.9+: 최신 버전 사용 (3.1.0+)
+   - Swift 5.8: 3.0.x 브랜치 사용
+   - Swift 5.7: 호환성을 위해 2.x.x 사용
+
+**검증:**
+```swift
+// WeaveDI가 올바르게 통합되었는지 확인하려면 이것을 추가하세요
+import WeaveDI
+
+print("WeaveDI 버전: \(WeaveDI.version)") // 현재 버전을 출력해야 합니다
+print("Swift 버전: \(#if swift(>=6.0) "6.0+" #elseif swift(>=5.9) "5.9+" #else "5.8 이하" #endif)")
+```
 
 ## 기본 사용법
 

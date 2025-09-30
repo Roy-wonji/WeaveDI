@@ -68,11 +68,20 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { text: 'App DI Integration', link: '/guide/appDiIntegration' },
+                { text: 'TCA Integration', link: '/guide/tcaIntegration' },
                 { text: 'Needle Style DI', link: '/guide/needleStyleDi' },
                 { text: 'Dependency Key Patterns', link: '/guide/dependencyKeyPatterns' },
                 { text: 'Bulk Registration DSL', link: '/guide/bulkRegistrationDsl' },
                 { text: 'Practical Guide', link: '/guide/practicalGuide' },
                 { text: 'Framework Comparison', link: '/guide/frameworkComparison' }
+              ]
+            },
+            {
+              text: 'Advanced Patterns',
+              collapsed: true,
+              items: [
+                { text: 'Advanced Patterns & Best Practices', link: '/guide/advancedPatterns' },
+                { text: 'Roadmap', link: '/guide/roadmap' }
               ]
             },
             {
@@ -199,11 +208,20 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { text: '앱 DI 통합', link: '/ko/guide/appDiIntegration' },
+                { text: 'TCA 통합', link: '/ko/guide/tcaIntegration' },
                 { text: 'Needle 스타일 DI', link: '/ko/guide/needleStyleDi' },
                 { text: '의존성 키 패턴', link: '/ko/guide/dependencyKeyPatterns' },
                 { text: 'Bulk Registration DSL', link: '/ko/guide/bulkRegistrationDsl' },
                 { text: '실전 가이드', link: '/ko/guide/practicalGuide' },
                 { text: '프레임워크 비교', link: '/ko/guide/frameworkComparison' }
+              ]
+            },
+            {
+              text: '고급 패턴',
+              collapsed: true,
+              items: [
+                { text: '고급 패턴 및 모범 사례', link: '/ko/guide/advancedPatterns' },
+                { text: '로드맵', link: '/ko/guide/roadmap' }
               ]
             },
             {

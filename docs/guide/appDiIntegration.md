@@ -1,10 +1,10 @@
-# App DI Integration: WeaveDI.Container
+# App DI Integration: AppWeaveDI.Container
 
-Complete guide to using WeaveDI.Container for enterprise-level dependency injection architecture in real applications.
+A comprehensive guide to implementing **enterprise-level** Dependency Injection architecture in real applications using `AppWeaveDI.Container`.
 
 ## Overview
 
-`WeaveDI.Container` is the top-level container class that systematically manages dependency injection across your entire application. It supports Clean Architecture by efficiently organizing and managing each layer (Repository, UseCase, Service) through automated Factory patterns.
+`AppWeaveDI.Container` is a top-level container class that **systematically manages** dependency injection throughout the application. It efficiently configures and manages each layer (Repository, UseCase, Service) through automated **Factory patterns** and supports **Clean Architecture**.
 
 ### Architecture Philosophy
 
@@ -12,12 +12,12 @@ Complete guide to using WeaveDI.Container for enterprise-level dependency inject
 - **Repository Layer**: Data access and external system integration
 - **UseCase Layer**: Business logic and domain rule encapsulation
 - **Service Layer**: Application services and UI support
-- **Automatic Dependency Resolution**: Dependencies between layers are automatically injected
+- **Automatic Dependency Resolution**: Inter-layer dependencies are automatically injected
 
 #### 🏭 Factory-Based Modularization
 - **RepositoryModuleFactory**: Bulk management of Repository dependencies
-- **UseCaseModuleFactory**: UseCase dependencies with automatic Repository integration
-- **Extensibility**: Easy addition of new Factories
+- **UseCaseModuleFactory**: Automatic configuration of UseCase dependencies integrated with Repository
+- **Extensibility**: Easy addition of new factories
 - **Type Safety**: Compile-time dependency type verification
 
 #### 🔄 Lifecycle Management
@@ -28,7 +28,7 @@ Complete guide to using WeaveDI.Container for enterprise-level dependency inject
 
 ```
 ┌─────────────────────────────────────┐
-│           WeaveDI.Container            │
+│           AppWeaveDI.Container            │
 │                                     │
 └─────────────────┬───────────────────┘
                   │
@@ -51,7 +51,7 @@ Complete guide to using WeaveDI.Container for enterprise-level dependency inject
 
 ### Step 1: Factory Preparation
 
-The WeaveDI.Container uses the `@Factory` property wrapper for automatic injection:
+`AppWeaveDI.Container` uses the `@Factory` property wrapper for automatic injection:
 
 ```swift
 @Factory(\.repositoryFactory)
@@ -67,7 +67,7 @@ var scopeFactory: ScopeModuleFactory
 ### Step 2: Module Registration
 
 ```swift
-await WeaveDI.Container.bootstrap { container in
+await AppWeaveDI.Container.shared.registerDependencies { container in
     // Register Repository modules
     container.register(UserRepositoryModule())
 
@@ -80,14 +80,14 @@ await WeaveDI.Container.bootstrap { container in
 ```
 
 **Internal Process:**
-1. Repository Factory creates all Repository modules
-2. UseCase Factory creates UseCase modules linked with Repositories
+1. Repository factory creates all Repository modules
+2. UseCase factory creates UseCase modules connected with Repository
 3. All modules are registered in parallel to `WeaveDI.Container.live`
 
 ### Step 3: Dependency Usage
 
 ```swift
-// Use registered dependencies anywhere
+// Use registered dependencies from anywhere
 let userService = WeaveDI.Container.live.resolve(UserServiceProtocol.self)
 let userUseCase = WeaveDI.Container.live.resolve(UserUseCaseProtocol.self)
 ```
@@ -95,14 +95,14 @@ let userUseCase = WeaveDI.Container.live.resolve(UserUseCaseProtocol.self)
 ## Compatibility and Environment Support
 
 ### Swift Version Compatibility
-- **Swift 5.9+ & iOS 17.0+**: Actor-based optimized implementation
-- **Swift 5.8 & iOS 16.0+**: Compatibility mode with same functionality
+- **Swift 5.9+ & iOS 17.0+**: Actor-based optimization implementation
+- **Swift 5.8 & iOS 16.0+**: Compatible mode with same functionality
 - **Earlier Versions**: Fallback implementation maintaining core features
 
 ### Concurrency Support
-- **Swift Concurrency**: Full async/await pattern support
-- **GCD Compatibility**: Compatible with existing DispatchQueue code
-- **Thread Safe**: All operations are processed thread-safely
+- **Swift Concurrency**: Full support for `async/await` patterns
+- **GCD Compatibility**: Compatible with existing `DispatchQueue`-based code
+- **Thread Safety**: All operations are processed thread-safely
 
 ## Basic Usage
 
@@ -112,7 +112,7 @@ let userUseCase = WeaveDI.Container.live.resolve(UserUseCaseProtocol.self)
 @main
 struct MyApp {
     static func main() async {
-        await WeaveDI.Container.bootstrap { container in
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             // Repository modules
             container.register(UserRepositoryModule())
             container.register(OrderRepositoryModule())
@@ -223,7 +223,7 @@ extension UseCaseModuleFactory {
 
 ## Advanced Usage Patterns
 
-### SwiftUI Application Integration
+### SwiftUI App Integration
 
 ```swift
 @main
@@ -245,9 +245,9 @@ struct TestApp: App {
 
     private func registerDependencies() {
         Task {
-            await WeaveDI.Container.bootstrap { container in
+            await AppWeaveDI.Container.shared.registerDependencies { container in
                 // Repository layer setup
-                var repoFactory = WeaveDI.Container.shared.repositoryFactory
+                var repoFactory = AppWeaveDI.Container.shared.repositoryFactory
                 repoFactory.registerDefaultDefinitions()
 
                 await repoFactory.makeAllModules().asyncForEach { module in
@@ -255,7 +255,7 @@ struct TestApp: App {
                 }
 
                 // UseCase layer setup
-                let useCaseFactory = WeaveDI.Container.shared.useCaseFactory
+                let useCaseFactory = AppWeaveDI.Container.shared.useCaseFactory
                 await useCaseFactory.makeAllModules().asyncForEach { module in
                     await container.register(module)
                 }
@@ -283,9 +283,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
-        // Configure WeaveDI.Container for UIKit apps
+        // Configure AppWeaveDI.Container for UIKit apps
         Task {
-            await WeaveDI.Container.bootstrap { container in
+            await AppWeaveDI.Container.shared.registerDependencies { container in
                 // Core infrastructure
                 await setupCoreInfrastructure(container)
 
@@ -314,7 +314,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     private func setupFeatureModules(_ container: Container) async {
         // Repository factory
-        var repoFactory = WeaveDI.Container.shared.repositoryFactory
+        var repoFactory = AppWeaveDI.Container.shared.repositoryFactory
         repoFactory.registerDefaultDefinitions()
 
         let repoModules = await repoFactory.makeAllModules()
@@ -323,7 +323,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
 
         // UseCase factory
-        let useCaseFactory = WeaveDI.Container.shared.useCaseFactory
+        let useCaseFactory = AppWeaveDI.Container.shared.useCaseFactory
         let useCaseModules = await useCaseFactory.makeAllModules()
         for module in useCaseModules {
             await container.register(module)
@@ -341,7 +341,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 ### ContainerRegister Usage
 
-Using the `ContainerRegister` pattern for type-safe dependency access:
+For type-safe dependency access, you can use the `ContainerRegister` pattern:
 
 ```swift
 extension WeaveDI.Container {
@@ -371,7 +371,7 @@ class AuthenticationViewModel: ObservableObject {
                 self.isAuthenticated = result.isSuccess
             }
         } catch {
-            // Handle authentication error
+            // Handle authentication failure
             print("Login failed: \(error)")
         }
     }
@@ -383,7 +383,7 @@ class AuthenticationViewModel: ObservableObject {
 ```swift
 class EnterpriseAppBootstrap {
     static func configure() async {
-        await WeaveDI.Container.bootstrap { container in
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             // Infrastructure layer
             await setupInfrastructure(container)
 
@@ -412,7 +412,7 @@ class EnterpriseAppBootstrap {
 
     private static func setupDataLayer(_ container: Container) async {
         // Repository factory setup
-        var repoFactory = WeaveDI.Container.shared.repositoryFactory
+        var repoFactory = AppWeaveDI.Container.shared.repositoryFactory
         repoFactory.registerDefaultDefinitions()
 
         let modules = await repoFactory.makeAllModules()
@@ -423,7 +423,7 @@ class EnterpriseAppBootstrap {
 
     private static func setupDomainLayer(_ container: Container) async {
         // UseCase factory setup
-        let useCaseFactory = WeaveDI.Container.shared.useCaseFactory
+        let useCaseFactory = AppWeaveDI.Container.shared.useCaseFactory
         let modules = await useCaseFactory.makeAllModules()
 
         for module in modules {
@@ -452,7 +452,7 @@ class EnterpriseAppBootstrap {
 
 ### Automatic Optimization Configuration
 
-WeaveDI.Container automatically configures performance optimizations:
+`AppWeaveDI.Container` automatically configures performance optimizations:
 
 ```swift
 public func registerDependencies(
@@ -469,22 +469,22 @@ public func registerDependencies(
 
 ### Parallel Module Registration
 
-The container automatically registers modules in parallel for optimal performance:
+For optimal performance, the container registers modules **in parallel**:
 
 ```swift
 // All modules are registered concurrently
-await container.register(module1)  // Parallel
-await container.register(module2)  // Parallel
-await container.register(module3)  // Parallel
-await container.build()            // Wait for all to complete
+await container.register(module1)  // parallel
+await container.register(module2)  // parallel
+await container.register(module3)  // parallel
+await container.build()            // wait for all to complete
 ```
 
 ### Memory Management
 
-WeaveDI.Container implements efficient memory management:
+`AppWeaveDI.Container` implements efficient memory management:
 
 ```swift
-// Lazy initialization - only create when needed
+// Lazy initialization - created only when needed
 @Factory(\.repositoryFactory)
 var repositoryFactory: RepositoryModuleFactory  // Created on first access
 
@@ -496,15 +496,15 @@ private func cleanupUnusedDependencies() {
 
 ## Testing Strategies
 
-### Unit Testing with WeaveDI.Container
+### Unit Testing with AppWeaveDI.Container
 
 ```swift
-class WeaveDI.ContainerTests: XCTestCase {
-    var container: WeaveDI.Container!
+class AppWeaveDI.ContainerTests: XCTestCase {
+    var container: AppWeaveDI.Container!
 
     override func setUp() async throws {
         try await super.setUp()
-        container = WeaveDI.Container()
+        container = AppWeaveDI.Container()
     }
 
     func testRepositoryFactoryRegistration() async {
@@ -520,28 +520,28 @@ class WeaveDI.ContainerTests: XCTestCase {
             }
         }
 
-        // Verify registrations
+        // Verify registration
         let userRepo = WeaveDI.Container.live.resolve(UserRepositoryProtocol.self)
         XCTAssertNotNil(userRepo)
     }
 
     func testUseCaseFactoryRegistration() async {
         await container.registerDependencies { container in
-            // Setup repositories first
+            // First configure Repository
             var repoFactory = self.container.repositoryFactory
             repoFactory.registerDefaultDefinitions()
             await repoFactory.makeAllModules().asyncForEach { module in
                 await container.register(module)
             }
 
-            // Setup use cases
+            // Then configure UseCase
             let useCaseFactory = self.container.useCaseFactory
             await useCaseFactory.makeAllModules().asyncForEach { module in
                 await container.register(module)
             }
         }
 
-        // Verify use case registration
+        // Verify UseCase registration
         let authUseCase = WeaveDI.Container.live.resolve(AuthUseCaseProtocol.self)
         XCTAssertNotNil(authUseCase)
     }
@@ -553,22 +553,22 @@ class WeaveDI.ContainerTests: XCTestCase {
 ```swift
 class IntegrationTests: XCTestCase {
     override func setUp() async throws {
-        // Reset container for each test
+        // Initialize container for each test
           WeaveDI.Container.live = WeaveDI.Container()
 
-        await WeaveDI.Container.bootstrap { container in
+        await AppWeaveDI.Container.shared.registerDependencies { container in
             // Register test-specific dependencies
             await self.registerTestDependencies(container)
         }
     }
 
     private func registerTestDependencies(_ container: Container) async {
-        // Mock repositories for integration tests
+        // Mock repositories for integration testing
         await container.register(MockUserRepositoryModule())
         await container.register(MockAuthRepositoryModule())
 
-        // Real use cases for integration testing
-        let useCaseFactory = WeaveDI.Container.shared.useCaseFactory
+        // Use actual UseCase for integration testing
+        let useCaseFactory = AppWeaveDI.Container.shared.useCaseFactory
         await useCaseFactory.makeAllModules().asyncForEach { module in
             await container.register(module)
         }
@@ -590,7 +590,7 @@ class IntegrationTests: XCTestCase {
 
 ## Best Practices
 
-### 1. Organize by Feature Modules
+### 1) Organize by Feature Modules
 
 ```swift
 // Feature-based module organization
@@ -618,10 +618,10 @@ struct OrderFeatureModule {
 }
 ```
 
-### 2. Environment-Specific Configuration
+### 2) Environment-Specific Configuration
 
 ```swift
-extension WeaveDI.Container {
+extension AppWeaveDI.Container {
     func registerDependenciesForEnvironment(_ environment: AppEnvironment) async {
         await registerDependencies { container in
             switch environment {
@@ -636,14 +636,14 @@ extension WeaveDI.Container {
     }
 
     private func registerDevelopmentDependencies(_ container: Container) async {
-        // Development-specific implementations
+        // Development environment specific implementations
         await container.register(MockNetworkServiceModule())
         await container.register(InMemoryDatabaseModule())
         await container.register(DetailedLoggingModule())
     }
 
     private func registerProductionDependencies(_ container: Container) async {
-        // Production implementations
+        // Production environment implementations
         await container.register(ProductionNetworkServiceModule())
         await container.register(SQLiteDatabaseModule())
         await container.register(OptimizedLoggingModule())
@@ -651,13 +651,13 @@ extension WeaveDI.Container {
 }
 ```
 
-### 3. Gradual Migration Strategy
+### 3) Gradual Migration Strategy
 
 ```swift
 class LegacyAppMigration {
-    static func migrateToWeaveDI.Container() async {
-        await WeaveDI.Container.bootstrap { container in
-            // Migrate existing dependencies gradually
+    static func migrateToAppWeaveDI.Container() async {
+        await AppWeaveDI.Container.shared.registerDependencies { container in
+            // Gradually migrate existing dependencies
             await migrateCoreServices(container)
             await migrateUserServices(container)
             await migrateOrderServices(container)
@@ -665,7 +665,7 @@ class LegacyAppMigration {
     }
 
     private static func migrateCoreServices(_ container: Container) async {
-        // Keep existing instances if needed
+        // Reuse existing instances when necessary
         if let existingLogger = LegacyServiceLocator.shared.logger {
             await container.register(ExistingLoggerModule(logger: existingLogger))
         } else {
@@ -677,15 +677,15 @@ class LegacyAppMigration {
 
 ## Discussion
 
-- `WeaveDI.Container` serves as a single entry point for dependency management
-- By registering modules at app initialization, you can create and query dependency objects quickly and reliably at runtime
-- The internal `Container` optimizes performance by executing all registered modules **in parallel**
-- Factory patterns systematically manage Repository, UseCase, and Scope layers
-- Automatic optimization configuration ensures optimal performance out of the box
+- `AppWeaveDI.Container` serves as a **single entry point** for dependency management.
+- By registering modules during app initialization, you can create and retrieve dependency objects **quickly and reliably** at runtime.
+- The internal `Container` runs all registered modules **in parallel** to optimize performance.
+- Factory patterns **systematically manage** Repository, UseCase, and Scope layers.
+- Automatic optimization configuration provides **optimal performance with default settings**.
 
 ## See Also
 
-- [Module System](/guide/moduleSystem) - Organizing large applications with modules
-- [Property Wrappers](/guide/propertyWrappers) - Using @Factory and @Inject
-- [Bootstrap Guide](/guide/bootstrap) - Application initialization patterns
-- [UnifiedDI vs WeaveDI.Container](/guide/unifiedDi) - Choosing the right API
+- [Module System](./moduleSystem.md) — Organizing large apps with modules
+- [Property Wrappers](./propertyWrappers.md) — Using `@Factory` and `@Inject`
+- [Bootstrap Guide](./bootstrap.md) — Application initialization patterns
+- [UnifiedDI vs WeaveDI.Container](./unifiedDi.md) — Guide to choosing which API to use

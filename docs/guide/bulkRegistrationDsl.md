@@ -57,7 +57,7 @@ The Bulk DSL provides a more expressive, readable way to configure multiple inte
 
 ```swift
 let modules = registerModule.bulkInterfaces {
-  // Clean, readable syntax showing the relationship between interface and implementations
+  // Clean, readable syntax that shows the relationship between interfaces and implementations
   BookListInterface.self => (
     repository: { BookListRepositoryImpl() },      // Primary repository
     useCase: { BookListUseCaseImpl(repository: $0) }, // UseCase with auto-injected repo
@@ -106,7 +106,7 @@ let modules = registerModule.bulkInterfaces {
 
 ## Easy Scope Registration
 
-Easy Scope provides a simplified way to register multiple services within a specific scope without the complexity of interface patterns.
+Easy Scope provides a simple way to register multiple services within a specific scope without the complexity of interface patterns.
 
 **Purpose**: Register multiple independent services quickly and efficiently with consistent scoping.
 
@@ -114,7 +114,7 @@ Easy Scope provides a simplified way to register multiple services within a spec
 - **Simple Services**: Services that don't follow Repository-UseCase patterns
 - **Utility Services**: Loggers, formatters, validators
 - **Third-party Integrations**: External SDK wrappers
-- **Configuration Services**: Settings, preferences, constants
+- **Configuration Services**: Settings, environment configs, constants
 
 ```swift
 let modules = registerModule.easyScopes {
@@ -126,7 +126,7 @@ let modules = registerModule.easyScopes {
 }
 ```
 
-**Advanced Easy Scope Examples**:
+**Advanced Easy Scope Example**:
 
 ```swift
 let modules = registerModule.easyScopes {
@@ -235,7 +235,7 @@ let networkServices = registerModule.easyScopes {
 ### 3. Use Meaningful Names
 
 ```swift
-// ✅ Clear, descriptive variable names
+// ✅ Clear and descriptive variable names
 let coreBusinessLogic = registerModule.bulkInterfaces { /* ... */ }
 let infrastructureServices = registerModule.easyScopes { /* ... */ }
 let externalIntegrations = registerModule.registerInterfacePattern(/* ... */)
@@ -243,6 +243,6 @@ let externalIntegrations = registerModule.registerInterfacePattern(/* ... */)
 
 ## See Also
 
-- [Module System](./moduleSystem.md) - Organizing bulk registrations into modules
-- [Bootstrap Guide](./bootstrap.md) - Using bulk registration in app startup
+- [Module System](./moduleSystem.md) - Organizing bulk registration into modules
+- [Bootstrap Guide](./bootstrap.md) - Using bulk registration during app startup
 - [Core APIs](../api/coreApis.md) - Individual registration methods
