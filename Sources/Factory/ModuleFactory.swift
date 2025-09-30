@@ -121,19 +121,22 @@ public struct ModuleFactoryManager: Sendable {
 
     /// 모든 모듈을 DI 컨테이너에 등록
     public func registerAll(to container: WeaveDI.Container) async {
-        // Repository 모듈들 등록
+        // 1️⃣ @AutoRegister 타입들 자동 로드
+        AutoRegisterCollector.shared.loadAll()
+
+        // 2️⃣ Repository 모듈들 등록
         let repositoryModules = self.repositoryFactory.makeAllModules()
         for module in repositoryModules {
             await container.register(module)
         }
 
-        // UseCase 모듈들 등록
+        // 3️⃣ UseCase 모듈들 등록
         let useCaseModules = self.useCaseFactory.makeAllModules()
         for module in useCaseModules {
             await container.register(module)
         }
 
-        // Scope 모듈들 등록
+        // 4️⃣ Scope 모듈들 등록
         let scopeModules = self.scopeFactory.makeAllModules()
         for module in scopeModules {
             await container.register(module)

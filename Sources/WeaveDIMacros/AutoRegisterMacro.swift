@@ -107,6 +107,9 @@ public struct AutoRegisterMacro: MemberMacro {
 
     return """
         private static let __autoRegister_\(uniqueId): Void = {
+            // Collector에 타입 등록
+            AutoRegisterCollector.shared.register(\(implementationName).self)
+            // DI 컨테이너에 등록
             _ = UnifiedDI.register(\(protocolName).self) { \(implementationName)() }
             return ()
         }()
