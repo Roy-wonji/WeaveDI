@@ -12,15 +12,15 @@ import SwiftSyntaxMacros
 ///     // 자동으로 UnifiedDI.register(UserServiceProtocol.self) { UserService() } 생성
 /// }
 /// ```
-public struct AutoRegisterMacro: PeerMacro {
+public struct AutoRegisterMacro: MemberMacro {
   public static func expansion(
     of node: AttributeSyntax,
-    providingPeersOf declaration: some DeclSyntaxProtocol,
+    providingMembersOf declaration: some DeclGroupSyntax,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
     // Class 또는 Struct 체크
-    let typeDecl: any DeclSyntaxProtocol
+    let typeDecl: any DeclGroupSyntax
     if let classDecl = declaration.as(ClassDeclSyntax.self) {
       typeDecl = classDecl
     } else if let structDecl = declaration.as(StructDeclSyntax.self) {
@@ -42,7 +42,7 @@ public struct AutoRegisterMacro: PeerMacro {
 
     // 각 프로토콜에 대해 등록 코드 생성
     for protocolName in protocols {
-      let registrationCode = generateRegistrationCode(
+      let registrationCode = generateMemberRegistrationCode(
         protocolName: protocolName,
         implementationName: typeName,
         lifetime: lifetime
@@ -51,7 +51,7 @@ public struct AutoRegisterMacro: PeerMacro {
     }
 
     // 자기 자신도 등록 (concrete type)
-    let selfRegistrationCode = generateRegistrationCode(
+    let selfRegistrationCode = generateMemberRegistrationCode(
       protocolName: typeName,
       implementationName: typeName,
       lifetime: lifetime
@@ -98,7 +98,7 @@ public struct AutoRegisterMacro: PeerMacro {
     return "singleton"
   }
 
-  private static func generateRegistrationCode(
+  private static func generateMemberRegistrationCode(
     protocolName: String,
     implementationName: String,
     lifetime: String
@@ -106,14 +106,10 @@ public struct AutoRegisterMacro: PeerMacro {
     let uniqueId = "\(protocolName)_\(implementationName)".replacingOccurrences(of: ".", with: "_")
 
     return """
-        extension \(implementationName) {
-            @available(*, deprecated, message: "This is an auto-generated registration. Do not call directly.")
-            private static let __autoRegister_\(uniqueId): Void = {
-                // 즉시 실행하여 등록
-                _ = UnifiedDI.register(\(protocolName).self) { \(implementationName)() }
-                return ()
-            }()
-        }
+        private static let __autoRegister_\(uniqueId): Void = {
+            _ = UnifiedDI.register(\(protocolName).self) { \(implementationName)() }
+            return ()
+        }()
         """
   }
 }

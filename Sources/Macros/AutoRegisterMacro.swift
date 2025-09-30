@@ -32,7 +32,7 @@
 /// - `.singleton`: 단일 인스턴스 (기본값)
 /// - `.transient`: 매번 새 인스턴스
 /// - `.scoped`: 스코프별 인스턴스
-@attached(peer, names: arbitrary)
+@attached(member, names: arbitrary)
 public macro AutoRegister(lifetime: DILifetime = .singleton) = #externalMacro(module: "WeaveDIMacros", type: "AutoRegisterMacro")
 
 /// 의존성 생명주기 타입
