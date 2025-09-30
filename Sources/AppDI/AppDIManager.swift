@@ -194,51 +194,51 @@ public enum AppWeaveDI {
 
 public final actor AppDIManager {
   // MARK: - 프로퍼티
-
+  
   /// Repository 계층에서 사용할 모듈(팩토리) 인스턴스를
   /// KeyPath를 통해 자동으로 주입받습니다.
   @Factory(\.repositoryFactory)
   public var repositoryFactory: RepositoryModuleFactory
-
+  
   /// UseCase 계층에서 사용할 모듈(팩토리) 인스턴스를
   /// KeyPath를 통해 자동으로 주입받습니다.
   @Factory(\.useCaseFactory)
   public var useCaseFactory: UseCaseModuleFactory
-
+  
   /// DependencyScope 기반 모듈(팩토리) 인스턴스를
   /// KeyPath를 통해 자동으로 주입받습니다.
   @Factory(\.scopeFactory)
   public var scopeFactory: ScopeModuleFactory
-
+  
   /// 앱 전역에서 사용할 수 있는 싱글턴 인스턴스입니다.
   public static let shared: AppDIManager = .init()
-
+  
   /// 외부 생성을 막기 위한 `private init()`.
   private init() {
     // Factory들을 DI 컨테이너에 기본 등록
-//    setupDefaultFactories()
+    //    setupDefaultFactories()
   }
-
+  
   /// 기본 Factory들을 DI 컨테이너에 등록합니다.
   nonisolated private func setupDefaultFactories() {
     // Repository Factory 등록
     WeaveDI.Container.live.register(RepositoryModuleFactory.self, instance: RepositoryModuleFactory())
-
+    
     // UseCase Factory 등록
     WeaveDI.Container.live.register(UseCaseModuleFactory.self, instance: UseCaseModuleFactory())
-
+    
     // Scope Factory 등록
     WeaveDI.Container.live.register(ScopeModuleFactory.self, instance: ScopeModuleFactory())
-
+    
     // 통합 Factory Manager 등록
     WeaveDI.Container.live.register(ModuleFactoryManager.self, instance: ModuleFactoryManager())
   }
-
+  
   /// 내부적으로 모듈 등록과 빌드를 수행하는 ``Container`` 인스턴스입니다.
   private let container = WeaveDI.Container()
-
+  
   // MARK: - 메서드
-
+  
   /// 의존성 모듈들을 등록하고, 등록된 모듈을 병렬 실행하여 빌드합니다.
   ///
   /// - Parameter registerModules: ``Container`` 를 인자로 받아
@@ -257,7 +257,7 @@ public final actor AppDIManager {
     UnifiedDI.configureOptimization(debounceMs: 100, threshold: 10, realTimeUpdate: true)
     UnifiedDI.setAutoOptimization(true)
     UnifiedDI.setLogLevel(.errors)
-
+    
     // Swift 6 안전성을 위해 Task 내에서 실행
     await withCheckedContinuation { continuation in
       Task {

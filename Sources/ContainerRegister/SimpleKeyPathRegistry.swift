@@ -21,9 +21,9 @@ import LogMacro
 /// }
 /// ```
 public enum SimpleKeyPathRegistry {
-
+  
   // MARK: - Core Registration Methods
-
+  
   /// KeyPath 기반 기본 등록
   public static func register<T>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
@@ -34,11 +34,11 @@ public enum SimpleKeyPathRegistry {
   ) where T: Sendable {
     let keyPathName = extractKeyPathName(keyPath)
     #logInfo("📝 [SimpleKeyPathRegistry] Registering \(keyPathName) -> \(T.self)")
-
+    
     // AutoRegister 시스템 사용
     _ = DI.register(T.self, factory: factory)
   }
-
+  
   /// KeyPath 기반 조건부 등록
   public static func registerIf<T>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
@@ -49,16 +49,16 @@ public enum SimpleKeyPathRegistry {
     line: Int = #line
   ) where T: Sendable {
     let keyPathName = extractKeyPathName(keyPath)
-
+    
     guard condition else {
       #logInfo("⏭️ [SimpleKeyPathRegistry] Skipping \(keyPathName) -> \(T.self) (condition: false)")
       return
     }
-
+    
     #logInfo("✅ [SimpleKeyPathRegistry] Condition met for \(keyPathName) -> \(T.self)")
     register(keyPath, factory: factory, file: file, function: function, line: line)
   }
-
+  
   /// KeyPath 기반 인스턴스 등록
   public static func registerInstance<T: Sendable>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
@@ -69,13 +69,13 @@ public enum SimpleKeyPathRegistry {
   ) {
     let keyPathName = extractKeyPathName(keyPath)
     #logInfo("📦 [SimpleKeyPathRegistry] Registering instance \(keyPathName) -> \(type(of: instance))")
-
+    
     // AutoRegister 시스템 사용
     _ = DI.register(T.self) { instance }
   }
-
+  
   // MARK: - Environment-based Registration
-
+  
   /// Debug 환경에서만 등록
   public static func registerIfDebug<T>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
@@ -93,7 +93,7 @@ public enum SimpleKeyPathRegistry {
     #logInfo("🚫 [SimpleKeyPathRegistry] Skipping debug registration: \(keyPathName) (Release build)")
 #endif
   }
-
+  
   /// Release 환경에서만 등록
   public static func registerIfRelease<T>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
@@ -111,9 +111,9 @@ public enum SimpleKeyPathRegistry {
     register(keyPath, factory: factory, file: file, function: function, line: line)
 #endif
   }
-
+  
   // MARK: - Debugging and Utilities
-
+  
   /// 특정 KeyPath의 등록 상태 확인
   public static func isRegistered<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> Bool {
     let keyPathName = extractKeyPathName(keyPath)
@@ -121,18 +121,18 @@ public enum SimpleKeyPathRegistry {
     // AutoRegistrationRegistry의 isRegistered 메서드 사용
     return AutoRegistrationRegistry.shared.isRegistered(T.self)
   }
-
+  
   /// KeyPath에서 이름 추출
   public static func extractKeyPathName<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> String {
     let keyPathString = String(describing: keyPath)
-
+    
     // KeyPath 문자열에서 프로퍼티 이름 추출
     // 예: \WeaveDI.Container.userService -> userService
     if let dotIndex = keyPathString.lastIndex(of: ".") {
       let propertyName = String(keyPathString[keyPathString.index(after: dotIndex)...])
       return propertyName
     }
-
+    
     return keyPathString
   }
 }
@@ -141,11 +141,11 @@ public enum SimpleKeyPathRegistry {
 
 /// 안전한 DependencyKey 패턴을 위한 헬퍼
 public enum SimpleSafeDependencyRegister {
-
+  
   /// KeyPath로 안전하게 의존성 해결
   public static func safeResolve<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> T? {
     let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
-
+    
     // AutoRegistrationRegistry의 resolve 메서드 사용
     if let resolved: T = AutoRegistrationRegistry.shared.resolve(T.self) {
       #logInfo("✅ [SimpleSafeDependencyRegister] Resolved \(keyPathName): \(type(of: resolved))")
@@ -155,7 +155,7 @@ public enum SimpleSafeDependencyRegister {
       return nil
     }
   }
-
+  
   /// KeyPath로 의존성 해결 (기본값 포함)
   public static func resolveWithFallback<T>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,

@@ -15,9 +15,9 @@ import LogMacro
 public enum DIAsync {
   // Shared async registry
   private static let registry = AsyncTypeRegistry()
-
+  
   // MARK: - Registration (Type)
-
+  
   /// Register an async factory (transient)
   public static func register<T>(
     _ type: T.Type,
@@ -25,10 +25,10 @@ public enum DIAsync {
   ) async {
     await registry.register(type, factory: factory)
   }
-
-
+  
+  
   // MARK: - Registration (KeyPath convenience)
-
+  
   /// Register via KeyPath and return the created instance
   @discardableResult
   public static func register<T>(
@@ -41,7 +41,7 @@ public enum DIAsync {
     WeaveDI.Container.live.register(T.self, instance: instance)
     return instance
   }
-
+  
   /// Get or create via KeyPath-style registration (idempotent)
   @discardableResult
   public static func getOrCreate<T>(
@@ -52,24 +52,24 @@ public enum DIAsync {
     if let existing = await resolve(T.self) {
       return existing
     }
-
+    
     // Create and register new instance
     let instance = await factory()
     await register(T.self, factory: { instance })
     WeaveDI.Container.live.register(T.self, instance: instance)
     return instance
   }
-
-
+  
+  
   // MARK: - Resolve
-
+  
   /// Resolve an instance (async). Falls back to sync container if not found.
   public static func resolve<T>(_ type: T.Type) async -> T? {
     if let box = await registry.resolveBox(T.self) { return box.value as? T }
     // Fallback to sync registry for mixed mode
     return WeaveDI.Container.live.resolve(T.self)
   }
-
+  
   /// Resolve or return default
   public static func resolve<T>(
     _ type: T.Type,
@@ -78,15 +78,15 @@ public enum DIAsync {
     if let value: T = await resolve(type) { return value }
     return defaultValue()
   }
-
+  
   /// Require resolve (fatalError on failure)
   public static func requireResolve<T>(_ type: T.Type) async -> T {
     if let value: T = await resolve(type) { return value }
     fatalError("Required dependency \(T.self) not found (DIAsync.requireResolve)")
   }
-
+  
   // MARK: - Conditional Registration
-
+  
   public static func registerIf<T>(
     _ type: T.Type,
     condition: Bool,
@@ -99,7 +99,7 @@ public enum DIAsync {
       await register(type, factory: fallback)
     }
   }
-
+  
   @discardableResult
   public static func registerIf<T>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
@@ -110,9 +110,9 @@ public enum DIAsync {
     if condition { return await register(keyPath, factory: factory) }
     return await register(keyPath, factory: fallback)
   }
-
+  
   // MARK: - Batch Registration (async)
-
+  
   public static func registerMany(
     @DIAsyncRegistrationBuilder _ registrations: () -> [DIAsyncRegistration]
   ) async {
@@ -124,22 +124,22 @@ public enum DIAsync {
       await group.waitForAll()
     }
   }
-
+  
   // MARK: - Introspection
-
+  
   /// Check if a type is registered in async or sync registry
   public static func isRegistered<T>(_ type: T.Type) async -> Bool {
     if await registry.resolveBox(T.self) != nil { return true }
     return WeaveDI.Container.live.resolve(T.self) != nil
   }
-
+  
   /// Check if a KeyPath-identified dependency is registered
   public static func isRegistered<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) async -> Bool {
     await isRegistered(T.self)
   }
-
+  
   // MARK: - Management
-
+  
   /// Release all async registrations (testing purpose)
   public static func releaseAll() async {
     await registry.clearAll()
@@ -157,12 +157,12 @@ public struct DIAsyncRegistrationBuilder {
 
 public struct DIAsyncRegistration: Sendable {
   private let action: @Sendable () async -> Void
-
+  
   public init<T>(_ type: T.Type, factory: @Sendable @escaping () async -> T) {
     self.action = { @Sendable in await DIAsync.register(type, factory: factory) }
   }
-
-
+  
+  
   public init<T>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
     factory: @Sendable @escaping () async -> T
@@ -171,6 +171,6 @@ public struct DIAsyncRegistration: Sendable {
     let type = T.self
     self.action = { @Sendable in await DIAsync.register(type, factory: factory) }
   }
-
+  
   fileprivate func register() async { await action() }
 }

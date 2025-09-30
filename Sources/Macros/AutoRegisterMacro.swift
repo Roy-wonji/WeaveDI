@@ -37,7 +37,7 @@ public macro AutoRegister(lifetime: DILifetime = .singleton) = #externalMacro(mo
 
 /// 의존성 생명주기 타입
 public enum DILifetime {
-    case singleton
-    case transient
-    case scoped
+  case singleton
+  case transient
+  case scoped
 }

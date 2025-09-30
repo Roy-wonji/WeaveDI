@@ -23,7 +23,7 @@ import LogMacro
 ///
 /// ## ✅ 안전한 패턴들:
 public enum SafeDependencyKeyPatterns {
-
+  
   /// 방법 1: 앱 시작 시 사전 등록 + 해결
   public static let preRegistrationPattern = """
     // AppDelegate 또는 App.swift에서
@@ -48,7 +48,7 @@ public enum SafeDependencyKeyPatterns {
         public static var testValue: BookListInterface = DefaultBookListRepositoryImpl()
     }
     """
-
+  
   /// 방법 2: Factory 지연 초기화 패턴
   public static let factoryPattern = """
     // Factory로 지연 초기화
@@ -72,7 +72,7 @@ public enum SafeDependencyKeyPatterns {
         }
     }
     """
-
+  
   /// 방법 3: Task 기반 비동기 등록 패턴
   public static let asyncPattern = """
     // 비동기 등록 후 사용
@@ -98,25 +98,25 @@ public enum SafeDependencyKeyPatterns {
 
 /// 안전한 DependencyKey 등록을 위한 헬퍼
 public enum SafeDependencyRegister {
-
+  
   /// 앱 시작 시 DependencyKey용 의존성 등록
   public static func setupForDependencyKeys() {
     #logInfo("🔧 Setting up dependencies for DependencyKey patterns...")
-
+    
     // 일반적인 의존성들을 미리 등록
     // 예시: 실제 프로젝트에 맞게 수정
     // SimpleKeyPathRegistry.registerMany {
     //     (\.bookListInterface, { BookListRepositoryImpl() })
     //     (\.userService, { UserServiceImpl() })
     // }
-
+    
     #logInfo("✅ DependencyKey dependencies setup complete")
   }
-
+  
   /// KeyPath로 안전하게 의존성 해결
   public static func safeResolve<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> T? {
     let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
-
+    
     // WeaveDI.Container를 통해 의존성 해결
     if let resolved: T = WeaveDI.Container.live[keyPath: keyPath] {
       #logInfo("✅ [SafeDependencyRegister] Resolved \(keyPathName): \(type(of: resolved))")
@@ -126,7 +126,7 @@ public enum SafeDependencyRegister {
       return nil
     }
   }
-
+  
   /// KeyPath로 의존성 해결 (기본값 포함)
   public static func resolveWithFallback<T>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,

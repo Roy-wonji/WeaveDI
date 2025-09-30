@@ -15,67 +15,67 @@ import LogMacro
 /// 이 타입을 사용하면, 특정 타입의 인스턴스를 `WeaveDI.Container`에
 /// **비동기적으로 등록**하는 작업을 하나의 객체로 캡슐화할 수 있습니다.
 public struct Module: Sendable {
-    private let registrationClosure: @Sendable () async -> Void
-    // Debug metadata for diagnostics and reporting
-    internal let debugTypeName: String
-    internal let debugFile: String
-    internal let debugFunction: String
-    internal let debugLine: Int
-
-    public init<T>(
-        _ type: T.Type,
-        factory: @Sendable @escaping () -> T,
-        file: StaticString = #fileID,
-        function: StaticString = #function,
-        line: UInt = #line
-    ) where T: Sendable {
-        self.registrationClosure = {
-          WeaveDI.Container.live.register(type, build: factory)
-        }
-        self.debugTypeName = String(describing: T.self)
-        self.debugFile = String(describing: file)
-        self.debugFunction = String(describing: function)
-        self.debugLine = Int(line)
-
-        // Graph: record node
-        Task.detached { @Sendable in
-            await DependencyGraph.shared.addNode(T.self)
-        }
+  private let registrationClosure: @Sendable () async -> Void
+  // Debug metadata for diagnostics and reporting
+  internal let debugTypeName: String
+  internal let debugFile: String
+  internal let debugFunction: String
+  internal let debugLine: Int
+  
+  public init<T>(
+    _ type: T.Type,
+    factory: @Sendable @escaping () -> T,
+    file: StaticString = #fileID,
+    function: StaticString = #function,
+    line: UInt = #line
+  ) where T: Sendable {
+    self.registrationClosure = {
+      WeaveDI.Container.live.register(type, build: factory)
     }
-
-    public func register() async { await registrationClosure() }
-
-    /// Throwing variant kept for future expandability
-    public func registerThrowing() async throws { await registrationClosure() }
+    self.debugTypeName = String(describing: T.self)
+    self.debugFile = String(describing: file)
+    self.debugFunction = String(describing: function)
+    self.debugLine = Int(line)
+    
+    // Graph: record node
+    Task.detached { @Sendable in
+      await DependencyGraph.shared.addNode(T.self)
+    }
+  }
+  
+  public func register() async { await registrationClosure() }
+  
+  /// Throwing variant kept for future expandability
+  public func registerThrowing() async throws { await registrationClosure() }
 }
 
 // MARK: - RegisterModule
 
 /// RegisterModule의 핵심 기능만 포함한 깔끔한 버전
 public struct RegisterModule: Sendable {
-
-    public init() {}
-
-    // MARK: - 기본 모듈 생성
-
-    public func makeModule<T>(
-        _ type: T.Type,
-        factory: @Sendable @escaping () -> T
-    ) -> Module where T: Sendable {
-        Module(type, factory: factory)
+  
+  public init() {}
+  
+  // MARK: - 기본 모듈 생성
+  
+  public func makeModule<T>(
+    _ type: T.Type,
+    factory: @Sendable @escaping () -> T
+  ) -> Module where T: Sendable {
+    Module(type, factory: factory)
+  }
+  
+  public func makeDependency<T>(
+    _ protocolType: T.Type,
+    factory: @Sendable @escaping () -> T
+  ) -> @Sendable () -> Module where T: Sendable {
+    return {
+      Module(protocolType, factory: factory)
     }
-
-    public func makeDependency<T>(
-        _ protocolType: T.Type,
-        factory: @Sendable @escaping () -> T
-    ) -> @Sendable () -> Module where T: Sendable {
-        return {
-            Module(protocolType, factory: factory)
-        }
-    }
-
-    // MARK: - UseCase with Repository 패턴
-
+  }
+  
+  // MARK: - UseCase with Repository 패턴
+  
   public func makeUseCaseWithRepository<UseCase, Repo>(
     _ useCaseProtocol: UseCase.Type,
     repositoryProtocol: Repo.Type,
@@ -95,42 +95,42 @@ public struct RegisterModule: Sendable {
       })
     }
   }
-
-    // MARK: - 의존성 조회 헬퍼
-
-    public func resolveOrDefault<T>(
-        for type: T.Type,
-        fallback: @Sendable @autoclosure @escaping () -> T
-    ) -> T {
-        if let resolved: T = WeaveDI.Container.live.resolve(type) {
-            return resolved
-        }
-        return fallback()
+  
+  // MARK: - 의존성 조회 헬퍼
+  
+  public func resolveOrDefault<T>(
+    for type: T.Type,
+    fallback: @Sendable @autoclosure @escaping () -> T
+  ) -> T {
+    if let resolved: T = WeaveDI.Container.live.resolve(type) {
+      return resolved
     }
-
-    public func interface<Interface>(
-        _ interfaceType: Interface.Type,
-        repository repositoryFactory: @Sendable @escaping () -> Interface,
-        useCase useCaseFactory: @Sendable @escaping (Interface) -> Interface,
-        fallback fallbackFactory: @Sendable @escaping () -> Interface
-    ) -> [() -> Module] where Interface: Sendable {
-        return [
-            makeDependency(interfaceType, factory: repositoryFactory),
-            makeUseCaseWithRepository(
-                interfaceType,
-                repositoryProtocol: interfaceType,
-                repositoryFallback: fallbackFactory(),
-                factory: useCaseFactory
-            )
-        ]
-    }
-
-    public func defaultInstance<T>(
-        for type: T.Type,
-        fallback: @Sendable @autoclosure @escaping () -> T
-    ) -> T {
-        return resolveOrDefault(for: type, fallback: fallback())
-    }
+    return fallback()
+  }
+  
+  public func interface<Interface>(
+    _ interfaceType: Interface.Type,
+    repository repositoryFactory: @Sendable @escaping () -> Interface,
+    useCase useCaseFactory: @Sendable @escaping (Interface) -> Interface,
+    fallback fallbackFactory: @Sendable @escaping () -> Interface
+  ) -> [() -> Module] where Interface: Sendable {
+    return [
+      makeDependency(interfaceType, factory: repositoryFactory),
+      makeUseCaseWithRepository(
+        interfaceType,
+        repositoryProtocol: interfaceType,
+        repositoryFallback: fallbackFactory(),
+        factory: useCaseFactory
+      )
+    ]
+  }
+  
+  public func defaultInstance<T>(
+    for type: T.Type,
+    fallback: @Sendable @autoclosure @escaping () -> T
+  ) -> T {
+    return resolveOrDefault(for: type, fallback: fallback())
+  }
 }
 
 // MARK: - Sendable Helpers
@@ -139,12 +139,12 @@ public struct RegisterModule: Sendable {
 /// for use inside @Sendable closures. Use with caution and only if
 /// you can guarantee thread-safety of the underlying value.
 public struct UncheckedSendableBox<T>: @unchecked Sendable {
-    public let value: T
-    public init(_ value: T) { self.value = value }
+  public let value: T
+  public init(_ value: T) { self.value = value }
 }
 
 /// Convenience function to create an UncheckedSendableBox
 @inlinable
 public func unsafeSendable<T>(_ value: T) -> UncheckedSendableBox<T> {
-    UncheckedSendableBox(value)
+  UncheckedSendableBox(value)
 }

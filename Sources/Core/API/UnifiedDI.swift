@@ -401,7 +401,7 @@ public extension UnifiedDI {
   
   /// 📋 현재 로깅 레벨을 반환합니다 (스냅샷)
   static func getLogLevel() async -> LogLevel {
-     AutoDIOptimizer.readSnapshot().logLevel
+    AutoDIOptimizer.readSnapshot().logLevel
   }
   
   /// 현재 로깅 레벨(동기 접근용, 스냅샷)
@@ -513,44 +513,44 @@ public extension UnifiedDI {
   }
   
   /// ⚡ 최적화 제안 보기
-    static func getOptimizationTips() -> [String] {
-        let snap = AutoDIOptimizer.readSnapshot()
-        var tips: [String] = []
-        for (t,c) in snap.frequentlyUsed where c >= 5 { tips.append("💡 \(t): \(c)회 사용됨 → 싱글톤 고려") }
-        // 순환 의존성 간단 감지
-        var visited: Set<String> = []
-        var stack: Set<String> = []
-        func dfs(_ n: String, _ deps: [(from:String,to:String)], _ out: inout [String]) {
-          if stack.contains(n) { out.append("순환 감지: \(n)"); return }
-          if visited.contains(n) { return }
-          visited.insert(n); stack.insert(n)
-          for d in deps where d.from == n { dfs(d.to, deps, &out) }
-          stack.remove(n)
-        }
-        var cycles:[String] = []
-        for t in snap.registered where !visited.contains(t) { dfs(t, snap.dependencies, &cycles) }
-        tips.append(contentsOf: cycles.map { "⚠️ \($0)" })
-        let unused = snap.registered.subtracting(snap.resolved)
-        if !unused.isEmpty { tips.append("🗑️ 미사용 타입들: \(unused.joined(separator: ", "))") }
-        return tips.isEmpty ? ["✅ 최적화 제안 없음 - 좋은 상태입니다!"] : tips
+  static func getOptimizationTips() -> [String] {
+    let snap = AutoDIOptimizer.readSnapshot()
+    var tips: [String] = []
+    for (t,c) in snap.frequentlyUsed where c >= 5 { tips.append("💡 \(t): \(c)회 사용됨 → 싱글톤 고려") }
+    // 순환 의존성 간단 감지
+    var visited: Set<String> = []
+    var stack: Set<String> = []
+    func dfs(_ n: String, _ deps: [(from:String,to:String)], _ out: inout [String]) {
+      if stack.contains(n) { out.append("순환 감지: \(n)"); return }
+      if visited.contains(n) { return }
+      visited.insert(n); stack.insert(n)
+      for d in deps where d.from == n { dfs(d.to, deps, &out) }
+      stack.remove(n)
     }
+    var cycles:[String] = []
+    for t in snap.registered where !visited.contains(t) { dfs(t, snap.dependencies, &cycles) }
+    tips.append(contentsOf: cycles.map { "⚠️ \($0)" })
+    let unused = snap.registered.subtracting(snap.resolved)
+    if !unused.isEmpty { tips.append("🗑️ 미사용 타입들: \(unused.joined(separator: ", "))") }
+    return tips.isEmpty ? ["✅ 최적화 제안 없음 - 좋은 상태입니다!"] : tips
+  }
   
   /// 📊 자주 사용되는 타입 TOP 5
-    static func getTopUsedTypes() -> [String] {
-        let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
-        return freq.sorted { $0.value > $1.value }.prefix(5).map { "\($0.key)(\($0.value)회)" }
-    }
+  static func getTopUsedTypes() -> [String] {
+    let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
+    return freq.sorted { $0.value > $1.value }.prefix(5).map { "\($0.key)(\($0.value)회)" }
+  }
   
   /// 🔧 최적화 기능 켜기/끄기
   static func enableOptimization(_ enabled: Bool = true) {
-        Task { @DIActor in AutoDIOptimizer.shared.setOptimizationEnabled(enabled) }
-    }
+    Task { @DIActor in AutoDIOptimizer.shared.setOptimizationEnabled(enabled) }
+  }
   
   /// 🧹 모니터링 초기화
   static func resetMonitoring() async {
-        await AutoDIOptimizer.shared.reset()
-        await AutoMonitor.shared.reset()
-    }
+    await AutoDIOptimizer.shared.reset()
+    await AutoMonitor.shared.reset()
+  }
 }
 
 // MARK: - Test Helpers
@@ -599,43 +599,43 @@ public macro DependencyGraph<T>(_ dependencies: T) = #externalMacro(module: "Wea
 /// Static factory generation for zero-cost dependency resolution
 /// Compiles dependencies into static methods for maximum performance
 extension UnifiedDI {
-
+  
   /// Configure static factory optimization
   /// Enables compile-time dependency resolution like Needle
   public static func enableStaticOptimization() {
-    #if USE_STATIC_FACTORY
+#if USE_STATIC_FACTORY
     Log.info("🚀 WeaveDI: Static factory optimization ENABLED")
     Log.info("📊 Performance: Needle-level zero-cost resolution")
-    #else
-    #warning("⚠️  WeaveDI: Add -DUSE_STATIC_FACTORY to build flags for maximum performance")
+#else
+#warning("⚠️  WeaveDI: Add -DUSE_STATIC_FACTORY to build flags for maximum performance")
     Log.info("📖 Guide: https://github.com/Roy-wonji/WeaveDI#static-optimization")
-    #endif
+#endif
   }
-
+  
   /// Static resolve with compile-time optimization
   /// Zero runtime cost when USE_STATIC_FACTORY is enabled
   public static func staticResolve<T>(_ type: T.Type) -> T? where T: Sendable {
-    #if USE_STATIC_FACTORY
+#if USE_STATIC_FACTORY
     // Compile-time optimized path - no runtime overhead
     return _staticFactoryResolve(type)
-    #else
+#else
     // Fallback to regular resolution
     return resolve(type)
-    #endif
+#endif
   }
-
-  #if USE_STATIC_FACTORY
+  
+#if USE_STATIC_FACTORY
   /// Internal static factory resolver (compile-time optimized)
   private static func _staticFactoryResolve<T>(_ type: T.Type) -> T? {
     // This would be generated by macro in real implementation
     // For now, fallback to regular resolution
     return WeaveDI.Container.live.resolve(type)
   }
-  #endif
-
+#endif
+  
   /// Compare performance with Needle
   public static func performanceComparison() -> String {
-    #if USE_STATIC_FACTORY
+#if USE_STATIC_FACTORY
     return """
     🏆 WeaveDI vs Needle Performance:
     ✅ Compile-time safety: EQUAL
@@ -643,13 +643,13 @@ extension UnifiedDI {
     🚀 Developer experience: WeaveDI BETTER
     🎯 Swift 6 support: WeaveDI EXCLUSIVE
     """
-    #else
+#else
     return """
     ⚠️  Enable static optimization for Needle-level performance:
     🔧 Add -DUSE_STATIC_FACTORY to build flags
     📈 Expected improvement: 10x faster resolution
     """
-    #endif
+#endif
   }
 }
 
@@ -657,32 +657,32 @@ extension UnifiedDI {
 
 /// Migration tools for developers moving from Uber's Needle framework
 extension UnifiedDI {
-
+  
   /// Migration guide and helper for Needle users
   public static func migrateFromNeedle() -> String {
     return """
     🔄 Migrating from Needle to WeaveDI
-
+    
     📋 Step 1: Replace Needle imports
     ❌ import NeedleFoundation
     ✅ import WeaveDI
-
+    
     📋 Step 2: Convert Component to UnifiedDI
     ❌ class AppComponent: Component<EmptyDependency> { ... }
     ✅ extension UnifiedDI { static func setupApp() { ... } }
-
+    
     📋 Step 3: Replace Needle DI with WeaveDI
     ❌ @Dependency var userService: UserServiceProtocol
     ✅ @Inject var userService: UserServiceProtocol?
-
+    
     📋 Step 4: Enable compile-time verification
     ✅ @DependencyGraph([
         UserService.self: [NetworkService.self, Logger.self]
     ])
-
+    
     📋 Step 5: Enable static optimization (optional)
     ✅ UnifiedDI.enableStaticOptimization()
-
+    
     🚀 Benefits after migration:
     ✅ No code generation required
     ✅ Swift 6 concurrency support
@@ -690,33 +690,33 @@ extension UnifiedDI {
     ✅ Gradual migration possible
     """
   }
-
+  
   /// Check if migration is beneficial
   public static func needleMigrationBenefits() -> String {
     return """
     🤔 Why migrate from Needle to WeaveDI?
-
+    
     ⚡ Performance:
     • Same zero-cost resolution as Needle
     • Additional Actor hop optimization
     • Real-time performance monitoring
-
+    
     🛠️ Developer Experience:
     • No build-time code generation
     • Gradual migration support
     • Better error messages
-
+    
     🔮 Future-Proof:
     • Native Swift 6 support
     • Modern concurrency patterns
     • Active development
-
+    
     📊 Migration Effort: LOW
     📈 Performance Gain: HIGH
     🎯 Recommended: YES
     """
   }
-
+  
   /// Validate Needle-style dependency setup
   public static func validateNeedleStyle<T>(component: T.Type, dependencies: [Any.Type]) -> Bool {
     // Simulate Needle-style validation
