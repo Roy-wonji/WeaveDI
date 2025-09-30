@@ -32,7 +32,6 @@ import Foundation
 public struct Injected<Value> {
     private let keyPath: KeyPath<InjectedValues, Value>?
     private let keyType: (any InjectedKey.Type)?
-    private var cachedValue: Value?
 
     /// KeyPath를 사용한 초기화
     public init(_ keyPath: KeyPath<InjectedValues, Value>) {
@@ -47,23 +46,15 @@ public struct Injected<Value> {
     }
 
     public var wrappedValue: Value {
-        mutating get {
-            if let cached = cachedValue {
-                return cached
-            }
-
-            let value: Value
+        get {
             if let keyPath = keyPath {
-                value = InjectedValues.current[keyPath: keyPath]
+                return InjectedValues.current[keyPath: keyPath]
             } else if let keyType = keyType, let concreteType = keyType as? any InjectedKey.Type {
                 // Use a helper function to bridge the type-erased call
-                value = _getValue(from: concreteType)
+                return _getValue(from: concreteType)
             } else {
                 fatalError("@Injected requires either keyPath or keyType")
             }
-
-            cachedValue = value
-            return value
         }
     }
 
