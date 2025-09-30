@@ -594,23 +594,19 @@ public extension WeaveDI.Container {
     /// ```swift
     /// // 프로젝트의 AutoDIRegistry.swift
     /// extension WeaveDI.Container {
-    ///     static func registerRepositories() {
-    ///         _ = UnifiedDI.register(ExchangeRateInterface.self) {
-    ///             ExchangeRepositoryImpl()
-    ///         }
+    ///     static func registerRepositories() async {
+    ///         await helper.exchangeRepositoryModule().register()
     ///     }
     ///
-    ///     static func registerUseCases() {
-    ///         _ = UnifiedDI.register(ExchangeUseCaseImpl.self) {
-    ///             ExchangeUseCaseImpl()
-    ///         }
+    ///     static func registerUseCases() async {
+    ///         await helper.exchangeUseCaseModule().register()
     ///     }
     /// }
     /// ```
-    static func registerAllDependencies() {
+    static func registerAllDependencies() async {
         // 자동으로 registerRepositories()와 registerUseCases() 호출
-        registerRepositories()
-        registerUseCases()
+        await registerRepositories()
+        await registerUseCases()
 
         #if DEBUG
         print("✅ WeaveDI.Container.registerAllDependencies() 완료")
@@ -618,12 +614,12 @@ public extension WeaveDI.Container {
     }
 
     /// 📦 Repository 등록 (프로젝트에서 오버라이드)
-    static func registerRepositories() {
+    static func registerRepositories() async {
         // 기본 구현 없음
     }
 
     /// 🔧 UseCase 등록 (프로젝트에서 오버라이드)
-    static func registerUseCases() {
+    static func registerUseCases() async {
         // 기본 구현 없음
     }
 }

@@ -138,7 +138,7 @@ public struct ModuleFactoryManager: Sendable {
     /// ```
     public func registerAll(to container: WeaveDI.Container) async {
         // 1️⃣ WeaveDI.Container.registerAllDependencies() 자동 호출
-        WeaveDI.Container.registerAllDependencies()
+        await WeaveDI.Container.registerAllDependencies()
         #logInfo("✅ WeaveDI.Container.registerAllDependencies() 호출 완료")
 
         // 2️⃣ Repository 모듈들 등록 (있으면)
