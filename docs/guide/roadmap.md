@@ -4,17 +4,23 @@ This document outlines the future development plans, upcoming features, and long
 
 ## Version History & Current Status
 
-### Current Version: 3.1.0 ✅
+### Current Version: 3.2.0 ✅ (Released 2025-10-01)
 
 **Released Features:**
 - ✅ Swift 6.0 full compatibility with strict concurrency
-- ✅ Actor-aware dependency injection
-- ✅ Advanced property wrappers (`@Inject`, `@Factory`, `@SafeInject`)
+- ✅ Actor-aware dependency injection with `@DIContainerActor`
+- ✅ **@Injected Property Wrapper** - TCA-style dependency injection
+- ✅ **AppDI Simplification** - Streamlined app initialization with `AppDIManager`
 - ✅ Runtime optimization with TypeID and lock-free reading
 - ✅ Automatic performance monitoring and optimization suggestions
 - ✅ TCA (The Composable Architecture) integration
 - ✅ Multi-scope dependency management
 - ✅ Comprehensive testing utilities
+- ✅ Bilingual documentation (English & Korean)
+
+**Deprecated:**
+- ⚠️ `@Inject` - Will be removed in 4.0.0 (use `@Injected`)
+- ⚠️ `@SafeInject` - Will be removed in 4.0.0 (use `@Injected`)
 
 **Performance Metrics:**
 - ⚡ 50-80% faster dependency resolution vs v2.x
@@ -23,18 +29,18 @@ This document outlines the future development plans, upcoming features, and long
 
 ## Upcoming Releases
 
-### Version 3.2.0 🚧 (Q1 2025)
+### Version 3.3.0 🚧 (Q1 2026)
 
-**Focus: Developer Experience & Tooling**
+**Focus: Developer Tools & Visualization**
 
 #### New Features
-- 🔧 **WeaveDI Inspector**: Visual dependency graph analysis tool
-- 📊 **Performance Profiler**: Real-time DI performance monitoring
+- 🔧 **WeaveDI Inspector**: Visual dependency graph analysis tool with SwiftUI overlay
+- 📊 **Enhanced Performance Profiler**: Real-time DI performance monitoring dashboard
 - 🎯 **Smart Code Completion**: Enhanced Xcode integration
 - 📝 **Auto-Generated Documentation**: Dependency documentation from code
 
 #### Enhancements
-- 🚀 **Enhanced @Factory**: Support for complex factory patterns
+- 🚀 **Enhanced @Factory**: Support for complex factory patterns with parameters
 - 🔍 **Better Error Messages**: More descriptive runtime error reporting
 - 🧪 **Testing Improvements**: Simplified mock injection patterns
 - ⚙️ **Build-Time Validation**: Compile-time dependency verification
@@ -42,7 +48,7 @@ This document outlines the future development plans, upcoming features, and long
 #### Code Examples (Preview)
 
 ```swift
-// New WeaveDI Inspector Integration
+// WeaveDI Inspector Integration
 #if DEBUG
 import WeaveDIInspector
 
@@ -57,20 +63,12 @@ struct MyApp: App {
 }
 #endif
 
-// Enhanced @Factory with parameters
+// Enhanced @Factory with parameters (planned)
 @Factory(.parameters(userId: String.self, theme: Theme.self))
 var userProfileService: UserProfileService
-
-// Smart error reporting
-@SafeInject var criticalService: CriticalService?
-
-func performCriticalOperation() throws {
-    let service = try criticalService.getValue()
-    // If fails: "CriticalService not registered. Did you forget to call registerCriticalServices() in bootstrap?"
-}
 ```
 
-### Version 3.3.0 📋 (Q2 2025)
+### Version 3.4.0 📋 (Q2 2026)
 
 **Focus: Advanced Architecture Patterns**
 
@@ -345,11 +343,11 @@ We value community input in shaping WeaveDI's future. Here's how you can contrib
 
 | Version | Release Date | Focus | Key Features |
 |---------|-------------|-------|--------------|
-| **v3.1.0** | ✅ Current | Swift 6 & TCA | Concurrency, TCA integration |
-| **v3.2.0** | Q1 2025 | Developer Experience | Inspector, profiler, tooling |
-| **v3.3.0** | Q2 2025 | Architecture | Module system 2.0, scopes |
-| **v3.4.0** | Q3 2025 | Enterprise | Multi-tenant, monitoring |
-| **v4.0.0** | Q4 2025 | AI & Innovation | AI-powered, predictive |
+| **v3.2.0** | ✅ Oct 1, 2025 | TCA-Style DI | @Injected, AppDI Simplification |
+| **v3.1.0** | Sep 27, 2025 | Performance | Runtime optimization, Lock-free |
+| **v3.3.0** | Q1 2026 | Developer Tools | Inspector, Enhanced Profiler |
+| **v3.4.0** | Q2 2026 | Architecture | Module system 2.0, Scopes |
+| **v4.0.0** | Q4 2026 | Breaking Changes | Remove @Inject, @SafeInject |
 
 ---
 

@@ -1,12 +1,13 @@
 {
   "name": "weavedi-docs",
-  "version": "1.0.0",
+  "version": "3.2.0",
   "description": "WeaveDI Documentation with VitePress",
   "type": "module",
   "scripts": {
     "docs:dev": "vitepress dev",
     "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "docs:preview": "vitepress preview",
+    "docs:generate": "bash ../scripts/generate-docs.sh"
   },
   "devDependencies": {
     "vitepress": "^1.0.0",

@@ -13,13 +13,14 @@
 
 참고: 읽기(그래프/통계/최적화 여부)는 UnifiedDI/DIContainer의 동기 헬퍼를 사용하세요. 내부 AutoDIOptimizer의 읽기용 API는 스냅샷 기반 내부용이며 외부 직접 호출은 비권장(Deprecated)입니다.
 
-📖 **문서**: [한국어](README.md) | [English](README-EN.md) | [공식 문서](https://roy-wonji.github.io/WeaveDI/)
+📖 **문서**: [한국어](README.md) | [English](README-EN.md) | [공식 문서](https://roy-wonji.github.io/WeaveDI/) | [로드맵](docs/ko/guide/roadmap.md)
 
 ## 🎯 핵심 특징
 
 - ⚡ **Swift Concurrency 네이티브**: async/await와 Actor 완벽 지원
 - 🔒 **타입 안전성**: 컴파일 타임 타입 검증
-- 📝 **간단한 API**: 3개의 핵심 Property Wrapper만 기억하면 됨
+- 📝 **TCA 스타일 의존성 주입**: `@Injected`로 KeyPath와 타입 기반 주입 지원 (v3.2.0)
+- 🏗️ **AppDI 간소화**: `AppDIManager`로 자동 의존성 등록 (v3.2.0)
 - 🤖 **자동 최적화**: 의존성 그래프, Actor hop 감지, 타입 안전성 검증 자동화
 - 🚀 **런타임 핫패스 최적화**: TypeID + 락-프리 읽기로 50-80% 성능 향상
 - 🧪 **테스트 친화적**: 의존성 모킹과 격리 지원
@@ -30,39 +31,52 @@
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "2.0.0")
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.2.0")
 ]
 ```
 
-### 기본 사용법
+### 기본 사용법 (v3.2.0)
 
 ```swift
 import WeaveDI
 
-// 1. 의존성 등록
-let userService = UnifiedDI.register(UserServiceProtocol.self) {
-    UserService()
-}
-
-// 2. Property Wrapper로 주입
-class ViewController {
-    @Inject var userService: UserServiceProtocol?     // 옵셔널 주입
-    @Factory var generator: PDFGenerator              // 팩토리 (매번 새 인스턴스)
-    @SafeInject var apiService: APIServiceProtocol?   // 안전한 주입
-}
-
-// 3. 안전한 주입 (에러 처리)
-class SafeController {
-    @SafeInject var apiService: APIServiceProtocol?
-
-    func loadData() {
-        do {
-            let service = try apiService.getValue()
-            // 안전하게 사용
-        } catch {
-            // 에러 처리
+// 1. 앱 초기화 - 자동 의존성 등록
+@main
+struct MyApp: App {
+    init() {
+        WeaveDI.Container.bootstrapInTask { @DIContainerActor _ in
+            await AppDIManager.shared.registerDefaultDependencies()
         }
     }
+}
+
+// 2. TCA 스타일 @Injected 사용 (권장)
+class ViewModel {
+    @Injected(\.userService) var userService
+    @Injected(ExchangeUseCaseImpl.self) var exchangeUseCase
+
+    func loadData() async {
+        let data = await userService.fetchData()
+    }
+}
+
+// 3. InjectedKey로 의존성 정의
+extension InjectedValues {
+    var userService: UserServiceProtocol {
+        get { self[UserServiceKey.self] }
+        set { self[UserServiceKey.self] = newValue }
+    }
+}
+
+struct UserServiceKey: InjectedKey {
+    static var currentValue: UserServiceProtocol = UserService()
+}
+
+// ⚠️ 레거시 Property Wrapper (v4.0.0에서 제거 예정)
+class LegacyViewController {
+    @Inject var userService: UserServiceProtocol?     // Deprecated
+    @Factory var generator: PDFGenerator              // 유지됨
+    @SafeInject var apiService: APIServiceProtocol?   // Deprecated
 }
 ```
 
@@ -140,11 +154,14 @@ let sessionService = UnifiedDI.registerScoped(
 
 ### Property Wrapper
 
-| Property Wrapper | 용도 | 예시 |
-|---|---|---|
-| `@Inject` | 기본 주입 (옵셔널/필수) | `@Inject var service: Service?` |
-| `@Factory` | 팩토리 패턴 (새 인스턴스) | `@Factory var generator: Generator` |
-| `@SafeInject` | 안전한 주입 (throws) | `@SafeInject var api: API?` |
+| Property Wrapper | 용도 | 예시 | 상태 |
+|---|---|---|---|
+| `@Injected` | TCA 스타일 주입 (권장) | `@Injected(\.service) var service` | ✅ v3.2.0 |
+| `@Factory` | 팩토리 패턴 (새 인스턴스) | `@Factory var generator: Generator` | ✅ 유지 |
+| `@Inject` | 기본 주입 (레거시) | `@Inject var service: Service?` | ⚠️ v4.0.0 제거 |
+| `@SafeInject` | 안전한 주입 (레거시) | `@SafeInject var api: API?` | ⚠️ v4.0.0 제거 |
+
+> 📖 **마이그레이션 가이드**: [@Injected 문서](docs/ko/api/injected.md) | [AppDI 간소화](docs/ko/guide/appDiSimplification.md)
 
 ### 해결 API
 
@@ -369,6 +386,9 @@ python3 Scripts/plot_bench.py --csv bench.csv --out bench_plot
 
 ### 📚 공식 문서
 - [API 문서](https://roy-wonji.github.io/WeaveDI/documentation/dicontainer)
+- [로드맵 (v3.2.0)](docs/ko/guide/roadmap.md) - 현재 버전 및 향후 계획
+- [@Injected 가이드](docs/ko/api/injected.md) - TCA 스타일 의존성 주입
+- [AppDI 간소화](docs/ko/guide/appDiSimplification.md) - 자동 의존성 등록
 - [자동 최적화 가이드](Sources/WeaveDI.docc/ko.lproj/AutoDIOptimizer.md)
 - [Property Wrapper 가이드](Sources/WeaveDI.docc/ko.lproj/PropertyWrappers.md)
 - [마이그레이션 3.0.0](Sources/WeaveDI.docc/ko.lproj/MIGRATION-3.0.0.md)

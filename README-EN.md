@@ -7,13 +7,14 @@
 
 **A simple and powerful dependency injection framework for modern Swift Concurrency**
 
-📖 **Documentation**: [한국어](README.md) | [English](README-EN.md) | [Official Docs](https://roy-wonji.github.io/WeaveDI/documentation/weavedi)
+📖 **Documentation**: [한국어](README.md) | [English](README-EN.md) | [Official Docs](https://roy-wonji.github.io/WeaveDI/documentation/weavedi) | [Roadmap](docs/guide/roadmap.md)
 
 ## 🎯 Key Features
 
 - ⚡ **Swift Concurrency Native**: Perfect support for async/await and Actor
 - 🔒 **Type Safety**: Compile-time type verification
-- 📝 **Simple API**: Just remember 3 core Property Wrappers
+- 📝 **TCA-Style Dependency Injection**: `@Injected` with KeyPath and type-based access (v3.2.0)
+- 🏗️ **AppDI Simplification**: Automatic dependency registration with `AppDIManager` (v3.2.0)
 - 🤖 **Auto Optimization**: Automated dependency graph, Actor hop detection, type safety verification
 - 🚀 **Runtime Hot-Path Optimization**: 50-80% performance improvement with TypeID + lock-free reads
 - 🧪 **Test Friendly**: Support for dependency mocking and isolation
@@ -24,36 +25,56 @@
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.1.0")
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.2.0")
 ]
 ```
 
-### Basic Usage
+### Basic Usage (v3.2.0)
 
 ```swift
 import WeaveDI
 
-// 1. Register dependencies
-let userService = UnifiedDI.register(UserServiceProtocol.self) {
-    UserService()
+// 1. App initialization - automatic dependency registration
+@main
+struct MyApp: App {
+    init() {
+        WeaveDI.Container.bootstrapInTask { @DIContainerActor _ in
+            await AppDIManager.shared.registerDefaultDependencies()
+        }
+    }
 }
 
-// 2. Inject with Property Wrappers
-class ViewController {
-    @Inject var userService: UserServiceProtocol?     // Optional injection
-    @Factory var generator: PDFGenerator              // Factory (new instance each time)
-    @SafeInject var apiService: APIServiceProtocol?   // Safe injection
+// 2. TCA-style @Injected usage (recommended)
+class ViewModel {
+    @Injected(\.userService) var userService
+    @Injected(ExchangeUseCaseImpl.self) var exchangeUseCase
+
+    func loadData() async {
+        let data = await userService.fetchData()
+    }
 }
 
-// 3. Safe injection (with error handling)
-do {
-    let service: UserService = try await UnifiedDI.resolveSafely(UserService.self)
-} catch {
-    print("Dependency resolution failed: \(error)")
+// 3. Define dependencies with InjectedKey
+extension InjectedValues {
+    var userService: UserServiceProtocol {
+        get { self[UserServiceKey.self] }
+        set { self[UserServiceKey.self] = newValue }
+    }
+}
+
+struct UserServiceKey: InjectedKey {
+    static var currentValue: UserServiceProtocol = UserService()
+}
+
+// ⚠️ Legacy Property Wrappers (will be removed in v4.0.0)
+class LegacyViewController {
+    @Inject var userService: UserServiceProtocol?     // Deprecated
+    @Factory var generator: PDFGenerator              // Maintained
+    @SafeInject var apiService: APIServiceProtocol?   // Deprecated
 }
 ```
 
-## 🚀 Runtime Hot-Path Optimization (v3.1.0)
+## 🚀 Runtime Hot-Path Optimization (v3.2.0)
 
 Micro-optimization features for high-performance applications.
 
@@ -127,11 +148,14 @@ let sessionService = UnifiedDI.registerScoped(
 
 ### Property Wrappers
 
-| Property Wrapper | Purpose | Example |
-|---|---|---|
-| `@Inject` | Basic injection (optional/required) | `@Inject var service: Service?` |
-| `@Factory` | Factory pattern (new instance) | `@Factory var generator: Generator` |
-| `@SafeInject` | Safe injection (throws) | `@SafeInject var api: API?` |
+| Property Wrapper | Purpose | Example | Status |
+|---|---|---|---|
+| `@Injected` | TCA-style injection (recommended) | `@Injected(\.service) var service` | ✅ v3.2.0 |
+| `@Factory` | Factory pattern (new instance) | `@Factory var generator: Generator` | ✅ Maintained |
+| `@Inject` | Basic injection (legacy) | `@Inject var service: Service?` | ⚠️ Removed in v4.0.0 |
+| `@SafeInject` | Safe injection (legacy) | `@SafeInject var api: API?` | ⚠️ Removed in v4.0.0 |
+
+> 📖 **Migration Guide**: [@Injected Documentation](docs/api/injected.md) | [AppDI Simplification](docs/guide/appDiSimplification.md)
 
 ### Resolution API
 
@@ -217,6 +241,9 @@ let service = DIContainer.shared.resolve(UserService.self)
 ## 📖 Documentation
 
 - [Official Documentation](https://roy-wonji.github.io/WeaveDI/documentation/weavedi)
+- [Roadmap (v3.2.0)](docs/guide/roadmap.md) - Current version and future plans
+- [@Injected Guide](docs/api/injected.md) - TCA-style dependency injection
+- [AppDI Simplification](docs/guide/appDiSimplification.md) - Automatic dependency registration
 - [Performance Optimization Guide](PERFORMANCE-OPTIMIZATION.md)
 - [Migration Guide](MIGRATION.md)
 

@@ -4,17 +4,23 @@
 
 ## 버전 기록 및 현재 상태
 
-### 현재 버전: 3.1.0 ✅
+### 현재 버전: 3.2.0 ✅ (2025년 10월 1일 출시)
 
 **출시된 기능:**
 - ✅ 엄격한 동시성을 포함한 Swift 6.0 완전 호환
-- ✅ Actor 인식 의존성 주입
-- ✅ 고급 프로퍼티 래퍼 (`@Inject`, `@Factory`, `@SafeInject`)
+- ✅ `@DIContainerActor`를 통한 Actor 인식 의존성 주입
+- ✅ **@Injected Property Wrapper** - TCA 스타일 의존성 주입
+- ✅ **AppDI 간소화** - `AppDIManager`를 통한 간소화된 앱 초기화
 - ✅ TypeID와 락-프리 읽기를 통한 런타임 최적화
 - ✅ 자동 성능 모니터링 및 최적화 제안
 - ✅ TCA (The Composable Architecture) 통합
 - ✅ 다중 스코프 의존성 관리
 - ✅ 포괄적인 테스팅 유틸리티
+- ✅ 다국어 문서화 (영어 & 한국어)
+
+**지원 중단:**
+- ⚠️ `@Inject` - 4.0.0에서 제거 예정 (`@Injected` 사용)
+- ⚠️ `@SafeInject` - 4.0.0에서 제거 예정 (`@Injected` 사용)
 
 **성능 지표:**
 - ⚡ v2.x 대비 50-80% 빠른 의존성 해결
@@ -23,18 +29,18 @@
 
 ## 예정된 릴리스
 
-### 버전 3.2.0 🚧 (2025년 Q1)
+### 버전 3.3.0 🚧 (2026년 Q1)
 
-**초점: 개발자 경험 및 도구**
+**초점: 개발자 도구 및 시각화**
 
 #### 새로운 기능
-- 🔧 **WeaveDI Inspector**: 시각적 의존성 그래프 분석 도구
-- 📊 **Performance Profiler**: 실시간 DI 성능 모니터링
+- 🔧 **WeaveDI Inspector**: SwiftUI 오버레이를 포함한 시각적 의존성 그래프 분석 도구
+- 📊 **향상된 Performance Profiler**: 실시간 DI 성능 모니터링 대시보드
 - 🎯 **Smart Code Completion**: 향상된 Xcode 통합
 - 📝 **자동 생성 문서**: 코드로부터 의존성 문서 생성
 
 #### 개선사항
-- 🚀 **향상된 @Factory**: 복잡한 팩토리 패턴 지원
+- 🚀 **향상된 @Factory**: 파라미터를 지원하는 복잡한 팩토리 패턴
 - 🔍 **더 나은 오류 메시지**: 더 설명적인 런타임 오류 보고
 - 🧪 **테스팅 개선**: 간소화된 모킹 주입 패턴
 - ⚙️ **빌드 타임 검증**: 컴파일 타임 의존성 검증
@@ -42,7 +48,7 @@
 #### 코드 예제 (미리보기)
 
 ```swift
-// 새로운 WeaveDI Inspector 통합
+// WeaveDI Inspector 통합
 #if DEBUG
 import WeaveDIInspector
 
@@ -57,20 +63,12 @@ struct MyApp: App {
 }
 #endif
 
-// 파라미터를 지원하는 향상된 @Factory
+// 향상된 @Factory (예정)
 @Factory(.parameters(userId: String.self, theme: Theme.self))
 var userProfileService: UserProfileService
-
-// 스마트 에러 보고
-@SafeInject var criticalService: CriticalService?
-
-func performCriticalOperation() throws {
-    let service = try criticalService.getValue()
-    // 실패 시: "CriticalService가 등록되지 않았습니다. bootstrap에서 registerCriticalServices() 호출을 잊으셨나요?"
-}
 ```
 
-### 버전 3.3.0 📋 (2025년 Q2)
+### 버전 3.4.0 📋 (2026년 Q2)
 
 **초점: 고급 아키텍처 패턴**
 
@@ -345,11 +343,11 @@ WeaveDI의 미래를 형성하는 데 커뮤니티의 의견을 중요하게 생
 
 | 버전 | 출시일 | 초점 | 주요 기능 |
 |------|--------|------|----------|
-| **v3.1.0** | ✅ 현재 | Swift 6 & TCA | 동시성, TCA 통합 |
-| **v3.2.0** | 2025년 Q1 | 개발자 경험 | Inspector, 프로파일러, 도구 |
-| **v3.3.0** | 2025년 Q2 | 아키텍처 | 모듈 시스템 2.0, 스코프 |
-| **v3.4.0** | 2025년 Q3 | 엔터프라이즈 | 멀티 테넌트, 모니터링 |
-| **v4.0.0** | 2025년 Q4 | AI 및 혁신 | AI 기반, 예측적 |
+| **v3.2.0** | ✅ 2025년 10월 1일 | TCA 스타일 DI | @Injected, AppDI 간소화 |
+| **v3.1.0** | 2025년 9월 27일 | 성능 | 런타임 최적화, Lock-free |
+| **v3.3.0** | 2026년 Q1 | 개발자 도구 | Inspector, 향상된 프로파일러 |
+| **v3.4.0** | 2026년 Q2 | 아키텍처 | 모듈 시스템 2.0, 스코프 |
+| **v4.0.0** | 2026년 Q4 | 주요 변경 | @Inject, @SafeInject 제거 |
 
 ---
 

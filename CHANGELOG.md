@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.0] - 2025-10-01
+
+### 🎉 Added
+- **@Injected Property Wrapper**: New TCA-style dependency injection inspired by The Composable Architecture
+  - KeyPath-based access: `@Injected(\.apiClient) var apiClient`
+  - Type-based access: `@Injected(ExchangeUseCaseImpl.self) var useCase`
+  - `InjectedKey` protocol for defining dependencies
+  - `InjectedValues` container for managing injected values
+  - `withInjectedValues` for testing and overriding dependencies
+  - Non-mutating access (no `mutating get` required)
+  - Full compile-time type safety
+  - 파일: `Sources/PropertyWrappers/Dependency.swift`
+
+- **AppDI Simplification**: Streamlined app initialization with `AppDIManager`
+  - `bootstrapInTask` with `@DIContainerActor` for actor-safe initialization
+  - `AppDIManager.shared.registerDefaultDependencies()` for automatic registration
+  - Module-based registration with `asyncForEach` for parallel processing
+  - Cleaner app setup with less boilerplate
+  - 파일: `Sources/Core/AppDI/AppDIManager.swift`
+
+### ⚠️ Deprecated
+- **@Inject Property Wrapper**: Will be removed in 4.0.0
+  - Use `@Injected` instead for modern, type-safe dependency injection
+  - Migration guide available at `/docs/guide/migration-3.2.0.md`
+
+- **@SafeInject Property Wrapper**: Will be removed in 4.0.0
+  - Use `@Injected` with proper `InjectedKey` definitions instead
+  - Migration guide available at `/docs/guide/migration-3.2.0.md`
+
+### 📚 Documentation
+- Comprehensive English and Korean documentation for `@Injected`
+  - `/docs/api/injected.md` (English)
+  - `/docs/ko/api/injected.md` (Korean)
+- AppDI Simplification guide with real-world examples
+  - `/docs/guide/appDiSimplification.md` (English)
+  - `/docs/ko/guide/appDiSimplification.md` (Korean)
+- Updated API reference with deprecation notices
+- Migration guides from `@Inject` and `@SafeInject` to `@Injected`
+- VitePress documentation site improvements
+
+### 🔧 Improvements
+- Better actor safety with `@DIContainerActor`
+- Improved Swift 6 concurrency support
+- Enhanced type safety across the framework
+- Performance optimizations in dependency resolution
+
 ## [3.1.0] - 2025-09-27
 
 ### Added

@@ -1,692 +1,146 @@
-# Bootstrap API 참조
+---
+title: Bootstrap
+lang: ko-KR
+---
 
-Bootstrap API는 WeaveDI 컨테이너를 초기화하고 의존성을 구성하는 핵심 메커니즘입니다. 애플리케이션 시작 시 모든 의존성을 등록하고 컨테이너를 준비 상태로 만듭니다.
+# 부트스트랩 가이드 (Bootstrap)
+
+앱 시작 시 의존성을 안전하고 일관되게 준비하는 방법을 소개합니다. WeaveDI는 다양한 부트스트랩 패턴을 제공하여 동기/비동기 초기화, 테스트 격리, 조건부 초기화 등을 유연하게 구성할 수 있습니다.
 
 ## 개요
 
-Bootstrap은 의존성 주입 컨테이너를 설정하는 중앙화된 방법을 제공합니다. 동기 및 비동기 등록 패턴을 모두 지원하며, 복잡한 의존성 그래프와 초기화 순서를 처리할 수 있습니다.
+- 목표: 앱 시작 시점에 필요한 의존성을 한곳에서 명확하게 초기화
+- 특징:
+  - 동기/비동기/혼합 부트스트랩 지원
+  - 전역 컨테이너의 원자적 교체(스레드 안전)
+  - 테스트 격리/리셋 API 제공
+
+## 사용 시점
+
+- AppDelegate/SceneDelegate/앱 엔트리포인트에서 한 번만 호출
+- SwiftUI App 구조에서는 `@main` 진입부 또는 초기 View-Model 구성 시점
+
+## 동기 부트스트랩
 
 ```swift
 import WeaveDI
 
-// 기본 bootstrap 설정
-await WeaveDI.Container.bootstrap { container in
-    container.register(LoggerProtocol.self) { FileLogger() }
-    container.register(CounterRepository.self) { UserDefaultsCounterRepository() }
+await DIContainer.bootstrap { container in
+    container.register(Logger.self) { ConsoleLogger() }
+    container.register(Networking.self) { DefaultNetworking() }
+    container.register(UserRepository.self) { UserRepositoryImpl() }
 }
 
-// 의존성을 사용할 준비 완료
-let logger = WeaveDI.Container.resolve(LoggerProtocol.self)
+// 이후 어디서든 DIContainer.shared.resolve(...) 사용 가능
+let logger = DIContainer.shared.resolve(Logger.self)
 ```
 
-## 핵심 Bootstrap 패턴
+## 비동기 부트스트랩
 
-### 동기 Bootstrap
-
-간단한 의존성의 경우 동기 방식으로 등록할 수 있습니다:
+비동기 초기화가 필요한 경우(예: 원격 설정, 데이터베이스 연결 등)에는 `bootstrapAsync`를 사용합니다.
 
 ```swift
-WeaveDI.Container.bootstrap { container in
-    // 로거 등록
-    container.register(LoggerProtocol.self) {
-        FileLogger(filename: "app.log")
-    }
+let ok = await DIContainer.bootstrapAsync { container in
+    // 예: 원격 설정 로드
+    let config = try await RemoteConfig.load()
+    container.register(AppConfig.self) { config }
 
-    // 설정 서비스 등록
-    container.register(ConfigurationService.self) {
-        AppConfigurationService()
-    }
-
-    // 기본 서비스들 등록
-    container.register(NetworkService.self) {
-        URLSessionNetworkService()
-    }
+    // 예: 비동기 리소스 초기화
+    let db = try await Database.open()
+    container.register(Database.self) { db }
 }
+
+guard ok else { /* 실패 처리 (스플래시/알림/재시도) */ return }
 ```
 
-### 비동기 Bootstrap
+> 참고: `bootstrapAsync`는 실패 시 DEBUG 빌드에선 `fatalError`, RELEASE에선 `false`를 반환하도록 구성할 수 있습니다. 현재 구현은 내부 로깅과 함께 Bool 반환을 제공합니다.
 
-데이터베이스나 네트워크 초기화가 필요한 경우 비동기 방식을 사용합니다:
+## 혼합 부트스트랩 (sync + async)
+
+핵심 의존성은 즉시, 부가 의존성은 비동기로 준비하고 싶을 때 유용합니다.
 
 ```swift
-await WeaveDI.Container.bootstrap { container in
-    // 비동기 데이터베이스 초기화
-    container.register(DatabaseService.self) {
-        let db = CoreDataService()
-        await db.initialize()
-        return db
+@MainActor
+await DIContainer.bootstrapMixed(
+    sync: { container in
+        container.register(Logger.self) { ConsoleLogger() }
+        container.register(Networking.self) { DefaultNetworking() }
+    },
+    async: { container in
+        // 비동기 확장 의존성
+        let analytics = await AnalyticsClient.make()
+        container.register(AnalyticsClient.self) { analytics }
     }
-
-    // 비동기 API 클라이언트 초기화
-    container.register(APIClient.self) {
-        let client = HTTPAPIClient()
-        await client.authenticate()
-        return client
-    }
-}
+)
 ```
 
-## 튜토리얼의 실제 예제
+## 백그라운드 Task에서 부트스트랩
 
-### CountApp Bootstrap 구성
-
-우리 튜토리얼의 CountApp을 기반으로 한 포괄적인 bootstrap 설정입니다:
+앱 시작 지연을 최소화하고 싶을 때 백그라운드에서 비동기 부트스트랩을 수행할 수 있습니다.
 
 ```swift
-/// CountApp의 완전한 의존성 bootstrap 구성
-class CountAppBootstrap {
-    static func configure() async {
-        print("🚀 CountApp 의존성 초기화 시작...")
-
-        await WeaveDI.Container.bootstrap { container in
-            // 1. 핵심 인프라 서비스
-            container.register(LoggerProtocol.self) {
-                FileLogger(
-                    filename: "counter_app.log",
-                    logLevel: .info
-                )
-            }
-
-            // 2. 데이터 계층
-            container.register(CounterRepository.self) {
-                UserDefaultsCounterRepository()
-            }
-
-            // 3. 비즈니스 로직 계층
-            container.register(CounterService.self) {
-                let logger = container.resolve(LoggerProtocol.self)!
-                let repository = container.resolve(CounterRepository.self)!
-                return CounterService(logger: logger, repository: repository)
-            }
-
-            // 4. 고급 기능 - 히스토리 관리
-            container.register(CounterHistoryService.self) {
-                let repository = container.resolve(CounterRepository.self)!
-                let logger = container.resolve(LoggerProtocol.self)!
-                return CounterHistoryService(repository: repository, logger: logger)
-            }
-
-            // 5. 알림 서비스
-            container.register(NotificationService.self) {
-                let logger = container.resolve(LoggerProtocol.self)!
-                return LocalNotificationService(logger: logger)
-            }
-
-            // 6. 데이터 내보내기 서비스
-            container.register(DataExportService.self) {
-                let historyService = container.resolve(CounterHistoryService.self)!
-                let logger = container.resolve(LoggerProtocol.self)!
-                return CSVDataExportService(historyService: historyService, logger: logger)
-            }
-        }
-
-        print("✅ CountApp 의존성 초기화 완료")
-
-        // 초기화 검증
-        await validateBootstrap()
-    }
-
-    private static func validateBootstrap() async {
-        let requiredServices = [
-            (LoggerProtocol.self, "Logger"),
-            (CounterRepository.self, "Repository"),
-            (CounterService.self, "Counter Service"),
-            (CounterHistoryService.self, "History Service"),
-            (NotificationService.self, "Notification Service"),
-            (DataExportService.self, "Export Service")
-        ]
-
-        print("🔍 의존성 검증 중...")
-
-        for (serviceType, serviceName) in requiredServices {
-            let isAvailable = WeaveDI.Container.canResolve(serviceType)
-            let status = isAvailable ? "✅" : "❌"
-            print("\(status) \(serviceName): \(isAvailable ? "사용 가능" : "누락")")
-        }
-    }
-}
-
-/// 향상된 CounterService 구현
-class CounterService {
-    private let logger: LoggerProtocol
-    private let repository: CounterRepository
-
-    init(logger: LoggerProtocol, repository: CounterRepository) {
-        self.logger = logger
-        self.repository = repository
-        self.logger.info("📊 CounterService 초기화됨")
-    }
-
-    func getCurrentCount() async -> Int {
-        let count = await repository.getCurrentCount()
-        logger.debug("📖 현재 카운트 조회: \(count)")
-        return count
-    }
-
-    func increment() async -> Int {
-        let currentCount = await repository.getCurrentCount()
-        let newCount = currentCount + 1
-        await repository.saveCount(newCount)
-
-        logger.info("⬆️ 카운트 증가: \(currentCount) → \(newCount)")
-        return newCount
-    }
-
-    func decrement() async -> Int {
-        let currentCount = await repository.getCurrentCount()
-        let newCount = max(0, currentCount - 1) // 0 이하로 내려가지 않도록
-        await repository.saveCount(newCount)
-
-        logger.info("⬇️ 카운트 감소: \(currentCount) → \(newCount)")
-        return newCount
-    }
-
-    func reset() async {
-        await repository.resetCount()
-        logger.info("🔄 카운트 리셋됨")
-    }
-}
-
-/// CountApp 메인 시작점
-@main
-struct CountApp: App {
-    init() {
-        Task {
-            await CountAppBootstrap.configure()
-        }
-    }
-
-    var body: some Scene {
-        WindowGroup {
-            CounterView()
-                .task {
-                    // 의존성이 준비될 때까지 대기
-                    await waitForDependencies()
-                }
-        }
-    }
-
-    private func waitForDependencies() async {
-        while !WeaveDI.Container.isBootstrapped {
-            try? await Task.sleep(nanoseconds: 10_000_000) // 10ms 대기
-        }
-    }
+DIContainer.bootstrapInTask { container in
+    let featureFlags = try await FeatureFlags.fetch()
+    container.register(FeatureFlags.self) { featureFlags }
 }
 ```
 
-### WeatherApp Bootstrap 구성
+## 조건부 부트스트랩
+
+이미 초기화된 경우는 건너뛰고 싶을 때 사용합니다.
 
 ```swift
-/// WeatherApp의 복잡한 의존성 bootstrap
-class WeatherAppBootstrap {
-    static func configure() async {
-        print("🌤️ WeatherApp 의존성 초기화 시작...")
+let didInit = await DIContainer.bootstrapIfNeeded { container in
+    container.register(Logger.self) { ConsoleLogger() }
+}
 
-        await WeaveDI.Container.bootstrap { container in
-            // 1. 핵심 로깅 시스템
-            container.register(LoggerProtocol.self, name: "main") {
-                FileLogger(filename: "weather_app.log")
-            }
-
-            container.register(LoggerProtocol.self, name: "network") {
-                FileLogger(filename: "network.log")
-            }
-
-            // 2. 네트워크 계층
-            container.register(HTTPClientProtocol.self) {
-                let logger = container.resolve(LoggerProtocol.self, name: "network")!
-                return URLSessionHTTPClient(logger: logger)
-            }
-
-            // 3. 캐시 시스템
-            container.register(CacheServiceProtocol.self) {
-                let logger = container.resolve(LoggerProtocol.self, name: "main")!
-                return CoreDataCacheService(logger: logger)
-            }
-
-            // 4. 날씨 서비스 (의존성 체인)
-            container.register(WeatherServiceProtocol.self) {
-                let httpClient = container.resolve(HTTPClientProtocol.self)!
-                let cache = container.resolve(CacheServiceProtocol.self)!
-                let logger = container.resolve(LoggerProtocol.self, name: "main")!
-                return WeatherService(
-                    httpClient: httpClient,
-                    cache: cache,
-                    logger: logger
-                )
-            }
-
-            // 5. 위치 서비스
-            container.register(LocationServiceProtocol.self) {
-                let logger = container.resolve(LoggerProtocol.self, name: "main")!
-                return CoreLocationService(logger: logger)
-            }
-
-            // 6. 날씨 데이터 분석 서비스
-            container.register(WeatherAnalyticsService.self) {
-                let weatherService = container.resolve(WeatherServiceProtocol.self)!
-                let logger = container.resolve(LoggerProtocol.self, name: "main")!
-                return WeatherAnalyticsService(
-                    weatherService: weatherService,
-                    logger: logger
-                )
-            }
-
-            // 7. 알림 서비스
-            container.register(WeatherNotificationService.self) {
-                let logger = container.resolve(LoggerProtocol.self, name: "main")!
-                return WeatherNotificationService(logger: logger)
-            }
-        }
-
-        print("✅ WeatherApp 의존성 초기화 완료")
-        await printDependencyGraph()
-    }
-
-    private static func printDependencyGraph() async {
-        print("\n📊 WeatherApp 의존성 그래프:")
-        print("┌─ LoggerProtocol (main) → FileLogger")
-        print("├─ LoggerProtocol (network) → FileLogger")
-        print("├─ HTTPClientProtocol → URLSessionHTTPClient")
-        print("│   └── depends on: LoggerProtocol (network)")
-        print("├─ CacheServiceProtocol → CoreDataCacheService")
-        print("│   └── depends on: LoggerProtocol (main)")
-        print("├─ WeatherServiceProtocol → WeatherService")
-        print("│   ├── depends on: HTTPClientProtocol")
-        print("│   ├── depends on: CacheServiceProtocol")
-        print("│   └── depends on: LoggerProtocol (main)")
-        print("├─ LocationServiceProtocol → CoreLocationService")
-        print("│   └── depends on: LoggerProtocol (main)")
-        print("├─ WeatherAnalyticsService")
-        print("│   ├── depends on: WeatherServiceProtocol")
-        print("│   └── depends on: LoggerProtocol (main)")
-        print("└─ WeatherNotificationService")
-        print("    └── depends on: LoggerProtocol (main)")
-    }
+if !didInit {
+    // 이미 준비됨
 }
 ```
 
-## 고급 Bootstrap 패턴
-
-### 환경별 구성
+비동기 버전도 제공합니다.
 
 ```swift
-enum AppEnvironment {
-    case development
-    case staging
-    case production
-}
-
-class EnvironmentBootstrap {
-    static func configure(environment: AppEnvironment) async {
-        await WeaveDI.Container.bootstrap { container in
-            switch environment {
-            case .development:
-                setupDevelopmentServices(container)
-            case .staging:
-                setupStagingServices(container)
-            case .production:
-                setupProductionServices(container)
-            }
-        }
-    }
-
-    private static func setupDevelopmentServices(_ container: WeaveDI.Container) {
-        // 개발 환경용 서비스
-        container.register(LoggerProtocol.self) {
-            ConsoleLogger(logLevel: .debug)
-        }
-
-        container.register(DatabaseService.self) {
-            InMemoryDatabaseService() // 빠른 테스트용
-        }
-
-        container.register(APIClient.self) {
-            MockAPIClient() // 모의 API
-        }
-    }
-
-    private static func setupProductionServices(_ container: WeaveDI.Container) {
-        // 프로덕션 환경용 서비스
-        container.register(LoggerProtocol.self) {
-            FileLogger(logLevel: .error) // 오류만 로깅
-        }
-
-        container.register(DatabaseService.self) {
-            CoreDataService()
-        }
-
-        container.register(APIClient.self) {
-            HTTPAPIClient()
-        }
-    }
+let didInit = await DIContainer.bootstrapAsyncIfNeeded { container in
+    let remote = try await RemoteConfig.load()
+    container.register(RemoteConfig.self) { remote }
 }
 ```
 
-### 모듈화된 Bootstrap
+## 접근 보장(Assert)
+
+부트스트랩 전에 DI에 접근하지 않도록 강제할 때 사용합니다.
 
 ```swift
-protocol BootstrapModule {
-    func configure(_ container: WeaveDI.Container) async
-}
-
-class CoreModule: BootstrapModule {
-    func configure(_ container: WeaveDI.Container) async {
-        container.register(LoggerProtocol.self) { FileLogger() }
-        container.register(ConfigService.self) { AppConfigService() }
-    }
-}
-
-class NetworkModule: BootstrapModule {
-    func configure(_ container: WeaveDI.Container) async {
-        container.register(HTTPClient.self) {
-            let config = container.resolve(ConfigService.self)!
-            return URLSessionHTTPClient(config: config)
-        }
-    }
-}
-
-class ModularBootstrap {
-    private let modules: [BootstrapModule]
-
-    init(modules: [BootstrapModule]) {
-        self.modules = modules
-    }
-
-    func configure() async {
-        await WeaveDI.Container.bootstrap { container in
-            for module in modules {
-                await module.configure(container)
-            }
-        }
-    }
-}
-
-// 사용법
-let bootstrap = ModularBootstrap(modules: [
-    CoreModule(),
-    NetworkModule(),
-    DatabaseModule(),
-    UIModule()
-])
-
-await bootstrap.configure()
+DIContainer.ensureBootstrapped() // 미부트스트랩 시 precondition 실패
 ```
 
-### 조건부 등록
+## 테스트 가이드
+
+테스트마다 깨끗한 컨테이너를 원하면 리셋 API를 사용합니다.
 
 ```swift
-class ConditionalBootstrap {
-    static func configure() async {
-        await WeaveDI.Container.bootstrap { container in
-            // 기본 서비스들
-            container.register(LoggerProtocol.self) { FileLogger() }
+@MainActor
+override func setUp() async throws {
+    try await super.setUp()
+    await DIContainer.resetForTesting() // DEBUG 빌드에서만 허용
 
-            // 플랫폼별 조건부 등록
-            #if os(iOS)
-            container.register(PlatformService.self) { iOSPlatformService() }
-            #elseif os(macOS)
-            container.register(PlatformService.self) { macOSPlatformService() }
-            #endif
-
-            // 기능 플래그 기반 조건부 등록
-            if FeatureFlags.isAnalyticsEnabled {
-                container.register(AnalyticsService.self) { FirebaseAnalytics() }
-            } else {
-                container.register(AnalyticsService.self) { NoOpAnalytics() }
-            }
-
-            // 디버그 빌드에서만 등록
-            #if DEBUG
-            container.register(DebugService.self) { DebugServiceImpl() }
-            #endif
-        }
-    }
+    // 테스트 전용 등록
+    DIContainer.shared.register(MockService.self) { MockService() }
 }
 ```
 
-## 오류 처리 및 검증
+## 베스트 프랙티스
 
-### Bootstrap 검증
+- 한 곳에서만 부트스트랩: 앱 진입점(또는 테스트 setUp)에서 단 한 번
+- 실패 처리 분기: 비동기 부트스트랩은 실패 시 사용자 경험을 고려한 경로 준비
+- 혼합 패턴 권장: 필수 의존성은 동기, 부가 의존성은 비동기 등록
+- 접근 보장: 개발 단계에서는 `ensureBootstrapped()`로 실수 조기 발견
+- 테스트 격리: 각 테스트 시작 전 `resetForTesting()` 호출
 
-```swift
-class BootstrapValidator {
-    static func validate() async throws {
-        // 필수 의존성 확인
-        let requiredDependencies: [Any.Type] = [
-            LoggerProtocol.self,
-            ConfigService.self,
-            NetworkService.self
-        ]
+## 관련 문서
 
-        for dependency in requiredDependencies {
-            guard WeaveDI.Container.canResolve(dependency) else {
-                throw BootstrapError.missingRequiredDependency(dependency)
-            }
-        }
-
-        // 순환 의존성 검사
-        let cycles = WeaveDI.Container.detectCycles()
-        if !cycles.isEmpty {
-            throw BootstrapError.circularDependency(cycles)
-        }
-    }
-}
-
-enum BootstrapError: Error {
-    case missingRequiredDependency(Any.Type)
-    case circularDependency([DependencyCycle])
-    case initializationFailed(String)
-}
-```
-
-### 우아한 실패 처리
-
-```swift
-class GracefulBootstrap {
-    static func configure() async {
-        do {
-            await WeaveDI.Container.bootstrap { container in
-                try await setupPrimaryServices(container)
-            }
-        } catch {
-            print("⚠️ 주 서비스 초기화 실패, 대체 서비스 사용: \(error)")
-            await setupFallbackServices()
-        }
-
-        try? await BootstrapValidator.validate()
-    }
-
-    private static func setupPrimaryServices(_ container: WeaveDI.Container) async throws {
-        // 데이터베이스 연결 등 실패할 수 있는 서비스들
-        container.register(DatabaseService.self) {
-            let db = CoreDataService()
-            try await db.connect()
-            return db
-        }
-    }
-
-    private static func setupFallbackServices() async {
-        await WeaveDI.Container.bootstrap { container in
-            // 인메모리 대체 서비스들
-            container.register(DatabaseService.self) {
-                InMemoryDatabaseService()
-            }
-        }
-    }
-}
-```
-
-## 성능 최적화
-
-### 지연 초기화
-
-```swift
-class LazyBootstrap {
-    static func configure() async {
-        await WeaveDI.Container.bootstrap { container in
-            // 즉시 필요한 서비스들
-            container.register(LoggerProtocol.self) { FileLogger() }
-            container.register(ConfigService.self) { AppConfigService() }
-
-            // 지연 초기화가 필요한 무거운 서비스들
-            container.register(DatabaseService.self) {
-                // 실제 사용될 때까지 초기화 지연
-                LazyDatabaseService()
-            }
-
-            container.register(MLModelService.self) {
-                // 머신러닝 모델은 매우 무거우므로 지연 로딩
-                LazyMLModelService()
-            }
-        }
-    }
-}
-
-class LazyDatabaseService: DatabaseService {
-    private var actualService: DatabaseService?
-
-    func getData() async -> Data {
-        if actualService == nil {
-            actualService = CoreDataService()
-            await actualService?.initialize()
-        }
-        return await actualService?.getData() ?? Data()
-    }
-}
-```
-
-### 병렬 초기화
-
-```swift
-class ParallelBootstrap {
-    static func configure() async {
-        await WeaveDI.Container.bootstrap { container in
-            // 독립적인 서비스들을 병렬로 초기화
-            await withTaskGroup(of: Void.self) { group in
-                group.addTask {
-                    container.register(LoggerProtocol.self) { FileLogger() }
-                }
-
-                group.addTask {
-                    container.register(ConfigService.self) { AppConfigService() }
-                }
-
-                group.addTask {
-                    container.register(CacheService.self) { RedisCacheService() }
-                }
-            }
-
-            // 의존성이 있는 서비스들은 순차적으로
-            container.register(DatabaseService.self) {
-                let config = container.resolve(ConfigService.self)!
-                return CoreDataService(config: config)
-            }
-        }
-    }
-}
-```
-
-## 테스팅과 Bootstrap
-
-### 테스트용 Bootstrap
-
-```swift
-class TestBootstrap {
-    static func configure() async {
-        await WeaveDI.Container.bootstrap { container in
-            // 테스트용 모의 서비스들
-            container.register(LoggerProtocol.self) { TestLogger() }
-            container.register(DatabaseService.self) { MockDatabaseService() }
-            container.register(NetworkService.self) { MockNetworkService() }
-
-            // 실제 비즈니스 로직은 유지
-            container.register(CounterService.self) {
-                let logger = container.resolve(LoggerProtocol.self)!
-                let repository = MockCounterRepository()
-                return CounterService(logger: logger, repository: repository)
-            }
-        }
-    }
-}
-
-class BootstrapTests: XCTestCase {
-    override func setUp() async throws {
-        await WeaveDI.Container.resetForTesting()
-        await TestBootstrap.configure()
-    }
-
-    func testBootstrapConfiguration() async throws {
-        // Bootstrap이 올바르게 구성되었는지 확인
-        XCTAssertTrue(WeaveDI.Container.isBootstrapped)
-
-        // 필수 의존성들이 등록되었는지 확인
-        XCTAssertNotNil(WeaveDI.Container.resolve(LoggerProtocol.self))
-        XCTAssertNotNil(WeaveDI.Container.resolve(DatabaseService.self))
-        XCTAssertNotNil(WeaveDI.Container.resolve(CounterService.self))
-    }
-}
-```
-
-## 모범 사례
-
-### 1. 계층적 등록
-
-```swift
-// ✅ 좋음 - 하위 레벨부터 상위 레벨 순으로
-await WeaveDI.Container.bootstrap { container in
-    // 1. 인프라 계층
-    container.register(LoggerProtocol.self) { FileLogger() }
-    container.register(ConfigService.self) { AppConfigService() }
-
-    // 2. 데이터 계층
-    container.register(DatabaseService.self) { CoreDataService() }
-    container.register(NetworkService.self) { URLSessionNetworkService() }
-
-    // 3. 비즈니스 계층
-    container.register(UserService.self) {
-        let db = container.resolve(DatabaseService.self)!
-        let logger = container.resolve(LoggerProtocol.self)!
-        return UserService(database: db, logger: logger)
-    }
-}
-```
-
-### 2. 명확한 의존성 표현
-
-```swift
-// ✅ 좋음 - 의존성이 명확함
-container.register(WeatherService.self) {
-    let httpClient = container.resolve(HTTPClientProtocol.self)!
-    let cache = container.resolve(CacheServiceProtocol.self)!
-    let logger = container.resolve(LoggerProtocol.self)!
-
-    return WeatherService(
-        httpClient: httpClient,
-        cache: cache,
-        logger: logger
-    )
-}
-```
-
-### 3. 오류 처리
-
-```swift
-// ✅ 좋음 - 오류 상황 고려
-container.register(DatabaseService.self) {
-    do {
-        let service = CoreDataService()
-        await service.initialize()
-        return service
-    } catch {
-        print("⚠️ 데이터베이스 초기화 실패, 인메모리 서비스 사용")
-        return InMemoryDatabaseService()
-    }
-}
-```
-
-## 참고 자료
-
-- [UnifiedDI API](./unifiedDI.md) - 간소화된 DI 인터페이스
-- [DIActor API](./diActor.md) - 스레드 안전 의존성 연산
-- [성능 모니터링 API](./performanceMonitoring.md) - Bootstrap 성능 모니터링
+- <doc:QuickStart>
+- <doc:CoreAPIs>
+- <doc:UnifiedDI>

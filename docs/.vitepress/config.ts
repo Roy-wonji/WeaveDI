@@ -47,9 +47,11 @@ export default defineConfig({
               text: 'Core Concepts',
               collapsed: true,
               items: [
+                { text: '@Injected', link: '/guide/injected' },
                 { text: 'Unified DI', link: '/guide/unifiedDi' },
                 { text: 'Container Usage', link: '/guide/containerUsage' },
-                { text: 'Scopes', link: '/guide/scopes' }
+                { text: 'Scopes', link: '/guide/scopes' },
+                { text: 'AppDI Simplification', link: '/guide/appDiSimplification' }
               ]
             },
             {
@@ -107,9 +109,10 @@ export default defineConfig({
               text: 'Property Wrappers',
               collapsed: true,
               items: [
-                { text: '@Inject', link: '/api/inject' },
+                { text: '@Injected', link: '/api/injected' },
+                { text: '@Inject (Deprecated)', link: '/api/inject' },
                 { text: '@Factory', link: '/api/factory' },
-                { text: '@SafeInject', link: '/api/safeInject' }
+                { text: '@SafeInject (Deprecated)', link: '/api/safeInject' }
               ]
             },
             {
@@ -187,9 +190,11 @@ export default defineConfig({
               text: '핵심 개념',
               collapsed: true,
               items: [
+                { text: '@Injected', link: '/ko/guide/injected' },
                 { text: 'Unified DI', link: '/ko/guide/unifiedDi' },
                 { text: '컨테이너 사용법', link: '/ko/guide/containerUsage' },
-                { text: '스코프', link: '/ko/guide/scopes' }
+                { text: '스코프', link: '/ko/guide/scopes' },
+                { text: 'AppDI 간소화', link: '/ko/guide/appDiSimplification' }
               ]
             },
             {
@@ -247,9 +252,10 @@ export default defineConfig({
               text: 'Property Wrappers',
               collapsed: true,
               items: [
-                { text: '@Inject', link: '/ko/api/inject' },
+                { text: '@Injected', link: '/ko/api/injected' },
+                { text: '@Inject (지원 중단)', link: '/ko/api/inject' },
                 { text: '@Factory', link: '/ko/api/factory' },
-                { text: '@SafeInject', link: '/ko/api/safeInject' }
+                { text: '@SafeInject (지원 중단)', link: '/ko/api/safeInject' }
               ]
             },
             {

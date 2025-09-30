@@ -1,5 +1,7 @@
 # @SafeInject Property Wrapper
 
+> ⚠️ **Deprecation Notice**: `@SafeInject` will be removed in WeaveDI 3.2.0. Please migrate to `@Injected` for modern, TCA-style dependency injection.
+
 The `@SafeInject` property wrapper provides guaranteed dependency injection with compile-time safety and runtime resilience. Unlike `@Inject` which returns optionals, `@SafeInject` ensures your dependencies are always available by implementing sophisticated fallback mechanisms that eliminate nil-related crashes and simplify code structure.
 
 ## Overview
