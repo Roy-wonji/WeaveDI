@@ -17,6 +17,7 @@ import Foundation
 /// struct MyFeature: Reducer {
 ///     @Injected(\.apiClient) var apiClient
 ///     @Injected(\.database) var database
+///     @Injected(ExchangeUseCase.self) var exchangeUseCase  // 타입으로도 가능
 /// }
 ///
 /// // Extension으로 의존성 정의
@@ -29,11 +30,20 @@ import Foundation
 /// ```
 @propertyWrapper
 public struct Injected<Value> {
-    private let keyPath: KeyPath<InjectedValues, Value>
+    private let keyPath: KeyPath<InjectedValues, Value>?
+    private let keyType: (any InjectedKey.Type)?
     private var cachedValue: Value?
 
+    /// KeyPath를 사용한 초기화
     public init(_ keyPath: KeyPath<InjectedValues, Value>) {
         self.keyPath = keyPath
+        self.keyType = nil
+    }
+
+    /// 타입을 직접 사용한 초기화
+    public init<K: InjectedKey>(_ type: K.Type) where K.Value == Value, K.Value: Sendable {
+        self.keyPath = nil
+        self.keyType = type
     }
 
     public var wrappedValue: Value {
@@ -41,10 +51,25 @@ public struct Injected<Value> {
             if let cached = cachedValue {
                 return cached
             }
-            let value = InjectedValues.current[keyPath: keyPath]
+
+            let value: Value
+            if let keyPath = keyPath {
+                value = InjectedValues.current[keyPath: keyPath]
+            } else if let keyType = keyType, let concreteType = keyType as? any InjectedKey.Type {
+                // Use a helper function to bridge the type-erased call
+                value = _getValue(from: concreteType)
+            } else {
+                fatalError("@Injected requires either keyPath or keyType")
+            }
+
             cachedValue = value
             return value
         }
+    }
+
+    // Helper to bridge type-erased access
+    private func _getValue<K: InjectedKey>(from type: K.Type) -> Value where K.Value: Sendable {
+        return InjectedValues.current[type] as! Value
     }
 }
 
@@ -60,7 +85,7 @@ public struct InjectedValues: Sendable {
 
     public init() {}
 
-    /// Subscript for dependency access
+    /// Subscript for dependency access by type
     public subscript<Key: InjectedKey>(key: Key.Type) -> Key.Value where Key.Value: Sendable {
         get {
             if let value = storage[ObjectIdentifier(key)]?.value as? Key.Value {
@@ -72,6 +97,7 @@ public struct InjectedValues: Sendable {
             storage[ObjectIdentifier(key)] = AnySendable(newValue)
         }
     }
+
 }
 
 // MARK: - AnySendable
