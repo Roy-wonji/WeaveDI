@@ -13,15 +13,21 @@ import LogMacro
 
 /// ## 🔧 @Inject - 기본 의존성 주입
 ///
-/// 가장 많이 사용하는 기본 의존성 주입 Property Wrapper입니다.
-/// 옵셔널과 필수 타입을 모두 지원합니다.
+/// TCA의 @Dependency처럼 사용할 수 있는 강력한 의존성 주입 Property Wrapper입니다.
+/// 옵셔널과 필수 타입을 모두 지원하며, 매우 간결한 문법을 제공합니다.
 ///
 /// ### 사용법:
 /// ```swift
 /// class UserViewController {
-///     @Inject var repository: UserRepository?    // 옵셔널 - 없어도 됨
-///     @Inject var logger: Logger                 // 필수 - 반드시 있어야 함
+///     @Inject var repository: UserRepository?    // 옵셔널 - 자동 타입 추론
+///     @Inject var logger: Logger                 // 필수 - 자동 타입 추론
 ///     @Inject(\.customService) var custom: CustomService?  // KeyPath 사용
+/// }
+///
+/// // Reducer에서도 동일하게 사용 가능
+/// struct MyFeature: Reducer {
+///     @Inject var apiClient: APIClient
+///     @Inject var database: Database
 /// }
 /// ```
 @propertyWrapper
@@ -30,6 +36,7 @@ public struct Inject<T> {
     // MARK: - Properties
 
     private let keyPath: KeyPath<WeaveDI.Container, T?>?
+    private var cachedValue: T?
     private let type: T.Type
 
     // MARK: - Initialization
@@ -38,12 +45,14 @@ public struct Inject<T> {
     /// - Parameter keyPath: WeaveDI.Container의 KeyPath
     public init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
         self.keyPath = keyPath
+        self.cachedValue = nil
         self.type = T.self
     }
 
-    /// 타입 추론을 사용한 기본 초기화
+    /// 타입 추론을 사용한 기본 초기화 (가장 많이 사용)
     public init() {
         self.keyPath = nil
+        self.cachedValue = nil
         self.type = T.self
     }
 
@@ -51,60 +60,87 @@ public struct Inject<T> {
     /// - Parameter type: 주입받을 타입
     public init(_ type: T.Type) {
         self.keyPath = nil
+        self.cachedValue = nil
         self.type = type
     }
 
     // MARK: - Property Wrapper Implementation
 
-    /// 옵셔널 타입용 wrappedValue
+    /// 옵셔널 타입용 wrappedValue (캐싱 지원)
     /// 의존성이 없어도 nil을 반환하므로 안전합니다.
     public var wrappedValue: T? {
-        if let keyPath = keyPath {
-            return WeaveDI.Container.live[keyPath: keyPath]
+        mutating get {
+            // 이미 캐시된 값이 있으면 반환
+            if let cached = cachedValue {
+                return cached
+            }
+
+            let resolved: T?
+            if let keyPath = keyPath {
+                resolved = WeaveDI.Container.live[keyPath: keyPath]
+            } else {
+                resolved = WeaveDI.Container.live.resolve(type)
+            }
+
+            // 값이 있으면 캐싱
+            if let resolved = resolved {
+                cachedValue = resolved
+            }
+
+            return resolved
         }
-        return WeaveDI.Container.live.resolve(type)
     }
 }
 
 // MARK: - Non-Optional Type Support
 
 extension Inject where T: AnyObject {
-    /// Non-optional 타입용 wrappedValue
+    /// Non-optional 타입용 wrappedValue (캐싱 지원)
     /// 의존성이 반드시 있어야 하며, 없으면 명확한 에러와 함께 앱이 종료됩니다.
     public var wrappedValue: T {
-        if let keyPath = keyPath {
-            guard let resolved = WeaveDI.Container.live[keyPath: keyPath] else {
-                #if DEBUG
-                fatalError("""
-                🚨 [Inject] 필수 의존성을 찾을 수 없습니다!
-
-                KeyPath: \(keyPath)
-                타입: \(T.self)
-
-                💡 해결방법:
-                   UnifiedDI.register(\\.keyPath) { YourImplementation() }
-                """)
-                #else
-                Log.error("🚨 [Inject] 필수 의존성을 찾을 수 없습니다! KeyPath: \(keyPath), 타입: \(T.self)")
-                // 런타임에서는 빈 구현체나 기본값 반환을 고려할 수 있음
-                // 하지만 일반적으로는 여전히 크래시를 허용하는 것이 안전함
-                fatalError("Required dependency not found")
-                #endif
+        mutating get {
+            // 이미 캐시된 값이 있으면 반환
+            if let cached = cachedValue {
+                return cached
             }
-            return resolved
+
+            let resolved: T?
+            if let keyPath = keyPath {
+                resolved = WeaveDI.Container.live[keyPath: keyPath]
+                guard let value = resolved else {
+                    #if DEBUG
+                    fatalError("""
+                    🚨 [Inject] 필수 의존성을 찾을 수 없습니다!
+
+                    KeyPath: \(keyPath)
+                    타입: \(T.self)
+
+                    💡 해결방법:
+                       UnifiedDI.register(\\.keyPath) { YourImplementation() }
+                    """)
+                    #else
+                    Log.error("🚨 [Inject] 필수 의존성을 찾을 수 없습니다! KeyPath: \(keyPath), 타입: \(T.self)")
+                    fatalError("Required dependency not found")
+                    #endif
+                }
+                cachedValue = value
+                return value
+            } else {
+                resolved = WeaveDI.Container.live.resolve(type)
+                guard let value = resolved else {
+                    fatalError("""
+                    🚨 [Inject] 필수 의존성을 찾을 수 없습니다!
+
+                    타입: \(type)
+
+                    💡 해결방법:
+                       UnifiedDI.register(\(type).self) { YourImplementation() }
+                    """)
+                }
+                cachedValue = value
+                return value
+            }
         }
-
-        guard let resolved = WeaveDI.Container.live.resolve(type) else {
-            fatalError("""
-            🚨 [Inject] 필수 의존성을 찾을 수 없습니다!
-
-            타입: \(type)
-
-            💡 해결방법:
-               UnifiedDI.register(\(type).self) { YourImplementation() }
-            """)
-        }
-        return resolved
     }
 }
 
