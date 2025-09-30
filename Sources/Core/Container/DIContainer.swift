@@ -583,6 +583,51 @@ public enum WeaveDI {
   public typealias Container = DIContainer
 }
 
+// MARK: - Auto Registration Hook
+
+public extension WeaveDI.Container {
+    /// 🎯 모든 의존성을 자동으로 등록하는 훅
+    ///
+    /// 프로젝트에서 이 메서드를 구현하면 ModuleFactoryManager.registerAll()이 자동으로 호출합니다.
+    ///
+    /// ### 사용법:
+    /// ```swift
+    /// // 프로젝트의 AutoDIRegistry.swift
+    /// extension WeaveDI.Container {
+    ///     static func registerRepositories() {
+    ///         _ = UnifiedDI.register(ExchangeRateInterface.self) {
+    ///             ExchangeRepositoryImpl()
+    ///         }
+    ///     }
+    ///
+    ///     static func registerUseCases() {
+    ///         _ = UnifiedDI.register(ExchangeUseCaseImpl.self) {
+    ///             ExchangeUseCaseImpl()
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    static func registerAllDependencies() {
+        // 자동으로 registerRepositories()와 registerUseCases() 호출
+        registerRepositories()
+        registerUseCases()
+
+        #if DEBUG
+        print("✅ WeaveDI.Container.registerAllDependencies() 완료")
+        #endif
+    }
+
+    /// 📦 Repository 등록 (프로젝트에서 오버라이드)
+    static func registerRepositories() {
+        // 기본 구현 없음
+    }
+
+    /// 🔧 UseCase 등록 (프로젝트에서 오버라이드)
+    static func registerUseCases() {
+        // 기본 구현 없음
+    }
+}
+
 /// WeaveDI.Container.live 호환성
 public extension DIContainer {
     static var live: DIContainer {

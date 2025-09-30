@@ -120,26 +120,52 @@ public struct ModuleFactoryManager: Sendable {
     }
 
     /// 모든 모듈을 DI 컨테이너에 등록
+    ///
+    /// WeaveDI.Container에 정의된 registerAllDependencies()를 자동으로 호출합니다.
+    ///
+    /// ### 사용법:
+    /// ```swift
+    /// // 1. WeaveDI.Container에 의존성 정의
+    /// extension WeaveDI.Container {
+    ///     static func registerAllDependencies() {
+    ///         _ = UnifiedDI.register(MyType.self) { MyImpl() }
+    ///     }
+    /// }
+    ///
+    /// // 2. Factory가 자동으로 호출
+    /// let factory = ModuleFactoryManager()
+    /// await factory.registerAll(to: container)
+    /// ```
     public func registerAll(to container: WeaveDI.Container) async {
-        // 1️⃣ @AutoRegister 타입들 자동 로드
-        AutoRegisterCollector.shared.loadAll()
+        // 1️⃣ WeaveDI.Container.registerAllDependencies() 자동 호출
+        WeaveDI.Container.registerAllDependencies()
+        #logInfo("✅ WeaveDI.Container.registerAllDependencies() 호출 완료")
 
-        // 2️⃣ Repository 모듈들 등록
+        // 2️⃣ Repository 모듈들 등록 (있으면)
         let repositoryModules = self.repositoryFactory.makeAllModules()
-        for module in repositoryModules {
-            await container.register(module)
+        if !repositoryModules.isEmpty {
+            for module in repositoryModules {
+                await container.register(module)
+            }
+            #logInfo("✅ Repository 모듈 \(repositoryModules.count)개 등록")
         }
 
-        // 3️⃣ UseCase 모듈들 등록
+        // 3️⃣ UseCase 모듈들 등록 (있으면)
         let useCaseModules = self.useCaseFactory.makeAllModules()
-        for module in useCaseModules {
-            await container.register(module)
+        if !useCaseModules.isEmpty {
+            for module in useCaseModules {
+                await container.register(module)
+            }
+            #logInfo("✅ UseCase 모듈 \(useCaseModules.count)개 등록")
         }
 
-        // 4️⃣ Scope 모듈들 등록
+        // 4️⃣ Scope 모듈들 등록 (있으면)
         let scopeModules = self.scopeFactory.makeAllModules()
-        for module in scopeModules {
-            await container.register(module)
+        if !scopeModules.isEmpty {
+            for module in scopeModules {
+                await container.register(module)
+            }
+            #logInfo("✅ Scope 모듈 \(scopeModules.count)개 등록")
         }
     }
 
@@ -159,6 +185,17 @@ public extension ModuleFactoryManager {
     /// DSL 스타일로 의존성 정의
     mutating func setup(@ModuleDefinitionBuilder _ builder: (inout ModuleFactoryManager) -> Void) {
         builder(&self)
+    }
+
+    /// 🚀 간편 설정: 한 번에 생성하고 등록
+    ///
+    /// ### 사용법:
+    /// ```swift
+    /// await ModuleFactoryManager.createAndRegisterAll(to: container)
+    /// ```
+    static func createAndRegisterAll(to container: WeaveDI.Container) async {
+        let factory = ModuleFactoryManager()
+        await factory.registerAll(to: container)
     }
 }
 
