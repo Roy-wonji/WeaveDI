@@ -106,9 +106,14 @@ public struct AutoRegisterMacro: PeerMacro {
     let uniqueId = "\(protocolName)_\(implementationName)".replacingOccurrences(of: ".", with: "_")
 
     return """
-        private static let __autoRegister_\(uniqueId) = {
-            return UnifiedDI.register(\(protocolName).self) { \(implementationName)() }
-        }()
+        extension \(implementationName) {
+            @available(*, deprecated, message: "This is an auto-generated registration. Do not call directly.")
+            private static let __autoRegister_\(uniqueId): Void = {
+                // 즉시 실행하여 등록
+                _ = UnifiedDI.register(\(protocolName).self) { \(implementationName)() }
+                return ()
+            }()
+        }
         """
   }
 }

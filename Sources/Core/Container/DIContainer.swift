@@ -281,12 +281,18 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
             return result
         }
 
+        // 3. 🤖 @AutoRegister 타입 자동 등록 시도
+        let typeName = String(describing: type)
+        Log.info("🔍 해결: \(typeName) (총 1회)")
+        Log.info("⚠️ Nil 해결 감지: \(typeName)")
+        Log.error("No registered dependency found for \(typeName)")
+        Log.info("💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
+
         // 🚨 자동 타입 안전성 처리
         Task { @DIActor in
             AutoDIOptimizer.shared.handleNilResolution(type)
         }
 
-        Log.error("No registered dependency found for \(String(describing: type))")
         return nil
     }
 
