@@ -69,11 +69,13 @@ export default defineConfig({
               text: 'Integration',
               collapsed: true,
               items: [
+                { text: 'SwiftUI Integration', link: '/guide/swiftuiIntegration' },
                 { text: 'App DI Integration', link: '/guide/appDiIntegration' },
                 { text: 'TCA Integration', link: '/guide/tcaIntegration' },
                 { text: 'Needle Style DI', link: '/guide/needleStyleDi' },
                 { text: 'Dependency Key Patterns', link: '/guide/dependencyKeyPatterns' },
                 { text: 'Bulk Registration DSL', link: '/guide/bulkRegistrationDsl' },
+                { text: 'Multi-Module Projects', link: '/guide/multiModuleProjects' },
                 { text: 'Practical Guide', link: '/guide/practicalGuide' },
                 { text: 'Framework Comparison', link: '/guide/frameworkComparison' }
               ]
@@ -91,7 +93,19 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { text: 'Migration 2.0.0', link: '/guide/migration-2.0.0' },
-                { text: 'Migration 3.0.0', link: '/guide/migration-3.0.0' }
+                { text: 'Migration 3.0.0', link: '/guide/migration-3.0.0' },
+                { text: 'Migration: @Injected', link: '/guide/migrationInjectToInjected' },
+                { text: 'Migration from Other Frameworks', link: '/guide/migrationFromOtherFrameworks' }
+              ]
+            },
+            {
+              text: 'Resources',
+              collapsed: true,
+              items: [
+                { text: 'FAQ', link: '/guide/faq' },
+                { text: 'Best Practices', link: '/guide/bestPractices' },
+                { text: 'Real-World Examples', link: '/guide/realWorldExamples' },
+                { text: 'Troubleshooting', link: '/guide/troubleShooting' }
               ]
             }
           ],
@@ -212,11 +226,13 @@ export default defineConfig({
               text: '통합',
               collapsed: true,
               items: [
+                { text: 'SwiftUI 통합', link: '/guide/swiftuiIntegration' },
                 { text: '앱 DI 통합', link: '/ko/guide/appDiIntegration' },
                 { text: 'TCA 통합', link: '/ko/guide/tcaIntegration' },
                 { text: 'Needle 스타일 DI', link: '/ko/guide/needleStyleDi' },
                 { text: '의존성 키 패턴', link: '/ko/guide/dependencyKeyPatterns' },
                 { text: 'Bulk Registration DSL', link: '/ko/guide/bulkRegistrationDsl' },
+                { text: '멀티 모듈 프로젝트', link: '/guide/multiModuleProjects' },
                 { text: '실전 가이드', link: '/ko/guide/practicalGuide' },
                 { text: '프레임워크 비교', link: '/ko/guide/frameworkComparison' }
               ]
@@ -234,7 +250,19 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { text: '마이그레이션 2.0.0', link: '/ko/guide/migration-2.0.0' },
-                { text: '마이그레이션 3.0.0', link: '/ko/guide/migration-3.0.0' }
+                { text: '마이그레이션 3.0.0', link: '/ko/guide/migration-3.0.0' },
+                { text: '마이그레이션: @Injected', link: '/ko/guide/migrationInjectToInjected' },
+                { text: '다른 프레임워크에서 마이그레이션', link: '/guide/migrationFromOtherFrameworks' }
+              ]
+            },
+            {
+              text: '참고 자료',
+              collapsed: true,
+              items: [
+                { text: 'FAQ', link: '/ko/guide/faq' },
+                { text: '모범 사례', link: '/ko/guide/bestPractices' },
+                { text: '실전 예제', link: '/ko/guide/realWorldExamples' },
+                { text: '문제 해결', link: '/ko/ko/guide/troubleShooting' }
               ]
             }
           ],

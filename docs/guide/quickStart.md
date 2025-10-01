@@ -17,12 +17,12 @@ WeaveDI supports a wide range of Swift versions with optimized features for each
 
 ### Swift Package Manager
 
-Add WeaveDI to your project's Package.swift file. This configuration tells Swift Package Manager to download WeaveDI version 3.1.0 or later from the GitHub repository:
+Add WeaveDI to your project's Package.swift file. This configuration tells Swift Package Manager to download WeaveDI version 3.2.0 or later from the GitHub repository:
 
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.1.0")
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.2.0")
 ],
 targets: [
     .target(
@@ -38,7 +38,7 @@ targets: [
 
 **What this does:**
 - Downloads the WeaveDI framework from the official repository
-- Ensures you get version 3.1.0 or newer (with latest features and bug fixes)
+- Ensures you get version 3.2.0 or newer (with latest features and bug fixes)
 - Integrates seamlessly with your Swift project's build system
 - Enables Swift 6 strict concurrency checking for maximum safety
 
@@ -47,7 +47,7 @@ targets: [
 #### For Swift 6 Projects
 1. File → Add Package Dependencies
 2. Enter: `https://github.com/Roy-wonji/WeaveDI.git`
-3. Choose "Up to Next Major Version" from "3.1.0"
+3. Choose "Up to Next Major Version" from "3.2.0"
 4. Add to Target
 5. **Configure Swift 6 Settings:**
    - Target → Build Settings → Swift Language Version → Swift 6
@@ -57,7 +57,7 @@ targets: [
 1. File → Add Package Dependencies
 2. Enter: `https://github.com/Roy-wonji/WeaveDI.git`
 3. Choose version range that matches your Swift version:
-   - Swift 5.9+: Use latest (3.1.0+)
+   - Swift 5.9+: Use latest (3.2.0+)
    - Swift 5.8: Use 3.0.x branch
    - Swift 5.7: Use 2.x.x for compatibility
 

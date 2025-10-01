@@ -17,12 +17,12 @@ WeaveDI는 다양한 Swift 버전을 지원하며 각 버전에 최적화된 기
 
 ### Swift Package Manager
 
-프로젝트의 Package.swift 파일에 WeaveDI를 추가하세요. 이 설정은 Swift Package Manager가 GitHub 리포지토리에서 WeaveDI 버전 3.1.0 이상을 다운로드하도록 지시합니다:
+프로젝트의 Package.swift 파일에 WeaveDI를 추가하세요. 이 설정은 Swift Package Manager가 GitHub 리포지토리에서 WeaveDI 버전 3.2.0 이상을 다운로드하도록 지시합니다:
 
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.1.0")
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.2.0")
 ],
 targets: [
     .target(
@@ -38,7 +38,7 @@ targets: [
 
 **작동 원리:**
 - 공식 리포지토리에서 WeaveDI 프레임워크를 다운로드합니다
-- 최신 기능과 버그 수정이 포함된 3.1.0 이상 버전을 보장합니다
+- 최신 기능과 버그 수정이 포함된 3.2.0 이상 버전을 보장합니다
 - Swift 프로젝트의 빌드 시스템과 원활하게 통합됩니다
 - 최대 안전성을 위한 Swift 6 엄격한 동시성 검사를 활성화합니다
 
@@ -47,7 +47,7 @@ targets: [
 #### Swift 6 프로젝트용
 1. File → Add Package Dependencies
 2. 입력: `https://github.com/Roy-wonji/WeaveDI.git`
-3. "3.1.0"부터 "Up to Next Major Version" 선택
+3. "3.2.0"부터 "Up to Next Major Version" 선택
 4. Add to Target
 5. **Swift 6 설정 구성:**
    - Target → Build Settings → Swift Language Version → Swift 6
@@ -57,7 +57,7 @@ targets: [
 1. File → Add Package Dependencies
 2. 입력: `https://github.com/Roy-wonji/WeaveDI.git`
 3. Swift 버전에 맞는 버전 범위 선택:
-   - Swift 5.9+: 최신 버전 사용 (3.1.0+)
+   - Swift 5.9+: 최신 버전 사용 (3.2.0+)
    - Swift 5.8: 3.0.x 브랜치 사용
    - Swift 5.7: 호환성을 위해 2.x.x 사용
 
@@ -81,7 +81,7 @@ import WeaveDI
 ```
 
 **사용 가능한 기능:**
-- `@Inject`, `@Factory`, `@SafeInject` 프로퍼티 래퍼 접근
+- `@Injected` (v3.2.0+), `@Factory`, `@Inject` (deprecated), `@SafeInject` (deprecated) 프로퍼티 래퍼 접근
 - UnifiedDI 등록 및 해결 API
 - WeaveDI.Container 부트스트랩 기능
 - 모든 WeaveDI 유틸리티 클래스와 프로토콜
@@ -114,7 +114,31 @@ class UserServiceImpl: UserService {
 
 ### 3. 의존성 등록
 
-WeaveDI의 의존성 주입 컨테이너에 서비스 구현을 등록하세요. 이는 의존성이 요청될 때 WeaveDI가 인스턴스를 생성하는 방법을 알려줍니다. 앱 시작 시, 일반적으로 App delegate나 SwiftUI App 구조체에서 수행하세요:
+#### 권장: @Injected with InjectedKey (v3.2.0+)
+
+```swift
+// 1. InjectedKey 정의
+struct UserServiceKey: InjectedKey {
+    static var liveValue: UserService = UserServiceImpl()
+    static var testValue: UserService = MockUserService()
+}
+
+// 2. InjectedValues 확장
+extension InjectedValues {
+    var userService: UserService {
+        get { self[UserServiceKey.self] }
+        set { self[UserServiceKey.self] = newValue }
+    }
+}
+```
+
+**@Injected 등록 작동 방식:**
+- **InjectedKey 프로토콜**: 의존성의 live 및 test 값을 정의합니다
+- **InjectedValues 확장**: KeyPath 기반 접근자를 제공합니다
+- **타입 안전성**: KeyPath 해결로 컴파일 타임 안전성을 보장합니다
+- **테스트 지원**: `withInjectedValues`로 내장된 테스트 값 지원
+
+#### 레거시: UnifiedDI 등록 (v3.2.0부터 Deprecated)
 
 ```swift
 // 앱 시작 시 등록 - 프로토콜과 구현 간의 바인딩을 생성합니다
@@ -132,13 +156,39 @@ let userService = UnifiedDI.register(UserService.self) {
 
 ### 4. Property Wrapper 사용
 
-이제 WeaveDI의 프로퍼티 래퍼를 사용하여 모든 클래스에서 등록된 서비스를 주입하고 사용하세요. `@Inject` 래퍼는 컨테이너에서 의존성을 자동으로 해결합니다:
+#### 권장: @Injected (v3.2.0+)
+
+```swift
+class UserViewController {
+    // @Injected는 KeyPath를 통해 해결 - 타입 안전하고 TCA 스타일
+    @Injected(\.userService) var userService
+
+    func loadUser() async {
+        // 주입된 서비스를 직접 사용 (non-optional)
+        let user = await userService.fetchUser(id: "123")
+
+        // 가져온 데이터로 UI 업데이트
+        DispatchQueue.main.async {
+            // 여기서 UI를 업데이트하세요
+            print("✅ 사용자 로드됨: \(user?.name ?? "알 수 없음")")
+        }
+    }
+}
+```
+
+**@Injected 작동 방식:**
+- **KeyPath 해결**: `InjectedValues`와 함께 컴파일 타임 안전한 KeyPath 사용
+- **Non-Optional**: 값을 직접 반환 (liveValue 또는 testValue가 폴백)
+- **타입 안전**: 컴파일 타임 타입 검사
+- **TCA 호환**: TCA 개발자에게 친숙한 패턴
+
+#### 레거시: @Inject (v3.2.0부터 Deprecated)
 
 ```swift
 class UserViewController {
     // @Inject는 DI 컨테이너에서 UserService를 자동으로 해결합니다
     // '?'는 옵셔널로 만듭니다 - 서비스가 등록되지 않았어도 앱이 크래시되지 않습니다
-    @Inject var userService: UserService?
+    @Inject var userService: UserService?  // ⚠️ Deprecated
 
     func loadUser() async {
         // 주입된 의존성을 항상 안전하게 언래핑하세요
@@ -167,7 +217,44 @@ class UserViewController {
 
 ## Property Wrapper
 
-### @Inject - 선택적 의존성
+### @Injected - 현대적 의존성 주입 (v3.2.0+)
+
+타입 안전하고 TCA 스타일의 KeyPath 접근을 통한 현대적인 의존성 주입에 `@Injected`를 사용하세요:
+
+```swift
+// InjectedKey 정의
+struct APIClientKey: InjectedKey {
+    static var liveValue: APIClient = URLSessionAPIClient()
+    static var testValue: APIClient = MockAPIClient()
+}
+
+// InjectedValues 확장
+extension InjectedValues {
+    var apiClient: APIClient {
+        get { self[APIClientKey.self] }
+        set { self[APIClientKey.self] = newValue }
+    }
+}
+
+// @Injected 사용
+class ViewModel {
+    @Injected(\.apiClient) var apiClient
+    @Injected(\.userService) var userService
+
+    func loadData() async {
+        let data = await apiClient.fetchData()
+        let user = await userService.fetchUser(id: "123")
+    }
+}
+```
+
+**@Injected를 사용하는 경우:**
+- **모든 새 코드**: 새로운 개발에 권장 (v3.2.0+)
+- **타입 안전성**: 컴파일 타임 타입 검사를 원할 때
+- **TCA 프로젝트**: TCA 개발자에게 친숙한 패턴
+- **테스팅**: `withInjectedValues`로 쉽게 오버라이드
+
+### @Inject - 선택적 의존성 (v3.2.0부터 Deprecated)
 
 대부분의 의존성 주입 시나리오에서 `@Inject`를 사용하세요. 의존성이 등록되지 않았어도 앱을 크래시시키지 않는 안전한 옵셔널 주입을 제공합니다:
 
@@ -201,7 +288,7 @@ class ViewController {
 ```
 
 **@Inject를 사용하는 경우:**
-- **대부분의 시나리오**: 의존성 주입의 주요 선택
+- **레거시 코드**: 기존 코드 유지보수
 - **선택적 의존성**: 중요하지 않지만 있으면 좋은 서비스
 - **안전한 주입**: 누락된 의존성으로 인한 크래시를 방지하고 싶을 때
 - **테스팅**: 실제 서비스를 등록하지 않아 쉽게 모킹 가능
@@ -251,7 +338,7 @@ class DocumentProcessor {
 - **빌더 패턴**: 각 구성마다 새로운 빌더
 - **수명이 짧은 객체**: 지속될 필요가 없는 객체
 
-### @SafeInject - 에러 처리
+### @SafeInject - 에러 처리 (v3.2.0부터 Deprecated)
 
 누락된 의존성에 대한 명시적 오류 처리가 필요할 때 `@SafeInject`를 사용하세요. 이 래퍼는 의존성 해결 실패에 대한 더 많은 제어를 제공합니다:
 
@@ -304,10 +391,12 @@ enum DIError: LocalizedError {
 ```
 
 **@SafeInject를 사용하는 경우:**
-- **중요한 의존성**: 작업에 절대적으로 필요한 서비스
+- **레거시 코드**: 기존 코드 유지보수
 - **오류 보고**: 누락된 의존성에 대한 상세한 오류 정보가 필요할 때
 - **명시적 실패 처리**: `nil`이 충분히 설명적이지 않을 때
 - **프로덕션 디버깅**: 로그에서 더 나은 진단 정보를 얻기 위해
+
+> **참고**: v3.2.0부터는 `@Injected`를 사용하는 것을 권장합니다. `withInjectedValues`를 통한 더 나은 테스트 지원과 타입 안전성을 제공합니다.
 
 ## 고급 기능
 
