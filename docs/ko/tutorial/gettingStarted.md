@@ -183,7 +183,7 @@ class UserServiceImpl: UserService {
         }
 
         // 2단계: 네트워크에서 가져오기
-        // @Inject로 주입된 networkService가 없으면 오류 반환
+        // @Injected로 주입된 networkService가 없으면 오류 반환
         guard let network = networkService else {
             print("❌ NetworkService가 주입되지 않았습니다")
             throw NetworkError.noData
@@ -570,7 +570,7 @@ struct UserProfileApp: App {
             }
 
             // 3. 사용자 서비스 등록 (다른 서비스들에 의존)
-            // UserServiceImpl은 @Inject를 통해 자동으로 의존성이 주입됩니다
+            // UserServiceImpl은 @Injected를 통해 자동으로 의존성이 주입됩니다
             container.register(UserService.self) {
                 print("📦 UserService 생성")
                 return UserServiceImpl()

@@ -1,12 +1,11 @@
 # WeaveDI Property Wrapper 마스터하기
 
-실제 소스 코드 분석을 기반으로 한 WeaveDI의 강력한 프로퍼티 래퍼 시스템 심화 학습. @Inject, @Factory, @SafeInject를 효과적으로 사용하는 방법을 배워보세요.
+실제 소스 코드 분석을 기반으로 한 WeaveDI의 강력한 프로퍼티 래퍼 시스템 심화 학습. @Injected와 @Factory를 효과적으로 사용하는 방법을 배워보세요.
 
 ## 🎯 학습 목표
 
-- **@Inject**: 기본 의존성 주입 패턴
+- **@Injected**: KeyPath 또는 타입 기반 의존성 주입
 - **@Factory**: 매번 새로운 인스턴스 생성
-- **@SafeInject**: 오류 안전 의존성 주입
 - **고급 패턴**: 커스텀 프로퍼티 래퍼
 - **성능 최적화**: Hot path 캐싱
 - **실제 사용법**: 실제 프로젝트의 실용적 예제
@@ -18,52 +17,47 @@
 ### @Injected - 핵심 프로퍼티 래퍼
 
 ```swift
-// 실제 WeaveDI 소스: PropertyWrappers.swift
+// 실제 WeaveDI 소스: Dependency.swift
 @propertyWrapper
-public struct Inject<T> {
-    // 의존성 해결을 위한 내부 저장소
-    private let keyPath: KeyPath<WeaveDI.Container, T?>?
-    private let type: T.Type
+public struct Injected<Value> {
+    private let keyPath: KeyPath<InjectedValues, Value>?
+    private let keyType: (any InjectedKey.Type)?
 
-    // 세 가지 다른 초기화 패턴
-
-    /// 1. KeyPath 기반 초기화 (타입 안전)
+    /// KeyPath 기반 초기화 (타입 안전)
     /// KeyPath를 사용하여 컴파일 타임 안전성 제공
-    public init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
+    public init(_ keyPath: KeyPath<InjectedValues, Value>) {
         self.keyPath = keyPath
-        self.type = T.self
+        self.keyType = nil
     }
 
-    /// 2. 타입 추론 초기화 (가장 일반적)
-    /// Swift가 사용 컨텍스트에서 자동으로 타입을 추론
-    public init() {
+    /// 타입 기반 초기화 (직접 타입 해결용)
+    /// 타입으로 직접 해결해야 할 때 사용
+    public init<K: InjectedKey>(_ type: K.Type) where K.Value == Value, K.Value: Sendable {
         self.keyPath = nil
-        self.type = T.self
-    }
-
-    /// 3. 명시적 타입 초기화 (복잡한 시나리오용)
-    /// 타입을 명시적으로 지정해야 할 때 사용
-    public init(_ type: T.Type) {
-        self.keyPath = nil
-        self.type = type
+        self.keyType = type
     }
 
     // 마법이 일어나는 곳 - 의존성 해결
-    public var wrappedValue: T? {
-        if let keyPath = keyPath {
-            // KeyPath 해결 - 타입 안전하고 빠름
-            return WeaveDI.Container.live[keyPath: keyPath]
+    public var wrappedValue: Value {
+        get {
+            if let keyPath = keyPath {
+                // KeyPath 해결 - 타입 안전하고 빠름
+                return InjectedValues.current[keyPath: keyPath]
+            } else if let keyType = keyType {
+                // 타입 기반 해결
+                return _getValue(from: keyType)
+            } else {
+                fatalError("@Injected requires either keyPath or keyType")
+            }
         }
-        // 표준 타입 해결
-        return WeaveDI.Container.live.resolve(type)
     }
 }
 ```
 
 **🔍 이것이 의미하는 바:**
-- **KeyPath 해결**: `@Inject(\.someService)`를 사용하면 컴파일 타임 안전 KeyPath 사용
-- **타입 해결**: `@Injected var service: SomeService?`를 사용하면 타입으로 해결
-- **옵셔널 반환**: 항상 옵셔널을 반환하여 크래시 방지
+- **KeyPath 해결**: `@Injected(\.someService)`를 사용하면 `InjectedValues`로 컴파일 타임 안전 KeyPath 사용
+- **타입 해결**: `@Injected(SomeKey.self)`를 사용하면 `InjectedKey` 타입으로 해결
+- **옵셔널 아님**: 값을 직접 반환 (liveValue 또는 testValue를 폴백으로 사용)
 
 ### @Factory - 항상 새로운 인스턴스
 
@@ -88,20 +82,20 @@ public struct Factory<T> {
 
     /// 항상 새로운 인스턴스 반환
     public var wrappedValue: T {
+        // 직접 팩토리 - 매번 호출
         if let factory = directFactory {
-            // 직접 팩토리 - 매번 호출
             return factory()
         }
 
+        // KeyPath 팩토리 - 매번 해결
         if let keyPath = keyPath {
-            // KeyPath 팩토리 - 매번 해결하고 호출
-            guard let factoryFunction = WeaveDI.Container.live[keyPath: keyPath] else {
-                fatalError("Factory not registered for keyPath: \(keyPath)")
+            guard let instance = WeaveDI.Container.live[keyPath: keyPath] else {
+                fatalError("🚨 [Factory] KeyPath에 대한 팩토리를 찾을 수 없습니다: \(keyPath)")
             }
-            return factoryFunction
+            return instance
         }
 
-        fatalError("Factory not properly configured")
+        fatalError("🚨 [Factory] 팩토리가 올바르게 설정되지 않았습니다")
     }
 }
 ```
@@ -185,9 +179,9 @@ extension WeaveDI.Container {
 // 그다음 타입 안전 주입 사용
 class DataManager {
     // ✅ 컴파일 타임 체크가 가능한 타입 안전
-    @Inject(\.userRepository) var userRepo: UserRepository?
-    @Inject(\.apiClient) var api: APIClient?
-    @Inject(\.imageCache) var cache: ImageCache?
+    @Injected(\.userRepository) var userRepo: UserRepository?
+    @Injected(\.apiClient) var api: APIClient?
+    @Injected(\.imageCache) var cache: ImageCache?
 
     func syncUserData() async {
         // 컴파일러가 이러한 타입이 올바른지 확인
@@ -336,7 +330,7 @@ class NetworkManager {
 
 2. **타입 안전성을 위해 KeyPath 사용**
    ```swift
-   @Inject(\.userRepository) var repo: UserRepository?
+   @Injected(\.userRepository) var repo: UserRepository?
    ```
 
 3. **상태가 없는 객체에 @Factory 사용**

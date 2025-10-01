@@ -122,7 +122,7 @@ class UserServiceImpl: UserService {
 // MARK: - 의존성 등록
 extension WeaveDI {
     static func registerTCADependencies() async {
-        await Container.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // 핵심 서비스
             container.register(NetworkService.self) {
                 URLSessionNetworkService()
@@ -469,7 +469,7 @@ enum AppEnvironment {
 // MARK: - 환경별 등록
 extension WeaveDI {
     static func registerForEnvironment(_ environment: AppEnvironment) async {
-        await Container.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             switch environment {
             case .development:
                 // 개발 서비스

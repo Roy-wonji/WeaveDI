@@ -737,7 +737,7 @@ class WeaveDIPerformanceBenchmarks: XCTestCase {
     /// Benchmark @Injected property wrapper performance
     /// Compares property wrapper vs direct resolution performance
     func testPropertyWrapperPerformance() {
-        // Setup test class with @Inject
+        // Setup test class with @Injected
         class TestClass {
             @Injected var service: TestService?
         }

@@ -122,7 +122,7 @@ class UserServiceImpl: UserService {
 // MARK: - Dependency Registration
 extension WeaveDI {
     static func registerTCADependencies() async {
-        await Container.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             // Core services
             container.register(NetworkService.self) {
                 URLSessionNetworkService()
@@ -469,7 +469,7 @@ enum AppEnvironment {
 // MARK: - Environment-Specific Registration
 extension WeaveDI {
     static func registerForEnvironment(_ environment: AppEnvironment) async {
-        await Container.bootstrap { container in
+        await WeaveDI.Container.bootstrap { container in
             switch environment {
             case .development:
                 // Development services
@@ -986,6 +986,6 @@ By following the patterns and best practices in this guide, you'll be able to bu
 ## Next Steps
 
 - [Property Wrappers Guide](./propertyWrappers.md) - Deep dive into WeaveDI's injection patterns
-- [Testing Guide](./testing.md) - Advanced testing strategies with WeaveDI
+- [Testing Guide](/tutorial/testing) - Advanced testing strategies with WeaveDI
 - [Performance Optimization](./runtimeOptimization.md) - Optimize your DI container for production
 - [Migration Guide](./migration-3.0.0.md) - Migrate from other DI frameworks

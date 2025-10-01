@@ -182,6 +182,6 @@ struct CurrencyFeature: Reducer {
 
 ## See Also
 
-- [@Factory](./factory.md) - For creating new instances each time
-- [InjectedKey Protocol](./injected-key.md) - Detailed protocol documentation
-- [Testing Guide](./testing.md) - Advanced testing patterns
+- [Property Wrappers](/guide/propertyWrappers) - Complete property wrapper guide
+- [Testing Guide](/tutorial/testing) - Advanced testing patterns
+- [TCA Integration](/guide/tcaIntegration) - Using @Injected with TCA

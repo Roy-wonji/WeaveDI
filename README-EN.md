@@ -66,11 +66,11 @@ struct UserServiceKey: InjectedKey {
     static var currentValue: UserServiceProtocol = UserService()
 }
 
-// ⚠️ Legacy Property Wrappers (will be removed in v4.0.0)
+// ⚠️ Legacy Property Wrappers (Deprecated since v3.2.0)
 class LegacyViewController {
-    @Inject var userService: UserServiceProtocol?     // Deprecated
+    @Inject var userService: UserServiceProtocol?     // Deprecated (v3.2.0+)
     @Factory var generator: PDFGenerator              // Maintained
-    @SafeInject var apiService: APIServiceProtocol?   // Deprecated
+    @SafeInject var apiService: APIServiceProtocol?   // Deprecated (v3.2.0+)
 }
 ```
 
@@ -152,8 +152,8 @@ let sessionService = UnifiedDI.registerScoped(
 |---|---|---|---|
 | `@Injected` | TCA-style injection (recommended) | `@Injected(\.service) var service` | ✅ v3.2.0 |
 | `@Factory` | Factory pattern (new instance) | `@Factory var generator: Generator` | ✅ Maintained |
-| `@Inject` | Basic injection (legacy) | `@Inject var service: Service?` | ⚠️ Removed in v4.0.0 |
-| `@SafeInject` | Safe injection (legacy) | `@SafeInject var api: API?` | ⚠️ Removed in v4.0.0 |
+| `@Inject` | Basic injection (legacy) | `@Inject var service: Service?` | ⚠️ Deprecated v3.2.0 |
+| `@SafeInject` | Safe injection (legacy) | `@SafeInject var api: API?` | ⚠️ Deprecated v3.2.0 |
 
 > 📖 **Migration Guide**: [@Injected Documentation](docs/api/injected.md) | [AppDI Simplification](docs/guide/appDiSimplification.md)
 

@@ -50,7 +50,7 @@ class UserServiceTests: XCTestCase {
 }
 ```
 
-### Testing Services with @Inject
+### Testing Services with @Injected
 
 Based on our tutorial CountApp and WeatherApp examples:
 

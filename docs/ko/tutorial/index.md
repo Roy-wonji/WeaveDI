@@ -6,7 +6,7 @@
 
 ### 초급 튜토리얼
 1. [WeaveDI 시작하기](/ko/tutorial/gettingStarted) - 첫 번째 의존성 주입 설정
-2. [Property Wrapper 실전 활용](/ko/tutorial/propertyWrappers) - @Inject, @Factory, @SafeInject 마스터하기
+2. [Property Wrapper 실전 활용](/ko/tutorial/propertyWrappers) - @Injected, @Factory 마스터하기
 3. [첫 번째 앱 만들기](/ko/tutorial/firstApp) - WeaveDI를 사용한 완전한 iOS 앱
 
 ### 중급 튜토리얼

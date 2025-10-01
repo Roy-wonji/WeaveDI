@@ -1,12 +1,11 @@
 # Mastering WeaveDI Property Wrappers
 
-Deep dive into WeaveDI's powerful property wrapper system based on actual source code analysis. Learn how to use @Inject, @Factory, @SafeInject effectively.
+Deep dive into WeaveDI's powerful property wrapper system based on actual source code analysis. Learn how to use @Injected and @Factory effectively.
 
 ## 🎯 What You'll Learn
 
-- **@Inject**: Basic dependency injection patterns
+- **@Injected**: Dependency injection with KeyPath or type-based resolution
 - **@Factory**: Creating new instances every time
-- **@SafeInject**: Error-safe dependency injection
 - **Advanced patterns**: Custom property wrappers
 - **Performance optimization**: Hot path caching
 - **Real-world usage**: Practical examples from actual projects
@@ -18,52 +17,47 @@ Let's examine the actual WeaveDI property wrapper implementations from `Property
 ### @Injected - The Core Property Wrapper
 
 ```swift
-// From actual WeaveDI source: PropertyWrappers.swift
+// From actual WeaveDI source: Dependency.swift
 @propertyWrapper
-public struct Inject<T> {
-    // Internal storage for dependency resolution
-    private let keyPath: KeyPath<WeaveDI.Container, T?>?
-    private let type: T.Type
+public struct Injected<Value> {
+    private let keyPath: KeyPath<InjectedValues, Value>?
+    private let keyType: (any InjectedKey.Type)?
 
-    // Three different initialization patterns
-
-    /// 1. KeyPath-based initialization (Type-safe)
+    /// KeyPath-based initialization (Type-safe)
     /// This provides compile-time safety by using KeyPaths
-    public init(_ keyPath: KeyPath<WeaveDI.Container, T?>) {
+    public init(_ keyPath: KeyPath<InjectedValues, Value>) {
         self.keyPath = keyPath
-        self.type = T.self
+        self.keyType = nil
     }
 
-    /// 2. Type inference initialization (Most common)
-    /// Swift automatically infers the type from usage context
-    public init() {
+    /// Type-based initialization (For direct type resolution)
+    /// When you need to resolve by type directly
+    public init<K: InjectedKey>(_ type: K.Type) where K.Value == Value, K.Value: Sendable {
         self.keyPath = nil
-        self.type = T.self
-    }
-
-    /// 3. Explicit type initialization (For complex scenarios)
-    /// When you need to be explicit about the type
-    public init(_ type: T.Type) {
-        self.keyPath = nil
-        self.type = type
+        self.keyType = type
     }
 
     // The magic happens here - dependency resolution
-    public var wrappedValue: T? {
-        if let keyPath = keyPath {
-            // KeyPath resolution - type-safe and fast
-            return WeaveDI.Container.live[keyPath: keyPath]
+    public var wrappedValue: Value {
+        get {
+            if let keyPath = keyPath {
+                // KeyPath resolution - type-safe and fast
+                return InjectedValues.current[keyPath: keyPath]
+            } else if let keyType = keyType {
+                // Type-based resolution
+                return _getValue(from: keyType)
+            } else {
+                fatalError("@Injected requires either keyPath or keyType")
+            }
         }
-        // Standard type resolution
-        return WeaveDI.Container.live.resolve(type)
     }
 }
 ```
 
 **🔍 What this means:**
-- **KeyPath Resolution**: When you use `@Inject(\.someService)`, it uses compile-time safe KeyPaths
-- **Type Resolution**: When you use `@Injected var service: SomeService?`, it resolves by type
-- **Optional Return**: Always returns optional to prevent crashes
+- **KeyPath Resolution**: When you use `@Injected(\.someService)`, it uses compile-time safe KeyPaths with `InjectedValues`
+- **Type Resolution**: When you use `@Injected(SomeKey.self)`, it resolves by `InjectedKey` type
+- **Non-Optional Return**: Returns the value directly (use liveValue or testValue as fallback)
 
 ### @Factory - Always New Instances
 
@@ -88,20 +82,20 @@ public struct Factory<T> {
 
     /// Always returns a NEW instance
     public var wrappedValue: T {
+        // Direct factory - call every time
         if let factory = directFactory {
-            // Direct factory - call every time
             return factory()
         }
 
+        // KeyPath factory - resolve every time
         if let keyPath = keyPath {
-            // KeyPath factory - resolve and call every time
-            guard let factoryFunction = WeaveDI.Container.live[keyPath: keyPath] else {
-                fatalError("Factory not registered for keyPath: \(keyPath)")
+            guard let instance = WeaveDI.Container.live[keyPath: keyPath] else {
+                fatalError("🚨 [Factory] Factory not found for keyPath: \(keyPath)")
             }
-            return factoryFunction
+            return instance
         }
 
-        fatalError("Factory not properly configured")
+        fatalError("🚨 [Factory] Factory not properly configured")
     }
 }
 ```
@@ -185,9 +179,9 @@ extension WeaveDI.Container {
 // Then use type-safe injection
 class DataManager {
     // ✅ Type-safe with compile-time checking
-    @Inject(\.userRepository) var userRepo: UserRepository?
-    @Inject(\.apiClient) var api: APIClient?
-    @Inject(\.imageCache) var cache: ImageCache?
+    @Injected(\.userRepository) var userRepo: UserRepository?
+    @Injected(\.apiClient) var api: APIClient?
+    @Injected(\.imageCache) var cache: ImageCache?
 
     func syncUserData() async {
         // Compiler ensures these types are correct
@@ -260,7 +254,7 @@ class DocumentProcessor {
 - **Builder patterns**: Fresh builder for each construction
 - **Formatters**: Avoid shared state issues
 
-### 4. Advanced @SafeInject Pattern
+### 4. Advanced @Injected Pattern
 
 ```swift
 // Custom SafeInject for required dependencies
@@ -467,7 +461,7 @@ class NetworkManager {
 
 2. **Use KeyPaths for type safety**
    ```swift
-   @Inject(\.userRepository) var repo: UserRepository?
+   @Injected(\.userRepository) var repo: UserRepository?
    ```
 
 3. **Use @Factory for stateless objects**

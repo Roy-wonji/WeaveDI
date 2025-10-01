@@ -81,7 +81,7 @@ import WeaveDI
 ```
 
 **What this enables:**
-- Access to `@Inject`, `@Factory`, and `@SafeInject` property wrappers
+- Access to `@Injected` (v3.2.0+), `@Factory`, `@Inject` (deprecated), and `@SafeInject` (deprecated) property wrappers
 - UnifiedDI registration and resolution APIs
 - WeaveDI.Container bootstrap functionality
 - All WeaveDI utility classes and protocols
@@ -114,7 +114,31 @@ class UserServiceImpl: UserService {
 
 ### 3. Register Dependencies
 
-Register your service implementations with WeaveDI's dependency injection container. This tells WeaveDI how to create instances when they're requested. Do this during app startup, typically in your App delegate or SwiftUI App struct:
+#### Recommended: @Injected with InjectedKey (v3.2.0+)
+
+```swift
+// 1. Define InjectedKey
+struct UserServiceKey: InjectedKey {
+    static var liveValue: UserService = UserServiceImpl()
+    static var testValue: UserService = MockUserService()
+}
+
+// 2. Extend InjectedValues
+extension InjectedValues {
+    var userService: UserService {
+        get { self[UserServiceKey.self] }
+        set { self[UserServiceKey.self] = newValue }
+    }
+}
+```
+
+**How @Injected registration works:**
+- **InjectedKey Protocol**: Defines live and test values for the dependency
+- **InjectedValues Extension**: Provides a KeyPath-based accessor
+- **Type Safety**: Compile-time safety with KeyPath resolution
+- **Test Support**: Built-in test value support with `withInjectedValues`
+
+#### Legacy: UnifiedDI Registration (Deprecated v3.2.0)
 
 ```swift
 // Register at app startup - this creates the binding between protocol and implementation
@@ -132,13 +156,39 @@ let userService = UnifiedDI.register(UserService.self) {
 
 ### 4. Use Property Wrappers
 
-Now inject and use your registered services in any class using WeaveDI's property wrappers. The `@Inject` wrapper automatically resolves the dependency from the container:
+#### Recommended: @Injected (v3.2.0+)
+
+```swift
+class UserViewController {
+    // @Injected resolves via KeyPath - type-safe and TCA-style
+    @Injected(\.userService) var userService
+
+    func loadUser() async {
+        // Use the injected service directly (non-optional)
+        let user = await userService.fetchUser(id: "123")
+
+        // Update UI with retrieved data
+        DispatchQueue.main.async {
+            // Update your UI here
+            print("✅ User loaded: \(user?.name ?? "Unknown")")
+        }
+    }
+}
+```
+
+**How @Injected works:**
+- **KeyPath Resolution**: Uses compile-time safe KeyPaths with `InjectedValues`
+- **Non-Optional**: Returns the value directly (liveValue or testValue as fallback)
+- **Type Safe**: Compile-time type checking
+- **TCA Compatible**: Familiar pattern for TCA developers
+
+#### Legacy: @Inject (Deprecated v3.2.0)
 
 ```swift
 class UserViewController {
     // @Inject automatically resolves UserService from the DI container
     // The '?' makes it optional - the app won't crash if service isn't registered
-    @Inject var userService: UserService?
+    @Inject var userService: UserService?  // ⚠️ Deprecated
 
     func loadUser() async {
         // Always safely unwrap injected dependencies
@@ -167,7 +217,44 @@ class UserViewController {
 
 ## Property Wrappers
 
-### @Inject - Optional Dependencies
+### @Injected - Modern Dependency Injection (v3.2.0+)
+
+Use `@Injected` for modern, type-safe dependency injection with TCA-style KeyPath access:
+
+```swift
+// Define InjectedKey
+struct APIClientKey: InjectedKey {
+    static var liveValue: APIClient = URLSessionAPIClient()
+    static var testValue: APIClient = MockAPIClient()
+}
+
+// Extend InjectedValues
+extension InjectedValues {
+    var apiClient: APIClient {
+        get { self[APIClientKey.self] }
+        set { self[APIClientKey.self] = newValue }
+    }
+}
+
+// Use @Injected
+class ViewModel {
+    @Injected(\.apiClient) var apiClient
+    @Injected(\.userService) var userService
+
+    func loadData() async {
+        let data = await apiClient.fetchData()
+        let user = await userService.fetchUser(id: "123")
+    }
+}
+```
+
+**When to use @Injected:**
+- **All new code**: Recommended for all new development (v3.2.0+)
+- **Type safety**: When you want compile-time type checking
+- **TCA projects**: Familiar pattern for TCA developers
+- **Testing**: Easy to override with `withInjectedValues`
+
+### @Inject - Optional Dependencies (Deprecated v3.2.0)
 
 Use `@Inject` for most dependency injection scenarios. It provides safe, optional injection that won't crash your app if a dependency isn't registered:
 

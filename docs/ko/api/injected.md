@@ -184,5 +184,5 @@ struct CurrencyFeature: Reducer {
 ## 참고
 
 - [@Factory](./factory.md) - 매번 새 인스턴스 생성용
-- [InjectedKey 프로토콜](../guide/injected-key.md) - 상세 프로토콜 문서
-- [테스트 가이드](../guide/testing.md) - 고급 테스트 패턴
+- [Property Wrapper 가이드](/ko/guide/propertyWrappers) - 전체 프로퍼티 래퍼 문서
+- [테스트 가이드](/ko/tutorial/testing) - 고급 테스트 패턴

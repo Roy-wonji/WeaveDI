@@ -6,7 +6,7 @@ Complete hands-on tutorials to master WeaveDI from basics to advanced patterns.
 
 ### Beginner Tutorials
 1. [Getting Started with WeaveDI](/tutorial/gettingStarted) - Your first dependency injection setup
-2. [Property Wrappers in Action](/tutorial/propertyWrappers) - Master @Inject, @Factory, @SafeInject
+2. [Property Wrappers in Action](/tutorial/propertyWrappers) - Master @Injected, @Factory
 3. [Building Your First App](/tutorial/firstApp) - Complete iOS app with WeaveDI
 
 ### Intermediate Tutorials

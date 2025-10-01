@@ -5,75 +5,216 @@ lang: en-US
 
 # AutoDIOptimizer
 
-자동 의존성 주입 최적화 시스템
-핵심 추적 및 최적화 기능에 집중한 간소화된 시스템
-## ⚠️ Thread Safety 참고사항
-- 주로 앱 초기화 시 단일 스레드에서 사용됩니다
-- 통계 데이터의 미세한 불일치는 기능에 영향을 주지 않습니다
-- 높은 성능을 위해 복잡한 동기화를 제거했습니다
+Automatic dependency injection optimization system
+Streamlined system focusing on core tracking and optimization features
+
+## ⚠️ Thread Safety Notes
+- Primarily used in single-threaded context during app initialization
+- Minor inconsistencies in statistics data do not affect functionality
+- Complex synchronization removed for high performance
+
+## Basic Usage
 
 ```swift
+import WeaveDI
+
+// AutoDIOptimizer automatically tracks registrations and resolutions
+await WeaveDI.Container.bootstrap { container in
+    container.register(UserService.self) {
+        UserServiceImpl()
+    }
+}
+
+// Access statistics
+let stats = await AutoDIOptimizer.shared.currentStats()
+print("Registered types: \(stats.registeredTypes.count)")
+print("Resolved types: \(stats.resolvedTypes.count)")
+```
+
+## Core API
+
+```swift
+@DIActor
 public final class AutoDIOptimizer {
+    public static let shared = AutoDIOptimizer()
+
+    /// Track type registration
+    public func trackRegistration<T>(_ type: T.Type)
+
+    /// Track type resolution with optimization hints
+    public func trackResolution<T>(_ type: T.Type)
+
+    /// Track dependency relationships
+    public func trackDependency<From, To>(from: From.Type, to: To.Type)
+
+    /// Get current statistics
+    public func currentStats() -> DIStatsSnapshot
+
+    /// Get optimization suggestions
+    public func optimizationSuggestions() -> [String]
+
+    /// Get frequently used types (top N)
+    public func frequentlyUsedTypes(top: Int = 10) -> [(String, Int)]
+
+    /// Detect circular dependencies
+    public func circularDependencies() -> Set<String>
+
+    /// Enable/disable optimization
+    public func setOptimizationEnabled(_ enabled: Bool)
+
+    /// Set log level
+    public func setLogLevel(_ level: LogLevel)
+
+    /// Reset statistics
+    public func reset()
 }
 ```
 
-  /// 디바운스 간격 설정 (50~1000ms 사이 허용, 기본 100ms)
-  /// 의존성 등록 추적 (간단하게!)
-  /// 의존성 해결 추적 (최적화 포함!)
-  /// 의존성 관계 추적 (간단하게!)
-  /// 등록된 타입 목록
-  /// 해결된 타입 목록
-  /// 의존성 관계 목록
-  /// 간단한 통계
-  /// 요약 정보 (최적화 정보 포함)
-  /// 자주 사용되는 타입 TOP N
-  /// 순환 의존성 간단 감지
-  /// 최적화 제안
-  /// 최적화 활성화/비활성화
-  /// 특정 모듈 시작
-  /// 특정 모듈 중지
-  /// 특정 모듈 재시작
-  /// 시스템 건강 상태
-  /// 모든 정보 한번에 보기 (최적화 정보 포함)
-  /// 초기화
-  /// 현재 통계 (기존 API 호환)
-  /// 그래프 시각화 (간단 버전)
-  /// 자주 사용되는 타입들 (Set 버전)
-  /// 감지된 순환 의존성 (Set 버전)
-  /// 특정 타입이 최적화되었는지 확인
-  /// 통계 초기화 (별칭)
-  /// Actor 최적화 제안 (간단 버전)
-  /// 타입 안전성 이슈 감지 (간단 버전)
-  /// 자동 수정된 타입들 (간단 버전)
-  /// Actor hop 통계 (간단 버전)
-  /// 비동기 성능 통계 (간단 버전)
-  /// 최근 그래프 변경사항 (간단 버전)
-  /// 로그 레벨 설정
-  /// 현재 로그 레벨
-  /// Nil 해결 처리 (간단 버전)
-  /// 설정 업데이트 (간단 버전)
+## Statistics Snapshot
 
 ```swift
-public struct ActorOptimization: Sendable {
-  public let suggestion: String
-  public init(suggestion: String) { self.suggestion = suggestion }
+public struct DIStatsSnapshot: Sendable {
+    public let frequentlyUsed: [String: Int]
+    public let registered: Set<String>
+    public let resolved: Set<String>
+    public let dependencies: [(from: String, to: String)]
+    public let logLevel: LogLevel
+    public let graphText: String
 }
 ```
 
-로깅 레벨을 정의하는 열거형
+## Logging Levels
 
 ```swift
 public enum LogLevel: String, CaseIterable, Sendable {
-  /// 모든 로그 출력 (기본값)
-  case all = "all"
-  /// 등록만 로깅
-  case registration = "registration"
-  /// 최적화만 로깅
-  case optimization = "optimization"
-  /// 에러만 로깅
-  case errors = "errors"
-  /// 로깅 끄기
-  case off = "off"
+    /// Log everything (default)
+    case all = "all"
+
+    /// Log registrations only
+    case registration = "registration"
+
+    /// Log optimizations only
+    case optimization = "optimization"
+
+    /// Log errors only
+    case errors = "errors"
+
+    /// Disable logging
+    case off = "off"
 }
 ```
 
+## Optimization Features
+
+### Automatic Hot Path Detection
+
+AutoDIOptimizer automatically detects frequently used types (10+ resolutions) and suggests singleton optimization:
+
+```swift
+// When a type is resolved 10+ times, you'll see:
+// ⚡ 최적화 권장: UserService이 자주 사용됩니다 (싱글톤 고려)
+
+// Consider registering as singleton:
+await WeaveDI.Container.bootstrap { container in
+    container.register(UserService.self, scope: .singleton) {
+        UserServiceImpl()
+    }
+}
+```
+
+### Circular Dependency Detection
+
+```swift
+// Detect circular dependencies
+let circular = await AutoDIOptimizer.shared.circularDependencies()
+if !circular.isEmpty {
+    print("⚠️ Circular dependencies detected:")
+    for cycle in circular {
+        print("  - \(cycle)")
+    }
+}
+```
+
+### Usage Statistics
+
+```swift
+// Get frequently used types
+let topTypes = await AutoDIOptimizer.shared.frequentlyUsedTypes(top: 5)
+print("Top 5 most used types:")
+for (typeName, count) in topTypes {
+    print("  \(typeName): \(count) times")
+}
+```
+
+## Advanced Configuration
+
+### Debounce Interval
+
+Control how often statistics snapshots are taken (50-1000ms):
+
+```swift
+// Set snapshot debounce to 200ms
+await AutoDIOptimizer.shared.setDebounceInterval(ms: 200)
+```
+
+### Custom Log Level
+
+```swift
+// Only log errors
+await AutoDIOptimizer.shared.setLogLevel(.errors)
+
+// Only log optimizations
+await AutoDIOptimizer.shared.setLogLevel(.optimization)
+
+// Disable all logging
+await AutoDIOptimizer.shared.setLogLevel(.off)
+```
+
+## Actor Optimization
+
+```swift
+public struct ActorOptimization: Sendable {
+    public let suggestion: String
+
+    public init(suggestion: String) {
+        self.suggestion = suggestion
+    }
+}
+```
+
+Actor optimization suggestions help identify types that would benefit from actor isolation:
+
+```swift
+// Get actor optimization suggestions
+let suggestions = await AutoDIOptimizer.shared.actorOptimizationSuggestions()
+for suggestion in suggestions {
+    print("💡 \(suggestion.suggestion)")
+}
+```
+
+## Integration with AutoMonitor
+
+AutoDIOptimizer automatically integrates with `AutoMonitor` for module lifecycle tracking:
+
+```swift
+// AutoDIOptimizer automatically notifies AutoMonitor on registration
+await WeaveDI.Container.bootstrap { container in
+    container.register(MyService.self) {
+        MyServiceImpl()  // AutoMonitor.shared.onModuleRegistered() called automatically
+    }
+}
+```
+
+## Best Practices
+
+1. **Keep Optimization Enabled in Development**: Helps identify performance bottlenecks early
+2. **Monitor Frequently Used Types**: Consider singleton scope for types resolved 10+ times
+3. **Check for Circular Dependencies**: Run checks during development and testing
+4. **Adjust Log Level for Production**: Use `.errors` or `.off` in production builds
+5. **Review Statistics Periodically**: Use `currentStats()` to understand your DI graph
+
+## See Also
+
+- [AutoMonitor](./performanceMonitoring.md) - Module lifecycle monitoring
+- [DIActor](./diActor.md) - Actor-based thread-safe DI
+- [Performance Monitoring](./performanceMonitoring.md) - Performance tracking tools

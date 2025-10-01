@@ -370,5 +370,5 @@ extension WeaveDI.Container {
 ## 참고
 
 - [@Injected](../api/injected.md) - 모던 의존성 주입
-- [모듈 시스템](./modules.md) - 모듈 기반 구성
-- [테스트 가이드](./testing.md) - 자동 등록을 사용한 테스트
+- [모듈 시스템](./moduleSystem.md) - 모듈 기반 구성
+- [테스트 가이드](/ko/tutorial/testing) - 자동 등록을 사용한 테스트

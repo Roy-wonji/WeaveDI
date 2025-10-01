@@ -370,5 +370,5 @@ extension WeaveDI.Container {
 ## See Also
 
 - [@Injected](../api/injected.md) - Modern dependency injection
-- [Module System](./modules.md) - Module-based organization
-- [Testing Guide](./testing.md) - Testing with automatic registration
+- [Module System](./moduleSystem.md) - Module-based organization
+- [Testing Guide](/tutorial/testing) - Testing with automatic registration

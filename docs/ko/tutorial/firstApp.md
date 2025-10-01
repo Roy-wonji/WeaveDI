@@ -5,7 +5,7 @@ WeaveDI를 사용하여 간단하면서도 완전한 iOS 카운터 앱을 만들
 ## 🎯 프로젝트 개요
 
 카운터 앱을 통해 다음을 학습합니다:
-- **기본 의존성 주입**: `@Inject` 프로퍼티 래퍼 사용
+- **기본 의존성 주입**: `@Injected` 프로퍼티 래퍼 사용
 - **서비스 레이어 패턴**: 비즈니스 로직과 UI 분리
 - **프로토콜 기반 설계**: 테스트 가능하고 유연한 코드 작성
 - **SwiftUI 통합**: 의존성 주입을 포함한 모던 UI
@@ -146,7 +146,7 @@ struct CounterApp: App {
 
 ### 4단계: 의존성 주입이 포함된 SwiftUI 뷰 생성
 
-`@Inject` 프로퍼티 래퍼로 메인 인터페이스를 구축합니다:
+`@Injected` 프로퍼티 래퍼로 메인 인터페이스를 구축합니다:
 
 ```swift
 // ContentView.swift
@@ -396,7 +396,7 @@ class MockLoggingService: LoggingService {
 
 이 카운터 앱은 다음을 보여줍니다:
 
-1. **프로퍼티 래퍼 사용**: 자동 의존성 해결을 위한 `@Inject`
+1. **프로퍼티 래퍼 사용**: 자동 의존성 해결을 위한 `@Injected`
 2. **프로토콜 기반 설계**: 테스트 가능성을 위한 서비스 인터페이스
 3. **의존성 등록**: DI 컨테이너 설정
 4. **우아한 처리**: 옵셔널 주입된 의존성 다루기
@@ -415,7 +415,7 @@ struct AdvancedCounterView: View {
 
     // 다양한 주입 전략
     @Injected private var counterService: CounterService?          // 옵셔널 주입
-    @SafeInject private var logger: LoggingService?              // 에러 처리를 포함한 안전한 주입
+    @Injected private var logger: LoggingService?              // 에러 처리를 포함한 안전한 주입
     @Factory private var sessionLogger: LoggingService?         // 팩토리 패턴 (접근할 때마다 새 인스턴스)
 
     var body: some View {
@@ -448,7 +448,7 @@ private func setupDependencies() {
 
 이 카운터 앱을 완성한 후:
 
-1. 다양한 프로퍼티 래퍼 타입(`@Factory`, `@SafeInject`) 실험해보기
+1. 다양한 프로퍼티 래퍼 타입(`@Factory`, `@Injected`) 실험해보기
 2. 더 많은 서비스를 추가하고 의존성 체인 만들기
 3. 에러 처리와 엣지 케이스 구현하기
 4. 포괄적인 단위 테스트 작성하기
@@ -459,7 +459,7 @@ private func setupDependencies() {
 - [프로퍼티 래퍼 가이드](/ko/guide/propertyWrappers)
 - [WeaveDI를 사용한 테스팅](/ko/tutorial/testing)
 - [성능 최적화](/ko/tutorial/performanceOptimization)
-- [고급 의존성 주입](/ko/tutorial/advancedFeatures)
+- [고급 패턴](/ko/guide/advancedPatterns)
 
 ---
 

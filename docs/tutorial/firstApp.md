@@ -5,7 +5,7 @@ Create a simple yet complete iOS Counter app using WeaveDI. This tutorial demons
 ## 🎯 Project Overview
 
 We'll build a Counter app that demonstrates:
-- **Basic Dependency Injection**: Using `@Inject` property wrapper
+- **Basic Dependency Injection**: Using `@Injected` property wrapper
 - **Service Layer Pattern**: Separating business logic from UI
 - **Protocol-based Design**: Creating testable and flexible code
 - **SwiftUI Integration**: Modern UI with dependency injection
@@ -146,7 +146,7 @@ struct CounterApp: App {
 
 ### Step 4: Create the SwiftUI View with Dependency Injection
 
-Build the main interface with `@Inject` property wrapper:
+Build the main interface with `@Injected` property wrapper:
 
 ```swift
 // ContentView.swift
@@ -396,7 +396,7 @@ class MockLoggingService: LoggingService {
 
 This Counter app demonstrates:
 
-1. **Property Wrapper Usage**: `@Inject` for automatic dependency resolution
+1. **Property Wrapper Usage**: `@Injected` for automatic dependency resolution
 2. **Protocol-based Design**: Service interfaces for testability
 3. **Dependency Registration**: Setting up the DI container
 4. **Graceful Handling**: Dealing with optional injected dependencies
@@ -415,7 +415,7 @@ struct AdvancedCounterView: View {
 
     // Different injection strategies
     @Injected private var counterService: CounterService?          // Optional injection
-    @SafeInject private var logger: LoggingService?              // Safe injection with error handling
+    @Injected private var logger: LoggingService?              // Safe injection with error handling
     @Factory private var sessionLogger: LoggingService?         // Factory pattern (new instance each access)
 
     var body: some View {
@@ -448,7 +448,7 @@ private func setupDependencies() {
 
 After completing this Counter app:
 
-1. Experiment with different property wrapper types (`@Factory`, `@SafeInject`)
+1. Experiment with different property wrapper types (`@Factory`, `@Injected`)
 2. Add more services and create dependency chains
 3. Implement error handling and edge cases
 4. Write comprehensive unit tests
@@ -459,7 +459,7 @@ After completing this Counter app:
 - [Property Wrappers Guide](/guide/propertyWrappers)
 - [Testing with WeaveDI](/tutorial/testing)
 - [Performance Optimization](/tutorial/performanceOptimization)
-- [Advanced Dependency Injection](/tutorial/advancedFeatures)
+- [Advanced Patterns](/guide/advancedPatterns)
 
 ---
 
