@@ -4,7 +4,11 @@ Complete guide to implementing declarative and type-safe dependency injection us
 
 ## Overview
 
-WeaveDI leverages Swift's Property Wrapper feature to make dependency injection more declarative and intuitive. Through Property Wrappers like `@Inject`, `@Factory`, and `@SafeInject`, you can solve complex dependency management with simple annotations.
+WeaveDI leverages Swift's Property Wrapper feature to make dependency injection more declarative and intuitive. Through Property Wrappers like `@Injected` (recommended), `@Factory`, and legacy wrappers (`@Inject`, `@SafeInject` - deprecated since v3.2.0), you can solve complex dependency management with simple annotations.
+
+::: warning Deprecation Notice
+`@Inject` and `@SafeInject` are **Deprecated (v3.2.0+)**. Use `@Injected` instead for better type safety and TCA-style KeyPath access. See the [migration guide](../api/injected.md) for details.
+:::
 
 ### Swift Version Compatibility
 
@@ -23,11 +27,24 @@ WeaveDI leverages Swift's Property Wrapper feature to make dependency injection 
 - **🧪 Testable**: Easy mock injection for testing
 - **🔄 Thread Safe**: Safe across actors and async contexts
 
-## @Inject - Universal Dependency Injection
+## @Inject - Universal Dependency Injection (Deprecated v3.2.0+)
+
+::: danger Deprecated
+`@Inject` is **deprecated since v3.2.0**. Use `@Injected` instead for better type safety and TCA-style KeyPath access.
+
+**Migration:**
+```swift
+// Old (Deprecated)
+@Inject var userService: UserServiceProtocol?
+
+// New (Recommended)
+@Injected(\.userService) var userService
+```
+:::
 
 ### Basic Usage
 
-`@Inject` is the most commonly used Property Wrapper, supporting both type-based and KeyPath-based injection.
+`@Inject` was the commonly used Property Wrapper, supporting both type-based and KeyPath-based injection. **Now replaced by @Injected.**
 
 #### Swift 6 Enhanced Safety
 

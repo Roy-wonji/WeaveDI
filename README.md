@@ -74,10 +74,13 @@ struct UserServiceKey: InjectedKey {
 
 // ⚠️ 레거시 Property Wrapper (v3.2.0부터 Deprecated)
 class LegacyViewController {
-    @Inject var userService: UserServiceProtocol?     // Deprecated (v3.2.0+)
+    @Inject var userService: UserServiceProtocol?     // (v3.2.0부터 Deprecated)
     @Factory var generator: PDFGenerator              // 유지됨
-    @SafeInject var apiService: APIServiceProtocol?   // Deprecated (v3.2.0+)
+    @SafeInject var apiService: APIServiceProtocol?   // (v3.2.0부터 Deprecated)
 }
+
+// 마이그레이션 가이드: @Injected를 사용하는 것을 권장합니다.
+// 더 나은 타입 안전성과 TCA 스타일 KeyPath 접근을 제공합니다
 ```
 
 ### 부트스트랩(앱 시작 시 초기화)
@@ -158,8 +161,8 @@ let sessionService = UnifiedDI.registerScoped(
 |---|---|---|---|
 | `@Injected` | TCA 스타일 주입 (권장) | `@Injected(\.service) var service` | ✅ v3.2.0 |
 | `@Factory` | 팩토리 패턴 (새 인스턴스) | `@Factory var generator: Generator` | ✅ 유지 |
-| `@Inject` | 기본 주입 (레거시) | `@Inject var service: Service?` | ⚠️ v3.2.0 Deprecated |
-| `@SafeInject` | 안전한 주입 (레거시) | `@SafeInject var api: API?` | ⚠️ v3.2.0 Deprecated |
+| `@Inject` | 기본 주입 (레거시) | `@Inject var service: Service?` | ⚠️ (v3.2.0부터 Deprecated) |
+| `@SafeInject` | 안전한 주입 (레거시) | `@SafeInject var api: API?` | ⚠️ (v3.2.0부터 Deprecated) |
 
 > 📖 **마이그레이션 가이드**: [@Injected 문서](docs/ko/api/injected.md) | [AppDI 간소화](docs/ko/guide/appDiSimplification.md)
 
@@ -452,6 +455,7 @@ print(UnifiedDI.migrateFromNeedle())  // Needle → WeaveDI 마이그레이션 �
 
 ### 3. 단순하면서도 강력한 API
 - **2개 Property Wrapper**만으로 모든 주입 패턴 커버 (`@Injected`, `@Factory`)
+  - 참고: `@Inject`와 `@SafeInject`는 v3.2.0부터 Deprecated. @Injected 사용 권장
 - **타입 안전한** KeyPath 기반 등록
 - **직관적인** 조건부 등록
 

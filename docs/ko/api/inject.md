@@ -1,8 +1,21 @@
-# @Inject 프로퍼티 래퍼
+# @Inject 프로퍼티 래퍼 (v3.2.0부터 Deprecated)
 
-> ⚠️ **지원 중단 안내**: `@Inject`는 WeaveDI 3.2.0에서 제거될 예정입니다. 현대적인 TCA 스타일 의존성 주입을 위해 `@Injected`로 마이그레이션하세요.
+::: danger Deprecated
+`@Inject`는 **v3.2.0부터 Deprecated**입니다. 더 나은 타입 안전성과 TCA 스타일 KeyPath 접근을 위해 `@Injected`로 마이그레이션하세요.
 
-`@Inject` 프로퍼티 래퍼는 클래스와 구조체의 프로퍼티에 자동 의존성 주입을 제공하는 WeaveDI의 핵심 기능입니다. 이는 깔끔하고 선언적인 의존성 관리를 통해 코드의 가독성을 높이고 테스트 가능성을 향상시키는 가장 널리 사용되는 기능입니다.
+**마이그레이션 가이드:**
+```swift
+// 기존 (Deprecated)
+@Inject var userService: UserServiceProtocol?
+
+// 새로운 방식 (권장)
+@Injected(\.userService) var userService
+```
+
+완전한 마이그레이션 가이드는 [@Injected 문서](./injected.md)를 참조하세요.
+:::
+
+`@Inject` 프로퍼티 래퍼는 클래스와 구조체의 프로퍼티에 자동 의존성 주입을 제공했던 WeaveDI의 핵심 기능입니다. **이제 @Injected로 대체되었습니다.**
 
 ## 개요
 

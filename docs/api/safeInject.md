@@ -1,8 +1,25 @@
-# @SafeInject Property Wrapper
+# @SafeInject Property Wrapper (Deprecated v3.2.0+)
 
-> ⚠️ **Deprecation Notice**: `@SafeInject` will be removed in WeaveDI 3.2.0. Please migrate to `@Injected` for modern, TCA-style dependency injection.
+::: danger Deprecated
+`@SafeInject` is **deprecated as of v3.2.0**. Please migrate to `@Injected` for modern, TCA-style dependency injection with better type safety and KeyPath-based access.
 
-The `@SafeInject` property wrapper provides guaranteed dependency injection with compile-time safety and runtime resilience. Unlike `@Inject` which returns optionals, `@SafeInject` ensures your dependencies are always available by implementing sophisticated fallback mechanisms that eliminate nil-related crashes and simplify code structure.
+**Migration Guide:**
+```swift
+// Old (Deprecated)
+@SafeInject(fallback: ConsoleLogger()) var logger: LoggerProtocol
+
+// New (Recommended)
+@Injected(\.logger) var logger
+// Define fallback in InjectedKey:
+struct LoggerKey: InjectedKey {
+    static var currentValue: LoggerProtocol = ConsoleLogger()
+}
+```
+
+See the [@Injected documentation](./injected.md) for complete migration instructions.
+:::
+
+The `@SafeInject` property wrapper provided guaranteed dependency injection with compile-time safety and runtime resilience. **It is now superseded by @Injected.**
 
 ## Overview
 

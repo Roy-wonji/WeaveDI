@@ -1,8 +1,21 @@
-# @Inject Property Wrapper
+# @Inject Property Wrapper (Deprecated v3.2.0+)
 
-> ⚠️ **Deprecation Notice**: `@Inject` will be removed in WeaveDI 3.2.0. Please migrate to `@Injected` for modern, TCA-style dependency injection.
+::: danger Deprecated
+`@Inject` is **deprecated as of v3.2.0**. Please migrate to `@Injected` for modern, TCA-style dependency injection with better type safety and KeyPath-based access.
 
-The `@Inject` property wrapper is a core feature of WeaveDI that provides automatic dependency injection for properties in classes and structs. This is the most widely used feature that enhances code readability and improves testability through clean and declarative dependency management.
+**Migration Guide:**
+```swift
+// Old (Deprecated)
+@Inject var userService: UserServiceProtocol?
+
+// New (Recommended)
+@Injected(\.userService) var userService
+```
+
+See the [@Injected documentation](./injected.md) for complete migration instructions.
+:::
+
+The `@Inject` property wrapper was a core feature of WeaveDI that provided automatic dependency injection for properties in classes and structs. **It is now superseded by @Injected.**
 
 ## Overview
 

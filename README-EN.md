@@ -72,6 +72,8 @@ class LegacyViewController {
     @Factory var generator: PDFGenerator              // Maintained
     @SafeInject var apiService: APIServiceProtocol?   // Deprecated (v3.2.0+)
 }
+
+// Migration note: Use @Injected instead for better type safety and TCA-style KeyPath access
 ```
 
 ## 🚀 Runtime Hot-Path Optimization (v3.2.0)
@@ -152,8 +154,8 @@ let sessionService = UnifiedDI.registerScoped(
 |---|---|---|---|
 | `@Injected` | TCA-style injection (recommended) | `@Injected(\.service) var service` | ✅ v3.2.0 |
 | `@Factory` | Factory pattern (new instance) | `@Factory var generator: Generator` | ✅ Maintained |
-| `@Inject` | Basic injection (legacy) | `@Inject var service: Service?` | ⚠️ Deprecated v3.2.0 |
-| `@SafeInject` | Safe injection (legacy) | `@SafeInject var api: API?` | ⚠️ Deprecated v3.2.0 |
+| `@Inject` | Basic injection (legacy) | `@Inject var service: Service?` | ⚠️ Deprecated (v3.2.0+) |
+| `@SafeInject` | Safe injection (legacy) | `@SafeInject var api: API?` | ⚠️ Deprecated (v3.2.0+) |
 
 > 📖 **Migration Guide**: [@Injected Documentation](docs/api/injected.md) | [AppDI Simplification](docs/guide/appDiSimplification.md)
 

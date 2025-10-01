@@ -1,8 +1,25 @@
-# @SafeInject 프로퍼티 래퍼
+# @SafeInject 프로퍼티 래퍼 (v3.2.0부터 Deprecated)
 
-> ⚠️ **지원 중단 안내**: `@SafeInject`는 WeaveDI 3.2.0에서 제거될 예정입니다. 현대적인 TCA 스타일 의존성 주입을 위해 `@Injected`로 마이그레이션하세요.
+::: danger Deprecated
+`@SafeInject`는 **v3.2.0부터 Deprecated**입니다. 더 나은 타입 안전성과 TCA 스타일 KeyPath 접근을 위해 `@Injected`로 마이그레이션하세요.
 
-`@SafeInject` 프로퍼티 래퍼는 컴파일 타임 안전성과 런타임 회복력을 갖춘 보장된 의존성 주입을 제공합니다. 옵셔널을 반환하는 `@Inject`와 달리, `@SafeInject`는 정교한 대체 메커니즘을 구현하여 nil 관련 크래시를 제거하고 코드 구조를 단순화함으로써 의존성이 항상 사용 가능하도록 보장합니다.
+**마이그레이션 가이드:**
+```swift
+// 기존 (Deprecated)
+@SafeInject(fallback: ConsoleLogger()) var logger: LoggerProtocol
+
+// 새로운 방식 (권장)
+@Injected(\.logger) var logger
+// InjectedKey에서 기본값 정의:
+struct LoggerKey: InjectedKey {
+    static var currentValue: LoggerProtocol = ConsoleLogger()
+}
+```
+
+완전한 마이그레이션 가이드는 [@Injected 문서](./injected.md)를 참조하세요.
+:::
+
+`@SafeInject` 프로퍼티 래퍼는 컴파일 타임 안전성과 런타임 회복력을 갖춘 보장된 의존성 주입을 제공했습니다. **이제 @Injected로 대체되었습니다.**
 
 ## 개요
 
