@@ -597,7 +597,7 @@ Both APIs provide excellent performance and are fully compatible with Swift 6 co
 
 ## See Also
 
-- [Property Wrappers](/guide/propertyWrappers) - Injectable property patterns
-- [Bootstrap Guide](/guide/bootstrap) - Advanced initialization patterns
-- [Module System](/guide/moduleSystem) - Organizing large applications
-- [Auto DI Optimizer](/guide/autoDiOptimizer) - Automatic performance optimization
+- [Property Wrappers](./propertyWrappers.md) - Injectable property patterns
+- [Bootstrap Guide](./bootstrap.md) - Advanced initialization patterns
+- [Module System](./moduleSystem.md) - Organizing large applications
+- [Auto DI Optimizer](./autoDiOptimizer.md) - Automatic performance optimization

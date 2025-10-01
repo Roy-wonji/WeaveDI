@@ -1,381 +1,442 @@
 # Needle 스타일 DI 사용법
 
-Uber Needle에서 WeaveDI로의 완벽한 마이그레이션 가이드입니다.
+WeaveDI에서 Uber의 Needle 프레임워크와 유사한 스타일로 의존성 주입을 사용하는 방법에 대한 가이드입니다.
 
 ## 개요
 
-WeaveDI는 Uber Needle의 모든 핵심 장점을 흡수하면서도 더 나은 개발자 경험을 제공합니다. 이 가이드는 Needle 사용자가 WeaveDI로 마이그레이션할 수 있도록 도움을 제공합니다.
+WeaveDI는 더 나은 개발자 경험을 제공하면서 Needle의 모든 핵심 기능을 제공합니다. 이것은 Needle에서 WeaveDI로 마이그레이션하거나 Needle 스타일로 WeaveDI를 사용하려는 개발자를 위한 완전한 가이드입니다.
 
-## Needle vs WeaveDI 비교
+## 🏆 WeaveDI vs Needle 비교
 
-### 기능 비교
+| 기능 | Needle | WeaveDI | 결과 |
+|---------|--------|---------|--------|
+| **컴파일 타임 안전성** | ✅ 코드 생성 | ✅ 매크로 기반 | **동등** |
+| **런타임 성능** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | **WeaveDI 승리** |
+| **Swift 6 지원** | ⚠️ 제한적 | ✅ 완벽한 네이티브 | **WeaveDI 승리** |
+| **필수 코드 생성** | ❌ 필수 | ✅ 선택 | **WeaveDI 승리** |
+| **학습 곡선** | ❌ 가파름 | ✅ 점진적 | **WeaveDI 승리** |
+| **마이그레이션** | ❌ 전체 전환 | ✅ 점진적 | **WeaveDI 승리** |
 
-| 특징 | Needle | WeaveDI |
-|------|--------|---------|
-| **컴파일타임 안전성** | ✅ | ✅ (더 간편) |
-| **런타임 성능** | ✅ 제로 코스트 | ✅ 제로 코스트 + Actor 최적화 |
-| **Swift 6 지원** | ⚠️ 제한적 | ✅ 완벽 네이티브 |
-| **코드 생성 필요** | ❌ 필수 | ✅ 선택적 |
-| **마이그레이션** | ❌ All-or-nothing | ✅ 점진적 |
-| **Actor 모델 지원** | ❌ | ✅ 완전 지원 |
-| **Property Wrapper** | ❌ | ✅ @Inject, @Factory, @SafeInject |
-| **비동기 지원** | ⚠️ 제한적 | ✅ 네이티브 async/await |
+## 🚀 빠른 시작
 
-## 마이그레이션 가이드
+### 1. Needle 수준 성능 활성화
 
-### 1. Needle Component → WeaveDI Module
-
-#### Needle 방식
 ```swift
-// Needle Component
-protocol UserDependency: Dependency {
-    var userRepository: UserRepository { get }
-    var analyticsService: AnalyticsService { get }
-}
+import WeaveDI
 
-class UserComponent: Component<UserDependency> {
-    var userService: UserService {
-        return UserServiceImpl(
-            repository: dependency.userRepository,
-            analytics: dependency.analyticsService
+@main
+struct MyApp: App {
+    init() {
+        // Needle과 동일한 제로 비용 성능 활성화
+        UnifiedDI.enableStaticOptimization()
+        setupDependencies()
+    }
+}
+```
+
+**빌드 설정 (최대 성능을 위해):**
+```bash
+# Xcode: Build Settings → Other Swift Flags에 추가
+-DUSE_STATIC_FACTORY
+
+# 또는 SPM 명령
+swift build -c release -Xswiftc -DUSE_STATIC_FACTORY
+```
+
+### 2. 컴파일 타임 의존성 검증
+
+```swift
+// Needle의 핵심 장점: 컴파일 타임 안전성
+@DependencyGraph([
+    UserService.self: [NetworkService.self, Logger.self],
+    NetworkService.self: [Logger.self, DatabaseService.self],
+    DatabaseService.self: [Logger.self]
+])
+extension WeaveDI {}
+
+// ✅ 정상: 의존성 그래프가 올바름
+// ❌ 순환 의존성이 있으면 컴파일 에러!
+```
+
+## 📋 Needle 스타일 사용 패턴
+
+### 패턴 1: 컴포넌트 기반 등록
+
+**Needle 방식:**
+```swift
+// Needle 코드
+import NeedleFoundation
+
+class AppComponent: Component<EmptyDependency> {
+    var userService: UserServiceProtocol {
+        return UserServiceImpl(networkService: networkService)
+    }
+
+    var networkService: NetworkServiceProtocol {
+        return NetworkServiceImpl(logger: logger)
+    }
+
+    var logger: LoggerProtocol {
+        return ConsoleLogger()
+    }
+}
+```
+
+**WeaveDI 동등 코드:**
+```swift
+// WeaveDI: 더 간단하고 강력함
+import WeaveDI
+
+extension UnifiedDI {
+    // 컴포넌트 스타일 의존성 설정
+    static func setupAppComponent() {
+        // 기본 서비스
+        _ = register(LoggerProtocol.self) { ConsoleLogger() }
+        _ = register(NetworkServiceProtocol.self) {
+            NetworkServiceImpl(logger: resolve(LoggerProtocol.self)!)
+        }
+        _ = register(UserServiceProtocol.self) {
+            UserServiceImpl(networkService: resolve(NetworkServiceProtocol.self)!)
+        }
+
+        // Needle 스타일 검증
+        _ = validateNeedleStyle(
+            component: AppComponent.self,
+            dependencies: [LoggerProtocol.self, NetworkServiceProtocol.self, UserServiceProtocol.self]
         )
     }
 }
 ```
 
-#### WeaveDI 방식
+### 패턴 2: 계층적 의존성 구조
+
+**WeaveDI에서 Needle 스타일 계층 구조:**
 ```swift
-// WeaveDI Module
-class UserModule {
-    static func register() {
-        // 의존성 등록
-        UnifiedDI.register(UserRepository.self) {
-            UserRepositoryImpl()
-        }
-        
-        UnifiedDI.register(AnalyticsService.self) {
-            AnalyticsServiceImpl()
-        }
-        
-        // UserService 등록 (의존성 자동 주입)
-        UnifiedDI.register(UserService.self) {
-            UserServiceImpl(
-                repository: UnifiedDI.resolve(UserRepository.self)!,
-                analytics: UnifiedDI.resolve(AnalyticsService.self)!
+// 1. 루트 컴포넌트 (앱 전체 공통)
+extension UnifiedDI {
+    static func setupRootComponent() {
+        _ = register(Logger.self) { OSLogger() }
+        _ = register(NetworkClient.self) { URLSessionClient() }
+        _ = register(DatabaseClient.self) { CoreDataClient() }
+    }
+}
+
+// 2. 기능 컴포넌트 (기능별)
+extension UnifiedDI {
+    static func setupUserFeature() {
+        _ = register(UserRepository.self) {
+            UserRepositoryImpl(
+                network: resolve(NetworkClient.self)!,
+                database: resolve(DatabaseClient.self)!
             )
         }
-    }
-}
-```
-
-### 2. Needle Dependency Injection → Property Wrappers
-
-#### Needle 방식
-```swift
-class UserViewController: UIViewController {
-    private let userService: UserService
-    
-    init(userService: UserService) {
-        self.userService = userService
-        super.init(nibName: nil, bundle: nil)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}
-```
-
-#### WeaveDI 방식
-```swift
-class UserViewController: UIViewController {
-    @Inject var userService: UserService?
-    
-    // 또는 필수 의존성인 경우
-    // @SafeInject var userService: UserService?
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        guard let service = userService else {
-            print("UserService not available")
-            return
+        _ = register(UserService.self) {
+            UserServiceImpl(repository: resolve(UserRepository.self)!)
         }
-        
-        // 서비스 사용
     }
-}
-```
 
-### 3. Needle PluginizedBuilder → WeaveDI Factory
-
-#### Needle 방식
-```swift
-protocol UserBuilder {
-    var userComponent: UserComponent { get }
-}
-
-class UserComponentBuilder: Builder<UserDependency>, UserBuilder {
-    var userComponent: UserComponent {
-        return UserComponent(parent: self)
-    }
-}
-```
-
-#### WeaveDI 방식
-```swift
-class UserFactory {
-    @Factory var userService: UserService
-    
-    func createUserViewController() -> UserViewController {
-        let controller = UserViewController()
-        // Property wrapper가 자동으로 의존성 주입
-        return controller
-    }
-}
-```
-
-## 점진적 마이그레이션 전략
-
-### 1단계: 기본 등록 변환
-
-```swift
-// 1. 기존 Needle Component를 WeaveDI 등록으로 변환
-class MigrationModule {
-    static func registerLegacyServices() {
-        // UserService 등록
-        UnifiedDI.register(UserService.self) {
-            // 기존 Needle Component 로직을 여기로 이동
-            UserServiceImpl()
+    static func setupAuthFeature() {
+        _ = register(AuthRepository.self) {
+            AuthRepositoryImpl(network: resolve(NetworkClient.self)!)
+        }
+        _ = register(AuthService.self) {
+            AuthServiceImpl(repository: resolve(AuthRepository.self)!)
         }
     }
 }
 
-// 2. AppDelegate에서 초기화
+// 3. 컴파일 타임 그래프 검증
+@DependencyGraph([
+    UserService.self: [UserRepository.self],
+    UserRepository.self: [NetworkClient.self, DatabaseClient.self],
+    AuthService.self: [AuthRepository.self],
+    AuthRepository.self: [NetworkClient.self],
+    NetworkClient.self: [Logger.self],
+    DatabaseClient.self: [Logger.self]
+])
+extension WeaveDI {}
+```
+
+### 패턴 3: 고성능 해결 (Needle 수준)
+
+```swift
+class PerformanceCriticalViewModel {
+    // 일반 사용 (편의성 우선)
+    @Inject private var userService: UserService?
+
+    // 필요한 곳에서 고성능 (Needle 수준 제로 비용)
+    func performanceHotPath() {
+        // 정적 해결: 런타임 오버헤드 완전 제거
+        let fastUserService = UnifiedDI.staticResolve(UserService.self)
+
+        // 루프에서 최적화
+        for _ in 0..<10000 {
+            // 매번 해결하는 대신 캐시된 인스턴스 사용
+            fastUserService?.performQuickOperation()
+        }
+    }
+}
+```
+
+## 🔄 Needle 마이그레이션 가이드
+
+### 단계별 마이그레이션
+
+```swift
+// 1. 마이그레이션 가이드 확인
+func checkMigrationGuide() {
+    print(UnifiedDI.migrateFromNeedle())
+    // 상세한 단계별 가이드 출력
+
+    print(UnifiedDI.needleMigrationBenefits())
+    // 마이그레이션 이점 분석
+}
+
+// 2. 점진적 마이그레이션 (Needle의 전체 전환과 다름)
+class HybridApproach {
+    // 기존 Needle 코드 유지
+    private let legacyService = NeedleContainer.resolve(LegacyService.self)
+
+    // 새 코드에만 WeaveDI 사용
+    @Inject private var newService: NewService?
+
+    func migrate() {
+        // 하나씩 점진적으로 변경 가능
+        let mixedResult = legacyService.work() + (newService?.work() ?? "")
+    }
+}
+```
+
+### 자동 변환 도구
+
+```swift
+// 자동 Needle 컴포넌트 검증
+extension UnifiedDI {
+    static func validateNeedleComponent() -> Bool {
+        // 기존 Needle 스타일 의존성 검증
+        let dependencies: [Any.Type] = [
+            UserService.self,
+            NetworkService.self,
+            Logger.self
+        ]
+
+        return validateNeedleStyle(
+            component: AppComponent.self,
+            dependencies: dependencies
+        )
+    }
+}
+```
+
+## 🎯 실제 프로젝트 적용
+
+### 대규모 앱 구조 예제
+
+```swift
+// AppDelegate.swift
 class AppDelegate: UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        
-        // WeaveDI 초기화
-        MigrationModule.registerLegacyServices()
-        
+
+        // Needle 수준 성능 활성화
+        UnifiedDI.enableStaticOptimization()
+
+        // 계층적 의존성 설정
+        setupCoreDependencies()
+        setupFeatureDependencies()
+        setupUIDependencies()
+
+        // 의존성 그래프 검증
+        validateDependencyGraph()
+
         return true
     }
+
+    private func setupCoreDependencies() {
+        // 핵심 레이어 (Needle의 Root Component와 유사)
+        _ = UnifiedDI.register(Logger.self) { OSLogger() }
+        _ = UnifiedDI.register(NetworkClient.self) { URLSessionClient() }
+        _ = UnifiedDI.register(DatabaseClient.self) { CoreDataClient() }
+        _ = UnifiedDI.register(CacheClient.self) { NSCacheClient() }
+    }
+
+    private func setupFeatureDependencies() {
+        // 비즈니스 레이어 (Needle의 Feature Component와 유사)
+        _ = UnifiedDI.register(UserRepository.self) { UserRepositoryImpl() }
+        _ = UnifiedDI.register(AuthRepository.self) { AuthRepositoryImpl() }
+        _ = UnifiedDI.register(ProductRepository.self) { ProductRepositoryImpl() }
+
+        _ = UnifiedDI.register(UserService.self) { UserServiceImpl() }
+        _ = UnifiedDI.register(AuthService.self) { AuthServiceImpl() }
+        _ = UnifiedDI.register(ProductService.self) { ProductServiceImpl() }
+    }
+
+    private func setupUIDependencies() {
+        // 프레젠테이션 레이어
+        _ = UnifiedDI.register(UserViewModel.self) { UserViewModel() }
+        _ = UnifiedDI.register(AuthViewModel.self) { AuthViewModel() }
+        _ = UnifiedDI.register(ProductViewModel.self) { ProductViewModel() }
+    }
+
+    private func validateDependencyGraph() {
+        // Needle 스타일 검증
+        _ = UnifiedDI.validateNeedleStyle(
+            component: AppComponent.self,
+            dependencies: [
+                Logger.self, NetworkClient.self, DatabaseClient.self,
+                UserService.self, AuthService.self, ProductService.self
+            ]
+        )
+
+        print("✅ 모든 Needle 스타일 의존성 검증 완료")
+    }
 }
+
+// DependencyGraph.swift - 컴파일 타임 검증
+@DependencyGraph([
+    // UI 레이어
+    UserViewModel.self: [UserService.self],
+    AuthViewModel.self: [AuthService.self],
+    ProductViewModel.self: [ProductService.self],
+
+    // 비즈니스 레이어
+    UserService.self: [UserRepository.self, Logger.self],
+    AuthService.self: [AuthRepository.self, Logger.self],
+    ProductService.self: [ProductRepository.self, CacheClient.self, Logger.self],
+
+    // 데이터 레이어
+    UserRepository.self: [NetworkClient.self, DatabaseClient.self],
+    AuthRepository.self: [NetworkClient.self],
+    ProductRepository.self: [NetworkClient.self, DatabaseClient.self],
+
+    // 핵심 레이어
+    NetworkClient.self: [Logger.self],
+    DatabaseClient.self: [Logger.self],
+    CacheClient.self: [Logger.self]
+])
+extension WeaveDI {}
 ```
 
-### 2단계: Property Wrapper 도입
+## 📊 성능 모니터링
 
 ```swift
-// 기존 생성자 주입을 Property Wrapper로 변경
-class UserViewController: UIViewController {
-    // 기존: init(userService: UserService)
-    @Inject var userService: UserService? // 새로운 방식
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        // 기존 코드는 그대로 유지
-        guard let service = userService else { return }
-        // ...
-    }
-}
-```
+// Needle과 달리 실시간 성능 분석 제공
+class PerformanceAnalyzer {
+    func analyzeDIPerformance() {
+        // WeaveDI vs Needle 성능 비교
+        print(UnifiedDI.performanceComparison())
+        /*
+        출력:
+        🏆 WeaveDI vs Needle 성능:
+        ✅ 컴파일 타임 안전성: 동등
+        ✅ 런타임 성능: 동등 (제로 비용)
+        🚀 개발자 경험: WeaveDI 우수
+        🎯 Swift 6 지원: WeaveDI 독점
+        */
 
-### 3단계: 고급 기능 활용
+        // 실시간 성능 통계
+        let stats = UnifiedDI.stats()
+        print("📊 DI 사용 통계: \(stats)")
 
-```swift
-// Actor 최적화 활용
-@MainActor
-class UserViewController: UIViewController {
-    @Inject var userService: UserService?
-    
-    func loadUserData() async {
-        // Actor hop 없이 최적화된 실행
-        let userData = await userService?.fetchUserData()
-        updateUI(userData)
-    }
-}
-```
-
-## 성능 최적화
-
-### Needle 수준 성능 활성화
-
-WeaveDI는 Needle과 동일한 제로 코스트 성능을 제공하면서도 추가적인 최적화를 제공합니다.
-
-```swift
-// 앱 시작 시 성능 최적화 활성화
-@main
-struct MyApp: App {
-    init() {
-        // Needle 수준 성능 + Actor 최적화
-        await UnifiedRegistry.shared.enableOptimization()
-        
-        print("🚀 WeaveDI: Needle-level performance + Actor optimization ENABLED")
-    }
-}
-```
-
-### 성능 비교
-
-| 측정 항목 | Needle | WeaveDI |
-|-----------|--------|---------|
-| 의존성 해결 속도 | 기준점 (100%) | 83% 더 빠름 |
-| 메모리 사용량 | 기준점 (100%) | 52% 더 효율적 |
-| Actor hop 최적화 | ❌ | ✅ 81% 개선 |
-| Swift 6 호환성 | ⚠️ | ✅ 완전 지원 |
-
-## 마이그레이션 체크리스트
-
-### ✅ 준비 단계
-- [ ] 현재 Needle Component 구조 분석
-- [ ] WeaveDI 의존성 추가
-- [ ] 기본 등록 모듈 생성
-
-### ✅ 변환 단계
-- [ ] Component → Module 변환
-- [ ] Dependency Protocol → 직접 등록
-- [ ] Builder Pattern → Factory Pattern
-- [ ] 생성자 주입 → Property Wrapper
-
-### ✅ 검증 단계
-- [ ] 단위 테스트 실행
-- [ ] 통합 테스트 실행
-- [ ] 성능 벤치마크 실행
-- [ ] 메모리 누수 검사
-
-### ✅ 최적화 단계
-- [ ] Actor 최적화 적용
-- [ ] 런타임 최적화 활성화
-- [ ] 자동 최적화 기능 활용
-- [ ] 성능 모니터링 설정
-
-## 코드 예제: 완전한 마이그레이션
-
-### Before (Needle)
-```swift
-// Needle Dependencies
-protocol AppDependency: Dependency {
-    var userService: UserService { get }
-    var analyticsService: AnalyticsService { get }
-}
-
-protocol UserDependency: Dependency {
-    var userRepository: UserRepository { get }
-}
-
-// Needle Components
-class AppComponent: BootstrapComponent {
-    var userService: UserService {
-        shared { UserServiceImpl() }
-    }
-    
-    var analyticsService: AnalyticsService {
-        shared { AnalyticsServiceImpl() }
-    }
-    
-    var userComponent: UserComponent {
-        UserComponent(parent: self)
-    }
-}
-
-class UserComponent: Component<UserDependency> {
-    var userRepository: UserRepository {
-        shared { UserRepositoryImpl() }
-    }
-    
-    var userViewController: UserViewController {
-        UserViewController(userService: parent.userService)
-    }
-}
-```
-
-### After (WeaveDI)
-```swift
-// WeaveDI Module
-class AppModule {
-    static func register() {
-        // Core services
-        UnifiedDI.register(UserRepository.self) {
-            UserRepositoryImpl()
-        }
-        
-        UnifiedDI.register(AnalyticsService.self) {
-            AnalyticsServiceImpl()
-        }
-        
-        UnifiedDI.register(UserService.self) {
-            UserServiceImpl()
-        }
-    }
-}
-
-// View Controller with Property Wrappers
-@MainActor
-class UserViewController: UIViewController {
-    @Inject var userService: UserService?
-    @Inject var analyticsService: AnalyticsService?
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        // Actor 최적화된 비동기 실행
+        // Actor hop 최적화 분석 (Needle에 없는 기능)
         Task {
-            await loadUserData()
-        }
-    }
-    
-    private func loadUserData() async {
-        guard let service = userService else { return }
-        
-        // 네이티브 async/await 지원
-        let userData = await service.fetchUserData()
-        updateUI(userData)
-        
-        // Analytics 추적
-        analyticsService?.track("user_data_loaded")
-    }
-}
+            let hopStats = await UnifiedDI.actorHopStats
+            let optimizations = await UnifiedDI.actorOptimizations
 
-// App initialization
-@main
-struct MyApp: App {
-    init() {
-        // WeaveDI 초기화
-        AppModule.register()
-        
-        // Needle 수준 성능 + α
-        Task {
-            await UnifiedRegistry.shared.enableOptimization()
-        }
-    }
-    
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
+            print("⚡ Actor Hop 통계: \(hopStats)")
+            print("🤖 최적화 제안: \(optimizations)")
         }
     }
 }
 ```
 
-## 자주 묻는 질문
+## 🎨 고급 사용법
 
-### Q: Needle의 코드 생성이 그리워질까요?
-**A:** WeaveDI는 선택적 코드 생성을 지원하며, 대부분의 경우 Property Wrapper로 더 간단하게 해결됩니다.
+### Swift 6 동시성과 함께
 
-### Q: 성능이 Needle만큼 빠를까요?
-**A:** WeaveDI는 Needle과 동일한 제로 코스트 성능을 제공하면서도 Actor 최적화로 추가 성능 향상을 제공합니다.
+```swift
+// Needle은 Swift 6 지원이 제한적이지만 WeaveDI는 완벽한 지원
+actor DataManager {
+    @Inject private var networkService: NetworkService?
+    @Inject private var databaseService: DatabaseService?
 
-### Q: 점진적 마이그레이션이 가능한가요?
-**A:** 네, 기존 Needle 코드와 새로운 WeaveDI 코드를 함께 사용하면서 점진적으로 마이그레이션할 수 있습니다.
+    func syncData() async {
+        // Actor 내에서 안전한 DI 사용
+        let networkData = await networkService?.fetchData()
+        await databaseService?.save(networkData)
+    }
+}
 
-### Q: Swift 6 호환성은 어떤가요?
-**A:** WeaveDI는 Swift 6 Concurrency를 네이티브로 지원하며, Actor 모델과 완벽하게 통합됩니다.
+// MainActor에서도 안전
+@MainActor
+class UIViewModel: ObservableObject {
+    @Inject private var userService: UserService?
 
-## 추가 리소스
+    func updateUI() {
+        // MainActor 컨텍스트에서 안전한 DI 해결
+        userService?.updateUserData()
+    }
+}
+```
 
-- [WeaveDI vs Needle 성능 비교](/ko/guide/benchmarks)
-- [Actor 최적화 가이드](/ko/guide/runtimeOptimization)
-- [마이그레이션 도구](https://github.com/Roy-wonji/WeaveDI-Migration-Tool)
+### 모듈 기반 의존성 관리
 
-Needle에서 WeaveDI로 마이그레이션하면서 더 나은 성능과 개발자 경험을 얻어보세요! 🚀
+```swift
+// 대규모 프로젝트를 위한 모듈 기반 관리
+enum DIModule {
+    case core
+    case user
+    case auth
+    case product
+}
+
+extension UnifiedDI {
+    static func setup(module: DIModule) {
+        switch module {
+        case .core:
+            setupCoreModule()
+        case .user:
+            setupUserModule()
+        case .auth:
+            setupAuthModule()
+        case .product:
+            setupProductModule()
+        }
+    }
+
+    private static func setupCoreModule() {
+        // 핵심 모듈 의존성
+        _ = register(Logger.self) { OSLogger() }
+        _ = register(NetworkClient.self) { URLSessionClient() }
+    }
+
+    // ... 다른 모듈들
+}
+```
+
+## 📝 체크리스트
+
+### ✅ Needle에서 WeaveDI로 마이그레이션
+- [ ] `import WeaveDI` 추가
+- [ ] `UnifiedDI.enableStaticOptimization()` 호출
+- [ ] 빌드 플래그에 `-DUSE_STATIC_FACTORY` 추가 (최대 성능을 위해)
+- [ ] `@DependencyGraph`로 컴파일 타임 검증 설정
+- [ ] `validateNeedleStyle()`로 호환성 확인
+- [ ] 기존 Component를 WeaveDI 스타일로 점진적 전환
+
+### ✅ 새 프로젝트에서 Needle 스타일 WeaveDI 사용
+- [ ] 계층적 의존성 구조 설계
+- [ ] 컴포넌트 스타일 의존성 등록
+- [ ] 컴파일 타임 의존성 그래프 정의
+- [ ] 성능에 민감한 부분에 `staticResolve()` 적용
+- [ ] 실시간 성능 모니터링 설정
+
+## 🚀 결론
+
+WeaveDI는 Needle의 모든 핵심 장점을 제공하면서 다음을 추가로 제공합니다:
+
+- **더 쉬운 사용**: 코드 생성 도구 불필요
+- **더 나은 성능**: Actor hop 최적화 + 실시간 분석
+- **더 안전한 마이그레이션**: 점진적 전환 가능
+- **더 현대적**: 완벽한 Swift 6 지원
+
+**Needle을 사용 중이시라면 WeaveDI로의 마이그레이션을 강력히 권장합니다!** 🏆

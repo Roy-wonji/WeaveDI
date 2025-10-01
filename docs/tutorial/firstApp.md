@@ -157,9 +157,9 @@ struct ContentView: View {
     // State for the counter value
     @State private var count = 0
 
-    // 🔥 WeaveDI's @Inject Property Wrapper
+    // 🔥 WeaveDI's @Injected Property Wrapper
     // Automatically resolves CounterService from the DI container
-    @Inject private var counterService: CounterService?
+    @Injected private var counterService: CounterService?
 
     var body: some View {
         VStack(spacing: 20) {
@@ -293,7 +293,7 @@ Update the CounterService to use logging:
 // Enhanced CounterService with logging
 final class DefaultCounterService: CounterService {
     // Inject logging service into counter service
-    @Inject private var logger: LoggingService?
+    @Injected private var logger: LoggingService?
 
     func increment(_ value: Int) -> Int {
         let newValue = value + 1
@@ -414,7 +414,7 @@ struct AdvancedCounterView: View {
     @State private var count = 0
 
     // Different injection strategies
-    @Inject private var counterService: CounterService?          // Optional injection
+    @Injected private var counterService: CounterService?          // Optional injection
     @SafeInject private var logger: LoggingService?              // Safe injection with error handling
     @Factory private var sessionLogger: LoggingService?         // Factory pattern (new instance each access)
 

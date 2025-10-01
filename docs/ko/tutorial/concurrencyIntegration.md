@@ -62,7 +62,7 @@ class WeatherViewModel: ObservableObject {
     @Published var error: String?
 
     // 서비스를 안전하게 주입 가능
-    @Inject var weatherService: WeatherService?
+    @Injected var weatherService: WeatherService?
 
     func loadWeather(for city: String) async {
         isLoading = true
@@ -92,7 +92,7 @@ class WeatherViewModel: ObservableObject {
 
 1. **@MainActor 클래스**: 모든 메서드와 프로퍼티가 메인 스레드에서 실행됩니다
 2. **@Published 프로퍼티**: UI 바인딩을 위한 SwiftUI 호환 상태
-3. **@Inject 프로퍼티**: WeaveDI를 통한 안전한 의존성 주입
+3. **@Injected 프로퍼티**: WeaveDI를 통한 안전한 의존성 주입
 4. **백그라운드 작업**: 네트워크 호출은 백그라운드에서 수행됩니다
 5. **자동 UI 업데이트**: 상태 변경이 메인 스레드에서 자동으로 처리됩니다
 
@@ -199,8 +199,8 @@ class ConcurrentBootstrap {
 actor DataProcessor {
     private var cache: [String: ProcessedData] = [:]
 
-    @Inject var networkService: NetworkService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var networkService: NetworkService?
+    @Injected var logger: LoggerProtocol?
 
     /// 제어된 actor hopping 예제
     func processDataWithOptimizedHops(input: String) async -> ProcessedData? {
@@ -297,8 +297,8 @@ class ActorHopCoordinator: ObservableObject {
     @Published var processingStatus: String = "준비됨"
     @Published var results: [ProcessedData] = []
 
-    @Inject var dataProcessor: DataProcessor?
-    @Inject var logger: LoggerProtocol?
+    @Injected var dataProcessor: DataProcessor?
+    @Injected var logger: LoggerProtocol?
 
     /// 최적화된 actor hop 패턴 시연
     func performOptimizedProcessing(inputs: [String]) async {
@@ -379,9 +379,9 @@ extension Notification.Name {
 class ConcurrencyOptimizedServiceManager {
 
     // MARK: - 의존성 (WeaveDI를 통해 주입)
-    @Inject var dataService: ThreadSafeDataService?
-    @Inject var networkService: NetworkService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var dataService: ThreadSafeDataService?
+    @Injected var networkService: NetworkService?
+    @Injected var logger: LoggerProtocol?
 
     // MARK: - 내부 상태
     private var operationQueue: [UUID: Task<Void, Never>] = [:]
@@ -643,9 +643,9 @@ struct AsyncDataView: View {
 /// WeaveDI를 사용한 비동기 작업이 있는 ViewModel
 @MainActor
 class AsyncDataViewModel: ObservableObject {
-    @Inject var dataService: ThreadSafeDataService?
-    @Inject var networkService: NetworkService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var dataService: ThreadSafeDataService?
+    @Injected var networkService: NetworkService?
+    @Injected var logger: LoggerProtocol?
 
     func fetchData() async throws -> [DataItem] {
         logger?.info("📥 데이터 가져오기 시작")
@@ -719,8 +719,8 @@ actor ThreadSafeDataService {
     private var isInitialized = false
 
     /// WeaveDI를 통해 의존성 주입 (Actor 내부에서 안전)
-    @Inject var networkService: NetworkService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var networkService: NetworkService?
+    @Injected var logger: LoggerProtocol?
 
     /// Actor 내부 상태를 안전하게 초기화
     func initialize() async {
@@ -769,7 +769,7 @@ actor ThreadSafeDataService {
 
 1. **Actor 키워드**: 클래스 대신 actor를 사용하여 자동 동기화
 2. **내부 상태 보호**: cache와 isInitialized가 동시 접근으로부터 보호됨
-3. **@Inject 안전성**: Actor 내부에서도 WeaveDI 주입이 안전하게 작동
+3. **@Injected 안전성**: Actor 내부에서도 WeaveDI 주입이 안전하게 작동
 4. **비동기 메서드**: Actor 메서드는 외부에서 await로 호출
 
 ## 🎯 실제 Tutorial 코드 활용 예제
@@ -781,8 +781,8 @@ actor ThreadSafeDataService {
 struct AsyncCounterView: View {
     @State private var count = 0
     @State private var isLoading = false
-    @Inject var counterRepository: CounterRepository?
-    @Inject var logger: LoggerProtocol?
+    @Injected var counterRepository: CounterRepository?
+    @Injected var logger: LoggerProtocol?
 
     var body: some View {
         VStack(spacing: 20) {

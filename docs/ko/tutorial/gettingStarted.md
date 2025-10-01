@@ -165,12 +165,12 @@ import Foundation
 import WeaveDI
 
 /// UserService의 실제 구현
-/// WeaveDI의 실제 @Inject property wrapper를 사용
+/// WeaveDI의 실제 @Injected property wrapper를 사용
 class UserServiceImpl: UserService {
-    // 🔍 실제 WeaveDI 소스 코드의 @Inject 사용
+    // 🔍 실제 WeaveDI 소스 코드의 @Injected 사용
     // PropertyWrappers.swift에서 구현된 실제 property wrapper
-    @Inject var networkService: NetworkService?    // 네트워크 서비스 (옵셔널)
-    @Inject var cacheService: CacheService?        // 캐시 서비스 (옵셔널)
+    @Injected var networkService: NetworkService?    // 네트워크 서비스 (옵셔널)
+    @Injected var cacheService: CacheService?        // 캐시 서비스 (옵셔널)
 
     func fetchUser(id: String) async throws -> User {
         print("🔍 사용자 조회 시작: \(id)")
@@ -337,7 +337,7 @@ import WeaveDI
 @MainActor
 class UserProfileViewModel: ObservableObject {
     // 🔍 실제 WeaveDI property wrapper 사용
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     // SwiftUI에서 UI 업데이트를 위한 @Published 프로퍼티들
     @Published var user: User?                    // 현재 사용자 정보
@@ -672,7 +672,7 @@ class MockCacheService: CacheService {
 WeaveDI로 완전한 iOS 앱을 만들었습니다! 다음을 배웠습니다:
 
 ### ✅ 실제 사용한 WeaveDI 기능들:
-1. **@Inject Property Wrapper** - 자동 의존성 주입
+1. **@Injected Property Wrapper** - 자동 의존성 주입
 2. **WeaveDI.Container.bootstrap** - 안전한 앱 초기화
 3. **UnifiedDI.resolve()** - 깔끔한 의존성 해결
 4. **Swift Concurrency 지원** - 네이티브 async/await 통합

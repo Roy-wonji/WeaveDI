@@ -62,7 +62,7 @@ class WeatherViewModel: ObservableObject {
     @Published var error: String?
 
     // Services can be injected safely
-    @Inject var weatherService: WeatherService?
+    @Injected var weatherService: WeatherService?
 
     func loadWeather(for city: String) async {
         isLoading = true
@@ -92,7 +92,7 @@ class WeatherViewModel: ObservableObject {
 
 1. **@MainActor Class**: All methods and properties execute on the main thread
 2. **@Published Properties**: SwiftUI-compatible state for UI binding
-3. **@Inject Properties**: Safe dependency injection through WeaveDI
+3. **@Injected Properties**: Safe dependency injection through WeaveDI
 4. **Background Work**: Network calls performed in the background
 5. **Automatic UI Updates**: State changes automatically handled on main thread
 
@@ -199,8 +199,8 @@ class ConcurrentBootstrap {
 actor DataProcessor {
     private var cache: [String: ProcessedData] = [:]
 
-    @Inject var networkService: NetworkService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var networkService: NetworkService?
+    @Injected var logger: LoggerProtocol?
 
     /// Example of controlled actor hopping
     func processDataWithOptimizedHops(input: String) async -> ProcessedData? {
@@ -297,8 +297,8 @@ class ActorHopCoordinator: ObservableObject {
     @Published var processingStatus: String = "Ready"
     @Published var results: [ProcessedData] = []
 
-    @Inject var dataProcessor: DataProcessor?
-    @Inject var logger: LoggerProtocol?
+    @Injected var dataProcessor: DataProcessor?
+    @Injected var logger: LoggerProtocol?
 
     /// Demonstrates optimal actor hop patterns
     func performOptimizedProcessing(inputs: [String]) async {
@@ -380,8 +380,8 @@ actor ThreadSafeDataService {
     private var isInitialized = false
 
     /// Dependency injection through WeaveDI (safe within actor)
-    @Inject var networkService: NetworkService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var networkService: NetworkService?
+    @Injected var logger: LoggerProtocol?
 
     /// Safely initialize actor internal state
     func initialize() async {
@@ -430,7 +430,7 @@ actor ThreadSafeDataService {
 
 1. **Actor Keyword**: Using actor instead of class for automatic synchronization
 2. **Internal State Protection**: cache and isInitialized are protected from concurrent access
-3. **@Inject Safety**: WeaveDI injection works safely within actors
+3. **@Injected Safety**: WeaveDI injection works safely within actors
 4. **Async Methods**: Actor methods are called with await from outside
 
 ### Concurrency Optimization Patterns
@@ -441,9 +441,9 @@ actor ThreadSafeDataService {
 class ConcurrencyOptimizedServiceManager {
 
     // MARK: - Dependencies (injected through WeaveDI)
-    @Inject var dataService: ThreadSafeDataService?
-    @Inject var networkService: NetworkService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var dataService: ThreadSafeDataService?
+    @Injected var networkService: NetworkService?
+    @Injected var logger: LoggerProtocol?
 
     // MARK: - Internal State
     private var operationQueue: [UUID: Task<Void, Never>] = [:]
@@ -705,9 +705,9 @@ struct AsyncDataView: View {
 /// ViewModel with async operations using WeaveDI
 @MainActor
 class AsyncDataViewModel: ObservableObject {
-    @Inject var dataService: ThreadSafeDataService?
-    @Inject var networkService: NetworkService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var dataService: ThreadSafeDataService?
+    @Injected var networkService: NetworkService?
+    @Injected var logger: LoggerProtocol?
 
     func fetchData() async throws -> [DataItem] {
         logger?.info("📥 Data fetch started")
@@ -781,8 +781,8 @@ enum DataError: Error, LocalizedError {
 struct AsyncCounterView: View {
     @State private var count = 0
     @State private var isLoading = false
-    @Inject var counterRepository: CounterRepository?
-    @Inject var logger: LoggerProtocol?
+    @Injected var counterRepository: CounterRepository?
+    @Injected var logger: LoggerProtocol?
 
     var body: some View {
         VStack(spacing: 20) {

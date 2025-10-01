@@ -157,9 +157,9 @@ struct ContentView: View {
     // 카운터 값을 위한 상태
     @State private var count = 0
 
-    // 🔥 WeaveDI의 @Inject 프로퍼티 래퍼
+    // 🔥 WeaveDI의 @Injected 프로퍼티 래퍼
     // DI 컨테이너에서 CounterService를 자동으로 해결
-    @Inject private var counterService: CounterService?
+    @Injected private var counterService: CounterService?
 
     var body: some View {
         VStack(spacing: 20) {
@@ -293,7 +293,7 @@ final class DefaultLoggingService: LoggingService {
 // 로깅이 포함된 향상된 CounterService
 final class DefaultCounterService: CounterService {
     // 카운터 서비스에 로깅 서비스 주입
-    @Inject private var logger: LoggingService?
+    @Injected private var logger: LoggingService?
 
     func increment(_ value: Int) -> Int {
         let newValue = value + 1
@@ -414,7 +414,7 @@ struct AdvancedCounterView: View {
     @State private var count = 0
 
     // 다양한 주입 전략
-    @Inject private var counterService: CounterService?          // 옵셔널 주입
+    @Injected private var counterService: CounterService?          // 옵셔널 주입
     @SafeInject private var logger: LoggingService?              // 에러 처리를 포함한 안전한 주입
     @Factory private var sessionLogger: LoggingService?         // 팩토리 패턴 (접근할 때마다 새 인스턴스)
 

@@ -105,9 +105,9 @@ import WeaveDI
 
 /// Real implementation using WeaveDI dependency injection
 class UserServiceImpl: UserService {
-    // Using actual @Inject from WeaveDI source code
-    @Inject var networkService: NetworkService?
-    @Inject var cacheService: CacheService?
+    // Using actual @Injected from WeaveDI source code
+    @Injected var networkService: NetworkService?
+    @Injected var cacheService: CacheService?
 
     func fetchUser(id: String) async throws -> User {
         print("🔍 Fetching user: \(id)")
@@ -239,7 +239,7 @@ import WeaveDI
 @MainActor
 class UserProfileViewModel: ObservableObject {
     // Using actual WeaveDI property wrappers from source code
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     @Published var user: User?
     @Published var isLoading = false
@@ -526,7 +526,7 @@ class MockCacheService: CacheService {
 You've just built a complete iOS app with WeaveDI! Here's what you learned:
 
 ### ✅ Real WeaveDI Features Used:
-1. **@Inject Property Wrapper** - Automatic dependency injection
+1. **@Injected Property Wrapper** - Automatic dependency injection
 2. **WeaveDI.Container.bootstrap** - Safe app initialization
 3. **UnifiedDI.resolve()** - Clean dependency resolution
 4. **Swift Concurrency Support** - Native async/await integration

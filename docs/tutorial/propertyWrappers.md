@@ -15,7 +15,7 @@ Deep dive into WeaveDI's powerful property wrapper system based on actual source
 
 Let's examine the actual WeaveDI property wrapper implementations from `PropertyWrappers.swift`:
 
-### @Inject - The Core Property Wrapper
+### @Injected - The Core Property Wrapper
 
 ```swift
 // From actual WeaveDI source: PropertyWrappers.swift
@@ -62,7 +62,7 @@ public struct Inject<T> {
 
 **🔍 What this means:**
 - **KeyPath Resolution**: When you use `@Inject(\.someService)`, it uses compile-time safe KeyPaths
-- **Type Resolution**: When you use `@Inject var service: SomeService?`, it resolves by type
+- **Type Resolution**: When you use `@Injected var service: SomeService?`, it resolves by type
 - **Optional Return**: Always returns optional to prevent crashes
 
 ### @Factory - Always New Instances
@@ -113,18 +113,18 @@ public struct Factory<T> {
 
 ## 🛠️ Practical Usage Patterns
 
-### 1. Basic @Inject Usage
+### 1. Basic @Injected Usage
 
 ```swift
 import WeaveDI
 
 class UserViewController: UIViewController {
     // ✅ Most common pattern - Optional injection
-    @Inject var userService: UserService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var userService: UserService?
+    @Injected var logger: LoggerProtocol?
 
     // ✅ Required service with guard check
-    @Inject var authService: AuthService?
+    @Injected var authService: AuthService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -313,7 +313,7 @@ struct RequiredInject<T> {
 // Usage in critical systems
 class PaymentProcessor {
     // ❌ Don't use optional for critical services
-    // @Inject var paymentGateway: PaymentGateway?
+    // @Injected var paymentGateway: PaymentGateway?
 
     // ✅ Use RequiredInject for critical dependencies
     @RequiredInject var paymentGateway: PaymentGateway
@@ -345,7 +345,7 @@ class PaymentProcessor {
 ```swift
 class HighFrequencyService {
     // ✅ Cache frequently used dependencies
-    @Inject var dataProcessor: DataProcessor?
+    @Injected var dataProcessor: DataProcessor?
     private var cachedProcessor: DataProcessor?
 
     // Optimized access pattern
@@ -374,7 +374,7 @@ class HighFrequencyService {
 ```swift
 class ExpensiveResourceManager {
     // ✅ Lazy initialization for expensive resources
-    @Inject private var expensiveService: ExpensiveService?
+    @Injected private var expensiveService: ExpensiveService?
 
     private lazy var service: ExpensiveService = {
         guard let injected = expensiveService else {
@@ -437,9 +437,9 @@ class NetworkManagerTests: XCTestCase {
 }
 
 class NetworkManager {
-    @Inject var httpClient: HTTPClient?
-    @Inject var authProvider: AuthTokenProvider?
-    @Inject var logger: RequestLogger?
+    @Injected var httpClient: HTTPClient?
+    @Injected var authProvider: AuthTokenProvider?
+    @Injected var logger: RequestLogger?
 
     func fetchUserData(id: String) async throws -> UserData {
         guard let client = httpClient else {
@@ -460,9 +460,9 @@ class NetworkManager {
 
 ### ✅ DO
 
-1. **Use @Inject for most dependencies**
+1. **Use @Injected for most dependencies**
    ```swift
-   @Inject var service: SomeService?
+   @Injected var service: SomeService?
    ```
 
 2. **Use KeyPaths for type safety**
@@ -493,7 +493,7 @@ class NetworkManager {
 1. **Don't force unwrap injected dependencies**
    ```swift
    // ❌ Dangerous
-   @Inject var service: SomeService?
+   @Injected var service: SomeService?
    let result = service!.doSomething()
 
    // ✅ Safe
@@ -507,13 +507,13 @@ class NetworkManager {
    @Factory var userSession: UserSession
 
    // ✅ Shared state
-   @Inject var userSession: UserSession?
+   @Injected var userSession: UserSession?
    ```
 
 3. **Don't ignore injection failures in production**
    ```swift
    // ❌ Silent failure
-   @Inject var analytics: AnalyticsService?
+   @Injected var analytics: AnalyticsService?
    analytics?.track(event) // Silently fails
 
    // ✅ Explicit handling
@@ -542,8 +542,8 @@ class UserService {
 
 // After: Property wrapper injection
 class UserService {
-    @Inject var repository: UserRepository?
-    @Inject var validator: UserValidator?
+    @Injected var repository: UserRepository?
+    @Injected var validator: UserValidator?
 
     func processUser(_ user: User) async throws {
         guard let repo = repository, let val = validator else {

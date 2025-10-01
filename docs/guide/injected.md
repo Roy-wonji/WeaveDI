@@ -145,6 +145,41 @@ extension InjectedValues {
 }
 ```
 
+## Real-World Example: Currency Exchange App
+
+```swift
+// 1. Define InjectedKey
+extension ExchangeUseCaseImpl: InjectedKey {
+    public static var liveValue: ExchangeRateInterface {
+        let repository = UnifiedDI.register(ExchangeRateInterface.self) {
+            ExchangeRepositoryImpl()
+        }
+        return ExchangeUseCaseImpl(repository: repository)
+    }
+}
+
+// 2. Extend InjectedValues
+public extension InjectedValues {
+    var exchangeUseCase: ExchangeRateInterface {
+        get { self[ExchangeUseCaseImpl.self] }
+        set { self[ExchangeUseCaseImpl.self] = newValue }
+    }
+}
+
+// 3. Use in Reducer
+struct CurrencyFeature: Reducer {
+    @Injected(\.exchangeUseCase) var exchangeUseCase
+
+    func reduce(into state: inout State, action: Action) -> Effect<Action> {
+        case .fetchRates(let currency):
+            return .run { send in
+                let rates = try await exchangeUseCase.getExchangeRates(currency: currency)
+                await send(.ratesLoaded(rates))
+            }
+    }
+}
+```
+
 ## See Also
 
 - [@Factory](./factory.md) - For creating new instances each time

@@ -129,15 +129,15 @@ class OptimizedServiceManager {
 
     /// Authentication service - used less frequently
     /// No caching needed as it's not a hot path
-    @Inject private var authService: AuthService?
+    @Injected private var authService: AuthService?
 
     /// Analytics service - used less frequently
     /// No caching needed, and fresh instances might be preferred
-    @Inject private var analyticsService: AnalyticsService?
+    @Injected private var analyticsService: AnalyticsService?
 
     /// Configuration service - rarely accessed after startup
     /// No caching needed as it's accessed infrequently
-    @Inject private var configService: ConfigurationService?
+    @Injected private var configService: ConfigurationService?
 
     // MARK: - Optimized Accessors
 
@@ -255,9 +255,9 @@ class MemoryEfficientManager {
 
     /// Keep strong references for critical dependencies
     /// These are essential and should not be deallocated unexpectedly
-    @Inject private var databaseService: DatabaseService?
-    @Inject private var authService: AuthService?
-    @Inject private var networkService: NetworkService?
+    @Injected private var databaseService: DatabaseService?
+    @Injected private var authService: AuthService?
+    @Injected private var networkService: NetworkService?
 
     // MARK: - Memory-Aware Accessors
 
@@ -734,12 +734,12 @@ class WeaveDIPerformanceBenchmarks: XCTestCase {
 
     // MARK: - Property Wrapper Performance Benchmarks
 
-    /// Benchmark @Inject property wrapper performance
+    /// Benchmark @Injected property wrapper performance
     /// Compares property wrapper vs direct resolution performance
     func testPropertyWrapperPerformance() {
         // Setup test class with @Inject
         class TestClass {
-            @Inject var service: TestService?
+            @Injected var service: TestService?
         }
 
         let container = WeaveDI.Container.live

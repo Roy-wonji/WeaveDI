@@ -129,15 +129,15 @@ class OptimizedServiceManager {
 
     /// 인증 서비스 - 덜 자주 사용됨
     /// hot path가 아니므로 캐싱이 필요하지 않음
-    @Inject private var authService: AuthService?
+    @Injected private var authService: AuthService?
 
     /// 분석 서비스 - 덜 자주 사용됨
     /// 캐싱이 필요하지 않으며, 새로운 인스턴스가 선호될 수 있음
-    @Inject private var analyticsService: AnalyticsService?
+    @Injected private var analyticsService: AnalyticsService?
 
     /// 구성 서비스 - 시작 후 거의 접근되지 않음
     /// 자주 접근되지 않으므로 캐싱이 필요하지 않음
-    @Inject private var configService: ConfigurationService?
+    @Injected private var configService: ConfigurationService?
 
     // MARK: - 최적화된 접근자
 
@@ -255,9 +255,9 @@ class MemoryEfficientManager {
 
     /// 중요한 의존성에 강한 참조 유지
     /// 이들은 필수적이며 예기치 않게 해제되어서는 안 됩니다
-    @Inject private var databaseService: DatabaseService?
-    @Inject private var authService: AuthService?
-    @Inject private var networkService: NetworkService?
+    @Injected private var databaseService: DatabaseService?
+    @Injected private var authService: AuthService?
+    @Injected private var networkService: NetworkService?
 
     // MARK: - 메모리 인식 접근자
 

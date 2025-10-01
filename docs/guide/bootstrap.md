@@ -26,10 +26,46 @@ Comprehensive guide to safely and efficiently initializing your dependency injec
 | Actor Isolation | ⚠️ | ✅ | ✅ |
 | Strict Sendable | ❌ | ⚠️ | ✅ |
 
-## When to Use
+## When to Use Bootstrap
 
-- Call only once at AppDelegate/SceneDelegate/app entry point
-- In SwiftUI App structure, use at `@main` entry point or during initial View-Model configuration
+### Required Scenarios
+- **🚀 App Launch**: Always bootstrap at app startup
+- **🧪 Unit Tests**: Bootstrap before each test suite
+- **🔄 Integration Tests**: Bootstrap with test-specific configuration
+- **🛠️ Environment Changes**: Re-bootstrap when switching environments
+
+### Application Entry Points
+
+#### SwiftUI App (Recommended)
+```swift
+@main
+struct MyApp: App {
+    init() {
+        Task {
+            await bootstrapDependencies()
+        }
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
+```
+
+#### UIKit App
+```swift
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        Task {
+            await bootstrapDependencies()
+        }
+        return true
+    }
+}
+```
 
 ## Synchronous Bootstrap
 
@@ -42,13 +78,13 @@ await WeaveDI.Container.bootstrap { container in
     container.register(UserRepository.self) { UserRepositoryImpl() }
 }
 
-// After this, you can use WeaveDI.Container.shared.resolve(...) anywhere
+// After bootstrap, use WeaveDI.Container.shared.resolve(...) anywhere
 let logger = WeaveDI.Container.shared.resolve(Logger.self)
 ```
 
 ## Asynchronous Bootstrap
 
-When asynchronous initialization is required (e.g., remote configuration, database connection), use `bootstrapAsync`.
+Use `bootstrapAsync` when async initialization is needed (e.g., remote config, database connection).
 
 ```swift
 let ok = await WeaveDI.Container.bootstrapAsync { container in
@@ -61,14 +97,14 @@ let ok = await WeaveDI.Container.bootstrapAsync { container in
     container.register(Database.self) { db }
 }
 
-guard ok else { /* Handle failure (splash/notification/retry) */ return }
+guard ok else { /* Handle failure (splash/alert/retry) */ return }
 ```
 
-> Note: `bootstrapAsync` can be configured to call `fatalError` in DEBUG builds and return `false` in RELEASE builds on failure. The current implementation provides Bool return with internal logging.
+> Note: `bootstrapAsync` can be configured to `fatalError` in DEBUG builds and return `false` in RELEASE builds on failure. Current implementation provides Bool return with internal logging.
 
 ## Mixed Bootstrap (sync + async)
 
-Useful when you want to prepare core dependencies immediately and additional dependencies asynchronously.
+Useful when you want core dependencies immediately and supplementary dependencies asynchronously.
 
 ```swift
 @MainActor
@@ -78,7 +114,7 @@ await WeaveDI.Container.bootstrapMixed(
         container.register(Networking.self) { DefaultNetworking() }
     },
     async: { container in
-        // Extended async dependencies
+        // Async extended dependencies
         let analytics = await AnalyticsClient.make()
         container.register(AnalyticsClient.self) { analytics }
     }
@@ -87,7 +123,7 @@ await WeaveDI.Container.bootstrapMixed(
 
 ## Bootstrap in Background Task
 
-You can perform asynchronous bootstrap in the background to minimize app startup delay.
+When you want to minimize app launch delay, perform async bootstrap in background.
 
 ```swift
 WeaveDI.Container.bootstrapInTask { container in
@@ -98,7 +134,7 @@ WeaveDI.Container.bootstrapInTask { container in
 
 ## Conditional Bootstrap
 
-Use this when you want to skip if already initialized.
+Use when you want to skip if already initialized.
 
 ```swift
 let didInit = await WeaveDI.Container.bootstrapIfNeeded { container in
@@ -106,11 +142,11 @@ let didInit = await WeaveDI.Container.bootstrapIfNeeded { container in
 }
 
 if !didInit {
-    // Already prepared
+    // Already initialized
 }
 ```
 
-An asynchronous version is also provided.
+Async version is also available:
 
 ```swift
 let didInit = await WeaveDI.Container.bootstrapAsyncIfNeeded { container in
@@ -119,17 +155,17 @@ let didInit = await WeaveDI.Container.bootstrapAsyncIfNeeded { container in
 }
 ```
 
-## Access Guarantee (Assert)
+## Ensure Bootstrapped (Assert)
 
-Use this to enforce that DI is not accessed before bootstrap.
+Use to enforce that bootstrap occurred before DI access.
 
 ```swift
-WeaveDI.Container.ensureBootstrapped() // Fails precondition if not bootstrapped
+WeaveDI.Container.ensureBootstrapped() // Precondition failure if not bootstrapped
 ```
 
 ## Testing Guide
 
-If you want a clean container for each test, use the reset API.
+Use reset API when you want a clean container for each test.
 
 ```swift
 @MainActor
@@ -144,8 +180,8 @@ override func setUp() async throws {
 
 ## Best Practices
 
-- Bootstrap in one place only: Only once at app entry point (or test setUp)
-- Handle failure branches: For async bootstrap, prepare paths that consider user experience on failure
-- Recommend mixed pattern: Synchronous registration for essential dependencies, asynchronous for additional dependencies
-- Access guarantee: Use `ensureBootstrapped()` during development to catch mistakes early
-- Test isolation: Call `resetForTesting()` before each test starts
+- **Single bootstrap**: Call only once at app entry point (or test setUp)
+- **Handle failures**: Prepare user experience path when async bootstrap fails
+- **Use mixed pattern**: Register essential dependencies synchronously, supplementary asynchronously
+- **Ensure access**: Use `ensureBootstrapped()` in development to catch mistakes early
+- **Test isolation**: Call `resetForTesting()` before each test

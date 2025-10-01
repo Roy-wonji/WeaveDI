@@ -119,14 +119,13 @@ WeaveDI combines the best of both worlds with a **modern Swift-first design** th
 // WeaveDI's approach - Property wrapper magic with modern Swift
 class UserViewController: UIViewController {
     // Simple, clean dependency injection with property wrappers
-    @Inject var userRepository: UserRepository?
-    @Inject var logger: LoggerProtocol?
+    @Injected var userRepository: UserRepository?
+    @Injected var logger: LoggerProtocol?
 
     // Factory pattern for stateless services
     @Factory var imageProcessor: ImageProcessor
 
-    // Error-safe injection for critical dependencies
-    @SafeInject var database: Database?
+    // Note: @SafeInject deprecated in 3.2.0, use @Injected with error handling instead
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -632,9 +631,9 @@ extension WeaveDI.Container {
 
 // MARK: - 3. Property Wrapper Dependency Injection
 final class WelcomeController: Sendable {
-    // @Inject for dependency injection (optional)
-    @Inject private var greetingService: GreetingService?
-    @Inject private var loggingService: LoggingService?
+    // @Injected for dependency injection (optional)
+    @Injected private var greetingService: GreetingService?
+    @Injected private var loggingService: LoggingService?
 
     func welcomeUser(name: String) -> String {
         guard let service = greetingService else {
@@ -675,9 +674,9 @@ struct WeaveDIDemoApp: App {
 }
 
 struct ContentView: View {
-    @Inject private var greetingService: GreetingService?
-    @Inject private var loggingService: LoggingService?
-    @Inject private var configService: ConfigService?
+    @Injected private var greetingService: GreetingService?
+    @Injected private var loggingService: LoggingService?
+    @Injected private var configService: ConfigService?
 
     @State private var userName = ""
     @State private var message = ""
@@ -744,8 +743,8 @@ struct ContentView: View {
 
 // MARK: - 5. Business Logic Example
 final class BusinessLogic: Sendable {
-    @Inject private var greetingService: GreetingService?
-    @Inject private var loggingService: LoggingService?
+    @Injected private var greetingService: GreetingService?
+    @Injected private var loggingService: LoggingService?
 
     func processWelcome(userName: String) -> String {
         let message = greetingService?.greet(name: userName) ?? "Service unavailable"
@@ -871,7 +870,7 @@ final class ModuleFactoryTests: XCTestCase {
 ```
 
 **How WeaveDI Works:**
-- **Property Wrappers**: `@Inject`, `@Factory`, `@SafeInject` handle dependency injection
+- **Property Wrappers**: `@Injected`, `@Factory` handle dependency injection (`@Inject` and `@SafeInject` deprecated in 3.2.0)
 - **Automatic Resolution**: Dependencies injected automatically when accessed
 - **Type-Safe Registry**: Compile-time type checking with runtime flexibility
 - **Swift Concurrency**: Built-in support for async/await and actors
@@ -1214,10 +1213,10 @@ struct WeatherApp: App {
 
 // SwiftUI Views with clean dependency injection
 struct WeatherView: View {
-    @Inject var weatherRepository: WeatherRepository?
-    @Inject var locationService: LocationService?
+    @Injected var weatherRepository: WeatherRepository?
+    @Injected var locationService: LocationService?
     @Factory var weatherViewModel: WeatherViewModel
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     @State private var weather: Weather?
     @State private var isLoading = false
@@ -1276,9 +1275,9 @@ class WeatherViewModel: ObservableObject {
     @Published var isLoading = false
 
     // Multiple injection patterns for different needs
-    @Inject var repository: WeatherRepository?
+    @Injected var repository: WeatherRepository?
     @Factory var dateFormatter: DateFormatter  // New instance each time
-    @SafeInject var analytics: AnalyticsService? // Critical dependency
+    @Injected var analytics: AnalyticsService? // Use @Injected (3.2.0+)
 
     func loadForecast() async {
         // Clean async/await usage with injected dependencies
@@ -1356,9 +1355,9 @@ class SwinjectUserService {
 // Migrate ViewControllers first (easiest wins)
 class UserViewController: UIViewController {
     // Replace constructor injection with property wrappers
-    @Inject var userRepository: UserRepository?
-    @Inject var logger: LoggerProtocol?
-    @Inject var analytics: AnalyticsService?
+    @Injected var userRepository: UserRepository?
+    @Injected var logger: LoggerProtocol?
+    @Injected var analytics: AnalyticsService?
 
     // Remove complex constructor
     override init(nibName: String?, bundle: Bundle?) {
@@ -1466,7 +1465,7 @@ await WeaveDI.Container.bootstrap { container in
 
 // Replace component-based injection with property wrappers
 class UserViewController: UIViewController {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     // Much simpler than component hierarchy
     override func viewDidLoad() {

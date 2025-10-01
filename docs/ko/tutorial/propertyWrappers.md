@@ -15,7 +15,7 @@
 
 실제 WeaveDI 프로퍼티 래퍼 구현을 `PropertyWrappers.swift`에서 살펴보겠습니다:
 
-### @Inject - 핵심 프로퍼티 래퍼
+### @Injected - 핵심 프로퍼티 래퍼
 
 ```swift
 // 실제 WeaveDI 소스: PropertyWrappers.swift
@@ -62,7 +62,7 @@ public struct Inject<T> {
 
 **🔍 이것이 의미하는 바:**
 - **KeyPath 해결**: `@Inject(\.someService)`를 사용하면 컴파일 타임 안전 KeyPath 사용
-- **타입 해결**: `@Inject var service: SomeService?`를 사용하면 타입으로 해결
+- **타입 해결**: `@Injected var service: SomeService?`를 사용하면 타입으로 해결
 - **옵셔널 반환**: 항상 옵셔널을 반환하여 크래시 방지
 
 ### @Factory - 항상 새로운 인스턴스
@@ -113,18 +113,18 @@ public struct Factory<T> {
 
 ## 🛠️ 실용적 사용 패턴
 
-### 1. 기본 @Inject 사용법
+### 1. 기본 @Injected 사용법
 
 ```swift
 import WeaveDI
 
 class UserViewController: UIViewController {
     // ✅ 가장 일반적인 패턴 - 옵셔널 주입
-    @Inject var userService: UserService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var userService: UserService?
+    @Injected var logger: LoggerProtocol?
 
     // ✅ guard 체크가 필요한 필수 서비스
-    @Inject var authService: AuthService?
+    @Injected var authService: AuthService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -306,9 +306,9 @@ class NetworkManagerTests: XCTestCase {
 }
 
 class NetworkManager {
-    @Inject var httpClient: HTTPClient?
-    @Inject var authProvider: AuthTokenProvider?
-    @Inject var logger: RequestLogger?
+    @Injected var httpClient: HTTPClient?
+    @Injected var authProvider: AuthTokenProvider?
+    @Injected var logger: RequestLogger?
 
     func fetchUserData(id: String) async throws -> UserData {
         guard let client = httpClient else {
@@ -329,9 +329,9 @@ class NetworkManager {
 
 ### ✅ 해야 할 것
 
-1. **대부분의 의존성에 @Inject 사용**
+1. **대부분의 의존성에 @Injected 사용**
    ```swift
-   @Inject var service: SomeService?
+   @Injected var service: SomeService?
    ```
 
 2. **타입 안전성을 위해 KeyPath 사용**
@@ -357,7 +357,7 @@ class NetworkManager {
 1. **주입된 의존성을 강제 언래핑하지 마세요**
    ```swift
    // ❌ 위험
-   @Inject var service: SomeService?
+   @Injected var service: SomeService?
    let result = service!.doSomething()
 
    // ✅ 안전
@@ -371,7 +371,7 @@ class NetworkManager {
    @Factory var userSession: UserSession
 
    // ✅ 공유 상태
-   @Inject var userSession: UserSession?
+   @Injected var userSession: UserSession?
    ```
 
 ---
