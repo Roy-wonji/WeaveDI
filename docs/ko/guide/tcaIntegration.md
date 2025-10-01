@@ -986,6 +986,6 @@ WeaveDI와 TCA는 함께 매우 잘 작동하여, 유지보수 가능하고 테�
 ## 다음 단계
 
 - [Property Wrapper 가이드](./propertyWrappers.md) - WeaveDI의 주입 패턴 깊이 알아보기
-- [테스팅 가이드](./testing.md) - WeaveDI를 사용한 고급 테스팅 전략
+- [테스팅 가이드](../tutorial/testing.md) - WeaveDI를 사용한 고급 테스팅 전략
 - [성능 최적화](./runtimeOptimization.md) - 프로덕션용 DI 컨테이너 최적화
 - [마이그레이션 가이드](./migration-3.0.0.md) - 다른 DI 프레임워크에서 마이그레이션

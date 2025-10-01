@@ -477,6 +477,6 @@ After completing migration to WeaveDI 3.0.0, you'll gain:
 
 - **Issues**: [GitHub Issues](https://github.com/Roy-wonji/WeaveDI/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/Roy-wonji/WeaveDI/discussions)
-- **Documentation**: [Complete API Reference](/api/core-apis)
+- **Documentation**: [Complete API Reference](/api/coreApis)
 
 WeaveDI 3.0.0 represents the future of dependency injection in Swift, with automatic optimization and enhanced developer experience.

@@ -611,5 +611,5 @@ func monitorPerformance() async {
 ## 관련 문서
 
 - [자동 DI 최적화](/ko/guide/autoDiOptimizer) - 자동 성능 최적화
-- [동시성 가이드](/ko/guide/concurrency) - Swift Concurrency 패턴
+- [동시성 가이드](/ko/tutorial/concurrencyIntegration) - Swift Concurrency 패턴
 - [UnifiedDI vs WeaveDI.Container](/ko/guide/unifiedDi) - 올바른 API 선택

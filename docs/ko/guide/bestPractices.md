@@ -1,39 +1,39 @@
-# WeaveDI Best Practices
+# WeaveDI 모범 사례
 
-Recommended patterns and practices for using WeaveDI effectively in production applications.
+프로덕션 애플리케이션에서 WeaveDI를 효과적으로 사용하기 위한 권장 패턴과 사례입니다.
 
-## Property Wrapper Selection
+## Property Wrapper 선택
 
-### Use @Injected for Most Cases (v3.2.0+)
+### 대부분의 경우 @Injected 사용 (v3.2.0+)
 
 ```swift
-// ✅ Recommended: Type-safe, TCA-style
+// ✅ 권장: 타입 안전, TCA 스타일
 @Injected(\.userService) var userService
 @Injected(\.apiClient) var apiClient
 ```
 
-**Why:**
-- Compile-time type safety with KeyPath
-- Non-optional by default (liveValue/testValue fallback)
-- Better testing support with `withInjectedValues`
-- TCA-compatible API
+**이유:**
+- KeyPath를 통한 컴파일 타임 타입 안전성
+- 기본적으로 non-optional (liveValue/testValue 폴백)
+- `withInjectedValues`를 통한 향상된 테스트 지원
+- TCA 호환 API
 
-### Use @Factory for Fresh Instances
+### 새 인스턴스가 필요한 경우 @Factory 사용
 
 ```swift
-// ✅ Good: Stateless operations
+// ✅ 좋음: 무상태 작업
 @Factory var pdfGenerator: PDFGenerator
 @Factory var reportBuilder: ReportBuilder
 @Factory var dateFormatter: DateFormatter
 ```
 
-**When to use:**
-- Stateless services (PDF generators, formatters, parsers)
-- Each operation needs isolated state
-- Concurrent processing with independent instances
-- Builder patterns requiring fresh instances
+**사용 시기:**
+- 무상태 서비스 (PDF 생성기, 포맷터, 파서)
+- 각 작업마다 독립적인 상태가 필요한 경우
+- 독립적인 인스턴스로 동시 처리
+- 새로운 인스턴스가 필요한 빌더 패턴
 
-**Example:**
+**예제:**
 ```swift
 class DocumentService {
     @Factory var pdfGenerator: PDFGenerator
@@ -42,7 +42,7 @@ class DocumentService {
         await withTaskGroup(of: PDF.self) { group in
             for item in data {
                 group.addTask {
-                    // Each task gets fresh generator - no state conflicts
+                    // 각 작업마다 새 생성기 획득 - 상태 충돌 없음
                     let generator = self.pdfGenerator
                     return generator.generate(item)
                 }
@@ -52,27 +52,27 @@ class DocumentService {
 }
 ```
 
-### Avoid @Inject/@SafeInject (Deprecated v3.2.0)
+### @Inject/@SafeInject 사용 피하기 (v3.2.0부터 Deprecated)
 
 ```swift
-// ❌ Avoid: Deprecated
+// ❌ 피하기: Deprecated
 @Inject var service: UserService?
 @SafeInject var api: APIClient?
 
-// ✅ Use instead:
+// ✅ 대신 사용:
 @Injected(\.service) var service
 @Injected(\.api) var api
 ```
 
-## Dependency Organization
+## 의존성 구성
 
-### Group Dependencies by Feature
+### 기능별로 의존성 그룹화
 
 ```swift
-// ✅ Good: Feature-based organization
+// ✅ 좋음: 기능 기반 구성
 // File: DI/UserFeatureDependencies.swift
 extension InjectedValues {
-    // User feature dependencies
+    // 사용자 기능 의존성
     var userService: UserService {
         get { self[UserServiceKey.self] }
         set { self[UserServiceKey.self] = newValue }
@@ -86,7 +86,7 @@ extension InjectedValues {
 
 // File: DI/AuthFeatureDependencies.swift
 extension InjectedValues {
-    // Auth feature dependencies
+    // 인증 기능 의존성
     var authService: AuthService {
         get { self[AuthServiceKey.self] }
         set { self[AuthServiceKey.self] = newValue }
@@ -99,16 +99,16 @@ extension InjectedValues {
 }
 ```
 
-**Benefits:**
-- Clear feature boundaries
-- Easy to find related dependencies
-- Easier to remove features
-- Better code organization
+**장점:**
+- 명확한 기능 경계
+- 관련 의존성을 쉽게 찾을 수 있음
+- 기능 제거가 쉬움
+- 더 나은 코드 구성
 
-### Centralize InjectedKey Definitions
+### InjectedKey 정의 중앙 집중화
 
 ```swift
-// ✅ Good: All keys in one place
+// ✅ 좋음: 한 곳에 모든 키
 // File: DI/InjectedKeys.swift
 struct UserServiceKey: InjectedKey {
     static var liveValue: UserService = UserServiceImpl()
@@ -120,20 +120,20 @@ struct APIClientKey: InjectedKey {
     static var testValue: APIClient = MockAPIClient()
 }
 
-// Then extend InjectedValues in feature files
+// 그런 다음 기능 파일에서 InjectedValues 확장
 ```
 
-## Scope Management
+## 스코프 관리
 
-### Use Appropriate Scopes
+### 적절한 스코프 사용
 
 ```swift
-// ✅ Singleton for app-wide services
+// ✅ 앱 전체 서비스에 싱글톤
 struct LoggerKey: InjectedKey {
-    static var liveValue: Logger = ConsoleLogger()  // Shared instance
+    static var liveValue: Logger = ConsoleLogger()  // 공유 인스턴스
 }
 
-// ✅ Scoped for feature-specific services
+// ✅ 기능별 서비스에 스코프 지정
 await WeaveDI.Container.bootstrap { container in
     container.register(SessionService.self, scope: .session) {
         SessionServiceImpl()
@@ -141,91 +141,91 @@ await WeaveDI.Container.bootstrap { container in
 }
 ```
 
-**Scope Guidelines:**
-| Scope | Use Case | Example |
-|-------|----------|---------|
-| Singleton | App-wide services | Logger, Analytics, Config |
-| Session | User session services | Auth token, User preferences |
-| Request | Per-request services | API client per network call |
-| Transient | Fresh instances | Formatters, Builders |
+**스코프 가이드라인:**
+| 스코프 | 사용 사례 | 예제 |
+|-------|----------|------|
+| Singleton | 앱 전체 서비스 | Logger, Analytics, Config |
+| Session | 사용자 세션 서비스 | Auth token, User preferences |
+| Request | 요청당 서비스 | 네트워크 호출당 API 클라이언트 |
+| Transient | 새 인스턴스 | Formatters, Builders |
 
-### Example: Multi-Scope Architecture
+### 예제: 다중 스코프 아키텍처
 
 ```swift
-// App-wide singleton
+// 앱 전체 싱글톤
 struct AnalyticsKey: InjectedKey {
     static var liveValue: Analytics = FirebaseAnalytics()
 }
 
-// Session-scoped service
+// 세션 스코프 서비스
 class SessionManager {
-    @Injected(\.authToken) var authToken  // Changes per session
-    @Injected(\.analytics) var analytics  // Shared singleton
+    @Injected(\.authToken) var authToken  // 세션마다 변경
+    @Injected(\.analytics) var analytics  // 공유 싱글톤
 
     func login(credentials: Credentials) async {
-        // authToken is session-specific
-        // analytics is app-wide
+        // authToken은 세션 특정
+        // analytics는 앱 전체
     }
 }
 ```
 
-## Performance Optimization
+## 성능 최적화
 
-### Minimize Dependency Count
+### 의존성 수 최소화
 
 ```swift
-// ❌ Bad: Too many dependencies
+// ❌ 나쁨: 너무 많은 의존성
 class ViewModel {
     @Injected(\.service1) var service1
     @Injected(\.service2) var service2
     @Injected(\.service3) var service3
     @Injected(\.service4) var service4
-    @Injected(\.service5) var service5  // Too many!
+    @Injected(\.service5) var service5  // 너무 많음!
 }
 
-// ✅ Good: Compose services
+// ✅ 좋음: 서비스 조합
 class ViewModel {
-    @Injected(\.userFacade) var userFacade  // Facade pattern
+    @Injected(\.userFacade) var userFacade  // Facade 패턴
 }
 
-// Facade combines related services
+// Facade가 관련 서비스 결합
 class UserFacade {
     @Injected(\.userService) var userService
     @Injected(\.authService) var authService
     @Injected(\.profileService) var profileService
 
     func performUserAction() {
-        // Coordinate multiple services
+        // 여러 서비스 조정
     }
 }
 ```
 
-### Lazy Loading for Heavy Dependencies
+### 무거운 의존성의 지연 로딩
 
 ```swift
-// ✅ Good: Lazy initialization
+// ✅ 좋음: 지연 초기화
 struct DatabaseKey: InjectedKey {
     static var liveValue: Database {
-        // Expensive initialization deferred
+        // 비용이 많이 드는 초기화 지연
         Database.shared
     }
 }
 
-// Access only when needed
+// 필요할 때만 접근
 class DataService {
     @Injected(\.database) var database
 
     func saveData() {
-        // Database initialized only when first accessed
+        // Database는 처음 접근할 때만 초기화됨
         database.save()
     }
 }
 ```
 
-### Use @Factory for Concurrent Operations
+### 동시 작업에 @Factory 사용
 
 ```swift
-// ✅ Good: Parallel processing with @Factory
+// ✅ 좋음: @Factory로 병렬 처리
 class ImageProcessor {
     @Factory var imageFilter: ImageFilter
 
@@ -233,7 +233,7 @@ class ImageProcessor {
         await withTaskGroup(of: UIImage.self) { group in
             for image in images {
                 group.addTask {
-                    // Fresh filter for each image - no thread conflicts
+                    // 각 이미지마다 새 필터 - 스레드 충돌 없음
                     let filter = self.imageFilter
                     return filter.apply(to: image)
                 }
@@ -249,12 +249,12 @@ class ImageProcessor {
 }
 ```
 
-## Testing Strategies
+## 테스트 전략
 
-### Use withInjectedValues for Tests
+### 테스트에 withInjectedValues 사용
 
 ```swift
-// ✅ Good: Scoped dependency override
+// ✅ 좋음: 스코프 지정된 의존성 오버라이드
 func testUserLogin() async {
     await withInjectedValues { values in
         values.authService = MockAuthService()
@@ -268,35 +268,35 @@ func testUserLogin() async {
 }
 ```
 
-**Benefits:**
-- Automatic cleanup after test
-- No global state pollution
-- Type-safe value assignment
-- Works with async/await
+**장점:**
+- 테스트 후 자동 정리
+- 전역 상태 오염 없음
+- 타입 안전 값 할당
+- async/await와 호환
 
-### Define Test Values in InjectedKey
+### InjectedKey에서 테스트 값 정의
 
 ```swift
-// ✅ Good: Built-in test values
+// ✅ 좋음: 내장 테스트 값
 struct UserServiceKey: InjectedKey {
     static var liveValue: UserService = UserServiceImpl()
-    static var testValue: UserService = MockUserService()  // Predefined mock
+    static var testValue: UserService = MockUserService()  // 사전 정의된 모의 객체
 }
 
-// Tests use testValue automatically in test context
+// 테스트 컨텍스트에서 자동으로 testValue 사용
 func testWithDefaults() async {
     await withInjectedValues { values in
-        // testValue used automatically
+        // testValue 자동 사용
     } operation: {
-        // Test code
+        // 테스트 코드
     }
 }
 ```
 
-### Create Test Helpers
+### 테스트 헬퍼 생성
 
 ```swift
-// ✅ Good: Reusable test setup
+// ✅ 좋음: 재사용 가능한 테스트 설정
 extension XCTestCase {
     func withTestDependencies(
         userService: UserService = MockUserService(),
@@ -312,39 +312,39 @@ extension XCTestCase {
     }
 }
 
-// Use in tests
+// 테스트에서 사용
 func testExample() async throws {
     await withTestDependencies {
-        // Test with standard mocks
+        // 표준 모의 객체로 테스트
     }
 }
 ```
 
-## Error Handling
+## 에러 처리
 
-### Handle Missing Dependencies Gracefully
+### 누락된 의존성을 우아하게 처리
 
 ```swift
-// ✅ Good: Fallback values
+// ✅ 좋음: 폴백 값
 struct LoggerKey: InjectedKey {
     static var liveValue: Logger = ConsoleLogger()
-    static var testValue: Logger = NoOpLogger()  // Silent in tests
+    static var testValue: Logger = NoOpLogger()  // 테스트에서 조용함
 }
 
-// Service always has a logger, even if not configured
+// 서비스는 구성되지 않아도 항상 로거를 가짐
 class Service {
-    @Injected(\.logger) var logger  // Never nil
+    @Injected(\.logger) var logger  // nil이 아님
 
     func performAction() {
-        logger.log("Action performed")  // Safe to call
+        logger.log("Action performed")  // 안전하게 호출
     }
 }
 ```
 
-### Validate Critical Dependencies at Startup
+### 시작 시 중요한 의존성 검증
 
 ```swift
-// ✅ Good: Early validation
+// ✅ 좋음: 조기 검증
 @main
 struct MyApp: App {
     init() {
@@ -353,7 +353,7 @@ struct MyApp: App {
     }
 
     func validateDependencies() {
-        // Check critical dependencies exist
+        // 중요한 의존성 존재 확인
         precondition(
             type(of: InjectedValues.current.apiClient) != Never.self,
             "API Client must be configured"
@@ -361,24 +361,24 @@ struct MyApp: App {
     }
 
     func setupDependencies() {
-        // Configure dependencies
+        // 의존성 구성
     }
 }
 ```
 
-### Provide Meaningful Error Messages
+### 의미 있는 에러 메시지 제공
 
 ```swift
-// ✅ Good: Descriptive errors
+// ✅ 좋음: 설명적 에러
 struct APIClientKey: InjectedKey {
     static var liveValue: APIClient {
         guard let baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] else {
             fatalError("""
-                ❌ API_BASE_URL environment variable not set
+                ❌ API_BASE_URL 환경 변수가 설정되지 않았습니다
 
-                Please configure API_BASE_URL in your scheme's environment variables:
+                스킴의 환경 변수에서 API_BASE_URL을 구성하십시오:
                 1. Edit Scheme → Run → Arguments → Environment Variables
-                2. Add: API_BASE_URL = https://api.example.com
+                2. 추가: API_BASE_URL = https://api.example.com
                 """)
         }
         return URLSessionAPIClient(baseURL: baseURL)
@@ -386,179 +386,179 @@ struct APIClientKey: InjectedKey {
 }
 ```
 
-## Architecture Patterns
+## 아키텍처 패턴
 
-### Use Protocol-Based Design
+### 프로토콜 기반 설계 사용
 
 ```swift
-// ✅ Good: Protocol for abstraction
+// ✅ 좋음: 추상화를 위한 프로토콜
 protocol UserService {
     func fetchUser(id: String) async throws -> User
     func updateUser(_ user: User) async throws
 }
 
-// Multiple implementations possible
+// 여러 구현 가능
 class ProductionUserService: UserService { /* ... */ }
 class MockUserService: UserService { /* ... */ }
 class CachedUserService: UserService { /* ... */ }
 
-// Define once, swap implementations
+// 한 번 정의하고 구현 교체
 struct UserServiceKey: InjectedKey {
     static var liveValue: UserService = ProductionUserService()
     static var testValue: UserService = MockUserService()
 }
 ```
 
-### Layer Your Dependencies
+### 의존성 계층화
 
 ```swift
-// ✅ Good: Clear layers
-// Layer 1: Infrastructure (bottom)
+// ✅ 좋음: 명확한 계층
+// 레이어 1: 인프라 (하단)
 extension InjectedValues {
     var networkClient: NetworkClient { /* ... */ }
     var database: Database { /* ... */ }
     var logger: Logger { /* ... */ }
 }
 
-// Layer 2: Data/Repository
+// 레이어 2: 데이터/Repository
 extension InjectedValues {
     var userRepository: UserRepository { /* ... */ }
     var productRepository: ProductRepository { /* ... */ }
 }
 
-// Layer 3: Domain/Business Logic
+// 레이어 3: 도메인/비즈니스 로직
 extension InjectedValues {
     var userService: UserService { /* ... */ }
     var orderService: OrderService { /* ... */ }
 }
 
-// Layer 4: Presentation
-// ViewModels inject services from layer 3
+// 레이어 4: 프레젠테이션
+// ViewModel은 레이어 3의 서비스를 주입
 ```
 
-### Avoid Circular Dependencies
+### 순환 의존성 피하기
 
 ```swift
-// ❌ Bad: Circular dependency
+// ❌ 나쁨: 순환 의존성
 class ServiceA {
     @Injected(\.serviceB) var serviceB
 }
 
 class ServiceB {
-    @Injected(\.serviceA) var serviceA  // Circular!
+    @Injected(\.serviceA) var serviceA  // 순환!
 }
 
-// ✅ Good: Introduce abstraction
+// ✅ 좋음: 추상화 도입
 protocol EventBus {
     func publish(_ event: Event)
 }
 
 class ServiceA {
-    @Injected(\.eventBus) var eventBus  // Both depend on abstraction
+    @Injected(\.eventBus) var eventBus  // 둘 다 추상화에 의존
 }
 
 class ServiceB {
-    @Injected(\.eventBus) var eventBus  // No circular dependency
+    @Injected(\.eventBus) var eventBus  // 순환 의존성 없음
 }
 ```
 
-### Use Composition Over Inheritance
+### 상속보다 조합 사용
 
 ```swift
-// ❌ Bad: Inheritance-based
+// ❌ 나쁨: 상속 기반
 class BaseService {
     @Injected(\.logger) var logger
 }
 
 class UserService: BaseService {
-    // Inherits logger
+    // logger 상속
 }
 
-// ✅ Good: Composition-based
+// ✅ 좋음: 조합 기반
 class UserService {
-    @Injected(\.logger) var logger  // Explicit
+    @Injected(\.logger) var logger  // 명시적
     @Injected(\.database) var database
 
-    // Clear, self-contained
+    // 명확하고 자체 포함
 }
 ```
 
-## Code Organization Checklist
+## 코드 구성 체크리스트
 
-- [ ] Use `@Injected` for new code (v3.2.0+)
-- [ ] Group dependencies by feature/module
-- [ ] Define clear dependency layers
-- [ ] Minimize dependencies per class (< 5)
-- [ ] Use protocols for abstractions
-- [ ] Provide both liveValue and testValue in InjectedKey
-- [ ] Validate critical dependencies at startup
-- [ ] Document dependency relationships
-- [ ] Avoid circular dependencies
-- [ ] Use appropriate scopes for services
+- [ ] 새 코드에 `@Injected` 사용 (v3.2.0+)
+- [ ] 기능/모듈별로 의존성 그룹화
+- [ ] 명확한 의존성 계층 정의
+- [ ] 클래스당 의존성 최소화 (< 5개)
+- [ ] 추상화를 위한 프로토콜 사용
+- [ ] InjectedKey에서 liveValue와 testValue 모두 제공
+- [ ] 시작 시 중요한 의존성 검증
+- [ ] 의존성 관계 문서화
+- [ ] 순환 의존성 피하기
+- [ ] 서비스에 적절한 스코프 사용
 
-## Anti-Patterns to Avoid
+## 피해야 할 안티패턴
 
-### ❌ Service Locator Pattern
+### ❌ 서비스 로케이터 패턴
 
 ```swift
-// ❌ Bad: Manual service location
+// ❌ 나쁨: 수동 서비스 위치
 class ViewModel {
     func loadData() {
-        let service = InjectedValues.current.userService  // Bad!
-        // Use service
+        let service = InjectedValues.current.userService  // 나쁨!
+        // 서비스 사용
     }
 }
 
-// ✅ Good: Inject dependencies
+// ✅ 좋음: 의존성 주입
 class ViewModel {
     @Injected(\.userService) var userService
 
     func loadData() {
-        // Use userService
+        // userService 사용
     }
 }
 ```
 
-### ❌ Global Singletons
+### ❌ 전역 싱글톤
 
 ```swift
-// ❌ Bad: Global singleton
+// ❌ 나쁨: 전역 싱글톤
 class APIClient {
     static let shared = APIClient()
 }
 
-// ✅ Good: Managed by DI
+// ✅ 좋음: DI 관리
 struct APIClientKey: InjectedKey {
     static var liveValue: APIClient = APIClient()
 }
 
-// Inject where needed
+// 필요한 곳에 주입
 @Injected(\.apiClient) var apiClient
 ```
 
-### ❌ Constructor Injection with Defaults
+### ❌ 기본값이 있는 생성자 주입
 
 ```swift
-// ❌ Bad: Hidden dependencies
+// ❌ 나쁨: 숨겨진 의존성
 class UserService {
     init(
-        apiClient: APIClient = InjectedValues.current.apiClient,  // Bad!
+        apiClient: APIClient = InjectedValues.current.apiClient,  // 나쁨!
         database: Database = InjectedValues.current.database
     ) { }
 }
 
-// ✅ Good: Explicit dependency injection
+// ✅ 좋음: 명시적 의존성 주입
 class UserService {
     @Injected(\.apiClient) var apiClient
     @Injected(\.database) var database
 
-    init() { }  // Clean initializer
+    init() { }  // 깔끔한 초기화
 }
 ```
 
-## Next Steps
+## 다음 단계
 
-- [Migration Guide](./migrationInjectToInjected) - Upgrading from @Inject
-- [TCA Integration](./tcaIntegration) - Using with The Composable Architecture
-- [Performance Guide](./runtimeOptimization) - Optimization techniques
-- [Testing Guide](../tutorial/testing) - Advanced testing patterns
+- [마이그레이션 가이드](./migrationInjectToInjected) - @Inject에서 업그레이드
+- [TCA 통합](./tcaIntegration) - The Composable Architecture와 함께 사용
+- [성능 가이드](./runtimeOptimization) - 최적화 기법
+- [테스트 가이드](../tutorial/testing) - 고급 테스트 패턴

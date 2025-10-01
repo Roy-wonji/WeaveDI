@@ -1828,4 +1828,4 @@ class UserServiceTests: XCTestCase {
 - [Core API](/ko/api/coreApis) - 예제가 있는 완전한 API 레퍼런스
 - [런타임 최적화](/ko/guide/runtimeOptimization) - 성능 튜닝과 모니터링
 - [모듈 시스템](/ko/guide/moduleSystem) - 대규모 애플리케이션 구성
-- [테스팅 전략](/ko/guide/testing) - DI를 위한 포괄적인 테스팅 접근법
+- [테스팅 전략](/ko/tutorial/testing) - DI를 위한 포괄적인 테스팅 접근법

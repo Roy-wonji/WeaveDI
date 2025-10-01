@@ -86,7 +86,7 @@ let userData = await userService?.fetchUserData()
 
 ## 왜 WeaveDI인가?
 
-WeaveDI 3.1.0는 다음을 제공하는 현대적인 Swift 애플리케이션을 위해 설계되었습니다:
+WeaveDI 3.2.0는 다음을 제공하는 현대적인 Swift 애플리케이션을 위해 설계되었습니다:
 
 - **iOS 15.0+, macOS 14.0+, watchOS 8.0+, tvOS 15.0+** 지원
 - **Swift Concurrency** 일급 통합

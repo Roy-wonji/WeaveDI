@@ -878,4 +878,4 @@ struct AsyncButton: View {
 
 **Congratulations!** You've mastered WeaveDI's Swift concurrency integration. You can now build high-performance iOS apps with safe and efficient concurrent programming.
 
-📖 **Related Documentation**: [Getting Started](/en/tutorial/gettingStarted) | [Property Wrappers](/en/tutorial/propertyWrappers)
+📖 **Related Documentation**: [Getting Started](/tutorial/gettingStarted) | [Property Wrappers](/tutorial/propertyWrappers)

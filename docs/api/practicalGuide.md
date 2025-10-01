@@ -577,4 +577,4 @@ Apply these practical patterns to effectively utilize WeaveDI.
 
 ---
 
-📖 **Documentation**: [한국어](../ko.lproj/PracticalGuide) | [English](PracticalGuide)
+📖 **Documentation**:  | 

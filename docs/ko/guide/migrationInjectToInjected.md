@@ -533,6 +533,6 @@ _ = UnifiedDI.register(LegacyService.self) {
 
 ## 도움이 필요하세요?
 
-- [문제 해결 가이드](./troubleshooting.md) - 일반적인 문제 및 해결책
+- [문제 해결 가이드](./troubleShooting.md) - 일반적인 문제 및 해결책
 - [GitHub Issues](https://github.com/Roy-wonji/WeaveDI/issues) - 마이그레이션 문제 보고
 - [마이그레이션 로드맵](./roadmap.md) - Deprecation 타임라인

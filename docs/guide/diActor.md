@@ -611,5 +611,5 @@ func monitorPerformance() async {
 ## See Also
 
 - [Auto DI Optimizer](/guide/autoDiOptimizer) - Automatic performance optimization
-- [Concurrency Guide](/guide/concurrency) - Swift Concurrency patterns
+- [Concurrency Guide](/tutorial/concurrencyIntegration) - Swift Concurrency patterns
 - [UnifiedDI vs WeaveDI.Container](/guide/unifiedDi) - Choosing the right API

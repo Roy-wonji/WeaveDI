@@ -1828,4 +1828,4 @@ class UserServiceTests: XCTestCase {
 - [Core APIs](/api/coreApis) - Complete API reference with examples
 - [Runtime Optimization](/guide/runtimeOptimization) - Performance tuning and monitoring
 - [Module System](/guide/moduleSystem) - Organizing large-scale applications
-- [Testing Strategies](/guide/testing) - Comprehensive testing approaches for DI
+- [Testing Strategies](/tutorial/testing) - Comprehensive testing approaches for DI

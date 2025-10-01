@@ -5,7 +5,7 @@ lang: ko-KR
 
 # 코어 API 가이드
 
-> Language: 한국어 | English: [Core APIs](CoreAPIs.md)
+> Language: 한국어 | English: 
 
 WeaveDI 2.0의 핵심 API들과 사용법을 자세히 알아보세요.
 

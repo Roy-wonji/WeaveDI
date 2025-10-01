@@ -160,4 +160,4 @@ enum DIError: Error {
 
 ---
 
-📖 **Documentation**: [한국어](../ko.lproj/CoreAPIs) | [English](CoreAPIs)
+📖 **Documentation**:  | 

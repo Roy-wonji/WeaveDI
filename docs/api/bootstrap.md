@@ -171,4 +171,4 @@ struct MyApp: App {
 
 ---
 
-📖 **Documentation**: [한국어](../ko.lproj/Bootstrap) | [English](Bootstrap)
+📖 **Documentation**:  | 

@@ -745,7 +745,7 @@ Still having issues? Here's how to get help:
 
 1. **Check Documentation**
    - [API Reference](../api/injected.md)
-   - [Migration Guide](./migration-inject-to-injected.md)
+   - [Migration Guide](./migrationInjectToInjected.md)
    - [Best Practices](./bestPractices.md)
 
 2. **Search Issues**

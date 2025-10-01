@@ -78,7 +78,7 @@ let userData = await userService?.fetchUserData()
 
 ## Performance Metrics
 
-| Scenario | Legacy DI | WeaveDI 3.1.0 | Improvement |
+| Scenario | Legacy DI | WeaveDI 3.2.0 | Improvement |
 |----------|-----------|---------------|-------------|
 | Single dependency resolution | 0.8ms | 0.2ms | **75%** |
 | Complex dependency graph | 15.6ms | 3.1ms | **80%** |
@@ -86,7 +86,7 @@ let userData = await userService?.fetchUserData()
 
 ## Why WeaveDI?
 
-WeaveDI 3.1.0 is designed for modern Swift applications, providing:
+WeaveDI 3.2.0 is designed for modern Swift applications, providing:
 
 - Support for **iOS 15.0+, macOS 14.0+, watchOS 8.0+, tvOS 15.0+**
 - **Swift Concurrency** first-class integration
