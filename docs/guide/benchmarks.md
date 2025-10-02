@@ -4,13 +4,13 @@ Performance comparison and benchmarking results for WeaveDI vs other DI framewor
 
 ## Overview
 
-WeaveDI 3.1+ introduces significant performance improvements over traditional DI frameworks like Swinject and Needle. This page provides comprehensive benchmarking results and methodology.
+WeaveDI 3.2.0+ introduces significant performance improvements over traditional DI frameworks like Swinject and Needle. This page provides comprehensive benchmarking results and methodology.
 
 ## Performance Comparison
 
 ### Framework Comparison
 
-| Scenario | Swinject | Needle | WeaveDI 3.1 | Improvement |
+| Scenario | Swinject | Needle | WeaveDI 3.2.0 | Improvement |
 |---------|----------|--------|-------------|-------------|
 | Single dependency resolution | 1.2ms | 0.8ms | 0.2ms | **83% vs Needle** |
 | Complex dependency graph | 25.6ms | 15.6ms | 3.1ms | **80% vs Needle** |
