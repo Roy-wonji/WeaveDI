@@ -35,19 +35,22 @@ Runtime hot-path optimization is an advanced optimization system designed to eli
 
 ## Usage
 
-### Enable Optimization
+### Automatic Optimization
+
+UnifiedRegistry optimization is **automatically enabled** in WeaveDI v3.2.0+. No configuration required:
 
 ```swift
 import WeaveDI
 
-// Enable optimization mode
-await UnifiedRegistry.shared.enableOptimization()
+// ✅ Optimizations are automatically applied
+let service = UnifiedDI.resolve(UserService.self)
 
-// Existing code gets performance improvements without changes
-let service = await UnifiedDI.resolve(UserService.self)
+// ✅ DIContainer also benefits from UnifiedRegistry optimization
+let container = WeaveDI.Container()
+let service2 = container.resolve(UserService.self)
 ```
 
-### Check Optimization
+### Performance Verification
 
 ```swift
 // Check optimization status

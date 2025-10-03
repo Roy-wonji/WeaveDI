@@ -4,7 +4,7 @@ Performance comparison and benchmarking results for WeaveDI vs other DI framewor
 
 ## Overview
 
-WeaveDI 3.2.0+ introduces significant performance improvements over traditional DI frameworks like Swinject and Needle. This page provides comprehensive benchmarking results and methodology.
+WeaveDI 3.2.0+ introduces significant performance improvements through **UnifiedRegistry integration**, delivering substantial gains over traditional DI frameworks like Swinject and Needle. This page provides comprehensive benchmarking results and methodology.
 
 ## Performance Comparison
 

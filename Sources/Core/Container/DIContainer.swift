@@ -272,7 +272,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
       AutoDIOptimizer.shared.trackResolution(type)
     }
     
-    // 1. 현재 컨테이너에서 해결 시도 (동기 호환성을 위한 RunLoop)
+    // 1. 현재 컨테이너에서 해결 시도 (QoS 우선순위 보존)
     let semaphore = DispatchSemaphore(value: 0)
     var result: T?
 

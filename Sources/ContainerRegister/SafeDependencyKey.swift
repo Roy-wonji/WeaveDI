@@ -8,37 +8,37 @@
 import Foundation
 import LogMacro
 
-/// 안전한 DependencyKey 패턴을 위한 확장
+/// 안전한 DependencyKey 패턴을 위한 확장 (UnifiedDI 사용)
 ///
 /// ## 문제가 있는 패턴:
 /// ```swift
 /// extension BookListUseCaseImpl: DependencyKey {
 ///     public static var liveValue: BookListInterface = {
-///         // 🚨 이런 식으로 사용하면 안됨
-///         let repository = SimpleKeyPathRegistry.register(\.bookListInterface) { ... }
-///         return BookListUseCaseImpl(repository: repository as! BookListInterface)
+///         // 🚨 이런 식으로 사용하면 안됨 (순환 의존성 위험)
+///         let repository = UnifiedDI.register(BookListInterface.self) { ... }
+///         return BookListUseCaseImpl(repository: repository)
 ///     }()
 /// }
 /// ```
 ///
 /// ## ✅ 안전한 패턴들:
 public enum SafeDependencyKeyPatterns {
-  
-  /// 방법 1: 앱 시작 시 사전 등록 + 해결
+
+  /// 방법 1: 앱 시작 시 사전 등록 + 해결 (UnifiedDI 사용)
   public static let preRegistrationPattern = """
     // AppDelegate 또는 App.swift에서
-    func setupDependencies() {
+    func setupDependencies() async {
         // 🔒 먼저 의존성들을 등록
-        SimpleKeyPathRegistry.register(\\.bookListInterface) {
+        _ = UnifiedDI.register(BookListInterface.self) {
             BookListRepositoryImpl()
         }
     }
-    
+
     // DependencyKey 구현
     extension BookListUseCaseImpl: DependencyKey {
         public static var liveValue: BookListInterface = {
             // ✅ 이미 등록된 의존성 사용
-            guard let repository = WeaveDI.Container.shared.resolve(BookListInterface.self) else {
+            guard let repository = UnifiedDI.resolve(BookListInterface.self) else {
                 #logInfo("⚠️ BookListInterface not registered, using default")
                 return DefaultBookListRepositoryImpl()
             }
@@ -114,11 +114,11 @@ public enum SafeDependencyRegister {
   }
   
   /// KeyPath로 안전하게 의존성 해결
-  public static func safeResolve<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> T? {
+  public static func safeResolve<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> T? where T: Sendable {
     let keyPathName = SimpleKeyPathRegistry.extractKeyPathName(keyPath)
-    
-    // WeaveDI.Container를 통해 의존성 해결
-    if let resolved: T = WeaveDI.Container.live[keyPath: keyPath] {
+
+    // UnifiedDI를 통해 의존성 해결
+    if let resolved: T = UnifiedDI.resolve(T.self) {
       #logInfo("✅ [SafeDependencyRegister] Resolved \(keyPathName): \(type(of: resolved))")
       return resolved
     } else {
@@ -131,7 +131,7 @@ public enum SafeDependencyRegister {
   public static func resolveWithFallback<T>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
     fallback: @autoclosure () -> T
-  ) -> T {
+  ) -> T where T: Sendable {
     if let resolved = safeResolve(keyPath) {
       return resolved
     } else {

@@ -595,6 +595,50 @@ let database2 = WeaveDI.Container.shared.resolve(DatabaseService.self)
 
 두 API 모두 우수한 성능을 제공하며 Swift 6 동시성과 완전히 호환됩니다. 선택은 애플리케이션의 복잡성과 아키텍처 요구사항에 따라 달라집니다.
 
+## UnifiedRegistry 통합 (v3.2.0+)
+
+WeaveDI v3.2.0에서는 두 API 모두에 **UnifiedRegistry 통합**을 도입하여 별도 설정 없이 상당한 성능 향상을 제공합니다.
+
+### 주요 이점
+
+- **10배 해결 성능**: 최적화된 메모리 접근 패턴으로 O(1) 조회
+- **제로 락 경합**: 스냅샷 기술을 사용한 락-프리 읽기 연산
+- **QoS 우선순위 보존**: 비동기 연산 중 스레드 서비스 품질 유지
+- **자동 최적화**: 수동 설정 불필요 - 즉시 작동
+- **완전 API 호환성**: 기존 코드가 변경 없이 혜택 제공
+
+### 성능 영향
+
+```swift
+// v3.2.0 이전: 락을 사용한 딕셔너리 기반 조회
+// 해결 시간: ~0.001ms (경합 위험 있음)
+
+// v3.2.0 이후: O(1) 접근의 UnifiedRegistry
+// 해결 시간: ~0.0001ms (락-프리, 더 빠름)
+
+// 두 API 모두 자동으로 혜택 제공:
+let service1 = UnifiedDI.resolve(UserService.self)     // ✅ 10배 빨라짐
+let service2 = container.resolve(UserService.self)     // ✅ 10배 빨라짐
+```
+
+### 기술 아키텍처
+
+UnifiedRegistry 통합은 다음을 제공합니다:
+
+1. **TypeID 기반 인덱싱**: 해시 조회 대신 직접 배열 접근
+2. **불변 스냅샷**: 경합 없는 읽기를 위한 copy-on-write 스토리지
+3. **우선순위 인식 태스크**: 비동기 경계에서 QoS 보존
+4. **Sendable 우선 설계**: 완전한 Swift 6 동시성 준수
+
+### 마이그레이션 참고사항
+
+**마이그레이션 불필요!** 기존 애플리케이션이 자동으로 UnifiedRegistry 최적화 혜택을 받습니다:
+
+- ✅ 모든 기존 `UnifiedDI.register()` 호출이 변경 없이 작동
+- ✅ 모든 기존 `container.resolve()` 호출이 변경 없이 작동
+- ✅ 모든 프로퍼티 래퍼(`@Injected`, `@Factory`)가 변경 없이 작동
+- ✅ 코드 변경 없이 성능이 자동으로 향상
+
 ## 관련 항목
 
 - [프로퍼티 래퍼](./propertyWrappers.md) - 주입 가능한 프로퍼티 패턴

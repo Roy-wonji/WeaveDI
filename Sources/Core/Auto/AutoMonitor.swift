@@ -9,8 +9,15 @@ public final class AutoMonitor {
   public static let shared = AutoMonitor()
 
 #if DEBUG
-  /// 런타임에서 모니터링을 끌 수 있는 플래그
-  public static var isEnabled = true
+  /// 런타임에서 모니터링을 끌 수 있는 플래그 (테스트 중에는 비활성화)
+  public static var isEnabled: Bool = {
+    // 테스트 환경에서는 자동으로 비활성화
+    if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+      return false
+    }
+    // 일반 DEBUG 환경에서는 활성화
+    return true
+  }()
 #else
   /// 릴리즈 빌드에서는 기본적으로 비활성화
   public static var isEnabled = false

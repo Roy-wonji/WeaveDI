@@ -140,11 +140,19 @@ export default defineConfig({
               ]
             },
             {
+              text: 'Performance Components',
+              collapsed: true,
+              items: [
+                { text: 'FastResolveCache', link: '/api/fastResolveCache' },
+                { text: 'RegistrationMetricsDispatcher', link: '/api/registrationMetricsDispatcher' },
+                { text: 'Performance Monitoring', link: '/api/performanceMonitoring' }
+              ]
+            },
+            {
               text: 'Practical Guides',
               collapsed: true,
               items: [
                 { text: 'Practical Patterns', link: '/api/practicalGuide' },
-                { text: 'Performance Monitoring', link: '/api/performanceMonitoring' },
                 { text: 'Debugging Tools', link: '/api/debuggingTools' }
               ]
             }
@@ -297,11 +305,19 @@ export default defineConfig({
               ]
             },
             {
+              text: '성능 컴포넌트',
+              collapsed: true,
+              items: [
+                { text: 'FastResolveCache', link: '/ko/api/fastResolveCache' },
+                { text: 'RegistrationMetricsDispatcher', link: '/ko/api/registrationMetricsDispatcher' },
+                { text: '성능 모니터링', link: '/ko/api/performanceMonitoring' }
+              ]
+            },
+            {
               text: '실전 가이드',
               collapsed: true,
               items: [
                 { text: '실전 패턴', link: '/ko/api/practicalGuide' },
-                { text: '성능 모니터링', link: '/ko/api/performanceMonitoring' },
                 { text: '디버깅 도구', link: '/ko/api/debuggingTools' }
               ]
             }

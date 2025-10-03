@@ -240,9 +240,11 @@ final class PropertyWrapperTests: XCTestCase {
     // MARK: - Mock and Testing Support
 
     func testMockingWithPropertyWrappers() async throws {
-        // Given: Mock 서비스를 사용하는 테스트 (Mock을 직접 주입)
+        // Given: Mock 서비스를 사용하는 테스트 (컨테이너 resolve 직접 사용)
         class TestService {
-            @Injected(MockPropertyWrapperTestUserService.self) var userService
+            var userService: MockPropertyWrapperTestUserService {
+                return WeaveDI.Container.live.resolve(MockPropertyWrapperTestUserService.self) ?? MockPropertyWrapperTestUserService()
+            }
 
             func businessLogic() -> String {
                 let user = userService.getUser(id: "business")

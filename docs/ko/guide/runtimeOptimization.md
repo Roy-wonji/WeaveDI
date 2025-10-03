@@ -35,19 +35,22 @@ WeaveDI v3.1.0에서 도입된 고성능 런타임 최적화 시스템에 대해
 
 ## 사용법
 
-### 최적화 활성화
+### 자동 최적화
+
+UnifiedRegistry 최적화는 WeaveDI v3.2.0+에서 **자동으로 활성화**됩니다. 별도 설정 불필요:
 
 ```swift
 import WeaveDI
 
-// 최적화 모드 활성화
-await UnifiedRegistry.shared.enableOptimization()
+// ✅ 최적화가 자동으로 적용됨
+let service = UnifiedDI.resolve(UserService.self)
 
-// 기존 코드는 변경 없이 성능 향상 적용됨
-let service = await UnifiedDI.resolve(UserService.self)
+// ✅ DIContainer도 UnifiedRegistry 최적화 혜택을 받음
+let container = WeaveDI.Container()
+let service2 = container.resolve(UserService.self)
 ```
 
-### 최적화 확인
+### 성능 검증
 
 ```swift
 // 최적화 상태 확인

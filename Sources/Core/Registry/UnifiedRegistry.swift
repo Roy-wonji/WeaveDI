@@ -8,6 +8,27 @@
 import Foundation
 import LogMacro
 
+// MARK: - Type Identifier
+
+/// 타입-안전한 식별자 (ObjectIdentifier 기반)
+public struct AnyTypeIdentifier: Hashable, Sendable {
+  private let identifier: ObjectIdentifier
+  public let typeName: String
+
+  public init<T>(type: T.Type) {
+    self.identifier = ObjectIdentifier(type)
+    self.typeName = String(describing: type)
+  }
+
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(identifier)
+  }
+
+  public static func == (lhs: AnyTypeIdentifier, rhs: AnyTypeIdentifier) -> Bool {
+    return lhs.identifier == rhs.identifier
+  }
+}
+
 // MARK: - Unified Registry System
 
 /// ## 개요
@@ -284,7 +305,7 @@ public actor UnifiedRegistry {
   /// - Parameter type: 해결할 런타임 타입
   /// - Returns: 해결된 인스턴스 (없으면 nil)
   public func resolveAnyAsync(_ type: Any.Type) async -> Any? {
-    let key = AnyTypeIdentifier(anyType: type)
+    let key = AnyTypeIdentifier(type: type)
     
     if let (scopeKind, asyncFactory) = scopedAsyncFactories[key] {
       if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
@@ -316,7 +337,7 @@ public actor UnifiedRegistry {
   /// - Parameter type: 해결할 런타임 타입
   /// - Returns: ValueBox(@unchecked Sendable)에 담긴 값 (없으면 nil)
   public func resolveAnyAsyncBox(_ type: Any.Type) async -> ValueBox? {
-    let key = AnyTypeIdentifier(anyType: type)
+    let key = AnyTypeIdentifier(type: type)
     if let (scopeKind, asyncFactory) = scopedAsyncFactories[key] {
       if let scopeId = ScopeContext.shared.currentID(for: scopeKind) {
         let sKey = ScopedTypeKey(type: key, scope: ScopeID(kind: scopeKind, id: scopeId))
