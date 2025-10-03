@@ -49,9 +49,9 @@ public struct Injected<Value> {
     get {
       if let keyPath = keyPath {
         return InjectedValues.current[keyPath: keyPath]
-      } else if let keyType = keyType, let concreteType = keyType as? any InjectedKey.Type {
+      } else if let keyType = keyType {
         // Use a helper function to bridge the type-erased call
-        return _getValue(from: concreteType)
+        return _getValue(from: keyType)
       } else {
         fatalError("@Injected requires either keyPath or keyType")
       }

@@ -156,6 +156,8 @@ public enum SafeResolutionResult<T> {
   }
 }
 
+extension SafeResolutionResult: Sendable where T: Sendable {}
+
 // MARK: - Safe Injection Protocol
 
 /// 안전한 의존성 주입을 위한 프로토콜

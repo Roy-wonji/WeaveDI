@@ -8,6 +8,14 @@ public final class AutoMonitor {
 
   public static let shared = AutoMonitor()
 
+#if DEBUG
+  /// 런타임에서 모니터링을 끌 수 있는 플래그
+  public static var isEnabled = true
+#else
+  /// 릴리즈 빌드에서는 기본적으로 비활성화
+  public static var isEnabled = false
+#endif
+
   // MARK: - 간단한 상태 저장
 
   private var modules: [String] = []
@@ -20,6 +28,7 @@ public final class AutoMonitor {
 
   /// 모듈이 등록될 때마다 자동으로 호출됨
   public func onModuleRegistered<T>(_ type: T.Type) {
+    guard Self.isEnabled else { return }
     let moduleName = String(describing: type)
 
     // 모듈 추가
@@ -28,25 +37,26 @@ public final class AutoMonitor {
       moduleStates[moduleName] = "등록됨"
     }
 
-    // 자동으로 상태 출력
-    showStatus()
+    emitSummary()
   }
 
   /// 의존성이 추가될 때마다 자동으로 호출됨
   public func onDependencyAdded<From, To>(from: From.Type, to: To.Type) {
+    guard Self.isEnabled else { return }
     let fromName = String(describing: from)
     let toName = String(describing: to)
 
     dependencies.append((from: fromName, to: toName))
 
-    // 자동으로 그래프 출력
-    showGraph()
+    emitSummary()
   }
 
   // MARK: - 자동 출력 시스템
 
   /// 현재 상태를 자동으로 보여줌
   private func showStatus() {
+#if DEBUG
+    guard Self.isEnabled else { return }
     #logInfo("\n🔍 === 모듈 상태 모니터링 ===")
     #logInfo("📦 등록된 모듈: \(modules.count)개")
 
@@ -57,10 +67,13 @@ public final class AutoMonitor {
 
     #logInfo("🔗 의존성 연결: \(dependencies.count)개")
     #logInfo("========================\n")
+#endif
   }
 
   /// 의존성 그래프를 자동으로 보여줌
   private func showGraph() {
+#if DEBUG
+    guard Self.isEnabled else { return }
     #logInfo("\n📊 === 의존성 그래프 ===")
 
     if dependencies.isEmpty {
@@ -73,6 +86,15 @@ public final class AutoMonitor {
     }
 
     #logInfo("====================\n")
+#endif
+  }
+
+  /// 간단한 현황 요약만 출력
+  private func emitSummary() {
+#if DEBUG
+    guard Self.isEnabled else { return }
+    #logInfo("[AutoMonitor] modules=\(modules.count) dependencies=\(dependencies.count) active=\(moduleStates.values.filter { $0 == "실행중" }.count)")
+#endif
   }
 
   // MARK: - 상태 업데이트
@@ -80,7 +102,7 @@ public final class AutoMonitor {
   /// 모듈 상태 변경
   public func updateModuleState(_ moduleName: String, state: String) {
     moduleStates[moduleName] = state
-    showStatus()
+    emitSummary()
   }
 
   // MARK: - 간단한 조회 API
@@ -118,7 +140,11 @@ public final class AutoMonitor {
     dependencies.removeAll()
     moduleStates.removeAll()
 
-    #logInfo("🔄 모니터링 시스템이 초기화되었습니다")
+#if DEBUG
+    if Self.isEnabled {
+      #logInfo("🔄 모니터링 시스템이 초기화되었습니다")
+    }
+#endif
   }
 }
 
@@ -128,13 +154,18 @@ extension AutoMonitor {
 
   /// 한 번에 모든 정보 보기
   public func showAll() {
+#if DEBUG
+    guard Self.isEnabled else { return }
     showStatus()
     showGraph()
     #logInfo(getSummary())
+#endif
   }
 
   /// 특정 모듈의 의존성만 보기
   public func showDependenciesFor(module: String) -> [String] {
+#if DEBUG
+    guard Self.isEnabled else { return [] }
     let deps = dependencies.filter { $0.from == module || $0.to == module }
 
     #logInfo("\n🔍 \(module)의 의존성:")
@@ -147,5 +178,8 @@ extension AutoMonitor {
     }
 
     return deps.map { $0.from == module ? $0.to : $0.from }
+#else
+    return []
+#endif
   }
 }

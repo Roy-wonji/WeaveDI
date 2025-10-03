@@ -450,6 +450,14 @@ public actor UnifiedRegistry {
     
     Log.info("🧹 [UnifiedRegistry] Released all registrations (total: \(totalCount))")
   }
+
+  /// 현재 등록된 타입 수를 반환합니다
+  public func registeredTypeCount() -> Int {
+    syncFactories.count
+      + asyncFactories.count
+      + scopedFactories.count
+      + scopedAsyncFactories.count
+  }
   
   /// 특정 스코프의 인스턴스들을 모두 해제합니다.
   /// - Returns: 해제된 개수

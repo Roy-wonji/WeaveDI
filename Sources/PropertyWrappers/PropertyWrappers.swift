@@ -75,3 +75,4 @@ public struct Factory<T> {
     fatalError("🚨 [Factory] 잘못된 설정입니다. KeyPath 또는 직접 팩토리가 필요합니다.")
   }
 }
+
