@@ -3,11 +3,6 @@ name: Deploy VitePress Documentation to GitHub Pages
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'docs/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/deploy-vitepress.yml'
   workflow_dispatch:
 
 permissions:
