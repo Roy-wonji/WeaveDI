@@ -12,7 +12,7 @@ Swift Concurrency를 활용한 안전하고 고성능의 의존성 주입 시스
 // Actor hop 개념을 보여주는 예제
 @MainActor
 class UIViewController {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func updateUI() async {
         // 1. 현재 MainActor (UI 스레드)에 있음
@@ -86,7 +86,7 @@ func optimizedSetup() async {
 #### 3. 컨텍스트 해결 전략
 ```swift
 actor BusinessLogicActor {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func processUserData() async {
         // 프로퍼티 래퍼 주입이 actor hop을 최소화
@@ -205,7 +205,7 @@ actor DataProcessingActor {
 ```swift
 // ✅ 최적: 프로퍼티 래퍼가 actor hop을 최소화
 class OptimizedService {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
     @Factory var logger: Logger  // 각 접근마다 새 인스턴스이지만 최적화됨
     @SafeInject var database: Database?
 

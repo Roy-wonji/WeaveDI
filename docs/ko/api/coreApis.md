@@ -132,17 +132,17 @@ await WeaveDI.Container.bootstrap { container in
 
 ## 주입 API (Injection)
 
-### @Inject 프로퍼티 래퍼
+### @Injected 프로퍼티 래퍼
 
 가장 일반적인 의존성 주입 방법입니다:
 
 ```swift
 class UserViewModel {
     // 옵셔널 주입 - 등록되지 않은 경우 nil
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     // 필수 타입 - 등록되지 않은 경우 기본값 사용
-    @Inject var userService: UserService = UserServiceImpl()
+    @Injected var userService: UserService = UserServiceImpl()
 
     func loadUser() async {
         guard let service = userService else { return }
@@ -385,7 +385,7 @@ await WeaveDI.Container.bootstrap { container in
 
     // 상위 의존성은 하위 의존성을 자동 주입받음
     container.register(UserService.self) {
-        UserServiceImpl() // @Inject로 자동 주입
+        UserServiceImpl() // @Injected로 자동 주입
     }
 }
 ```
@@ -407,7 +407,7 @@ await WeaveDI.Container.bootstrap { container in
 }
 
 class DataManager {
-    @Inject var database: DatabaseService? // 추상 타입으로 주입
+    @Injected var database: DatabaseService? // 추상 타입으로 주입
 }
 ```
 

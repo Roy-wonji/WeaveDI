@@ -4,10 +4,10 @@ Complete guide to implementing declarative and type-safe dependency injection us
 
 ## Overview
 
-WeaveDI leverages Swift's Property Wrapper feature to make dependency injection more declarative and intuitive. Through Property Wrappers like `@Injected` (recommended), `@Factory`, and legacy wrappers (`@Inject`, `@SafeInject` - deprecated since v3.2.0), you can solve complex dependency management with simple annotations.
+WeaveDI leverages Swift's Property Wrapper feature to make dependency injection more declarative and intuitive. Through Property Wrappers like `@Injected` (recommended), `@Factory`, and legacy wrappers (`@Injected`, `@SafeInject` - deprecated since v3.2.0), you can solve complex dependency management with simple annotations.
 
 ::: warning Deprecation Notice
-`@Inject` and `@SafeInject` are **Deprecated (v3.2.0+)**. Use `@Injected` instead for better type safety and TCA-style KeyPath access. See the [migration guide](../api/injected.md) for details.
+`@Injected` and `@SafeInject` are **Deprecated (v3.2.0+)**. Use `@Injected` instead for better type safety and TCA-style KeyPath access. See the [migration guide](../api/injected.md) for details.
 :::
 
 ### Swift Version Compatibility
@@ -27,15 +27,15 @@ WeaveDI leverages Swift's Property Wrapper feature to make dependency injection 
 - **🧪 Testable**: Easy mock injection for testing
 - **🔄 Thread Safe**: Safe across actors and async contexts
 
-## @Inject - Universal Dependency Injection (Deprecated v3.2.0+)
+## @Injected - Universal Dependency Injection (Deprecated v3.2.0+)
 
 ::: danger Deprecated
-`@Inject` is **deprecated since v3.2.0**. Use `@Injected` instead for better type safety and TCA-style KeyPath access.
+`@Injected` is **deprecated since v3.2.0**. Use `@Injected` instead for better type safety and TCA-style KeyPath access.
 
 **Migration:**
 ```swift
 // Old (Deprecated)
-@Inject var userService: UserServiceProtocol?
+@Injected var userService: UserServiceProtocol?
 
 // New (Recommended)
 @Injected(\.userService) var userService
@@ -44,7 +44,7 @@ WeaveDI leverages Swift's Property Wrapper feature to make dependency injection 
 
 ### Basic Usage
 
-`@Inject` was the commonly used Property Wrapper, supporting both type-based and KeyPath-based injection. **Now replaced by @Injected.**
+`@Injected` was the commonly used Property Wrapper, supporting both type-based and KeyPath-based injection. **Now replaced by @Injected.**
 
 #### Swift 6 Enhanced Safety
 
@@ -58,8 +58,8 @@ protocol UserService: Sendable {
 
 @MainActor
 class UserViewController {
-    @Inject private var userService: UserService?
-    @Inject private var logger: Logger?
+    @Injected private var userService: UserService?
+    @Injected private var logger: Logger?
 
     func loadUser() async {
         // Safe actor-isolated access
@@ -91,11 +91,11 @@ import WeaveDI
 
 class UserService {
     // Type-based injection - optional
-    @Inject var repository: UserRepositoryProtocol?
-    @Inject var logger: LoggerProtocol?
+    @Injected var repository: UserRepositoryProtocol?
+    @Injected var logger: LoggerProtocol?
 
     // Type-based injection - required (force unwrapping)
-    @Inject var networkService: NetworkServiceProtocol!
+    @Injected var networkService: NetworkServiceProtocol!
 
     func getUser(id: String) async throws -> User {
         logger?.info("Starting user lookup: \(id)")
@@ -131,8 +131,8 @@ extension WeaveDI.Container {
 
 // Using KeyPath-based injection
 class DatabaseManager {
-    @Inject(\.database) var database: DatabaseServiceProtocol?
-    @Inject(\.logger) var logger: LoggerProtocol!
+    @Injected(\.database) var database: DatabaseServiceProtocol?
+    @Injected(\.logger) var logger: LoggerProtocol!
 
     func performMigration() async throws {
         logger.info("Starting database migration")
@@ -200,8 +200,8 @@ class CriticalService {
 ```swift
 @MainActor
 class UIService {
-    @Inject var userService: UserServiceProtocol?
-    @Inject var imageLoader: ImageLoaderProtocol!
+    @Injected var userService: UserServiceProtocol?
+    @Injected var imageLoader: ImageLoaderProtocol!
 
     func updateUserProfile(_ user: User) async {
         // Safely executed in MainActor context
@@ -211,8 +211,8 @@ class UIService {
 }
 
 actor DataProcessor {
-    @Inject var databaseService: DatabaseServiceProtocol?
-    @Inject var analyticsService: AnalyticsServiceProtocol!
+    @Injected var databaseService: DatabaseServiceProtocol?
+    @Injected var analyticsService: AnalyticsServiceProtocol!
 
     func processUserData(_ data: UserData) async throws {
         // Safely executed in Actor context
@@ -256,8 +256,8 @@ class UserProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    @Inject var userService: UserServiceProtocol?
-    @Inject var logger: LoggerProtocol!
+    @Injected var userService: UserServiceProtocol?
+    @Injected var logger: LoggerProtocol!
 
     func loadUserData() async {
         isLoading = true

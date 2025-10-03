@@ -116,8 +116,8 @@ func registerAsyncScoped<T>(
 
 ```swift
 class HomeViewController: UIViewController {
-    @Inject var viewModel: HomeViewModel?
-    @Inject var imageCache: ImageCache?
+    @Injected var viewModel: HomeViewModel?
+    @Injected var imageCache: ImageCache?
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -249,8 +249,8 @@ class AuthenticationManager {
 
 // 앱 전체에서 사용 - 세션 의존성이 어디서나 사용 가능
 class ProfileViewController: UIViewController {
-    @Inject var userSession: UserSession?
-    @Inject var personalization: PersonalizationService?
+    @Injected var userSession: UserSession?
+    @Injected var personalization: PersonalizationService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -612,5 +612,5 @@ func checkScopeStatus() {
 ## 참고
 
 - [코어 API](../api/coreApis.md) - 상세한 등록 및 해결 방법
-- [프로퍼티 래퍼](./propertyWrappers.md) - @Inject로 스코프 의존성 사용하기
+- [프로퍼티 래퍼](./propertyWrappers.md) - @Injected로 스코프 의존성 사용하기
 - [부트스트랩 가이드](./bootstrap.md) - 앱 시작 시 스코프 의존성 설정하기

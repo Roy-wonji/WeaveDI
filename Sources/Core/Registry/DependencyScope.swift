@@ -80,7 +80,7 @@ public struct DependencyValidation {
   ///
   /// - Parameter type: 확인할 의존성 타입
   /// - Returns: 등록 여부
-  public static func isRegistered<T>(_ type: T.Type) -> Bool {
+  public static func isRegistered<T>(_ type: T.Type) -> Bool where T: Sendable {
     return WeaveDI.Container.live.resolve(type) != nil
   }
 

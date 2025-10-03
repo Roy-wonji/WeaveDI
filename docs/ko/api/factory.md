@@ -1,10 +1,10 @@
 # @Factory 프로퍼티 래퍼
 
-`@Factory` 프로퍼티 래퍼는 동적 인스턴스 생성을 통한 팩토리 기반 의존성 주입을 제공하여, 프로퍼티에 접근할 때마다 새로운 인스턴스를 생성합니다. 이는 종속성을 캐시하는 `@Inject`와는 근본적으로 다르며, 상태를 가진 객체, 세션 범위 서비스, 또는 독립적인 상태를 가진 새로운 인스턴스가 필요한 시나리오에 이상적입니다.
+`@Factory` 프로퍼티 래퍼는 동적 인스턴스 생성을 통한 팩토리 기반 의존성 주입을 제공하여, 프로퍼티에 접근할 때마다 새로운 인스턴스를 생성합니다. 이는 종속성을 캐시하는 `@Injected`와는 근본적으로 다르며, 상태를 가진 객체, 세션 범위 서비스, 또는 독립적인 상태를 가진 새로운 인스턴스가 필요한 시나리오에 이상적입니다.
 
 ## 개요
 
-`@Inject`와 달리 해결된 의존성을 싱글톤과 같은 동작으로 캐시하지 않고, `@Factory`는 사용 간 완전한 상태 격리를 보장하는 동적 생성 패턴을 구현합니다. 이는 다음과 같은 상황에서 중요합니다:
+`@Injected`와 달리 해결된 의존성을 싱글톤과 같은 동작으로 캐시하지 않고, `@Factory`는 사용 간 완전한 상태 격리를 보장하는 동적 생성 패턴을 구현합니다. 이는 다음과 같은 상황에서 중요합니다:
 
 - **상태를 가진 서비스**: 공유되어서는 안 되는 내부 상태를 유지하는 객체
 - **세션 범위 객체**: 요청 또는 사용자 세션별 인스턴스
@@ -137,8 +137,8 @@ class CounterSession {
     var startTime: Date = Date()
     var currentCount: Int = 0
 
-    @Inject var repository: CounterRepository?
-    @Inject var logger: LoggerProtocol?
+    @Injected var repository: CounterRepository?
+    @Injected var logger: LoggerProtocol?
 
     func initialize() async {
         logger?.info("📊 세션 '\\(sessionName)' 초기화됨")
@@ -160,7 +160,7 @@ class CounterSession {
 class WeatherReportService {
     @Factory var reportGenerator: WeatherReportGenerator?
     @Factory var chartBuilder: WeatherChartBuilder?
-    @Inject var weatherService: WeatherServiceProtocol?
+    @Injected var weatherService: WeatherServiceProtocol?
 
     func generateDailyReport(for city: String) async throws -> WeatherReport? {
         guard let generator = reportGenerator,
@@ -204,7 +204,7 @@ class WeatherReportGenerator {
     private var reportType: ReportType = .daily
     private var generationTime: Date = Date()
 
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func configure(for type: ReportType) {
         self.reportType = type
@@ -255,7 +255,7 @@ class WeatherReportGenerator {
 
 ### @Factory를 사용해야 하는 경우
 
-**결정 기준**: 상태 관리 요구사항과 생명주기 필요에 따라 `@Factory`와 `@Inject` 중 선택합니다.
+**결정 기준**: 상태 관리 요구사항과 생명주기 필요에 따라 `@Factory`와 `@Injected` 중 선택합니다.
 
 **@Factory가 이상적인 경우**:
 - **상태를 가진 객체**: 변화하는 내부 상태를 유지하는 객체
@@ -264,7 +264,7 @@ class WeatherReportGenerator {
 - **단기 실행 객체**: 임시 처리 객체
 - **스레드 안전 요구사항**: 동시 접근을 위한 독립적인 인스턴스
 
-**@Inject가 이상적인 경우**:
+**@Injected가 이상적인 경우**:
 - **상태 없는 서비스**: 순수 함수 또는 유틸리티 클래스
 - **공유 리소스**: 데이터베이스 연결, 로거, 구성
 - **비싼 객체**: 한 번만 초기화해야 하는 무거운 초기화
@@ -276,9 +276,9 @@ class DocumentProcessor {
     @Factory var documentBuilder: DocumentBuilder?
     @Factory var validator: DocumentValidator?
 
-    // ✅ 장기 실행, 상태 없는 서비스에 @Inject 사용
-    @Inject var documentRepository: DocumentRepository?
-    @Inject var logger: LoggerProtocol?
+    // ✅ 장기 실행, 상태 없는 서비스에 @Injected 사용
+    @Injected var documentRepository: DocumentRepository?
+    @Injected var logger: LoggerProtocol?
 
     func processDocument(_ content: String) async {
         // 각 문서마다 새로운 빌더와 검증기
@@ -317,7 +317,7 @@ class DocumentProcessor {
 ```swift
 class PerformanceTestService {
     @Factory var heavyProcessor: HeavyProcessor? // 매번 새로운 인스턴스
-    @Inject var cacheService: CacheService?      // 공유 인스턴스
+    @Injected var cacheService: CacheService?      // 공유 인스턴스
 
     func processData() {
         // ⚠️ @Factory와 함께 메모리 사용량 고려
@@ -342,7 +342,7 @@ class PerformanceTestService {
 **목적**: 싱글톤 주입과 동일한 등록 API를 사용하여 팩토리 주입용 의존성을 등록합니다.
 
 **주요 차이점**:
-- **등록**: `@Inject` 의존성과 동일한 API
+- **등록**: `@Injected` 의존성과 동일한 API
 - **해결**: 각 `@Factory` 접근에서 새로운 인스턴스 생성
 - **생명주기**: 컨테이너는 팩토리 클로저를 관리하며, 인스턴스는 아님
 - **스레드 안전성**: 등록은 스레드 안전하며, 인스턴스는 독립적
@@ -393,7 +393,7 @@ await WeaveDI.Container.bootstrap { container in
 
 ```swift
 class ServiceFactory {
-    @Inject var container: WeaveDI.Container?
+    @Injected var container: WeaveDI.Container?
 
     func createTaskManager(for taskType: TaskType) -> TaskManager? {
         // 매개변수에 따라 구성된 인스턴스 생성
@@ -605,17 +605,17 @@ class ReportBuilderService {
 
 **결정 프레임워크**:
 - 객체가 상태를 유지하는 경우 → `@Factory` 사용
-- 객체가 상태 없는 경우 → `@Inject` 사용
+- 객체가 상태 없는 경우 → `@Injected` 사용
 - 상태 격리가 필요한 경우 → `@Factory` 사용
-- 공유 상태가 허용되는 경우 → `@Inject` 사용
+- 공유 상태가 허용되는 경우 → `@Injected` 사용
 ```swift
 // ✅ 좋음 - 새로운 인스턴스가 필요한 상태를 가진 객체
 @Factory var userSession: UserSession?
 @Factory var shoppingCart: ShoppingCart?
 @Factory var gameState: GameState?
 
-// ❌ 피하기 - 상태 없는 서비스 (대신 @Inject 사용)
-@Factory var mathUtils: MathUtils? // @Inject을 사용해야 함
+// ❌ 피하기 - 상태 없는 서비스 (대신 @Injected 사용)
+@Factory var mathUtils: MathUtils? // @Injected을 사용해야 함
 ```
 
 ### 2. 메모리 영향 고려
@@ -679,7 +679,7 @@ class DocumentService {
     @Factory var pdfGenerator: PDFGenerator?
 
     /// 모든 문서 작업을 위한 공유 레포지토리
-    @Inject var documentRepository: DocumentRepository?
+    @Injected var documentRepository: DocumentRepository?
 }
 ```
 
@@ -787,18 +787,18 @@ class OptimizedFactoryService {
 
 **해결 전략**:
 - **상태 요구사항 평가**: 객체가 정말로 독립적인 상태가 필요한지 신중히 평가
-- **@Inject를 기본값으로**: 상태 격리가 필요하지 않은 경우 `@Inject`를 기본 선택으로 사용
+- **@Injected를 기본값으로**: 상태 격리가 필요하지 않은 경우 `@Injected`를 기본 선택으로 사용
 - **성능 분석**: 팩토리 vs 싱글톤 주입의 성능 영향 측정
 - **설계 검토**: 코드 검토 중 의존성 주입 선택 검토
 
 **결정 가이드라인**:
 - 가변 상태를 가짐 → `@Factory` 고려
-- 상태 없음 → `@Inject` 사용
-- 생성 비용이 비쌈 → `@Inject` 선호
+- 상태 없음 → `@Injected` 사용
+- 생성 비용이 비쌈 → `@Injected` 선호
 - 사용마다 구성이 필요함 → `@Factory` 고려
 ```swift
 // ❌ 나쁨 - 상태 없는 서비스에 팩토리 사용
-@Factory var logger: Logger? // @Inject을 사용해야 함
+@Factory var logger: Logger? // @Injected을 사용해야 함
 
 // ✅ 좋음 - 상태를 가진 객체에 팩토리 사용
 @Factory var dataProcessor: DataProcessor?
@@ -850,6 +850,6 @@ func processLargeDataset() {
 
 ## 참고 자료
 
-- [@Inject 프로퍼티 래퍼](./inject.md) - 싱글톤 형태의 주입
+- [@Injected 프로퍼티 래퍼](./inject.md) - 싱글톤 형태의 주입
 - [@SafeInject 프로퍼티 래퍼](./safeInject.md) - 보장된 주입
 - [프로퍼티 래퍼 가이드](../guide/propertyWrappers.md) - 모든 프로퍼티 래퍼의 종합 가이드

@@ -870,7 +870,7 @@ final class ModuleFactoryTests: XCTestCase {
 ```
 
 **How WeaveDI Works:**
-- **Property Wrappers**: `@Injected`, `@Factory` handle dependency injection (`@Inject` and `@SafeInject` deprecated in 3.2.0)
+- **Property Wrappers**: `@Injected`, `@Factory` handle dependency injection (`@Injected` and `@SafeInject` deprecated in 3.2.0)
 - **Automatic Resolution**: Dependencies injected automatically when accessed
 - **Type-Safe Registry**: Compile-time type checking with runtime flexibility
 - **Swift Concurrency**: Built-in support for async/await and actors

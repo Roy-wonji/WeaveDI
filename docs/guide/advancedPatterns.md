@@ -21,8 +21,8 @@ Inject dependencies based on runtime conditions:
 ```swift
 // Environment-based conditional injection
 class EnvironmentAwareService {
-    @Inject private var productionAPI: ProductionAPIService?
-    @Inject private var developmentAPI: DevelopmentAPIService?
+    @Injected private var productionAPI: ProductionAPIService?
+    @Injected private var developmentAPI: DevelopmentAPIService?
 
     private var apiService: APIServiceProtocol? {
         #if DEBUG
@@ -33,8 +33,8 @@ class EnvironmentAwareService {
     }
 
     // Alternative: Runtime condition-based injection
-    @Inject private var userService: UserService?
-    @Inject private var adminService: AdminService?
+    @Injected private var userService: UserService?
+    @Injected private var adminService: AdminService?
 
     private func getService(for user: User) -> UserServiceProtocol? {
         return user.isAdmin ? adminService : userService
@@ -58,8 +58,8 @@ protocol Repository<Entity> {
 class CoreDataRepository<T: Codable>: Repository {
     typealias Entity = T
 
-    @Inject private var coreDataStack: CoreDataStack?
-    @Inject private var logger: Logger?
+    @Injected private var coreDataStack: CoreDataStack?
+    @Injected private var logger: Logger?
 
     func save(_ entity: T) async throws {
         logger?.info("Saving entity of type \(T.self)")
@@ -92,7 +92,7 @@ await WeaveDI.Container.bootstrap { container in
 
 // Usage
 class UserManager {
-    @Inject private var userRepository: Repository<User>?
+    @Injected private var userRepository: Repository<User>?
 
     func createUser(_ user: User) async throws {
         try await userRepository?.save(user)
@@ -111,8 +111,8 @@ protocol OrderService {
 }
 
 class BasicOrderService: OrderService {
-    @Inject private var paymentService: PaymentService?
-    @Inject private var inventoryService: InventoryService?
+    @Injected private var paymentService: PaymentService?
+    @Injected private var inventoryService: InventoryService?
 
     func processOrder(_ order: Order) async throws -> OrderResult {
         // Basic order processing logic
@@ -122,7 +122,7 @@ class BasicOrderService: OrderService {
 
 // Logging decorator
 class LoggingOrderService: OrderService {
-    @Inject private var logger: Logger?
+    @Injected private var logger: Logger?
     private let decorated: OrderService
 
     init(decorated: OrderService) {
@@ -145,7 +145,7 @@ class LoggingOrderService: OrderService {
 
 // Analytics decorator
 class AnalyticsOrderService: OrderService {
-    @Inject private var analytics: AnalyticsService?
+    @Injected private var analytics: AnalyticsService?
     private let decorated: OrderService
 
     init(decorated: OrderService) {
@@ -202,7 +202,7 @@ Handle circular dependencies safely:
 ```swift
 // Use lazy injection to break circular dependencies
 class UserService {
-    @Inject private var orderService: OrderService?  // Will be nil initially
+    @Injected private var orderService: OrderService?  // Will be nil initially
 
     // Lazy resolution to break cycles
     private lazy var lazyOrderService: OrderService? = {
@@ -215,7 +215,7 @@ class UserService {
 }
 
 class OrderService {
-    @Inject private var userService: UserService?
+    @Injected private var userService: UserService?
 
     private lazy var lazyUserService: UserService? = {
         UnifiedDI.resolve(UserService.self)
@@ -240,7 +240,7 @@ protocol OrderServiceProtocol {
 }
 
 class UserServiceImpl: UserServiceProtocol {
-    @Inject private var orderService: OrderServiceProtocol?
+    @Injected private var orderService: OrderServiceProtocol?
 
     func getUser(id: String) async throws -> User? {
         // Implementation
@@ -249,7 +249,7 @@ class UserServiceImpl: UserServiceProtocol {
 }
 
 class OrderServiceImpl: OrderServiceProtocol {
-    @Inject private var userService: UserServiceProtocol?
+    @Injected private var userService: UserServiceProtocol?
 
     func getOrdersForUser(_ userId: String) async throws -> [Order] {
         // Implementation
@@ -328,7 +328,7 @@ Optimize memory usage with lazy initialization:
 ```swift
 class PerformanceOptimizedService {
     // Lazy property for expensive operations
-    @Inject private var _expensiveService: ExpensiveService?
+    @Injected private var _expensiveService: ExpensiveService?
     private lazy var expensiveService: ExpensiveService? = {
         print("💰 Expensive service created")
         return _expensiveService
@@ -461,7 +461,7 @@ class ImageProcessorPool {
 }
 
 class ImageService {
-    @Inject private var processorPool: ImageProcessorPool?
+    @Injected private var processorPool: ImageProcessorPool?
 
     func processImages(_ images: [UIImage]) async -> [UIImage] {
         var processedImages: [UIImage] = []
@@ -488,9 +488,9 @@ Handle missing dependencies gracefully:
 
 ```swift
 class ResilientService {
-    @Inject private var primaryService: PrimaryService?
-    @Inject private var fallbackService: FallbackService?
-    @Inject private var logger: Logger?
+    @Injected private var primaryService: PrimaryService?
+    @Injected private var fallbackService: FallbackService?
+    @Injected private var logger: Logger?
 
     func performOperation() async throws -> Result {
         // Try primary service first
@@ -545,10 +545,10 @@ enum HealthStatus {
 }
 
 class HealthMonitorService {
-    @Inject private var userService: UserService?
-    @Inject private var databaseService: DatabaseService?
-    @Inject private var networkService: NetworkService?
-    @Inject private var logger: Logger?
+    @Injected private var userService: UserService?
+    @Injected private var databaseService: DatabaseService?
+    @Injected private var networkService: NetworkService?
+    @Injected private var logger: Logger?
 
     func performHealthCheck() async -> [String: HealthStatus] {
         var results: [String: HealthStatus] = [:]
@@ -1013,7 +1013,7 @@ Monitor DI performance in production:
 
 ```swift
 class ProductionMonitoring {
-    @Inject private var logger: Logger?
+    @Injected private var logger: Logger?
 
     static func setupMonitoring() {
         // Monitor slow dependency resolutions

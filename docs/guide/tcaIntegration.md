@@ -10,7 +10,7 @@ The Composable Architecture (TCA) is a library for building applications in a co
 
 | Aspect | TCA Alone | WeaveDI + TCA | Benefit |
 |--------|-----------|---------------|---------|
-| **Dependency Management** | Manual injection in init | Automatic injection with @Inject | 🎯 Cleaner code, less boilerplate |
+| **Dependency Management** | Manual injection in init | Automatic injection with @Injected | 🎯 Cleaner code, less boilerplate |
 | **Testing** | Mock services manually | Automatic mock injection | 🧪 Easier unit testing |
 | **Modularization** | Tight coupling | Loose coupling via protocols | 🔗 Better separation of concerns |
 | **Swift Concurrency** | Basic support | Full async/await + actor optimization | ⚡ Enhanced performance |
@@ -65,6 +65,23 @@ import ComposableArchitecture
 import WeaveDI
 ```
 
+## Component Quick Start
+
+```swift
+import WeaveDI
+
+@Component
+struct UserComponent {
+  @Provide var repository: UserRepository = UserRepositoryImpl()
+  @Provide(scope: .singleton) var service: UserService = UserServiceImpl(repository: repository)
+}
+
+// Register into the shared container
+UserComponent.registerAll()
+```
+
+The `@Component` macro inspects every `@Provide` property, orders dependencies based on their usage, and generates the necessary `DIContainer.register` calls at compile time.
+
 ## Basic Integration Patterns
 
 ### 1. Service Layer Setup
@@ -89,8 +106,8 @@ protocol NetworkService {
 
 // MARK: - Service Implementations
 class UserServiceImpl: UserService {
-    @Inject private var networkService: NetworkService?
-    @Inject private var analytics: AnalyticsService?
+    @Injected private var networkService: NetworkService?
+    @Injected private var analytics: AnalyticsService?
 
     func fetchUser(id: String) async throws -> User {
         analytics?.track(event: "user_fetch_started", parameters: ["user_id": id])
@@ -167,8 +184,8 @@ struct UserFeature {
     }
 
     // Dependency injection using WeaveDI
-    @Inject private var userService: UserService?
-    @Inject private var analytics: AnalyticsService?
+    @Injected private var userService: UserService?
+    @Injected private var analytics: AnalyticsService?
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -248,8 +265,8 @@ struct UserFeature: Reducer {
     }
 
     // Dependency injection using WeaveDI
-    @Inject private var userService: UserService?
-    @Inject private var analytics: AnalyticsService?
+    @Injected private var userService: UserService?
+    @Injected private var analytics: AnalyticsService?
 
     func reduce(into state: inout State, action: Action) -> Effect<Action> {
         switch action {
@@ -680,8 +697,8 @@ struct AppFeature {
         case logout
     }
 
-    @Inject private var authService: AuthService?
-    @Inject private var analytics: AnalyticsService?
+    @Injected private var authService: AuthService?
+    @Injected private var analytics: AnalyticsService?
 
     var body: some ReducerOf<Self> {
         Scope(state: \.user, action: \.user) {
@@ -763,7 +780,7 @@ For better performance, use lazy loading for expensive dependencies:
 struct DataProcessingFeature {
     // Lazy injection - only created when first accessed
     @Factory private var dataProcessor: ExpensiveDataProcessor
-    @Inject private var cache: CacheService?
+    @Injected private var cache: CacheService?
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -797,14 +814,14 @@ protocol UserDependencies {
 }
 
 class UserDependenciesImpl: UserDependencies {
-    @Inject var userService: UserService
-    @Inject var userRepository: UserRepository
-    @Inject var userCache: UserCacheService
+    @Injected var userService: UserService
+    @Injected var userRepository: UserRepository
+    @Injected var userCache: UserCacheService
 }
 
 @Reducer
 struct UserFeature {
-    @Inject private var dependencies: UserDependencies?
+    @Injected private var dependencies: UserDependencies?
 
     // Use grouped dependencies
     private var userService: UserService? {
@@ -908,8 +925,8 @@ extension DependencyValues {
 
 ```swift
 struct UserFeature: Reducer {
-    @Inject private var userService: UserService?
-    @Inject private var analytics: AnalyticsService?
+    @Injected private var userService: UserService?
+    @Injected private var analytics: AnalyticsService?
 
     // ... same reducer implementation
 }
@@ -922,7 +939,7 @@ await WeaveDI.registerTCADependencies()
 
 ### Issue 1: Services Not Found
 
-**Problem:** `@Inject` returns `nil`
+**Problem:** `@Injected` returns `nil`
 
 **Solution:** Ensure dependencies are registered before creating stores:
 
@@ -961,11 +978,11 @@ class UserServiceImpl: UserService, Sendable {
 
 **Problem:** `@Factory` creating too many instances
 
-**Solution:** Use `@Inject` for stateless services, `@Factory` only when needed:
+**Solution:** Use `@Injected` for stateless services, `@Factory` only when needed:
 
 ```swift
-// ✅ Use @Inject for singleton services
-@Inject private var apiClient: APIClient?
+// ✅ Use @Injected for singleton services
+@Injected private var apiClient: APIClient?
 
 // ✅ Use @Factory for stateful or temporary objects
 @Factory private var documentGenerator: DocumentGenerator
@@ -989,3 +1006,466 @@ By following the patterns and best practices in this guide, you'll be able to bu
 - [Testing Guide](/tutorial/testing) - Advanced testing strategies with WeaveDI
 - [Performance Optimization](./runtimeOptimization.md) - Optimize your DI container for production
 - [Migration Guide](./migration-3.0.0.md) - Migrate from other DI frameworks
+
+## Swift-Dependencies Integration
+
+WeaveDI provides seamless integration with Point-Free's `swift-dependencies` package, allowing you to use both systems together or migrate gradually between them.
+
+### Setup and Configuration
+
+Add both packages to your `Package.swift`:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0"),
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.2.0")
+],
+targets: [
+    .target(
+        name: "YourApp",
+        dependencies: [
+            .product(name: "Dependencies", package: "swift-dependencies"),
+            "WeaveDI"
+        ]
+    )
+]
+```
+
+### Basic Integration Pattern
+
+```swift
+import Dependencies
+import WeaveDI
+
+// 1. Define your service protocol
+protocol UserService: Sendable {
+    func fetchUser(id: String) async throws -> User
+}
+
+// 2. Create WeaveDI key for the service
+struct UserServiceKey: InjectedKey {
+    static let liveValue: UserService = UserServiceImpl()
+    static let testValue: UserService = MockUserService()
+}
+
+// 3. Extend DependencyValues to bridge WeaveDI and swift-dependencies
+extension DependencyValues {
+    var userService: UserService {
+        get { self[UserServiceKey.self] }
+        set { self[UserServiceKey.self] = newValue }
+    }
+}
+
+// 4. Use in your reducer with either system
+struct UserFeature: Reducer {
+    // Option A: Use swift-dependencies (recommended for new projects)
+    @Dependency(\.userService) var userService
+
+    // Option B: Use WeaveDI directly
+    // @Injected var userService: UserService?
+
+    var body: some ReducerOf<Self> {
+        Reduce { state, action in
+            switch action {
+            case .loadUser(let id):
+                return .run { send in
+                    let user = try await userService.fetchUser(id: id)
+                    await send(.userLoaded(user))
+                }
+            }
+        }
+    }
+}
+```
+
+### Advanced Bridge Implementation
+
+For complex scenarios, create a comprehensive bridge:
+
+```swift
+// MARK: - WeaveDI ↔ swift-dependencies Bridge
+
+extension DependencyValues {
+
+    /// Access WeaveDI container directly from DependencyValues
+    var diContainer: WeaveDI.Container {
+        get { self[DIContainerKey.self] }
+        set { self[DIContainerKey.self] = newValue }
+    }
+
+    /// Generic subscript for any WeaveDI InjectedKey
+    subscript<K: InjectedKey>(key: K.Type) -> K.Value where K.Value: Sendable {
+        get {
+            // Try to get from WeaveDI first, fallback to swift-dependencies
+            if let value = diContainer.resolve(K.Value.self) {
+                return value
+            }
+            return K.liveValue
+        }
+        set {
+            // Register in both systems for maximum compatibility
+            diContainer.register(K.Value.self, instance: newValue)
+            InjectedValues.current[K.self] = newValue
+        }
+    }
+
+    // Specific service bridges
+    var apiClient: APIClient {
+        get { self[APIClientKey.self] }
+        set { self[APIClientKey.self] = newValue }
+    }
+
+    var database: Database {
+        get { self[DatabaseKey.self] }
+        set { self[DatabaseKey.self] = newValue }
+    }
+
+    var analytics: AnalyticsService {
+        get { self[AnalyticsKey.self] }
+        set { self[AnalyticsKey.self] = newValue }
+    }
+}
+
+// Container key for DI system access
+private struct DIContainerKey: DependencyKey {
+    static let liveValue = WeaveDI.Container.live
+    static let testValue = WeaveDI.Container()
+}
+```
+
+### Real-World Migration Example
+
+#### Scenario: Existing TCA app with swift-dependencies, adding WeaveDI gradually
+
+```swift
+// MARK: - Before: Pure swift-dependencies
+struct OldUserFeature: Reducer {
+    @Dependency(\.userService) var userService
+    @Dependency(\.analytics) var analytics
+
+    // ... existing implementation
+}
+
+extension DependencyValues {
+    var userService: UserService {
+        get { self[UserServiceKey.self] }
+        set { self[UserServiceKey.self] = newValue }
+    }
+}
+
+// MARK: - After: Hybrid approach
+struct NewUserFeature: Reducer {
+    // Keep existing swift-dependencies for critical services
+    @Dependency(\.userService) var userService
+
+    // Add WeaveDI for new services with better performance
+    @Injected var cacheService: CacheService?
+    @Injected var imageProcessor: ImageProcessor?
+
+    var body: some ReducerOf<Self> {
+        Reduce { state, action in
+            switch action {
+            case .loadUser(let id):
+                return .run { send in
+                    // Use swift-dependencies service
+                    let user = try await userService.fetchUser(id: id)
+
+                    // Use WeaveDI services for caching
+                    await cacheService?.cache(user)
+                    await imageProcessor?.preloadAvatar(user.avatarURL)
+
+                    await send(.userLoaded(user))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Registration in App startup
+@main
+struct MyApp: App {
+    init() {
+        Task {
+            // Register WeaveDI services
+            await WeaveDI.Container.bootstrap { container in
+                container.register(CacheService.self) {
+                    RedisCache()
+                }
+                container.register(ImageProcessor.self) {
+                    GPUImageProcessor()
+                }
+            }
+        }
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .store(store: AppStore())
+        }
+    }
+}
+```
+
+### Testing with Both Systems
+
+```swift
+import XCTest
+import Dependencies
+import WeaveDI
+@testable import YourApp
+
+class HybridFeatureTests: XCTestCase {
+
+    override func setUp() async throws {
+        await super.setUp()
+
+        // Setup WeaveDI mocks
+        WeaveDI.Container.live = WeaveDI.Container()
+        await WeaveDI.Container.bootstrap { container in
+            container.register(CacheService.self) {
+                MockCacheService()
+            }
+            container.register(ImageProcessor.self) {
+                MockImageProcessor()
+            }
+        }
+    }
+
+    @MainActor
+    func testHybridFeature() async {
+        let store = TestStore(initialState: NewUserFeature.State()) {
+            NewUserFeature()
+        } withDependencies: {
+            // Override swift-dependencies services
+            $0.userService = MockUserService()
+            $0.analytics = MockAnalytics()
+            // WeaveDI services are automatically mocked from setUp
+        }
+
+        // Test with both systems working together
+        await store.send(.loadUser("123"))
+        await store.receive(.userLoaded(expectedUser))
+    }
+}
+```
+
+### Performance Comparison
+
+| Aspect | swift-dependencies | WeaveDI | Hybrid Approach |
+|--------|-------------------|---------|-----------------|
+| **Resolution Speed** | Fast (TaskLocal) | **Very Fast** (Direct registry) | **Optimal** |
+| **Memory Usage** | Low | **Very Low** | **Balanced** |
+| **Compile Time** | Good | **Excellent** | Good |
+| **Type Safety** | Strong | **Very Strong** | **Maximum** |
+| **Testing Support** | Excellent | **Excellent** | **Best of Both** |
+
+### Best Practices for Hybrid Usage
+
+#### 1. Service Categorization Strategy
+
+```swift
+// Use swift-dependencies for:
+// - Core TCA dependencies (effects, schedulers)
+// - Simple value types
+// - Services that benefit from TaskLocal scoping
+
+@Dependency(\.mainQueue) var mainQueue
+@Dependency(\.uuid) var uuid
+@Dependency(\.date) var date
+
+// Use WeaveDI for:
+// - Heavy services (networking, database)
+// - Services with complex initialization
+// - Services that need performance optimization
+
+@Injected var networkService: NetworkService?
+@Injected var database: Database?
+@Injected var cacheCluster: CacheCluster?
+```
+
+#### 2. Gradual Migration Pattern
+
+```swift
+// Phase 1: Add WeaveDI alongside swift-dependencies
+extension DependencyValues {
+    var expensiveService: ExpensiveService {
+        get {
+            // Try WeaveDI first for better performance
+            if let service = WeaveDI.Container.live.resolve(ExpensiveService.self) {
+                return service
+            }
+            // Fallback to swift-dependencies
+            return self[ExpensiveServiceKey.self]
+        }
+        set { self[ExpensiveServiceKey.self] = newValue }
+    }
+}
+
+// Phase 2: Fully migrate high-impact services to WeaveDI
+struct OptimizedFeature: Reducer {
+    // Migrated to WeaveDI for 10x performance improvement
+    @Injected var dataProcessor: DataProcessor?
+    @Injected var networkLayer: NetworkLayer?
+
+    // Keep swift-dependencies for simple values
+    @Dependency(\.mainQueue) var mainQueue
+    @Dependency(\.uuid) var uuid
+}
+```
+
+#### 3. Error Handling and Fallbacks
+
+```swift
+struct RobustFeature: Reducer {
+    @Dependency(\.userService) var userService
+    @Injected var enhancedUserService: EnhancedUserService?
+
+    var body: some ReducerOf<Self> {
+        Reduce { state, action in
+            switch action {
+            case .loadUser(let id):
+                return .run { send in
+                    do {
+                        // Try enhanced service first
+                        if let enhanced = enhancedUserService {
+                            let user = try await enhanced.fetchUserWithAnalytics(id: id)
+                            await send(.userLoaded(user))
+                        } else {
+                            // Fallback to basic service
+                            let user = try await userService.fetchUser(id: id)
+                            await send(.userLoaded(user))
+                        }
+                    } catch {
+                        await send(.userLoadFailed(error))
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+### Common Integration Issues and Solutions
+
+#### Issue 1: Service Not Found in Either System
+
+**Problem:**
+```swift
+@Dependency(\.myService) var myService  // nil
+@Injected var myService: MyService?     // nil
+```
+
+**Solution:**
+```swift
+// Ensure service is registered in both systems
+extension DependencyValues {
+    var myService: MyService {
+        get {
+            // Check WeaveDI first
+            if let service = WeaveDI.Container.live.resolve(MyService.self) {
+                return service
+            }
+            // Then check swift-dependencies
+            return self[MyServiceKey.self]
+        }
+        set {
+            // Register in both systems
+            self[MyServiceKey.self] = newValue
+            Task {
+                await WeaveDI.Container.bootstrap { container in
+                    container.register(MyService.self, instance: newValue)
+                }
+            }
+        }
+    }
+}
+```
+
+#### Issue 2: Conflicting Dependencies in Tests
+
+**Problem:** Different mock implementations in swift-dependencies vs WeaveDI
+
+**Solution:**
+```swift
+// Create unified test setup
+extension TestCase {
+    func setupUnifiedMocks() async {
+        let mockService = MockUserService()
+
+        // Setup WeaveDI
+        WeaveDI.Container.live = WeaveDI.Container()
+        await WeaveDI.Container.bootstrap { container in
+            container.register(UserService.self, instance: mockService)
+        }
+
+        // Setup swift-dependencies
+        DependencyValues.withDependencies {
+            $0.userService = mockService
+        }
+    }
+}
+```
+
+#### Issue 3: Performance Degradation with Double Resolution
+
+**Problem:** Services being resolved by both systems causing overhead
+
+**Solution:**
+```swift
+// Use caching layer to prevent double resolution
+class HybridServiceCache {
+    private var cache: [String: Any] = [:]
+
+    func resolve<T>(_ type: T.Type) -> T? {
+        let key = String(describing: type)
+
+        if let cached = cache[key] as? T {
+            return cached
+        }
+
+        // Try WeaveDI first (faster)
+        if let service = WeaveDI.Container.live.resolve(type) {
+            cache[key] = service
+            return service
+        }
+
+        // Fallback to swift-dependencies
+        let service = DependencyValues.current[type]
+        cache[key] = service
+        return service
+    }
+}
+```
+
+### FAQ
+
+**Q: Can I use both @Dependency and @Injected in the same reducer?**
+
+A: Yes! This is the recommended approach for gradual migration.
+
+**Q: Which system should I use for new services?**
+
+A: For new projects, use WeaveDI for better performance. For existing swift-dependencies projects, add WeaveDI gradually for heavy services.
+
+**Q: How do I handle service initialization order?**
+
+A: WeaveDI handles initialization automatically. For swift-dependencies, use the standard dependency override patterns.
+
+**Q: Can I access WeaveDI services from swift-dependencies tests?**
+
+A: Yes, through the bridge extension shown above. The systems work seamlessly together.
+
+**Q: What about performance impact of using both systems?**
+
+A: Minimal impact. WeaveDI is actually faster, so using both often improves overall performance.
+
+### Conclusion
+
+WeaveDI's integration with swift-dependencies provides the best of both worlds:
+- **Gradual Migration**: Move at your own pace
+- **Performance Optimization**: Use WeaveDI for heavy lifting
+- **Maximum Compatibility**: Keep existing swift-dependencies code
+- **Enhanced Testing**: Unified mock management
+
+This hybrid approach is particularly valuable for large codebases where complete migration would be risky or time-consuming.

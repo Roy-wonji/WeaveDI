@@ -1,12 +1,12 @@
-# @Inject 프로퍼티 래퍼 (v3.2.0부터 Deprecated)
+# @Injected 프로퍼티 래퍼 (v3.2.0부터 Deprecated)
 
 ::: danger Deprecated
-`@Inject`는 **v3.2.0부터 Deprecated**입니다. 더 나은 타입 안전성과 TCA 스타일 KeyPath 접근을 위해 `@Injected`로 마이그레이션하세요.
+`@Injected`는 **v3.2.0부터 Deprecated**입니다. 더 나은 타입 안전성과 TCA 스타일 KeyPath 접근을 위해 `@Injected`로 마이그레이션하세요.
 
 **마이그레이션 가이드:**
 ```swift
 // 기존 (Deprecated)
-@Inject var userService: UserServiceProtocol?
+@Injected var userService: UserServiceProtocol?
 
 // 새로운 방식 (권장)
 @Injected(\.userService) var userService
@@ -15,11 +15,11 @@
 완전한 마이그레이션 가이드는 [@Injected 문서](./injected.md)를 참조하세요.
 :::
 
-`@Inject` 프로퍼티 래퍼는 클래스와 구조체의 프로퍼티에 자동 의존성 주입을 제공했던 WeaveDI의 핵심 기능입니다. **이제 @Injected로 대체되었습니다.**
+`@Injected` 프로퍼티 래퍼는 클래스와 구조체의 프로퍼티에 자동 의존성 주입을 제공했던 WeaveDI의 핵심 기능입니다. **이제 @Injected로 대체되었습니다.**
 
 ## 개요
 
-`@Inject`는 프로퍼티에 처음 접근할 때 DI 컨테이너에서 의존성을 자동으로 해결하는 지연 평가(lazy evaluation) 방식을 사용합니다. 옵셔널 해결을 제공하여 누락된 의존성에 대해 코드가 회복력을 갖도록 하며, 이는 런타임 크래시를 방지하고 우아한 성능 저하(graceful degradation)를 가능하게 합니다.
+`@Injected`는 프로퍼티에 처음 접근할 때 DI 컨테이너에서 의존성을 자동으로 해결하는 지연 평가(lazy evaluation) 방식을 사용합니다. 옵셔널 해결을 제공하여 누락된 의존성에 대해 코드가 회복력을 갖도록 하며, 이는 런타임 크래시를 방지하고 우아한 성능 저하(graceful degradation)를 가능하게 합니다.
 
 **핵심 특징**:
 - **지연 해결(Lazy Resolution)**: 프로퍼티 첫 접근 시에만 의존성을 해결하여 성능 최적화
@@ -36,8 +36,8 @@
 import WeaveDI
 
 class WeatherViewModel: ObservableObject {
-    @Inject var weatherService: WeatherService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var weatherService: WeatherService?
+    @Injected var logger: LoggerProtocol?
 
     func loadWeather() {
         logger?.info("날씨 데이터 로딩 중...")
@@ -50,7 +50,7 @@ class WeatherViewModel: ObservableObject {
 
 ### 간단한 주입
 
-**목적**: 기본적인 의존성 주입으로 자동 의존성 해결을 위한 `@Inject` 프로퍼티 래퍼 사용법입니다.
+**목적**: 기본적인 의존성 주입으로 자동 의존성 해결을 위한 `@Injected` 프로퍼티 래퍼 사용법입니다.
 
 **동작 방식**:
 - **지연 해결**: 프로퍼티 첫 접근 시에만 의존성 해결
@@ -66,7 +66,7 @@ class WeatherViewModel: ObservableObject {
 
 ```swift
 class UserViewController: UIViewController {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -94,17 +94,17 @@ class UserViewController: UIViewController {
 
 ```swift
 // ✅ 좋음 - 프로토콜 주입
-@Inject var networkClient: NetworkClientProtocol?
+@Injected var networkClient: NetworkClientProtocol?
 
 // ❌ 피하세요 - 구체적인 타입 주입
-@Inject var networkClient: URLSessionNetworkClient?
+@Injected var networkClient: URLSessionNetworkClient?
 ```
 
 ## 실제 예제
 
-### CountApp에서 @Inject 사용 (튜토리얼에서)
+### CountApp에서 @Injected 사용 (튜토리얼에서)
 
-**목적**: 실제 CountApp 튜토리얼 코드를 기반으로 한 `@Inject` 사용법과 의존성 주입 패턴의 실제 적용 사례입니다.
+**목적**: 실제 CountApp 튜토리얼 코드를 기반으로 한 `@Injected` 사용법과 의존성 주입 패턴의 실제 적용 사례입니다.
 
 **아키텍처 패턴**:
 - **Repository 패턴**: 데이터 접근 계층의 추상화
@@ -120,10 +120,10 @@ class UserViewController: UIViewController {
 실제 튜토리얼 코드를 기반으로:
 
 ```swift
-/// @Inject를 사용한 의존성이 있는 카운터 Repository
+/// @Injected를 사용한 의존성이 있는 카운터 Repository
 class UserDefaultsCounterRepository: CounterRepository {
     /// WeaveDI를 통해 Logger 주입
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func getCurrentCount() async -> Int {
         let count = UserDefaults.standard.integer(forKey: "saved_count")
@@ -143,9 +143,9 @@ class CounterViewModel: ObservableObject {
     @Published var count = 0
     @Published var isLoading = false
 
-    /// @Inject를 통해 Repository와 Logger 주입
-    @Inject var repository: CounterRepository?
-    @Inject var logger: LoggerProtocol?
+    /// @Injected를 통해 Repository와 Logger 주입
+    @Injected var repository: CounterRepository?
+    @Injected var logger: LoggerProtocol?
 
     func increment() async {
         guard let repo = repository else { return }
@@ -160,7 +160,7 @@ class CounterViewModel: ObservableObject {
 }
 ```
 
-### WeatherApp에서 @Inject 사용
+### WeatherApp에서 @Injected 사용
 
 **목적**: WeatherApp에서의 복잡한 의존성 주입 패턴과 에러 처리, 캐싱 전략의 실제 구현 사례입니다.
 
@@ -178,8 +178,8 @@ class CounterViewModel: ObservableObject {
 ```swift
 /// HTTP 클라이언트가 주입된 날씨 서비스
 class WeatherService: WeatherServiceProtocol {
-    @Inject var httpClient: HTTPClientProtocol?
-    @Inject var logger: LoggerProtocol?
+    @Injected var httpClient: HTTPClientProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func fetchCurrentWeather(for city: String) async throws -> Weather {
         guard let client = httpClient else {
@@ -198,9 +198,9 @@ class WeatherViewModel: ObservableObject {
     @Published var currentWeather: Weather?
     @Published var isLoading = false
 
-    @Inject var weatherService: WeatherServiceProtocol?
-    @Inject var cacheService: CacheServiceProtocol?
-    @Inject var logger: LoggerProtocol?
+    @Injected var weatherService: WeatherServiceProtocol?
+    @Injected var cacheService: CacheServiceProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func loadWeather(for city: String) async {
         logger?.info("📍 \(city)의 날씨 로딩 중")
@@ -223,7 +223,7 @@ class WeatherViewModel: ObservableObject {
 
 ### StateObject와 함께
 
-**목적**: SwiftUI의 StateObject와 `@Inject`의 통합으로 선언적 UI와 의존성 주입을 결합한 현대적 iOS 앱 개발 패턴입니다.
+**목적**: SwiftUI의 StateObject와 `@Injected`의 통합으로 선언적 UI와 의존성 주입을 결합한 현대적 iOS 앱 개발 패턴입니다.
 
 **통합 이점**:
 - **선언적 코드**: SwiftUI의 선언적 패러다임과 DI의 자연스러운 결합
@@ -274,8 +274,8 @@ struct CounterView: View {
 
 ```swift
 struct SettingsView: View {
-    @Inject var settingsService: SettingsService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var settingsService: SettingsService?
+    @Injected var logger: LoggerProtocol?
 
     var body: some View {
         List {
@@ -291,7 +291,7 @@ struct SettingsView: View {
 
 ## 스레드 안전성
 
-**스레드 안전성 보장**: `@Inject`는 포괄적인 스레드 안전성을 제공하여 멀티스레드 환경에서 안전한 의존성 접근을 보장합니다.
+**스레드 안전성 보장**: `@Injected`는 포괄적인 스레드 안전성을 제공하여 멀티스레드 환경에서 안전한 의존성 접근을 보장합니다.
 
 **안전성 메커니즘**:
 - **독립적인 인스턴스**: 각 프로퍼티 접근이 격리된 인스턴스를 생성하지 않고 안전하게 공유
@@ -310,11 +310,11 @@ struct SettingsView: View {
 - **인스턴스 생성**: 인스턴스 생성 후 동기화 없음
 - **메모리 장벽**: 자동 메모리 장벽 처리
 
-`@Inject`는 스레드 안전하며 다른 큐에서 사용할 수 있습니다:
+`@Injected`는 스레드 안전하며 다른 큐에서 사용할 수 있습니다:
 
 ```swift
 class BackgroundService {
-    @Inject var dataProcessor: DataProcessor?
+    @Injected var dataProcessor: DataProcessor?
 
     func processInBackground() {
         DispatchQueue.global(qos: .background).async {
@@ -325,11 +325,11 @@ class BackgroundService {
 }
 ```
 
-## @Inject로 테스팅
+## @Injected로 테스팅
 
 ### 테스트를 위한 Mock 주입
 
-**테스트 전략**: `@Inject`는 새로운 Mock 인스턴스와 상태 격리를 통해 강력한 테스트 패턴을 제공합니다.
+**테스트 전략**: `@Injected`는 새로운 Mock 인스턴스와 상태 격리를 통해 강력한 테스트 패턴을 제공합니다.
 
 **테스트 이점**:
 - **신뢰할 수 있는 테스트 의존성**: 누락된 의존성으로 인한 테스트 실패 없음
@@ -356,7 +356,7 @@ class UserServiceTests: XCTestCase {
 
     func testUserService() {
         let service = UserService()
-        // @Inject 프로퍼티는 Mock 인스턴스로 해결됩니다
+        // @Injected 프로퍼티는 Mock 인스턴스로 해결됩니다
         XCTAssertTrue(service.repository is MockUserRepository)
     }
 }
@@ -382,7 +382,7 @@ class UserServiceTests: XCTestCase {
 
 ```swift
 class AnalyticsManager {
-    @Inject var analyticsService: AnalyticsService?
+    @Injected var analyticsService: AnalyticsService?
 
     func trackEvent(_ event: String) {
         // 누락된 의존성을 우아하게 처리
@@ -412,7 +412,7 @@ class AnalyticsManager {
 
 ```swift
 class CriticalService {
-    @Inject var essentialDependency: EssentialService?
+    @Injected var essentialDependency: EssentialService?
 
     func performCriticalOperation() {
         guard let dependency = essentialDependency else {
@@ -445,7 +445,7 @@ class CriticalService {
 
 ```swift
 class ExpensiveService {
-    @Inject var heavyDependency: HeavyService? // 접근할 때까지 해결되지 않음
+    @Injected var heavyDependency: HeavyService? // 접근할 때까지 해결되지 않음
 
     func lightweightOperation() {
         // heavyDependency는 여기서 해결되지 않음
@@ -479,7 +479,7 @@ class ExpensiveService {
 
 ```swift
 class CachedService {
-    @Inject var service: SomeService?
+    @Injected var service: SomeService?
 
     func multipleAccesses() {
         service?.method1() // 컨테이너에서 해결
@@ -493,7 +493,7 @@ class CachedService {
 
 ### Repository 패턴
 
-**목적**: 데이터 접근 계층을 추상화하여 비즈니스 로직과 데이터 소스를 분리하는 Repository 패턴의 `@Inject` 적용 사례입니다.
+**목적**: 데이터 접근 계층을 추상화하여 비즈니스 로직과 데이터 소스를 분리하는 Repository 패턴의 `@Injected` 적용 사례입니다.
 
 **Repository 패턴의 이점**:
 - **계층 분리**: 데이터 접근 로직과 비즈니스 로직의 명확한 분리
@@ -509,9 +509,9 @@ class CachedService {
 
 ```swift
 class DataRepository {
-    @Inject var networkClient: NetworkClient?
-    @Inject var cacheManager: CacheManager?
-    @Inject var logger: Logger?
+    @Injected var networkClient: NetworkClient?
+    @Injected var cacheManager: CacheManager?
+    @Injected var logger: Logger?
 
     func fetchData() async -> Data? {
         // 먼저 캐시 시도
@@ -552,9 +552,9 @@ class DataRepository {
 
 ```swift
 class UserService {
-    @Inject var userRepository: UserRepository?
-    @Inject var authService: AuthService?
-    @Inject var logger: Logger?
+    @Injected var userRepository: UserRepository?
+    @Injected var authService: AuthService?
+    @Injected var logger: Logger?
 
     func getCurrentUser() async -> User? {
         guard let auth = authService,
@@ -577,7 +577,7 @@ class UserService {
 
 ### 1. 항상 옵셔널 사용
 
-**가이드라인**: `@Inject`는 의존성이 누락된 경우를 우아하게 처리하기 위해 옵셔널 해결을 제공하므로, 항상 옵셔널 타입을 사용해야 합니다.
+**가이드라인**: `@Injected`는 의존성이 누락된 경우를 우아하게 처리하기 위해 옵셔널 해결을 제공하므로, 항상 옵셔널 타입을 사용해야 합니다.
 
 **옵셔널 사용의 이점**:
 - **크래시 방지**: 누락된 의존성으로 인한 런타임 크래시 방지
@@ -590,14 +590,14 @@ class UserService {
 - **명시적 처리**: 옵셔널 바인딩을 통한 명시적 nil 처리
 - **코드 가독성**: 의존성의 선택적 특성을 코드에서 명확히 표현
 
-`@Inject`는 누락된 의존성을 우아하게 처리하기 위해 옵셔널 해결을 제공합니다:
+`@Injected`는 누락된 의존성을 우아하게 처리하기 위해 옵셔널 해결을 제공합니다:
 
 ```swift
 // ✅ 좋음
-@Inject var service: MyService?
+@Injected var service: MyService?
 
 // ❌ 피하세요
-@Inject var service: MyService // 컴파일러 오류
+@Injected var service: MyService // 컴파일러 오류
 ```
 
 ### 2. Nil 케이스 처리
@@ -646,10 +646,10 @@ func performAction() {
 
 ```swift
 // ✅ 좋음 - 테스트 가능하고 유연함
-@Inject var logger: LoggerProtocol?
+@Injected var logger: LoggerProtocol?
 
 // ❌ 피하세요 - 테스트하고 Mock하기 어려움
-@Inject var logger: ConsoleLogger?
+@Injected var logger: ConsoleLogger?
 ```
 
 ### 4. 의존성 문서화
@@ -677,13 +677,13 @@ func performAction() {
 ```swift
 class WeatherService {
     /// 네트워크 요청을 위한 HTTP 클라이언트
-    @Inject var httpClient: HTTPClientProtocol?
+    @Injected var httpClient: HTTPClientProtocol?
 
     /// 디버깅 및 모니터링을 위한 로거
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     /// 오프라인 날씨 데이터를 위한 캐시
-    @Inject var cache: CacheServiceProtocol?
+    @Injected var cache: CacheServiceProtocol?
 }
 ```
 

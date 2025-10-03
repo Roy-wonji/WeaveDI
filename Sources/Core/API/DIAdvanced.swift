@@ -33,7 +33,7 @@ public enum DIAdvanced {
     ///
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
-    public static func resolveWithTracking<T>(_ type: T.Type) -> T? {
+    public static func resolveWithTracking<T>(_ type: T.Type) -> T? where T: Sendable {
       Task { @DIActor in AutoDIOptimizer.shared.trackResolution(type) }
       return WeaveDI.Container.live.resolve(type)
     }

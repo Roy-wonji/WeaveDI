@@ -73,7 +73,7 @@ import WeaveDI
 ```
 
 **사용 가능한 기능:**
-- `@Inject`, `@Factory`, `@SafeInject` 프로퍼티 래퍼 접근
+- `@Injected`, `@Factory`, `@SafeInject` 프로퍼티 래퍼 접근
 - UnifiedDI 등록 및 해결 API
 - WeaveDI.Container 부트스트랩 기능
 - 모든 WeaveDI 유틸리티 클래스와 프로토콜
@@ -527,17 +527,17 @@ enum DIError: LocalizedError {
 
 ### 4. Property Wrapper 사용
 
-이제 WeaveDI의 프로퍼티 래퍼를 사용하여 모든 클래스에서 등록된 서비스를 주입하고 사용하세요. `@Inject` 래퍼는 컨테이너에서 의존성을 자동으로 해결합니다:
+이제 WeaveDI의 프로퍼티 래퍼를 사용하여 모든 클래스에서 등록된 서비스를 주입하고 사용하세요. `@Injected` 래퍼는 컨테이너에서 의존성을 자동으로 해결합니다:
 
 ```swift
 class UserViewController: UIViewController {
-    // @Inject는 DI 컨테이너에서 UserService를 자동으로 해결합니다
+    // @Injected는 DI 컨테이너에서 UserService를 자동으로 해결합니다
     // '?'는 옵셔널로 만듭니다 - 서비스가 등록되지 않았어도 앱이 크래시되지 않습니다
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     // 추가 주입된 의존성
-    @Inject var analyticsService: AnalyticsService?
-    @Inject var validationService: ValidationService?
+    @Injected var analyticsService: AnalyticsService?
+    @Injected var validationService: ValidationService?
 
     private var currentUser: User?
 
@@ -677,20 +677,20 @@ class UserViewController: UIViewController {
 }
 ```
 
-**@Inject 작동 방식:**
+**@Injected 작동 방식:**
 - **자동 해결**: WeaveDI가 등록된 구현을 자동으로 찾아 주입합니다
 - **옵셔널 안전성**: 서비스가 등록되지 않았으면 `nil`을 반환합니다 (크래시 방지)
 - **지연 로딩**: 서비스는 처음 접근될 때만 해결됩니다
 - **스레드 안전**: 다양한 스레드와 액터에서 안전하게 사용할 수 있습니다
 
-**고급 @Inject 사용 패턴:**
+**고급 @Injected 사용 패턴:**
 ```swift
 // ✅ 여러 관련 서비스
 class OrderProcessingService {
-    @Inject var paymentService: PaymentService?
-    @Inject var inventoryService: InventoryService?
-    @Inject var emailService: EmailService?
-    @Inject var auditService: AuditService?
+    @Injected var paymentService: PaymentService?
+    @Injected var inventoryService: InventoryService?
+    @Injected var emailService: EmailService?
+    @Injected var auditService: AuditService?
 
     func processOrder(_ order: Order) async throws {
         // 모든 서비스가 옵셔널로 사용 가능 - 우아하게 처리
@@ -714,9 +714,9 @@ class OrderProcessingService {
 
 // ✅ 조건부 서비스 사용
 class NotificationManager {
-    @Inject var pushNotificationService: PushNotificationService?
-    @Inject var emailNotificationService: EmailNotificationService?
-    @Inject var smsNotificationService: SMSNotificationService?
+    @Injected var pushNotificationService: PushNotificationService?
+    @Injected var emailNotificationService: EmailNotificationService?
+    @Injected var smsNotificationService: SMSNotificationService?
 
     func sendNotification(_ notification: Notification) async {
         var deliveredVia: [String] = []
@@ -758,16 +758,16 @@ class NotificationManager {
 
 ## Property Wrapper
 
-### @Inject - 선택적 의존성
+### @Injected - 선택적 의존성
 
-대부분의 의존성 주입 시나리오에서 `@Inject`를 사용하세요. 의존성이 등록되지 않았어도 앱을 크래시시키지 않는 안전한 옵셔널 주입을 제공합니다:
+대부분의 의존성 주입 시나리오에서 `@Injected`를 사용하세요. 의존성이 등록되지 않았어도 앱을 크래시시키지 않는 안전한 옵셔널 주입을 제공합니다:
 
 ```swift
 class ViewController: UIViewController {
     // 표준 의존성 주입 - 안전하고 옵셔널
-    @Inject var userService: UserService?
-    @Inject var analyticsService: AnalyticsService?
-    @Inject var configService: ConfigService?
+    @Injected var userService: UserService?
+    @Injected var analyticsService: AnalyticsService?
+    @Injected var configService: ConfigService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -817,18 +817,18 @@ class ViewController: UIViewController {
 }
 ```
 
-**@Inject를 사용하는 경우:**
+**@Injected를 사용하는 경우:**
 - **대부분의 시나리오**: 의존성 주입의 주요 선택
 - **선택적 의존성**: 중요하지 않지만 있으면 좋은 서비스
 - **안전한 주입**: 누락된 의존성으로 인한 크래시를 방지하고 싶을 때
 - **테스팅**: 실제 서비스를 등록하지 않아 쉽게 모킹 가능
 
-**@Inject 성능 특성:**
+**@Injected 성능 특성:**
 ```swift
 class PerformanceOptimizedViewController: UIViewController {
     // 이들은 지연 해결됨 - 초기화 시 성능 영향 없음
-    @Inject var heavyService: HeavyComputationService?
-    @Inject var networkService: NetworkService?
+    @Injected var heavyService: HeavyComputationService?
+    @Injected var networkService: NetworkService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -1614,7 +1614,7 @@ class PerformanceOptimizedManager {
 ```swift
 // 주입된 서비스의 메모리 사용량 모니터링
 class MemoryAwareService {
-    @Inject var heavyService: HeavyService?
+    @Injected var heavyService: HeavyService?
 
     deinit {
         print("MemoryAwareService 할당 해제됨")
@@ -1655,7 +1655,7 @@ class MemoryAwareService {
 ```swift
 // ❌ 나쁨: 순환 의존성
 class ServiceA {
-    @Inject var serviceB: ServiceB?
+    @Injected var serviceB: ServiceB?
 
     init() {
         serviceB?.doSomething()
@@ -1663,7 +1663,7 @@ class ServiceA {
 }
 
 class ServiceB {
-    @Inject var serviceA: ServiceA?  // 순환 의존성 생성
+    @Injected var serviceA: ServiceA?  // 순환 의존성 생성
 
     func doSomething() {
         serviceA?.performAction()
@@ -1705,7 +1705,7 @@ class ServiceB: ServiceBProtocol {
 // ✅ 좋음: 의존성 검사가 있는 방어적 프로그래밍
 class RobustService {
     @SafeInject var criticalService: CriticalService?
-    @Inject var optionalService: OptionalService?
+    @Injected var optionalService: OptionalService?
 
     func performCriticalOperation() throws {
         guard let critical = criticalService else {
@@ -1744,7 +1744,7 @@ enum ServiceError: LocalizedError {
 ```swift
 // ✅ 좋음: 스레드 안전한 서비스 사용
 class ThreadSafeService {
-    @Inject var networkService: NetworkService?
+    @Injected var networkService: NetworkService?
     private let queue = DispatchQueue(label: "service.queue", qos: .utility)
 
     func performConcurrentOperations() async {

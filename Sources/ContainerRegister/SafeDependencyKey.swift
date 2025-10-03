@@ -147,7 +147,7 @@ public enum SafeDependencyRegister {
 
 extension WeaveDI.Container {
   /// DependencyKey 지원을 위한 안전한 resolver
-  func resolveSafely<T>(_ type: T.Type) -> T? {
+  func resolveSafely<T>(_ type: T.Type) -> T? where T: Sendable {
     // 등록 여부 확인 후 안전하게 해결
     let resolved = resolve(type)
     if resolved != nil {

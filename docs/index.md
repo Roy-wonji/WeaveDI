@@ -31,7 +31,7 @@ features:
     link: /guide/unifiedDi
   - icon: 📝
     title: Intuitive Property Wrappers
-    details: "@Inject, @Factory, @SafeInject - simple and powerful dependency injection patterns."
+    details: "@Injected, @Factory - simple and powerful dependency injection patterns."
     link: /guide/propertyWrappers
   - icon: 🏗️
     title: Powerful Module System
@@ -61,7 +61,7 @@ await WeaveDI.Container.bootstrap { container in
 
 // 2. Use property wrappers for injection
 class ViewController {
-    @Inject var userService: UserServiceProtocol?
+    @Injected var userService: UserServiceProtocol?
     @Factory var dataProcessor: DataProcessor
 
     func loadUserData() async {

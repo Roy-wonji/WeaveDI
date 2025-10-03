@@ -31,13 +31,13 @@ WeaveDI 3.0.0 represents a major leap forward with automatic optimization, enhan
 
 **Before (2.x):**
 ```swift
-@Inject var userService: UserService?
+@Injected var userService: UserService?
 @RequiredInject var databaseService: DatabaseService
 ```
 
 **After (3.0.0):**
 ```swift
-@Inject var userService: UserService?           // No change
+@Injected var userService: UserService?           // No change
 @SafeInject var databaseService: DatabaseService // Enhanced error handling
 ```
 
@@ -300,7 +300,7 @@ struct EnvironmentModuleFactory {
 // WeaveDI 3.0.0 automatically optimizes actor hops
 @MainActor
 class UIController {
-    @Inject var dataService: DataService? // Automatically optimized for MainActor access
+    @Injected var dataService: DataService? // Automatically optimized for MainActor access
 
     func updateUI() async {
         // This resolution is automatically optimized to minimize actor hops

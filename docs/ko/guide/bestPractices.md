@@ -52,11 +52,11 @@ class DocumentService {
 }
 ```
 
-### @Inject/@SafeInject 사용 피하기 (v3.2.0부터 Deprecated)
+### @Injected/@SafeInject 사용 피하기 (v3.2.0부터 Deprecated)
 
 ```swift
 // ❌ 피하기: Deprecated
-@Inject var service: UserService?
+@Injected var service: UserService?
 @SafeInject var api: APIClient?
 
 // ✅ 대신 사용:
@@ -558,7 +558,7 @@ class UserService {
 
 ## 다음 단계
 
-- [마이그레이션 가이드](./migrationInjectToInjected) - @Inject에서 업그레이드
+- [마이그레이션 가이드](./migrationInjectToInjected) - @Injected에서 업그레이드
 - [TCA 통합](./tcaIntegration) - The Composable Architecture와 함께 사용
 - [성능 가이드](./runtimeOptimization) - 최적화 기법
 - [테스트 가이드](../tutorial/testing) - 고급 테스트 패턴

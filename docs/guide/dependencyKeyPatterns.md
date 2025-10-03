@@ -90,13 +90,13 @@ Based on the actual PropertyWrapper implementations:
 ```swift
 class ViewController {
     // Optional injection (safe)
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     // Required injection (crashes if not registered)
-    @Inject var logger: Logger
+    @Injected var logger: Logger
 
     // KeyPath-based injection
-    @Inject(\.dataRepository) var repository: DataRepository?
+    @Injected(\.dataRepository) var repository: DataRepository?
 
     // Factory pattern (new instance each time)
     @Factory var temporaryCache: TemporaryCache
@@ -343,7 +343,7 @@ UnifiedDI.register(UserServiceProtocol.self) {
 @Injected(\.userService) var userService: UserService
 
 // After (WeaveDI)
-@Inject(\.userService) var userService: UserService?
+@Injected(\.userService) var userService: UserService?
 ```
 
 This comprehensive guide covers all the actual patterns available in WeaveDI based on the real source code implementation, ensuring accuracy and practical applicability.

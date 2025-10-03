@@ -62,8 +62,8 @@ print("Memory used: \(metrics.memoryDelta) bytes")
 ```swift
 // Automatic resolution timing
 class PerformanceAwareService {
-    @Inject var userService: UserService?
-    @Inject var dataService: DataService?
+    @Injected var userService: UserService?
+    @Injected var dataService: DataService?
 
     func performOperation() async {
         // Monitor will automatically track these resolutions
@@ -135,8 +135,8 @@ class MonitoredCounterViewModel: ObservableObject {
     @Published var count = 0
     @Published var performanceMetrics: PerformanceMetrics?
 
-    @Inject var repository: CounterRepository?
-    @Inject var logger: LoggerProtocol?
+    @Injected var repository: CounterRepository?
+    @Injected var logger: LoggerProtocol?
 
     func increment() async {
         let metrics = await PerformanceMonitor.shared.measureOperation("counter_increment") {
@@ -171,7 +171,7 @@ class MonitoredCounterViewModel: ObservableObject {
 
 /// Enhanced counter repository with performance tracking
 class PerformanceTrackedCounterRepository: CounterRepository {
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func getCurrentCount() async -> Int {
         return await PerformanceMonitor.shared.measureOperation("get_current_count") {
@@ -213,9 +213,9 @@ class PerformanceTrackedCounterRepository: CounterRepository {
 ```swift
 /// Weather service with comprehensive performance monitoring
 class MonitoredWeatherService: WeatherServiceProtocol {
-    @Inject var httpClient: HTTPClientProtocol?
-    @Inject var cacheService: CacheServiceProtocol?
-    @Inject var logger: LoggerProtocol?
+    @Injected var httpClient: HTTPClientProtocol?
+    @Injected var cacheService: CacheServiceProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func fetchCurrentWeather(for city: String) async throws -> Weather {
         return try await PerformanceMonitor.shared.measureAsyncOperation("fetch_weather_\(city)") {
@@ -264,7 +264,7 @@ class MonitoredWeatherService: WeatherServiceProtocol {
 
 /// Performance dashboard for weather app
 class WeatherPerformanceDashboard {
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func generateReport() -> WeatherPerformanceReport {
         let monitor = PerformanceMonitor.shared
@@ -454,7 +454,7 @@ class PerformanceAlertManager {
         LowCacheHitRateAlert()
     ]
 
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func checkAlerts() {
         let report = PerformanceMonitor.shared.getDetailedReport()
@@ -502,7 +502,7 @@ actor ContinuousMonitor {
     private var isRunning = false
     private let checkInterval: TimeInterval = 30.0 // 30 seconds
 
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func start() async {
         guard !isRunning else { return }

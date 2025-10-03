@@ -64,7 +64,7 @@ public enum DIAsync {
   // MARK: - Resolve
   
   /// Resolve an instance (async). Falls back to sync container if not found.
-  public static func resolve<T>(_ type: T.Type) async -> T? {
+  public static func resolve<T>(_ type: T.Type) async -> T? where T: Sendable {
     if let box = await registry.resolveBox(T.self) { return box.value as? T }
     // Fallback to sync registry for mixed mode
     return WeaveDI.Container.live.resolve(T.self)
@@ -74,13 +74,13 @@ public enum DIAsync {
   public static func resolve<T>(
     _ type: T.Type,
     default defaultValue: @autoclosure () -> T
-  ) async -> T {
+  ) async -> T where T: Sendable {
     if let value: T = await resolve(type) { return value }
     return defaultValue()
   }
   
   /// Require resolve (fatalError on failure)
-  public static func requireResolve<T>(_ type: T.Type) async -> T {
+  public static func requireResolve<T>(_ type: T.Type) async -> T where T: Sendable {
     if let value: T = await resolve(type) { return value }
     fatalError("Required dependency \(T.self) not found (DIAsync.requireResolve)")
   }
@@ -128,13 +128,13 @@ public enum DIAsync {
   // MARK: - Introspection
   
   /// Check if a type is registered in async or sync registry
-  public static func isRegistered<T>(_ type: T.Type) async -> Bool {
+  public static func isRegistered<T>(_ type: T.Type) async -> Bool where T: Sendable {
     if await registry.resolveBox(T.self) != nil { return true }
     return WeaveDI.Container.live.resolve(T.self) != nil
   }
   
   /// Check if a KeyPath-identified dependency is registered
-  public static func isRegistered<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) async -> Bool {
+  public static func isRegistered<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) async -> Bool where T: Sendable {
     await isRegistered(T.self)
   }
   

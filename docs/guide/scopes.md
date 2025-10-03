@@ -116,8 +116,8 @@ Screen scopes are perfect for managing UI-specific dependencies that should be i
 
 ```swift
 class HomeViewController: UIViewController {
-    @Inject var viewModel: HomeViewModel?
-    @Inject var imageCache: ImageCache?
+    @Injected var viewModel: HomeViewModel?
+    @Injected var imageCache: ImageCache?
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -249,8 +249,8 @@ class AuthenticationManager {
 
 // Usage throughout the app - session dependencies available everywhere
 class ProfileViewController: UIViewController {
-    @Inject var userSession: UserSession?
-    @Inject var personalization: PersonalizationService?
+    @Injected var userSession: UserSession?
+    @Injected var personalization: PersonalizationService?
 
     override func viewDidLoad() {
         super.viewDidLoad()

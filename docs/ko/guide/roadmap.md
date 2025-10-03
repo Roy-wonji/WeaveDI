@@ -19,7 +19,7 @@
 - ✅ 다국어 문서화 (영어 & 한국어)
 
 **지원 중단:**
-- ⚠️ `@Inject` - 4.0.0에서 제거 예정 (`@Injected` 사용)
+- ⚠️ `@Injected` - 4.0.0에서 제거 예정 (`@Injected` 사용)
 - ⚠️ `@SafeInject` - 4.0.0에서 제거 예정 (`@Injected` 사용)
 
 **성능 지표:**
@@ -90,7 +90,7 @@ struct UserModule {
     }
 
     @Provides @Singleton
-    func userRepository(@Inject networkService: NetworkService) -> UserRepository {
+    func userRepository(@Injected networkService: NetworkService) -> UserRepository {
         CoreDataUserRepository(networkService: networkService)
     }
 }
@@ -98,8 +98,8 @@ struct UserModule {
 // 고급 스코프
 @RequestScoped
 class RequestHandler {
-    @Inject var requestId: RequestID  // 요청별 고유
-    @Inject var userContext: UserContext  // 요청 스코프
+    @Injected var requestId: RequestID  // 요청별 고유
+    @Injected var userContext: UserContext  // 요청 스코프
 }
 
 // 분산 의존성
@@ -124,10 +124,10 @@ var remoteUserService: UserService?  // 마이크로서비스에서 주입
 @Enterprise
 class MultiTenantApp {
     @TenantIsolated
-    @Inject var tenantService: TenantService?  // 테넌트별 격리
+    @Injected var tenantService: TenantService?  // 테넌트별 격리
 
     @Shared
-    @Inject var sharedCache: CacheService?  // 테넌트 간 공유
+    @Injected var sharedCache: CacheService?  // 테넌트 간 공유
 }
 
 // 핫 리로딩 (개발)
@@ -347,7 +347,7 @@ WeaveDI의 미래를 형성하는 데 커뮤니티의 의견을 중요하게 생
 | **v3.1.0** | 2025년 9월 27일 | 성능 | 런타임 최적화, Lock-free |
 | **v3.3.0** | 2026년 Q1 | 개발자 도구 | Inspector, 향상된 프로파일러 |
 | **v3.4.0** | 2026년 Q2 | 아키텍처 | 모듈 시스템 2.0, 스코프 |
-| **v4.0.0** | 2026년 Q4 | 주요 변경 | @Inject, @SafeInject 제거 |
+| **v4.0.0** | 2026년 Q4 | 주요 변경 | @Injected, @SafeInject 제거 |
 
 ---
 

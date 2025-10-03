@@ -31,7 +31,7 @@ features:
     link: /ko/guide/unifiedDi
   - icon: 📝
     title: 직관적인 Property Wrapper
-    details: "@Inject, @Factory, @SafeInject - 간단하고 강력한 의존성 주입 패턴."
+    details: "@Injected, @Factory - 간단하고 강력한 의존성 주입 패턴."
     link: /ko/guide/propertyWrappers
   - icon: 🏗️
     title: 강력한 모듈 시스템
@@ -61,7 +61,7 @@ await WeaveDI.Container.bootstrap { container in
 
 // 2. 주입을 위한 프로퍼티 래퍼 사용
 class ViewController {
-    @Inject var userService: UserServiceProtocol?
+    @Injected var userService: UserServiceProtocol?
     @Factory var dataProcessor: DataProcessor
 
     func loadUserData() async {

@@ -1,10 +1,10 @@
 # @Factory Property Wrapper
 
-The `@Factory` property wrapper provides factory-based dependency injection with dynamic instance creation, generating new instances each time the property is accessed. This is fundamentally different from `@Inject` which caches resolved dependencies, making `@Factory` ideal for stateful objects, session-scoped services, or scenarios requiring fresh instances with independent state.
+The `@Factory` property wrapper provides factory-based dependency injection with dynamic instance creation, generating new instances each time the property is accessed. This is fundamentally different from `@Injected` which caches resolved dependencies, making `@Factory` ideal for stateful objects, session-scoped services, or scenarios requiring fresh instances with independent state.
 
 ## Overview
 
-Unlike `@Inject` which caches resolved dependencies for singleton-like behavior, `@Factory` implements a dynamic creation pattern that instantiates a new object every time you access the property. This ensures complete state isolation between usages, which is crucial for:
+Unlike `@Injected` which caches resolved dependencies for singleton-like behavior, `@Factory` implements a dynamic creation pattern that instantiates a new object every time you access the property. This ensures complete state isolation between usages, which is crucial for:
 
 - **Stateful Services**: Objects that maintain internal state that shouldn't be shared
 - **Session-Scoped Objects**: Request or user session-specific instances
@@ -137,8 +137,8 @@ class CounterSession {
     var startTime: Date = Date()
     var currentCount: Int = 0
 
-    @Inject var repository: CounterRepository?
-    @Inject var logger: LoggerProtocol?
+    @Injected var repository: CounterRepository?
+    @Injected var logger: LoggerProtocol?
 
     func initialize() async {
         logger?.info("📊 세션 '\(sessionName)' 초기화됨")
@@ -160,7 +160,7 @@ class CounterSession {
 class WeatherReportService {
     @Factory var reportGenerator: WeatherReportGenerator?
     @Factory var chartBuilder: WeatherChartBuilder?
-    @Inject var weatherService: WeatherServiceProtocol?
+    @Injected var weatherService: WeatherServiceProtocol?
 
     func generateDailyReport(for city: String) async throws -> WeatherReport? {
         guard let generator = reportGenerator,
@@ -204,7 +204,7 @@ class WeatherReportGenerator {
     private var reportType: ReportType = .daily
     private var generationTime: Date = Date()
 
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func configure(for type: ReportType) {
         self.reportType = type
@@ -255,7 +255,7 @@ class WeatherReportGenerator {
 
 ### When to Use @Factory
 
-**Decision Criteria**: Choose `@Factory` over `@Inject` based on state management requirements and lifecycle needs.
+**Decision Criteria**: Choose `@Factory` over `@Injected` based on state management requirements and lifecycle needs.
 
 **@Factory is ideal for**:
 - **Stateful Objects**: Objects that maintain changing internal state
@@ -264,7 +264,7 @@ class WeatherReportGenerator {
 - **Short-Lived Objects**: Temporary processing objects
 - **Thread-Safe Requirements**: Independent instances for concurrent access
 
-**@Inject is ideal for**:
+**@Injected is ideal for**:
 - **Stateless Services**: Pure functions or utility classes
 - **Shared Resources**: Database connections, loggers, configuration
 - **Expensive Objects**: Heavy initialization that should happen once
@@ -276,9 +276,9 @@ class DocumentProcessor {
     @Factory var documentBuilder: DocumentBuilder?
     @Factory var validator: DocumentValidator?
 
-    // ✅ Use @Inject for long-lived, stateless services
-    @Inject var documentRepository: DocumentRepository?
-    @Inject var logger: LoggerProtocol?
+    // ✅ Use @Injected for long-lived, stateless services
+    @Injected var documentRepository: DocumentRepository?
+    @Injected var logger: LoggerProtocol?
 
     func processDocument(_ content: String) async {
         // Fresh builder and validator for each document
@@ -317,7 +317,7 @@ class DocumentProcessor {
 ```swift
 class PerformanceTestService {
     @Factory var heavyProcessor: HeavyProcessor? // New instance each time
-    @Inject var cacheService: CacheService?      // Shared instance
+    @Injected var cacheService: CacheService?      // Shared instance
 
     func processData() {
         // ⚠️ Consider memory usage with @Factory
@@ -342,7 +342,7 @@ class PerformanceTestService {
 **Purpose**: Register dependencies for factory injection using the same registration API as singleton injection.
 
 **Key Differences**:
-- **Registration**: Same API as `@Inject` dependencies
+- **Registration**: Same API as `@Injected` dependencies
 - **Resolution**: Creates new instances on each `@Factory` access
 - **Lifecycle**: Container manages factory closure, not instances
 - **Thread Safety**: Registration is thread-safe, instances are independent
@@ -393,7 +393,7 @@ For more complex factory patterns, you can use closure-based factories:
 
 ```swift
 class ServiceFactory {
-    @Inject var container: WeaveDI.Container?
+    @Injected var container: WeaveDI.Container?
 
     func createTaskManager(for taskType: TaskType) -> TaskManager? {
         // Create configured instances based on parameters
@@ -605,16 +605,16 @@ class ReportBuilderService {
 
 **Decision Framework**:
 - If the object maintains state → Use `@Factory`
-- If the object is stateless → Use `@Inject`
+- If the object is stateless → Use `@Injected`
 - If state isolation is required → Use `@Factory`
-- If shared state is acceptable → Use `@Inject`
+- If shared state is acceptable → Use `@Injected`
 ```swift
 // ✅ Good - stateful objects that need fresh instances
 @Factory var userSession: UserSession?
 @Factory var shoppingCart: ShoppingCart?
 @Factory var gameState: GameState?
 
-// ❌ Avoid - stateless services (use @Inject instead)
+// ❌ Avoid - stateless services (use @Injected instead)
 @Factory var mathUtils: MathUtils? // Should be @Inject
 ```
 
@@ -679,7 +679,7 @@ class DocumentService {
     @Factory var pdfGenerator: PDFGenerator?
 
     /// Shared repository for all document operations
-    @Inject var documentRepository: DocumentRepository?
+    @Injected var documentRepository: DocumentRepository?
 }
 ```
 
@@ -787,14 +787,14 @@ class OptimizedFactoryService {
 
 **Solution Strategy**:
 - **Evaluate State Requirements**: Carefully assess whether objects truly need independent state
-- **Default to @Inject**: Use `@Inject` as the default choice unless state isolation is required
+- **Default to @Injected**: Use `@Injected` as the default choice unless state isolation is required
 - **Performance Analysis**: Measure the performance impact of factory vs singleton injection
 - **Design Review**: Review dependency injection choices during code reviews
 
 **Decision Guidelines**:
 - Has mutable state → Consider `@Factory`
-- Is stateless → Use `@Inject`
-- Expensive to create → Prefer `@Inject`
+- Is stateless → Use `@Injected`
+- Expensive to create → Prefer `@Injected`
 - Requires configuration per use → Consider `@Factory`
 ```swift
 // ❌ Bad - using factory for stateless services
@@ -850,6 +850,6 @@ func processLargeDataset() {
 
 ## See Also
 
-- [@Inject Property Wrapper](./inject.md) - For singleton-like injection
+- [@Injected Property Wrapper](./inject.md) - For singleton-like injection
 - [@SafeInject Property Wrapper](./safeInject.md) - For guaranteed injection
 - [Property Wrappers Guide](../guide/propertyWrappers.md) - Comprehensive guide to all property wrappers

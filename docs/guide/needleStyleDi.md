@@ -162,7 +162,7 @@ extension WeaveDI {}
 ```swift
 class PerformanceCriticalViewModel {
     // General usage (convenience first)
-    @Inject private var userService: UserService?
+    @Injected private var userService: UserService?
 
     // High-performance where needed (Needle-level zero cost)
     func performanceHotPath() {
@@ -198,7 +198,7 @@ class HybridApproach {
     private let legacyService = NeedleContainer.resolve(LegacyService.self)
 
     // Use WeaveDI for new code only
-    @Inject private var newService: NewService?
+    @Injected private var newService: NewService?
 
     func migrate() {
         // Can change one by one gradually
@@ -356,8 +356,8 @@ class PerformanceAnalyzer {
 ```swift
 // Needle has limited Swift 6 support, but WeaveDI has perfect support
 actor DataManager {
-    @Inject private var networkService: NetworkService?
-    @Inject private var databaseService: DatabaseService?
+    @Injected private var networkService: NetworkService?
+    @Injected private var databaseService: DatabaseService?
 
     func syncData() async {
         // Safe DI usage within Actor
@@ -369,7 +369,7 @@ actor DataManager {
 // Safe with MainActor too
 @MainActor
 class UIViewModel: ObservableObject {
-    @Inject private var userService: UserService?
+    @Injected private var userService: UserService?
 
     func updateUI() {
         // Safe DI resolution in MainActor context

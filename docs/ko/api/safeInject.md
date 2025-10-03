@@ -33,7 +33,7 @@ struct LoggerKey: InjectedKey {
 - **테스팅 지원**: 내장된 대체 기능으로 테스팅이 더 쉽고 신뢰할 수 있음
 
 **성능 특성**:
-- **해결 속도**: 등록된 의존성의 경우 `@Inject`와 동일
+- **해결 속도**: 등록된 의존성의 경우 `@Injected`와 동일
 - **대체 오버헤드**: 대체가 사용될 때 최소한의 오버헤드
 - **메모리 사용량**: 대체 인스턴스 저장을 위한 작은 추가 메모리
 - **스레드 안전성**: 스레드 안전한 해결 및 대체 메커니즘
@@ -445,13 +445,13 @@ class AppService {
 }
 ```
 
-## @Inject와 비교
+## @Injected와 비교
 
 ### 코드 비교
 
-**비교 분석**: `@SafeInject` vs `@Inject`는 의존성 주입 패턴에서 안전성과 유연성 간의 트레이드오프를 보여줍니다.
+**비교 분석**: `@SafeInject` vs `@Injected`는 의존성 주입 패턴에서 안전성과 유연성 간의 트레이드오프를 보여줍니다.
 
-**@Inject 특성**:
+**@Injected 특성**:
 - **옵셔널 의존성**: 언래핑이 필요한 옵셔널 값 반환
 - **명시적 Nil 처리**: guard 문과 옵셔널 체이닝 필요
 - **런타임 유연성**: 진정한 옵셔널 의존성 처리 가능
@@ -464,16 +464,16 @@ class AppService {
 - **예측 가능한 동작**: 대체일지라도 항상 작동하는 의존성 보유
 
 **성능 영향**:
-- **@Inject**: 등록된 의존성의 경우 약간 빠름 (대체 오버헤드 없음)
+- **@Injected**: 등록된 의존성의 경우 약간 빠름 (대체 오버헤드 없음)
 - **@SafeInject**: 대체 저장을 위한 최소한의 오버헤드, 등록된 의존성의 경우 동일한 속도
 - **메모리**: @SafeInject는 대체 인스턴스를 위한 추가 메모리 사용
 - **코드 크기**: @SafeInject는 옵셔널 처리를 제거하여 코드 크기 감소
 
 ```swift
-// @Inject 사용 (옵셔널 처리 필요)
+// @Injected 사용 (옵셔널 처리 필요)
 class UserServiceWithInject {
-    @Inject var logger: LoggerProtocol?
-    @Inject var repository: UserRepository?
+    @Injected var logger: LoggerProtocol?
+    @Injected var repository: UserRepository?
 
     func createUser(name: String) async {
         // 옵셔널 처리 필요
@@ -518,7 +518,7 @@ class UserServiceWithSafeInject {
 3. **타입 안전성**: 컨테이너와 대체 인스턴스 모두 동일한 프로토콜을 준수해야 함
 
 **통합 이점**:
-- **투명한 작업**: 의존성이 등록되었을 때 `@Inject`와 동일하게 작동
+- **투명한 작업**: 의존성이 등록되었을 때 `@Injected`와 동일하게 작동
 - **대체 안전성**: 의존성이 누락되었을 때 자동 대체
 - **개발 유연성**: 등록된 의존성과 대체 의존성 간 쉬운 전환
 - **테스팅 지원**: 신뢰할 수 있는 대체 동작으로 단순화된 테스팅
@@ -854,8 +854,8 @@ func testServiceWithFallbackDependencies() {
 
 **결정 프레임워크**:
 - **항상 작동해야 함**: 옵셔널이 될 수 없는 의존성에 `@SafeInject` 사용
-- **옵셔널 가능**: 우아하게 비활성화될 수 있는 기능에 `@Inject` 사용
-- **향상된 기능**: 향상되지만 필수적이지 않은 기능을 제공하는 의존성에 `@Inject` 사용
+- **옵셔널 가능**: 우아하게 비활성화될 수 있는 기능에 `@Injected` 사용
+- **향상된 기능**: 향상되지만 필수적이지 않은 기능을 제공하는 의존성에 `@Injected` 사용
 - **개발 도구**: 개발 vs 프로덕션 요구에 따라 적절한 래퍼 사용
 
 **아키텍처 고려사항**:
@@ -870,8 +870,8 @@ class CriticalService {
     @SafeInject(fallback: EmergencyHandler())
     var emergencyHandler: EmergencyHandler
 
-    // ✅ 옵셔널 의존성에 @Inject 사용
-    @Inject var optionalFeature: OptionalFeature?
+    // ✅ 옵셔널 의존성에 @Injected 사용
+    @Injected var optionalFeature: OptionalFeature?
 }
 ```
 
@@ -941,6 +941,6 @@ class NetworkService {
 
 ## 참고 자료
 
-- [@Inject 프로퍼티 래퍼](./inject.md) - 옵셔널 의존성 주입용
+- [@Injected 프로퍼티 래퍼](./inject.md) - 옵셔널 의존성 주입용
 - [@Factory 프로퍼티 래퍼](./factory.md) - 팩토리 기반 주입용
 - [프로퍼티 래퍼 가이드](../guide/propertyWrappers.md) - 모든 프로퍼티 래퍼의 종합 가이드

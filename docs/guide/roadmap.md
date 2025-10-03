@@ -19,7 +19,7 @@ This document outlines the future development plans, upcoming features, and long
 - ✅ Bilingual documentation (English & Korean)
 
 **Deprecated:**
-- ⚠️ `@Inject` - Will be removed in 4.0.0 (use `@Injected`)
+- ⚠️ `@Injected` - Will be removed in 4.0.0 (use `@Injected`)
 - ⚠️ `@SafeInject` - Will be removed in 4.0.0 (use `@Injected`)
 
 **Performance Metrics:**
@@ -90,7 +90,7 @@ struct UserModule {
     }
 
     @Provides @Singleton
-    func userRepository(@Inject networkService: NetworkService) -> UserRepository {
+    func userRepository(@Injected networkService: NetworkService) -> UserRepository {
         CoreDataUserRepository(networkService: networkService)
     }
 }
@@ -98,8 +98,8 @@ struct UserModule {
 // Advanced Scopes
 @RequestScoped
 class RequestHandler {
-    @Inject var requestId: RequestID  // Unique per request
-    @Inject var userContext: UserContext  // Scoped to request
+    @Injected var requestId: RequestID  // Unique per request
+    @Injected var userContext: UserContext  // Scoped to request
 }
 
 // Distributed Dependencies
@@ -124,10 +124,10 @@ var remoteUserService: UserService?  // Injected from microservice
 @Enterprise
 class MultiTenantApp {
     @TenantIsolated
-    @Inject var tenantService: TenantService?  // Isolated per tenant
+    @Injected var tenantService: TenantService?  // Isolated per tenant
 
     @Shared
-    @Inject var sharedCache: CacheService?  // Shared across tenants
+    @Injected var sharedCache: CacheService?  // Shared across tenants
 }
 
 // Hot Reloading (Development)
@@ -347,7 +347,7 @@ We value community input in shaping WeaveDI's future. Here's how you can contrib
 | **v3.1.0** | Sep 27, 2025 | Performance | Runtime optimization, Lock-free |
 | **v3.3.0** | Q1 2026 | Developer Tools | Inspector, Enhanced Profiler |
 | **v3.4.0** | Q2 2026 | Architecture | Module system 2.0, Scopes |
-| **v4.0.0** | Q4 2026 | Breaking Changes | Remove @Inject, @SafeInject |
+| **v4.0.0** | Q4 2026 | Breaking Changes | Remove @Injected, @SafeInject |
 
 ---
 

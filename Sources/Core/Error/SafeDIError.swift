@@ -180,7 +180,7 @@ public enum RecoveryStrategy<T> {
 public enum SafeDependencyResolver {
   
   /// 에러와 함께 안전한 해결
-  public static func safeResolve<T>(_ type: T.Type) -> SafeResolutionResult<T> {
+  public static func safeResolve<T>(_ type: T.Type) -> SafeResolutionResult<T> where T: Sendable {
     if let resolved = WeaveDI.Container.live.resolve(type) {
       return .success(resolved)
     } else {
@@ -189,7 +189,7 @@ public enum SafeDependencyResolver {
   }
   
   /// 복구 전략과 함께 안전한 해결
-  public static func safeResolve<T>(_ type: T.Type, strategy: RecoveryStrategy<T>) -> T? {
+  public static func safeResolve<T>(_ type: T.Type, strategy: RecoveryStrategy<T>) -> T? where T: Sendable {
     let result = safeResolve(type)
     
     switch result {

@@ -33,7 +33,7 @@ The `@SafeInject` property wrapper provided guaranteed dependency injection with
 - **Testing Support**: Built-in fallbacks make testing easier and more reliable
 
 **Performance Characteristics**:
-- **Resolution Speed**: Identical to `@Inject` for registered dependencies
+- **Resolution Speed**: Identical to `@Injected` for registered dependencies
 - **Fallback Overhead**: Minimal overhead when fallbacks are used
 - **Memory Usage**: Small additional memory for storing fallback instances
 - **Thread Safety**: Thread-safe resolution and fallback mechanisms
@@ -449,9 +449,9 @@ class AppService {
 
 ### Code Comparison
 
-**Comparison Analysis**: `@SafeInject` vs `@Inject` demonstrates the trade-offs between safety and flexibility in dependency injection patterns.
+**Comparison Analysis**: `@SafeInject` vs `@Injected` demonstrates the trade-offs between safety and flexibility in dependency injection patterns.
 
-**@Inject Characteristics**:
+**@Injected Characteristics**:
 - **Optional Dependencies**: Returns optional values that require unwrapping
 - **Explicit Nil Handling**: Requires guard statements and optional chaining
 - **Runtime Flexibility**: Can handle truly optional dependencies
@@ -464,16 +464,16 @@ class AppService {
 - **Predictable Behavior**: Always have working dependencies, even if they're fallbacks
 
 **Performance Impact**:
-- **@Inject**: Slightly faster for registered dependencies (no fallback overhead)
+- **@Injected**: Slightly faster for registered dependencies (no fallback overhead)
 - **@SafeInject**: Minimal overhead for fallback storage, identical speed for registered dependencies
 - **Memory**: @SafeInject uses additional memory for fallback instances
 - **Code Size**: @SafeInject reduces code size by eliminating optional handling
 
 ```swift
-// With @Inject (optional handling required)
+// With @Injected (optional handling required)
 class UserServiceWithInject {
-    @Inject var logger: LoggerProtocol?
-    @Inject var repository: UserRepository?
+    @Injected var logger: LoggerProtocol?
+    @Injected var repository: UserRepository?
 
     func createUser(name: String) async {
         // Requires optional handling
@@ -518,7 +518,7 @@ class UserServiceWithSafeInject {
 3. **Type Safety**: Both container and fallback instances must conform to the same protocol
 
 **Integration Benefits**:
-- **Transparent Operation**: Works identically to `@Inject` when dependencies are registered
+- **Transparent Operation**: Works identically to `@Injected` when dependencies are registered
 - **Fallback Safety**: Automatic fallback when dependencies are missing
 - **Development Flexibility**: Easy switching between registered and fallback dependencies
 - **Testing Support**: Simplified testing with reliable fallback behavior
@@ -854,8 +854,8 @@ func testServiceWithFallbackDependencies() {
 
 **Decision Framework**:
 - **Must Always Work**: Use `@SafeInject` for dependencies that cannot be optional
-- **Can Be Optional**: Use `@Inject` for features that can be disabled gracefully
-- **Enhanced Features**: Use `@Inject` for dependencies that provide enhanced but non-essential functionality
+- **Can Be Optional**: Use `@Injected` for features that can be disabled gracefully
+- **Enhanced Features**: Use `@Injected` for dependencies that provide enhanced but non-essential functionality
 - **Development Tools**: Use appropriate wrapper based on development vs production needs
 
 **Architecture Considerations**:
@@ -870,8 +870,8 @@ class CriticalService {
     @SafeInject(fallback: EmergencyHandler())
     var emergencyHandler: EmergencyHandler
 
-    // ✅ Use @Inject for optional dependencies
-    @Inject var optionalFeature: OptionalFeature?
+    // ✅ Use @Injected for optional dependencies
+    @Injected var optionalFeature: OptionalFeature?
 }
 ```
 
@@ -941,6 +941,6 @@ class NetworkService {
 
 ## See Also
 
-- [@Inject Property Wrapper](./inject.md) - For optional dependency injection
+- [@Injected Property Wrapper](./inject.md) - For optional dependency injection
 - [@Factory Property Wrapper](./factory.md) - For factory-based injection
 - [Property Wrappers Guide](../guide/propertyWrappers.md) - Comprehensive guide to all property wrappers

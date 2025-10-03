@@ -12,14 +12,14 @@ WeaveDI 2.0.0 is a major update that fully embraces Swift Concurrency and introd
 - **Unified DI API**: Three levels of APIs: `UnifiedDI`, `DI`, `DIAsync`
 - **Bootstrap System**: Safe app initialization with `WeaveDI.Container.bootstrap`
 - **Actor Hop Optimization**: Performance optimization fully compatible with Swift Concurrency
-- **Enhanced Property Wrappers**: Support for `@Inject`, `@RequiredInject`, `@Factory`
+- **Enhanced Property Wrappers**: Support for `@Injected`, `@RequiredInject`, `@Factory`
 - **AppWeaveDI.Container**: Unified container for app-level dependency management
 - **ModuleFactory System**: Repository, UseCase, Scope factory patterns
 
 ### 🔄 Changed APIs
 - `WeaveDI.Container.live.register` → `UnifiedDI.register` or `DI.register`
 - `RegisterAndReturn.register` → `UnifiedDI.register` or KeyPath-based registration
-- Property Wrapper unification: `@Inject` supports both optional and required dependencies
+- Property Wrapper unification: `@Injected` supports both optional and required dependencies
 - Bootstrap system: Must call `bootstrap` at app startup
 
 ## Quick Cheat Sheet (Before → After)
@@ -51,7 +51,7 @@ await WeaveDI.Container.bootstrapAsync { c in
 }
 ```
 
-If `resolve`/`@Inject` is called before bootstrap, crashes or failures may occur. Always call bootstrap at the app's entry point.
+If `resolve`/`@Injected` is called before bootstrap, crashes or failures may occur. Always call bootstrap at the app's entry point.
 
 ## KeyPath-based Registration/Resolution
 
@@ -74,12 +74,12 @@ let repo3 = await DIAsync.getOrCreate(\.bookListInterface) { await BookListRepos
 
 ## Property Wrapper Changes
 
-- `@Inject(\.keyPath)` supports both optional and required dependencies.
+- `@Injected(\.keyPath)` supports both optional and required dependencies.
   - If variable type is Optional, returns `nil` when unregistered
   - If variable type is Non-Optional, `fatalError` with clear message when unregistered
 - For stricter required dependencies, use `@RequiredDependency(\.keyPath)`.
 
-If you were using wrappers like `@ContainerRegister`, we recommend replacing them with `@Inject` or `@RequiredDependency`.
+If you were using wrappers like `@ContainerRegister`, we recommend replacing them with `@Injected` or `@RequiredDependency`.
 
 ## Module and Container
 
@@ -185,10 +185,10 @@ final class UserService {
 // After (2.0.0)
 final class UserService {
   // Non-Optional: clear crash when unregistered for quick discovery
-  @Inject(\.userRepository) var repo: UserRepositoryProtocol
+  @Injected(\.userRepository) var repo: UserRepositoryProtocol
 
   // If declared as Optional, returns nil when unregistered (suitable for optional dependencies)
-  // @Inject(\.userRepository) var repo: UserRepositoryProtocol?
+  // @Injected(\.userRepository) var repo: UserRepositoryProtocol?
 }
 
 // Stricter required dependencies
@@ -266,7 +266,7 @@ struct MyApp: App {
 @ContainerRegister(\.userRepository) var repo: UserRepositoryProtocol
 
 // After - Option 1: Optional injection (safe)
-@Inject(\.userRepository) var repo: UserRepositoryProtocol?
+@Injected(\.userRepository) var repo: UserRepositoryProtocol?
 
 // After - Option 2: Required injection (quick failure discovery)
 @RequiredInject(\.userRepository) var repo: UserRepositoryProtocol

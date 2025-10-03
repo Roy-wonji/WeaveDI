@@ -31,13 +31,13 @@ WeaveDI 3.0.0은 자동 최적화, 향상된 Swift 6 호환성 및 최대 80%의
 
 **이전 (2.x):**
 ```swift
-@Inject var userService: UserService?
+@Injected var userService: UserService?
 @RequiredInject var databaseService: DatabaseService
 ```
 
 **이후 (3.0.0):**
 ```swift
-@Inject var userService: UserService?           // 변경 없음
+@Injected var userService: UserService?           // 변경 없음
 @SafeInject var databaseService: DatabaseService // 향상된 에러 처리
 ```
 
@@ -300,7 +300,7 @@ struct EnvironmentModuleFactory {
 // WeaveDI 3.0.0은 자동으로 actor hop 최적화
 @MainActor
 class UIController {
-    @Inject var dataService: DataService? // MainActor 접근용 자동 최적화
+    @Injected var dataService: DataService? // MainActor 접근용 자동 최적화
 
     func updateUI() async {
         // 이 해결은 actor hop을 최소화하도록 자동 최적화됨

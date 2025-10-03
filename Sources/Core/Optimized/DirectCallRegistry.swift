@@ -168,7 +168,7 @@ public final class UltimateDI: @unchecked Sendable {
   @inlinable
   @inline(__always)
   @_alwaysEmitIntoClient
-  public func resolve<T>(_ type: T.Type) -> T? {
+  public func resolve<T>(_ type: T.Type) -> T? where T: Sendable {
     // 1. 직접 호출 시도 (가장 빠름)
     if let result = directRegistry.getDirect(type) {
       return result
@@ -223,7 +223,7 @@ public func setDirect<T>(_ type: T.Type, factory: @escaping () -> T) {
 @inlinable
 @inline(__always)
 @_alwaysEmitIntoClient
-public func getDirect<T>(_ type: T.Type) -> T? {
+public func getDirect<T>(_ type: T.Type) -> T? where T: Sendable {
   return UltimateDI.shared.resolve(type)
 }
 
@@ -246,7 +246,7 @@ extension DIContainer {
   /// 최적화된 해결 (fallback 체인)
   @inlinable
   @inline(__always)
-  public func ultimateResolve<T>(_ type: T.Type) -> T? {
+  public func ultimateResolve<T>(_ type: T.Type) -> T? where T: Sendable {
     // 1. 최적화된 경로 시도
     if let result = UltimateDI.shared.resolve(type) {
       return result

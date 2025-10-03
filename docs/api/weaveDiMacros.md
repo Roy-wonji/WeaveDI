@@ -397,7 +397,7 @@ class VerifiableService: ServiceProtocol {
 ```swift
 @AutoRegister
 class ServiceUsingPropertyWrappers: ServiceProtocol {
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
     @Factory var httpClient: HTTPClient
     @SafeInject var database: DatabaseProtocol?
 

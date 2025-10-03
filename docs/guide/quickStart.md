@@ -81,7 +81,7 @@ import WeaveDI
 ```
 
 **What this enables:**
-- Access to `@Injected` (v3.2.0+), `@Factory`, `@Inject` (deprecated), and `@SafeInject` (deprecated) property wrappers
+- Access to `@Injected` (v3.2.0+), `@Factory`, `@Injected` (deprecated), and `@SafeInject` (deprecated) property wrappers
 - UnifiedDI registration and resolution APIs
 - WeaveDI.Container bootstrap functionality
 - All WeaveDI utility classes and protocols
@@ -182,13 +182,13 @@ class UserViewController {
 - **Type Safe**: Compile-time type checking
 - **TCA Compatible**: Familiar pattern for TCA developers
 
-#### Legacy: @Inject (Deprecated v3.2.0)
+#### Legacy: @Injected (Deprecated v3.2.0)
 
 ```swift
 class UserViewController {
-    // @Inject automatically resolves UserService from the DI container
+    // @Injected automatically resolves UserService from the DI container
     // The '?' makes it optional - the app won't crash if service isn't registered
-    @Inject var userService: UserService?  // ⚠️ Deprecated
+    @Injected var userService: UserService?  // ⚠️ Deprecated
 
     func loadUser() async {
         // Always safely unwrap injected dependencies
@@ -209,7 +209,7 @@ class UserViewController {
 }
 ```
 
-**How @Inject works:**
+**How @Injected works:**
 - **Automatic Resolution**: WeaveDI automatically finds and injects the registered implementation
 - **Optional Safety**: Returns `nil` if the service isn't registered (prevents crashes)
 - **Lazy Loading**: The service is only resolved when first accessed
@@ -254,14 +254,14 @@ class ViewModel {
 - **TCA projects**: Familiar pattern for TCA developers
 - **Testing**: Easy to override with `withInjectedValues`
 
-### @Inject - Optional Dependencies (Deprecated v3.2.0)
+### @Injected - Optional Dependencies (Deprecated v3.2.0)
 
-Use `@Inject` for most dependency injection scenarios. It provides safe, optional injection that won't crash your app if a dependency isn't registered:
+Use `@Injected` for most dependency injection scenarios. It provides safe, optional injection that won't crash your app if a dependency isn't registered:
 
 ```swift
 class ViewController {
     // Standard dependency injection - safe and optional
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func viewDidLoad() {
         super.viewDidLoad()
@@ -287,7 +287,7 @@ class ViewController {
 }
 ```
 
-**When to use @Inject:**
+**When to use @Injected:**
 - **Most scenarios**: Your primary choice for dependency injection
 - **Optional dependencies**: Services that are nice-to-have but not critical
 - **Safe injection**: When you want to prevent crashes from missing dependencies

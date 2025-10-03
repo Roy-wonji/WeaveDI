@@ -257,7 +257,7 @@ public struct DependencyGraphStatistics: Codable, Sendable {
 public extension WeaveDI.Container {
   
   /// 순환 의존성 탐지와 함께 안전한 의존성 해결
-  func safeResolveWithCircularDetection<T>(_ type: T.Type) async throws -> T {
+  func safeResolveWithCircularDetection<T>(_ type: T.Type) async throws -> T where T: Sendable {
     try await CircularDependencyDetector.shared.beginResolution(type)
     defer { Task { await CircularDependencyDetector.shared.endResolution(type) } }
     

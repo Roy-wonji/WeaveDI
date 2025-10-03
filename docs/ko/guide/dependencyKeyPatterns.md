@@ -90,13 +90,13 @@ let wasNeeded = await WeaveDI.Container.bootstrapIfNeeded { container in
 ```swift
 class ViewController {
     // 옵셔널 주입 (안전)
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     // 필수 주입 (미등록 시 크래시)
-    @Inject var logger: Logger
+    @Injected var logger: Logger
 
     // KeyPath 기반 주입
-    @Inject(\.dataRepository) var repository: DataRepository?
+    @Injected(\.dataRepository) var repository: DataRepository?
 
     // Factory 패턴 (매번 새 인스턴스)
     @Factory var temporaryCache: TemporaryCache
@@ -343,7 +343,7 @@ UnifiedDI.register(UserServiceProtocol.self) {
 @Injected(\.userService) var userService: UserService
 
 // 이후 (WeaveDI)
-@Inject(\.userService) var userService: UserService?
+@Injected(\.userService) var userService: UserService?
 ```
 
 이 포괄적인 가이드는 실제 소스 코드 구현을 기반으로 WeaveDI에서 사용 가능한 모든 실제 패턴을 다루며, 정확성과 실용적 적용 가능성을 보장합니다.

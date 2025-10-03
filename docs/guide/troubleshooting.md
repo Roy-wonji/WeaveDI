@@ -8,7 +8,7 @@ Common issues and solutions when using WeaveDI in your applications.
 
 ```swift
 class ViewModel {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func loadUser() {
         guard let service = userService else {
@@ -79,7 +79,7 @@ class Cat: Animal {
 container.register(Animal.self) { Dog() }
 
 // Usage
-@Inject var animal: Animal?
+@Injected var animal: Animal?
 animal?.makeSound()  // Prints "Woof!" - expected Cat?
 ```
 
@@ -94,8 +94,8 @@ animal?.makeSound()  // Prints "Woof!" - expected Cat?
 container.register(Dog.self) { Dog() }
 container.register(Cat.self) { Cat() }
 
-@Inject var dog: Dog?
-@Inject var cat: Cat?
+@Injected var dog: Dog?
+@Injected var cat: Cat?
 
 // Solution 2: Use named dependencies (key-based)
 struct DogKey: InjectedKey {
@@ -142,7 +142,7 @@ container.register(CatService.self) { CatService() }
 
 ```swift
 class AppViewModel {
-    @Inject var service: UserService?
+    @Injected var service: UserService?
 
     init() {
         // service is nil during init!
@@ -165,7 +165,7 @@ class AppViewModel {
 ```swift
 // Solution 1: Don't access injected properties in init
 class AppViewModel {
-    @Inject var service: UserService?
+    @Injected var service: UserService?
 
     init() {
         // Don't use service during init
@@ -1200,6 +1200,6 @@ When reporting issues, include:
 ## Next Steps
 
 - [Best Practices](./bestPractices.md) - Recommended patterns
-- [Migration Guide](./migrationInjectToInjected.md) - @Inject → @Injected
+- [Migration Guide](./migrationInjectToInjected.md) - @Injected → @Injected
 - [Performance Optimization](./runtimeOptimization.md) - Performance tuning
 - [Testing Guide](../tutorial/testing.md) - Advanced testing strategies

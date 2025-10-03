@@ -62,8 +62,8 @@ print("사용된 메모리: \(metrics.memoryDelta) bytes")
 ```swift
 // 자동 해결 타이밍
 class PerformanceAwareService {
-    @Inject var userService: UserService?
-    @Inject var dataService: DataService?
+    @Injected var userService: UserService?
+    @Injected var dataService: DataService?
 
     func performOperation() async {
         // 모니터가 이러한 해결을 자동으로 추적함
@@ -135,8 +135,8 @@ class MonitoredCounterViewModel: ObservableObject {
     @Published var count = 0
     @Published var performanceMetrics: PerformanceMetrics?
 
-    @Inject var repository: CounterRepository?
-    @Inject var logger: LoggerProtocol?
+    @Injected var repository: CounterRepository?
+    @Injected var logger: LoggerProtocol?
 
     func increment() async {
         let metrics = await PerformanceMonitor.shared.measureOperation("counter_increment") {
@@ -171,7 +171,7 @@ class MonitoredCounterViewModel: ObservableObject {
 
 /// 성능 추적이 강화된 카운터 리포지토리
 class PerformanceTrackedCounterRepository: CounterRepository {
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func getCurrentCount() async -> Int {
         return await PerformanceMonitor.shared.measureOperation("get_current_count") {
@@ -213,9 +213,9 @@ class PerformanceTrackedCounterRepository: CounterRepository {
 ```swift
 /// 포괄적인 성능 모니터링이 있는 날씨 서비스
 class MonitoredWeatherService: WeatherServiceProtocol {
-    @Inject var httpClient: HTTPClientProtocol?
-    @Inject var cacheService: CacheServiceProtocol?
-    @Inject var logger: LoggerProtocol?
+    @Injected var httpClient: HTTPClientProtocol?
+    @Injected var cacheService: CacheServiceProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func fetchCurrentWeather(for city: String) async throws -> Weather {
         return try await PerformanceMonitor.shared.measureAsyncOperation("fetch_weather_\(city)") {
@@ -264,7 +264,7 @@ class MonitoredWeatherService: WeatherServiceProtocol {
 
 /// 날씨 앱을 위한 성능 대시보드
 class WeatherPerformanceDashboard {
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func generateReport() -> WeatherPerformanceReport {
         let monitor = PerformanceMonitor.shared
@@ -454,7 +454,7 @@ class PerformanceAlertManager {
         LowCacheHitRateAlert()
     ]
 
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func checkAlerts() {
         let report = PerformanceMonitor.shared.getDetailedReport()
@@ -502,7 +502,7 @@ actor ContinuousMonitor {
     private var isRunning = false
     private let checkInterval: TimeInterval = 30.0 // 30초
 
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func start() async {
         guard !isRunning else { return }

@@ -58,13 +58,13 @@ let repository = await UnifiedDI.resolve(\.userRepository)
 
 Type-safe injection at point of use.
 
-### @Inject
+### @Injected
 
-For optional dependencies:
+For safe, modern dependency injection:
 
 ```swift
 class ViewController {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func loadData() async {
         guard let service = userService else { return }

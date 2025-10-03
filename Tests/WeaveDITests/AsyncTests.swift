@@ -8,20 +8,20 @@
 import XCTest
 @testable import WeaveDI
 
-// MARK: - Async Test Services
+// MARK: - Async DI Test Services
 
-protocol AsyncTestService: Sendable {
+protocol AsyncDITestService: Sendable {
     func performAsyncOperation() async -> String
 }
 
-final class AsyncTestServiceImpl: AsyncTestService {
+final class AsyncDITestServiceImpl: AsyncDITestService {
     func performAsyncOperation() async -> String {
         try? await Task.sleep(nanoseconds: 10_000_000) // 0.01 seconds
         return "async_operation_completed"
     }
 }
 
-final class MockAsyncTestService: AsyncTestService {
+final class MockAsyncDITestService: AsyncDITestService {
     func performAsyncOperation() async -> String {
         return "mock_async_operation"
     }
@@ -68,15 +68,15 @@ final class AsyncTests: XCTestCase {
 
     func testAsyncRegistration_비동기등록() async {
         // Register async service using UnifiedDI
-        _ = UnifiedDI.register(AsyncTestService.self) {
-            AsyncTestServiceImpl()
+        _ = UnifiedDI.register(AsyncDITestService.self) {
+            AsyncDITestServiceImpl()
         }
 
         // Wait for async registration to complete
         await UnifiedDI.waitForRegistration()
 
         // Resolve and test
-        let service = UnifiedDI.resolve(AsyncTestService.self)
+        let service = UnifiedDI.resolve(AsyncDITestService.self)
         XCTAssertNotNil(service)
 
         let result = await service?.performAsyncOperation()
@@ -103,7 +103,7 @@ final class AsyncTests: XCTestCase {
     func testAsyncKeyPathRegistration_키패스비동기등록() async {
         // Register with KeyPath using UnifiedDI
         let service = UnifiedDI.register(\.asyncTestService) {
-            AsyncTestServiceImpl()
+            AsyncDITestServiceImpl()
         }
 
         // Test returned service
@@ -111,7 +111,7 @@ final class AsyncTests: XCTestCase {
         XCTAssertEqual(result, "async_operation_completed")
 
         // Test resolution
-        let resolved = UnifiedDI.resolve(AsyncTestService.self)
+        let resolved = UnifiedDI.resolve(AsyncDITestService.self)
         XCTAssertNotNil(resolved)
     }
 
@@ -119,38 +119,38 @@ final class AsyncTests: XCTestCase {
 
     func testAsyncResolution_비동기해결() async {
         // Register service using UnifiedDI
-        _ = UnifiedDI.register(AsyncTestService.self) {
-            AsyncTestServiceImpl()
+        _ = UnifiedDI.register(AsyncDITestService.self) {
+            AsyncDITestServiceImpl()
         }
 
         // Wait for async registration to complete
         await UnifiedDI.waitForRegistration()
 
         // Test optional resolution
-        let service = UnifiedDI.resolve(AsyncTestService.self)
+        let service = UnifiedDI.resolve(AsyncDITestService.self)
         XCTAssertNotNil(service)
 
         // Test required resolution
-        let requiredService = UnifiedDI.requireResolve(AsyncTestService.self)
+        let requiredService = UnifiedDI.requireResolve(AsyncDITestService.self)
         let result = await requiredService.performAsyncOperation()
         XCTAssertEqual(result, "async_operation_completed")
     }
 
     func testAsyncResolutionWithDefault_기본값비동기해결() async {
         // Test without registration
-        let service1 = UnifiedDI.resolve(AsyncTestService.self, default: MockAsyncTestService())
+        let service1 = UnifiedDI.resolve(AsyncDITestService.self, default: MockAsyncDITestService())
         let result1 = await service1.performAsyncOperation()
         XCTAssertEqual(result1, "mock_async_operation")
 
         // Register and test with registration
-        _ = UnifiedDI.register(AsyncTestService.self) {
-            AsyncTestServiceImpl()
+        _ = UnifiedDI.register(AsyncDITestService.self) {
+            AsyncDITestServiceImpl()
         }
 
         // Wait for async registration to complete
         await UnifiedDI.waitForRegistration()
 
-        let service2 = UnifiedDI.resolve(AsyncTestService.self, default: MockAsyncTestService())
+        let service2 = UnifiedDI.resolve(AsyncDITestService.self, default: MockAsyncDITestService())
         let result2 = await service2.performAsyncOperation()
         XCTAssertEqual(result2, "async_operation_completed")
     }
@@ -160,31 +160,31 @@ final class AsyncTests: XCTestCase {
     func testAsyncConditionalRegistration_조건부비동기등록() async {
         // Test true condition using UnifiedDI.Conditional
         _ = UnifiedDI.Conditional.registerIf(
-            AsyncTestService.self,
+            AsyncDITestService.self,
             condition: true,
-            factory: { AsyncTestServiceImpl() },
-            fallback: { MockAsyncTestService() }
+            factory: { AsyncDITestServiceImpl() },
+            fallback: { MockAsyncDITestService() }
         )
 
         // Wait for async registration to complete
         await UnifiedDI.waitForRegistration()
-        let service1 = UnifiedDI.resolve(AsyncTestService.self)
+        let service1 = UnifiedDI.resolve(AsyncDITestService.self)
         let result1 = await service1?.performAsyncOperation()
         XCTAssertEqual(result1, "async_operation_completed")
 
         // Reset and test false condition
-        UnifiedDI.release(AsyncTestService.self)
+        UnifiedDI.release(AsyncDITestService.self)
 
         _ = UnifiedDI.Conditional.registerIf(
-            AsyncTestService.self,
+            AsyncDITestService.self,
             condition: false,
-            factory: { AsyncTestServiceImpl() },
-            fallback: { MockAsyncTestService() }
+            factory: { AsyncDITestServiceImpl() },
+            fallback: { MockAsyncDITestService() }
         )
 
         // Wait for async registration to complete
         await UnifiedDI.waitForRegistration()
-        let service2 = UnifiedDI.resolve(AsyncTestService.self)
+        let service2 = UnifiedDI.resolve(AsyncDITestService.self)
         let result2 = await service2?.performAsyncOperation()
         XCTAssertEqual(result2, "mock_async_operation")
     }
@@ -193,7 +193,7 @@ final class AsyncTests: XCTestCase {
 
     func testAsyncBatchRegistration_배치비동기등록() async {
         // Register multiple services individually with UnifiedDI
-        _ = UnifiedDI.register(AsyncTestService.self) { AsyncTestServiceImpl() }
+        _ = UnifiedDI.register(AsyncDITestService.self) { AsyncDITestServiceImpl() }
 
         let asyncDb = await AsyncDatabaseServiceImpl.initialize()
         _ = UnifiedDI.register(AsyncDatabaseService.self) { asyncDb }
@@ -203,7 +203,7 @@ final class AsyncTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
 
         // Test all services are registered
-        let testService = UnifiedDI.resolve(AsyncTestService.self)
+        let testService = UnifiedDI.resolve(AsyncDITestService.self)
         let dbService = UnifiedDI.resolve(AsyncDatabaseService.self)
 
         XCTAssertNotNil(testService)
@@ -221,38 +221,38 @@ final class AsyncTests: XCTestCase {
     func testAsyncRegistrationPerformance_비동기등록성능() async {
         await measureAsync {
             for _ in 0..<100 {
-                _ = UnifiedDI.register(AsyncTestService.self) {
-                    AsyncTestServiceImpl()
+                _ = UnifiedDI.register(AsyncDITestService.self) {
+                    AsyncDITestServiceImpl()
                 }
-                UnifiedDI.release(AsyncTestService.self)
+                UnifiedDI.release(AsyncDITestService.self)
             }
         }
     }
 
     func testAsyncResolutionPerformance_비동기해결성능() async {
         // Setup
-        _ = UnifiedDI.register(AsyncTestService.self) {
-            AsyncTestServiceImpl()
+        _ = UnifiedDI.register(AsyncDITestService.self) {
+            AsyncDITestServiceImpl()
         }
 
         await measureAsync {
             for _ in 0..<1000 {
-                _ = UnifiedDI.resolve(AsyncTestService.self)
+                _ = UnifiedDI.resolve(AsyncDITestService.self)
             }
         }
     }
 
     func testConcurrentAsyncAccess_동시비동기접근() async {
         // Register service
-        _ = UnifiedDI.register(AsyncTestService.self) {
-            AsyncTestServiceImpl()
+        _ = UnifiedDI.register(AsyncDITestService.self) {
+            AsyncDITestServiceImpl()
         }
 
         // Test concurrent access
         await withTaskGroup(of: String?.self) { group in
             for _ in 0..<50 {
                 group.addTask {
-                    let service = UnifiedDI.resolve(AsyncTestService.self)
+                    let service = UnifiedDI.resolve(AsyncDITestService.self)
                     return await service?.performAsyncOperation()
                 }
             }
@@ -274,11 +274,11 @@ final class AsyncTests: XCTestCase {
 
     func testAsyncErrorHandling_비동기에러처리() async {
         // Test resolution of non-registered service
-        let service = UnifiedDI.resolve(AsyncTestService.self)
+        let service = UnifiedDI.resolve(AsyncDITestService.self)
         XCTAssertNil(service)
 
         // Test with fallback
-        let fallbackService = UnifiedDI.resolve(AsyncTestService.self, default: MockAsyncTestService())
+        let fallbackService = UnifiedDI.resolve(AsyncDITestService.self, default: MockAsyncDITestService())
         let result = await fallbackService.performAsyncOperation()
         XCTAssertEqual(result, "mock_async_operation")
     }
@@ -291,31 +291,31 @@ final class AsyncTests: XCTestCase {
         UnifiedDI.setLogLevel(.all)
 
         // Register service
-        _ = UnifiedDI.register(AsyncTestService.self) { AsyncTestServiceImpl() }
+        _ = UnifiedDI.register(AsyncDITestService.self) { AsyncDITestServiceImpl() }
 
         // Use the service multiple times asynchronously to trigger auto optimization
         await withTaskGroup(of: Void.self) { group in
             for _ in 1...10 {
                 group.addTask {
-                    _ = UnifiedDI.resolve(AsyncTestService.self)
+                    _ = UnifiedDI.resolve(AsyncDITestService.self)
                 }
             }
         }
 
         // Wait for auto optimization to process (polling)
         _ = await waitAsyncUntil(timeout: 2.0) {
-            let usage = UnifiedDI.stats()["AsyncTestService"] ?? 0
+            let usage = UnifiedDI.stats()["AsyncDITestService"] ?? 0
             return usage >= 10
         }
 
         // Check if optimization was triggered
         let stats = UnifiedDI.stats()
-        let usage = stats["AsyncTestService"] ?? 0
+        let usage = stats["AsyncDITestService"] ?? 0
         XCTAssertGreaterThanOrEqual(usage, 10)
 
         // Check Actor hop stats
       let actorHopStats = await UnifiedDI.actorHopStats
-        let hopCount = actorHopStats["AsyncTestService"] ?? 0
+        let hopCount = actorHopStats["AsyncDITestService"] ?? 0
 
         // Actor hops may have been detected in concurrent access
         XCTAssertGreaterThanOrEqual(hopCount, 0)
@@ -323,25 +323,25 @@ final class AsyncTests: XCTestCase {
 
     func testAsyncPerformanceTracking_비동기성능추적() async {
         // Register service
-        _ = UnifiedDI.register(AsyncTestService.self) { AsyncTestServiceImpl() }
+        _ = UnifiedDI.register(AsyncDITestService.self) { AsyncDITestServiceImpl() }
 
         // Perform async operations to collect performance data
         for _ in 1...5 {
             await Task.detached {
-                _ = UnifiedDI.resolve(AsyncTestService.self)
+                _ = UnifiedDI.resolve(AsyncDITestService.self)
             }.value
         }
 
         // Wait for performance data collection (polling)
         _ = await waitAsyncUntil(timeout: 2.0) {
             let stats = await UnifiedDI.asyncPerformanceStats
-            return stats["AsyncTestService"] != nil
+            return stats["AsyncDITestService"] != nil
         }
 
         // Check async performance stats
       let asyncPerformanceStats = await UnifiedDI.asyncPerformanceStats
 
-        if let avgTime = asyncPerformanceStats["AsyncTestService"] {
+        if let avgTime = asyncPerformanceStats["AsyncDITestService"] {
             XCTAssertGreaterThan(avgTime, 0)
         }
     }
@@ -360,8 +360,8 @@ final class AsyncTests: XCTestCase {
 // MARK: - WeaveDI.Container Extension for Async Tests
 
 extension WeaveDI.Container {
-    var asyncTestService: AsyncTestService? {
-        return resolve(AsyncTestService.self)
+    var asyncTestService: AsyncDITestService? {
+        return resolve(AsyncDITestService.self)
     }
 
     var asyncDatabaseService: AsyncDatabaseService? {

@@ -16,7 +16,7 @@ WeaveDI.Container.setLogLevel(.verbose)
 #endif
 
 class MyService {
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func performOperation() {
         // 디버깅이 이 해결을 자동으로 추적
@@ -143,8 +143,8 @@ print("등록 시간: \(info.registrationTime)")
 WeaveDI.Container.enableResolutionTracing()
 
 class CounterViewModel: ObservableObject {
-    @Inject var repository: CounterRepository?
-    @Inject var logger: LoggerProtocol?
+    @Injected var repository: CounterRepository?
+    @Injected var logger: LoggerProtocol?
 
     func increment() {
         // 해결이 자동으로 추적됨
@@ -346,8 +346,8 @@ class CounterViewModel: ObservableObject {
     @Published var count = 0
     @Published var isLoading = false
 
-    @Inject var counterService: CounterService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var counterService: CounterService?
+    @Injected var logger: LoggerProtocol?
 
     init() {
         #if DEBUG
@@ -471,9 +471,9 @@ class WeatherAppDebugManager {
 
 /// 디버그 로깅이 강화된 Weather Service
 class WeatherService: WeatherServiceProtocol {
-    @Inject var httpClient: HTTPClientProtocol?
-    @Inject var cache: CacheServiceProtocol?
-    @Inject var logger: LoggerProtocol?
+    @Injected var httpClient: HTTPClientProtocol?
+    @Injected var cache: CacheServiceProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func fetchCurrentWeather(for city: String) async throws -> Weather {
         #if DEBUG
@@ -685,7 +685,7 @@ class ConfigurationValidator {
     }
 
     private static func findRequiredDependencies() -> [Any.Type] {
-        // @Inject 프로퍼티 래퍼에 대한 코드 스캔
+        // @Injected 프로퍼티 래퍼에 대한 코드 스캔
         // 이는 리플렉션이나 컴파일 타임 분석을 사용하여 구현됨
         return []
     }

@@ -73,7 +73,7 @@ import WeaveDI
 ```
 
 **What this enables:**
-- Access to `@Inject`, `@Factory`, and `@SafeInject` property wrappers
+- Access to `@Injected`, `@Factory`, and `@SafeInject` property wrappers
 - UnifiedDI registration and resolution APIs
 - WeaveDI.Container bootstrap functionality
 - All WeaveDI utility classes and protocols
@@ -527,17 +527,17 @@ enum DIError: LocalizedError {
 
 ### 4. Use Property Wrappers
 
-Now inject and use your registered services in any class using WeaveDI's property wrappers. The `@Inject` wrapper automatically resolves the dependency from the container:
+Now inject and use your registered services in any class using WeaveDI's property wrappers. The `@Injected` wrapper automatically resolves the dependency from the container:
 
 ```swift
 class UserViewController: UIViewController {
-    // @Inject automatically resolves UserService from the DI container
+    // @Injected automatically resolves UserService from the DI container
     // The '?' makes it optional - the app won't crash if service isn't registered
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     // Additional injected dependencies
-    @Inject var analyticsService: AnalyticsService?
-    @Inject var validationService: ValidationService?
+    @Injected var analyticsService: AnalyticsService?
+    @Injected var validationService: ValidationService?
 
     private var currentUser: User?
 
@@ -677,20 +677,20 @@ class UserViewController: UIViewController {
 }
 ```
 
-**How @Inject works:**
+**How @Injected works:**
 - **Automatic Resolution**: WeaveDI automatically finds and injects the registered implementation
 - **Optional Safety**: Returns `nil` if the service isn't registered (prevents crashes)
 - **Lazy Loading**: The service is only resolved when first accessed
 - **Thread Safe**: Safe to use across different threads and actors
 
-**Advanced @Inject Usage Patterns:**
+**Advanced @Injected Usage Patterns:**
 ```swift
 // ✅ Multiple related services
 class OrderProcessingService {
-    @Inject var paymentService: PaymentService?
-    @Inject var inventoryService: InventoryService?
-    @Inject var emailService: EmailService?
-    @Inject var auditService: AuditService?
+    @Injected var paymentService: PaymentService?
+    @Injected var inventoryService: InventoryService?
+    @Injected var emailService: EmailService?
+    @Injected var auditService: AuditService?
 
     func processOrder(_ order: Order) async throws {
         // All services available as optionals - handle gracefully
@@ -714,9 +714,9 @@ class OrderProcessingService {
 
 // ✅ Conditional service usage
 class NotificationManager {
-    @Inject var pushNotificationService: PushNotificationService?
-    @Inject var emailNotificationService: EmailNotificationService?
-    @Inject var smsNotificationService: SMSNotificationService?
+    @Injected var pushNotificationService: PushNotificationService?
+    @Injected var emailNotificationService: EmailNotificationService?
+    @Injected var smsNotificationService: SMSNotificationService?
 
     func sendNotification(_ notification: Notification) async {
         var deliveredVia: [String] = []
@@ -758,16 +758,16 @@ class NotificationManager {
 
 ## Property Wrappers
 
-### @Inject - Optional Dependencies
+### @Injected - Optional Dependencies
 
-Use `@Inject` for most dependency injection scenarios. It provides safe, optional injection that won't crash your app if a dependency isn't registered:
+Use `@Injected` for most dependency injection scenarios. It provides safe, optional injection that won't crash your app if a dependency isn't registered:
 
 ```swift
 class ViewController: UIViewController {
     // Standard dependency injection - safe and optional
-    @Inject var userService: UserService?
-    @Inject var analyticsService: AnalyticsService?
-    @Inject var configService: ConfigService?
+    @Injected var userService: UserService?
+    @Injected var analyticsService: AnalyticsService?
+    @Injected var configService: ConfigService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -817,18 +817,18 @@ class ViewController: UIViewController {
 }
 ```
 
-**When to use @Inject:**
+**When to use @Injected:**
 - **Most scenarios**: Your primary choice for dependency injection
 - **Optional dependencies**: Services that are nice-to-have but not critical
 - **Safe injection**: When you want to prevent crashes from missing dependencies
 - **Testing**: Easy to mock by not registering the real service
 
-**@Inject Performance Characteristics:**
+**@Injected Performance Characteristics:**
 ```swift
 class PerformanceOptimizedViewController: UIViewController {
     // These are resolved lazily - no performance impact at initialization
-    @Inject var heavyService: HeavyComputationService?
-    @Inject var networkService: NetworkService?
+    @Injected var heavyService: HeavyComputationService?
+    @Injected var networkService: NetworkService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -1614,7 +1614,7 @@ class PerformanceOptimizedManager {
 ```swift
 // Monitor memory usage of injected services
 class MemoryAwareService {
-    @Inject var heavyService: HeavyService?
+    @Injected var heavyService: HeavyService?
 
     deinit {
         print("MemoryAwareService deallocated")
@@ -1655,7 +1655,7 @@ class MemoryAwareService {
 ```swift
 // ❌ BAD: Circular dependency
 class ServiceA {
-    @Inject var serviceB: ServiceB?
+    @Injected var serviceB: ServiceB?
 
     init() {
         serviceB?.doSomething()
@@ -1663,7 +1663,7 @@ class ServiceA {
 }
 
 class ServiceB {
-    @Inject var serviceA: ServiceA?  // Creates circular dependency
+    @Injected var serviceA: ServiceA?  // Creates circular dependency
 
     func doSomething() {
         serviceA?.performAction()
@@ -1705,7 +1705,7 @@ class ServiceB: ServiceBProtocol {
 // ✅ GOOD: Defensive programming with dependency checking
 class RobustService {
     @SafeInject var criticalService: CriticalService?
-    @Inject var optionalService: OptionalService?
+    @Injected var optionalService: OptionalService?
 
     func performCriticalOperation() throws {
         guard let critical = criticalService else {
@@ -1744,7 +1744,7 @@ enum ServiceError: LocalizedError {
 ```swift
 // ✅ GOOD: Thread-safe service usage
 class ThreadSafeService {
-    @Inject var networkService: NetworkService?
+    @Injected var networkService: NetworkService?
     private let queue = DispatchQueue(label: "service.queue", qos: .utility)
 
     func performConcurrentOperations() async {

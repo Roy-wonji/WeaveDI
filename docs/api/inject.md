@@ -1,12 +1,12 @@
-# @Inject Property Wrapper (Deprecated v3.2.0+)
+# @Injected Property Wrapper (Deprecated v3.2.0+)
 
 ::: danger Deprecated
-`@Inject` is **deprecated as of v3.2.0**. Please migrate to `@Injected` for modern, TCA-style dependency injection with better type safety and KeyPath-based access.
+`@Injected` is **deprecated as of v3.2.0**. Please migrate to `@Injected` for modern, TCA-style dependency injection with better type safety and KeyPath-based access.
 
 **Migration Guide:**
 ```swift
 // Old (Deprecated)
-@Inject var userService: UserServiceProtocol?
+@Injected var userService: UserServiceProtocol?
 
 // New (Recommended)
 @Injected(\.userService) var userService
@@ -15,11 +15,11 @@
 See the [@Injected documentation](./injected.md) for complete migration instructions.
 :::
 
-The `@Inject` property wrapper was a core feature of WeaveDI that provided automatic dependency injection for properties in classes and structs. **It is now superseded by @Injected.**
+The `@Injected` property wrapper was a core feature of WeaveDI that provided automatic dependency injection for properties in classes and structs. **It is now superseded by @Injected.**
 
 ## Overview
 
-`@Inject` uses lazy evaluation to automatically resolve dependencies from the DI container when the property is first accessed. It provides optional resolution to make your code resilient to missing dependencies, preventing runtime crashes and enabling graceful degradation.
+`@Injected` uses lazy evaluation to automatically resolve dependencies from the DI container when the property is first accessed. It provides optional resolution to make your code resilient to missing dependencies, preventing runtime crashes and enabling graceful degradation.
 
 **Core Features**:
 - **Lazy Resolution**: Dependencies are resolved only on first access for performance optimization
@@ -37,8 +37,8 @@ The `@Inject` property wrapper was a core feature of WeaveDI that provided autom
 import WeaveDI
 
 class WeatherViewModel: ObservableObject {
-    @Inject var weatherService: WeatherService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var weatherService: WeatherService?
+    @Injected var logger: LoggerProtocol?
 
     func loadWeather() {
         logger?.info("Loading weather data...")
@@ -51,7 +51,7 @@ class WeatherViewModel: ObservableObject {
 
 ### Simple Injection
 
-**Purpose**: Basic dependency injection using the `@Inject` property wrapper for automatic dependency resolution.
+**Purpose**: Basic dependency injection using the `@Injected` property wrapper for automatic dependency resolution.
 
 **How it works**:
 - **Lazy Resolution**: Dependencies are resolved only when first accessed
@@ -67,7 +67,7 @@ class WeatherViewModel: ObservableObject {
 
 ```swift
 class UserViewController: UIViewController {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -95,17 +95,17 @@ Always inject protocols rather than concrete types for better testability:
 
 ```swift
 // ✅ Good - Protocol injection
-@Inject var networkClient: NetworkClientProtocol?
+@Injected var networkClient: NetworkClientProtocol?
 
 // ❌ Avoid - Concrete type injection
-@Inject var networkClient: URLSessionNetworkClient?
+@Injected var networkClient: URLSessionNetworkClient?
 ```
 
 ## Real-World Examples
 
-### CountApp with @Inject (from Tutorial)
+### CountApp with @Injected (from Tutorial)
 
-**Purpose**: Real-world `@Inject` usage patterns and practical dependency injection applications based on actual CountApp tutorial code.
+**Purpose**: Real-world `@Injected` usage patterns and practical dependency injection applications based on actual CountApp tutorial code.
 
 **Architecture Patterns**:
 - **Repository Pattern**: Abstraction of data access layer
@@ -121,10 +121,10 @@ Always inject protocols rather than concrete types for better testability:
 Based on actual tutorial code:
 
 ```swift
-/// Counter Repository using @Inject for dependencies
+/// Counter Repository using @Injected for dependencies
 class UserDefaultsCounterRepository: CounterRepository {
     /// Logger injected via WeaveDI
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func getCurrentCount() async -> Int {
         let count = UserDefaults.standard.integer(forKey: "saved_count")
@@ -145,8 +145,8 @@ class CounterViewModel: ObservableObject {
     @Published var isLoading = false
 
     /// Repository and Logger injected via @Inject
-    @Inject var repository: CounterRepository?
-    @Inject var logger: LoggerProtocol?
+    @Injected var repository: CounterRepository?
+    @Injected var logger: LoggerProtocol?
 
     func increment() async {
         guard let repo = repository else { return }
@@ -179,8 +179,8 @@ class CounterViewModel: ObservableObject {
 ```swift
 /// Weather Service with injected HTTP client
 class WeatherService: WeatherServiceProtocol {
-    @Inject var httpClient: HTTPClientProtocol?
-    @Inject var logger: LoggerProtocol?
+    @Injected var httpClient: HTTPClientProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func fetchCurrentWeather(for city: String) async throws -> Weather {
         guard let client = httpClient else {
@@ -199,9 +199,9 @@ class WeatherViewModel: ObservableObject {
     @Published var currentWeather: Weather?
     @Published var isLoading = false
 
-    @Inject var weatherService: WeatherServiceProtocol?
-    @Inject var cacheService: CacheServiceProtocol?
-    @Inject var logger: LoggerProtocol?
+    @Injected var weatherService: WeatherServiceProtocol?
+    @Injected var cacheService: CacheServiceProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func loadWeather(for city: String) async {
         logger?.info("📍 Loading weather for \(city)")
@@ -224,7 +224,7 @@ class WeatherViewModel: ObservableObject {
 
 ### With StateObject
 
-**Purpose**: Integration of SwiftUI's StateObject with `@Inject` combining declarative UI and dependency injection for modern iOS app development patterns.
+**Purpose**: Integration of SwiftUI's StateObject with `@Injected` combining declarative UI and dependency injection for modern iOS app development patterns.
 
 **Integration Benefits**:
 - **Declarative Code**: Natural combination of SwiftUI's declarative paradigm with DI
@@ -275,8 +275,8 @@ struct CounterView: View {
 
 ```swift
 struct SettingsView: View {
-    @Inject var settingsService: SettingsService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var settingsService: SettingsService?
+    @Injected var logger: LoggerProtocol?
 
     var body: some View {
         List {
@@ -292,7 +292,7 @@ struct SettingsView: View {
 
 ## Thread Safety
 
-**Thread Safety Guarantee**: `@Inject` provides comprehensive thread safety, ensuring safe dependency access in multi-threaded environments.
+**Thread Safety Guarantee**: `@Injected` provides comprehensive thread safety, ensuring safe dependency access in multi-threaded environments.
 
 **Safety Mechanisms**:
 - **Independent Instances**: Each property access creates isolated instances safely shared, not creating new isolated instances
@@ -311,11 +311,11 @@ struct SettingsView: View {
 - **Instance Creation**: No synchronization after instance creation
 - **Memory Barriers**: Automatic memory barrier handling
 
-`@Inject` is thread-safe and can be used across different queues:
+`@Injected` is thread-safe and can be used across different queues:
 
 ```swift
 class BackgroundService {
-    @Inject var dataProcessor: DataProcessor?
+    @Injected var dataProcessor: DataProcessor?
 
     func processInBackground() {
         DispatchQueue.global(qos: .background).async {
@@ -330,7 +330,7 @@ class BackgroundService {
 
 ### Mock Injection for Tests
 
-**Testing Strategy**: `@Inject` provides powerful testing patterns through fresh mock instances and state isolation.
+**Testing Strategy**: `@Injected` provides powerful testing patterns through fresh mock instances and state isolation.
 
 **Testing Benefits**:
 - **Reliable Test Dependencies**: No test failures due to missing dependencies
@@ -357,7 +357,7 @@ class UserServiceTests: XCTestCase {
 
     func testUserService() {
         let service = UserService()
-        // @Inject properties will resolve to mock instances
+        // @Injected properties will resolve to mock instances
         XCTAssertTrue(service.repository is MockUserRepository)
     }
 }
@@ -383,7 +383,7 @@ class UserServiceTests: XCTestCase {
 
 ```swift
 class AnalyticsManager {
-    @Inject var analyticsService: AnalyticsService?
+    @Injected var analyticsService: AnalyticsService?
 
     func trackEvent(_ event: String) {
         // Gracefully handle missing dependency
@@ -413,7 +413,7 @@ class AnalyticsManager {
 
 ```swift
 class CriticalService {
-    @Inject var essentialDependency: EssentialService?
+    @Injected var essentialDependency: EssentialService?
 
     func performCriticalOperation() {
         guard let dependency = essentialDependency else {
@@ -446,7 +446,7 @@ Dependencies are resolved lazily on first access:
 
 ```swift
 class ExpensiveService {
-    @Inject var heavyDependency: HeavyService? // Not resolved until accessed
+    @Injected var heavyDependency: HeavyService? // Not resolved until accessed
 
     func lightweightOperation() {
         // heavyDependency is not resolved here
@@ -480,7 +480,7 @@ Once resolved, the dependency reference is cached:
 
 ```swift
 class CachedService {
-    @Inject var service: SomeService?
+    @Injected var service: SomeService?
 
     func multipleAccesses() {
         service?.method1() // Resolves from container
@@ -494,7 +494,7 @@ class CachedService {
 
 ### Repository Pattern
 
-**Purpose**: Application of `@Inject` in the Repository pattern to abstract the data access layer and separate business logic from data sources.
+**Purpose**: Application of `@Injected` in the Repository pattern to abstract the data access layer and separate business logic from data sources.
 
 **Benefits of Repository Pattern**:
 - **Layer Separation**: Clear separation of data access logic and business logic
@@ -510,9 +510,9 @@ class CachedService {
 
 ```swift
 class DataRepository {
-    @Inject var networkClient: NetworkClient?
-    @Inject var cacheManager: CacheManager?
-    @Inject var logger: Logger?
+    @Injected var networkClient: NetworkClient?
+    @Injected var cacheManager: CacheManager?
+    @Injected var logger: Logger?
 
     func fetchData() async -> Data? {
         // Try cache first
@@ -553,9 +553,9 @@ class DataRepository {
 
 ```swift
 class UserService {
-    @Inject var userRepository: UserRepository?
-    @Inject var authService: AuthService?
-    @Inject var logger: Logger?
+    @Injected var userRepository: UserRepository?
+    @Injected var authService: AuthService?
+    @Injected var logger: Logger?
 
     func getCurrentUser() async -> User? {
         guard let auth = authService,
@@ -578,7 +578,7 @@ class UserService {
 
 ### 1. Always Use Optionals
 
-**Guideline**: `@Inject` provides optional resolution to handle missing dependencies gracefully, so always use optional types.
+**Guideline**: `@Injected` provides optional resolution to handle missing dependencies gracefully, so always use optional types.
 
 **Benefits of Using Optionals**:
 - **Crash Prevention**: Prevents runtime crashes due to missing dependencies
@@ -591,14 +591,14 @@ class UserService {
 - **Explicit Handling**: Explicit nil handling through optional binding
 - **Code Readability**: Clear expression of optional nature of dependencies in code
 
-`@Inject` provides optional resolution to handle missing dependencies gracefully:
+`@Injected` provides optional resolution to handle missing dependencies gracefully:
 
 ```swift
 // ✅ Good
-@Inject var service: MyService?
+@Injected var service: MyService?
 
 // ❌ Avoid
-@Inject var service: MyService // Compiler error
+@Injected var service: MyService // Compiler error
 ```
 
 ### 2. Handle Nil Cases
@@ -647,10 +647,10 @@ func performAction() {
 
 ```swift
 // ✅ Good - testable and flexible
-@Inject var logger: LoggerProtocol?
+@Injected var logger: LoggerProtocol?
 
 // ❌ Avoid - hard to test and mock
-@Inject var logger: ConsoleLogger?
+@Injected var logger: ConsoleLogger?
 ```
 
 ### 4. Document Dependencies
@@ -678,13 +678,13 @@ func performAction() {
 ```swift
 class WeatherService {
     /// HTTP client for making network requests
-    @Inject var httpClient: HTTPClientProtocol?
+    @Injected var httpClient: HTTPClientProtocol?
 
     /// Logger for debugging and monitoring
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     /// Cache for offline weather data
-    @Inject var cache: CacheServiceProtocol?
+    @Injected var cache: CacheServiceProtocol?
 }
 ```
 

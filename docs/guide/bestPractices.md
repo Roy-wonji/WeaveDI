@@ -52,11 +52,11 @@ class DocumentService {
 }
 ```
 
-### Avoid @Inject/@SafeInject (Deprecated v3.2.0)
+### Avoid @Injected/@SafeInject (Deprecated v3.2.0)
 
 ```swift
 // ❌ Avoid: Deprecated
-@Inject var service: UserService?
+@Injected var service: UserService?
 @SafeInject var api: APIClient?
 
 // ✅ Use instead:

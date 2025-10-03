@@ -12,14 +12,14 @@ WeaveDI 2.0.0은 Swift Concurrency를 완전히 수용하고, Actor Hop 최적�
 - **통합 DI API**: `UnifiedDI`, `DI`, `DIAsync` 3가지 레벨의 API 제공
 - **부트스트랩 시스템**: 안전한 앱 초기화를 위한 `WeaveDI.Container.bootstrap`
 - **Actor Hop 최적화**: Swift Concurrency와 완벽 호환되는 성능 최적화
-- **강화된 Property Wrapper**: `@Inject`, `@RequiredInject`, `@Factory` 지원
+- **강화된 Property Wrapper**: `@Injected`, `@RequiredInject`, `@Factory` 지원
 - **AppWeaveDI.Container**: 앱 수준의 의존성 관리를 위한 통합 컨테이너
 - **ModuleFactory 시스템**: Repository, UseCase, Scope 팩토리 패턴
 
 ### 🔄 변경된 API
 - `WeaveDI.Container.live.register` → `UnifiedDI.register` 또는 `DI.register`
 - `RegisterAndReturn.register` → `UnifiedDI.register` 또는 KeyPath 기반 등록
-- Property Wrapper 통합: `@Inject` 하나로 옵셔널/필수 모두 지원
+- Property Wrapper 통합: `@Injected` 하나로 옵셔널/필수 모두 지원
 - 부트스트랩 시스템: 앱 시작 시 반드시 `bootstrap` 호출 필요
 
 ## 빠른 치트시트(이전 → 이후)
@@ -51,7 +51,7 @@ await WeaveDI.Container.bootstrapAsync { c in
 }
 ```
 
-부트스트랩 전에 `resolve`/`@Inject`가 호출되면 크래시 또는 실패가 발생할 수 있습니다. 앱 시작 진입점에서 반드시 부트스트랩을 호출하세요.
+부트스트랩 전에 `resolve`/`@Injected`가 호출되면 크래시 또는 실패가 발생할 수 있습니다. 앱 시작 진입점에서 반드시 부트스트랩을 호출하세요.
 
 ## KeyPath 기반 등록/해결
 
@@ -74,12 +74,12 @@ let repo3 = await DIAsync.getOrCreate(\.bookListInterface) { await BookListRepos
 
 ## 프로퍼티 래퍼 변화
 
-- `@Inject(\.keyPath)` 하나로 옵셔널/필수 모두 지원됩니다.
+- `@Injected(\.keyPath)` 하나로 옵셔널/필수 모두 지원됩니다.
   - 변수 타입이 Optional이면 미등록 시 `nil` 반환
   - 변수 타입이 Non-Optional이면 미등록 시 명확한 메시지로 `fatalError`
 - 더 엄격한 필수 의존성에는 `@RequiredDependency(\.keyPath)`를 사용하세요.
 
-기존 `@ContainerRegister` 같은 래퍼를 사용했다면 `@Inject` 또는 `@RequiredDependency`로 교체하는 것을 권장합니다.
+기존 `@ContainerRegister` 같은 래퍼를 사용했다면 `@Injected` 또는 `@RequiredDependency`로 교체하는 것을 권장합니다.
 
 ## Module 과 Container
 
@@ -185,10 +185,10 @@ final class UserService {
 // 이후(2.0.0)
 final class UserService {
   // Non-Optional: 미등록 시 명확한 크래시로 빠르게 발견
-  @Inject(\.userRepository) var repo: UserRepositoryProtocol
+  @Injected(\.userRepository) var repo: UserRepositoryProtocol
   
   // Optional로 선언하면 미등록 시 nil 반환(선택적 의존성에 적합)
-  // @Inject(\.userRepository) var repo: UserRepositoryProtocol?
+  // @Injected(\.userRepository) var repo: UserRepositoryProtocol?
 }
 
 // 더 엄격한 필수 의존성
@@ -266,7 +266,7 @@ struct MyApp: App {
 @ContainerRegister(\.userRepository) var repo: UserRepositoryProtocol
 
 // 이후 - 옵션 1: 옵셔널 주입 (안전)
-@Inject(\.userRepository) var repo: UserRepositoryProtocol?
+@Injected(\.userRepository) var repo: UserRepositoryProtocol?
 
 // 이후 - 옵션 2: 필수 주입 (빠른 실패 발견)
 @RequiredInject(\.userRepository) var repo: UserRepositoryProtocol

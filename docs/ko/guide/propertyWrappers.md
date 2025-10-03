@@ -4,10 +4,10 @@ WeaveDI의 강력한 Property Wrapper를 사용하여 선언적이고 타입 안
 
 ## 개요
 
-WeaveDI는 Swift의 Property Wrapper 기능을 활용하여 의존성 주입을 더 선언적이고 직관적으로 만듭니다. `@Injected`(권장), `@Factory`, 그리고 레거시 래퍼(`@Inject`, `@SafeInject` - v3.2.0부터 Deprecated)와 같은 Property Wrapper를 통해 간단한 어노테이션으로 복잡한 의존성 관리를 해결할 수 있습니다.
+WeaveDI는 Swift의 Property Wrapper 기능을 활용하여 의존성 주입을 더 선언적이고 직관적으로 만듭니다. `@Injected`(권장), `@Factory`, 그리고 레거시 래퍼(`@Injected`, `@SafeInject` - v3.2.0부터 Deprecated)와 같은 Property Wrapper를 통해 간단한 어노테이션으로 복잡한 의존성 관리를 해결할 수 있습니다.
 
 ::: warning Deprecation 공지
-`@Inject`와 `@SafeInject`는 **v3.2.0부터 Deprecated**입니다. 더 나은 타입 안전성과 TCA 스타일 KeyPath 접근을 위해 `@Injected`를 사용하세요. 자세한 내용은 [마이그레이션 가이드](../api/injected.md)를 참조하세요.
+`@Injected`와 `@SafeInject`는 **v3.2.0부터 Deprecated**입니다. 더 나은 타입 안전성과 TCA 스타일 KeyPath 접근을 위해 `@Injected`를 사용하세요. 자세한 내용은 [마이그레이션 가이드](../api/injected.md)를 참조하세요.
 :::
 
 ### Swift 버전 호환성
@@ -27,15 +27,15 @@ WeaveDI는 Swift의 Property Wrapper 기능을 활용하여 의존성 주입을 
 - **🧪 테스트 가능**: 테스트를 위한 쉬운 모킹 주입
 - **🔄 스레드 안전**: 액터와 비동기 컨텍스트에서 안전
 
-## @Inject - 범용 의존성 주입 (v3.2.0부터 Deprecated)
+## @Injected - 범용 의존성 주입 (v3.2.0부터 Deprecated)
 
 ::: danger Deprecated
-`@Inject`는 **v3.2.0부터 Deprecated**입니다. 더 나은 타입 안전성과 TCA 스타일 KeyPath 접근을 위해 `@Injected`를 사용하세요.
+`@Injected`는 **v3.2.0부터 Deprecated**입니다. 더 나은 타입 안전성과 TCA 스타일 KeyPath 접근을 위해 `@Injected`를 사용하세요.
 
 **마이그레이션:**
 ```swift
 // 기존 (Deprecated)
-@Inject var userService: UserServiceProtocol?
+@Injected var userService: UserServiceProtocol?
 
 // 새로운 방식 (권장)
 @Injected(\.userService) var userService
@@ -44,7 +44,7 @@ WeaveDI는 Swift의 Property Wrapper 기능을 활용하여 의존성 주입을 
 
 ### 기본 사용법
 
-`@Inject`는 일반적으로 사용되던 Property Wrapper로, 타입 기반과 KeyPath 기반 주입을 모두 지원했습니다. **이제 @Injected로 대체되었습니다.**
+`@Injected`는 일반적으로 사용되던 Property Wrapper로, 타입 기반과 KeyPath 기반 주입을 모두 지원했습니다. **이제 @Injected로 대체되었습니다.**
 
 #### Swift 6 향상된 안전성
 
@@ -58,8 +58,8 @@ protocol UserService: Sendable {
 
 @MainActor
 class UserViewController {
-    @Inject private var userService: UserService?
-    @Inject private var logger: Logger?
+    @Injected private var userService: UserService?
+    @Injected private var logger: Logger?
 
     func loadUser() async {
         // 안전한 액터 격리 접근
@@ -91,11 +91,11 @@ import WeaveDI
 
 class UserService {
     // 타입 기반 주입 - 옵셔널
-    @Inject var repository: UserRepositoryProtocol?
-    @Inject var logger: LoggerProtocol?
+    @Injected var repository: UserRepositoryProtocol?
+    @Injected var logger: LoggerProtocol?
 
     // 타입 기반 주입 - 필수 (강제 언래핑)
-    @Inject var networkService: NetworkServiceProtocol!
+    @Injected var networkService: NetworkServiceProtocol!
 
     func getUser(id: String) async throws -> User {
         logger?.info("사용자 조회 시작: \(id)")
@@ -131,8 +131,8 @@ extension WeaveDI.Container {
 
 // KeyPath 기반 주입 사용
 class DatabaseManager {
-    @Inject(\.database) var database: DatabaseServiceProtocol?
-    @Inject(\.logger) var logger: LoggerProtocol!
+    @Injected(\.database) var database: DatabaseServiceProtocol?
+    @Injected(\.logger) var logger: LoggerProtocol!
 
     func performMigration() async throws {
         logger.info("데이터베이스 마이그레이션 시작")
@@ -200,8 +200,8 @@ class CriticalService {
 ```swift
 @MainActor
 class UIService {
-    @Inject var userService: UserServiceProtocol?
-    @Inject var imageLoader: ImageLoaderProtocol!
+    @Injected var userService: UserServiceProtocol?
+    @Injected var imageLoader: ImageLoaderProtocol!
 
     func updateUserProfile(_ user: User) async {
         // MainActor 컨텍스트에서 안전하게 실행
@@ -211,8 +211,8 @@ class UIService {
 }
 
 actor DataProcessor {
-    @Inject var databaseService: DatabaseServiceProtocol?
-    @Inject var analyticsService: AnalyticsServiceProtocol!
+    @Injected var databaseService: DatabaseServiceProtocol?
+    @Injected var analyticsService: AnalyticsServiceProtocol!
 
     func processUserData(_ data: UserData) async throws {
         // Actor 컨텍스트에서 안전하게 실행
@@ -256,8 +256,8 @@ class UserProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    @Inject var userService: UserServiceProtocol?
-    @Inject var logger: LoggerProtocol!
+    @Injected var userService: UserServiceProtocol?
+    @Injected var logger: LoggerProtocol!
 
     func loadUserData() async {
         isLoading = true

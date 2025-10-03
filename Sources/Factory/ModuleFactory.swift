@@ -66,7 +66,7 @@ public struct UseCaseModuleFactory: ModuleFactory, Sendable {
     repositoryType: Repo.Type,
     repositoryFallback: @Sendable @escaping () -> Repo,
     factory: @Sendable @escaping (Repo) -> UseCase
-  ) where UseCase: Sendable {
+  ) where UseCase: Sendable, Repo: Sendable {
     let helper = registerModule
     let closure: @Sendable () -> Module = {
       helper.makeUseCaseWithRepository(

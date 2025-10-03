@@ -19,7 +19,7 @@ WeaveDI를 사용할 때 발생하는 일반적인 문제와 해결 방법입니
 
 ```swift
 class ViewModel {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func loadUser() {
         guard let service = userService else {
@@ -90,7 +90,7 @@ class Cat: Animal {
 container.register(Animal.self) { Dog() }
 
 // 사용
-@Inject var animal: Animal?
+@Injected var animal: Animal?
 animal?.makeSound()  // "Woof!" 출력 - Cat을 기대했는데?
 ```
 
@@ -105,8 +105,8 @@ animal?.makeSound()  // "Woof!" 출력 - Cat을 기대했는데?
 container.register(Dog.self) { Dog() }
 container.register(Cat.self) { Cat() }
 
-@Inject var dog: Dog?
-@Inject var cat: Cat?
+@Injected var dog: Dog?
+@Injected var cat: Cat?
 
 // 해결 2: 명명된 의존성 사용 (키 기반)
 struct DogKey: InjectedKey {
@@ -153,7 +153,7 @@ container.register(CatService.self) { CatService() }
 
 ```swift
 class AppViewModel {
-    @Inject var service: UserService?
+    @Injected var service: UserService?
 
     init() {
         // init 중에 service는 nil!
@@ -176,7 +176,7 @@ class AppViewModel {
 ```swift
 // 해결 1: init에서 주입된 속성에 접근하지 않음
 class AppViewModel {
-    @Inject var service: UserService?
+    @Injected var service: UserService?
 
     init() {
         // init 중에 service 사용 안함
@@ -1210,6 +1210,6 @@ Issue 보고 시 다음을 포함하세요:
 ## 다음 단계
 
 - [모범 사례](./bestPractices.md) - 권장 패턴
-- [마이그레이션 가이드](./migrationInjectToInjected.md) - @Inject → @Injected
+- [마이그레이션 가이드](./migrationInjectToInjected.md) - @Injected → @Injected
 - [성능 최적화](./runtimeOptimization.md) - 성능 튜닝
 - [테스트 가이드](../tutorial/testing.md) - 고급 테스트 전략

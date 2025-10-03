@@ -28,13 +28,18 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-docc-plugin.git", from: "1.4.5"),
         .package(
           url: "https://github.com/apple/swift-syntax.git", from: "600.0.0"),
+        .package(
+          url: "https://github.com/pointfreeco/swift-dependencies.git",
+          from: "1.2.0"
+        ),
     ],
     targets: [
         .target(
             name: "WeaveDI",
             dependencies: [
                 .product(name: "LogMacro", package: "LogMacro"),
-                "WeaveDIMacros"
+                "WeaveDIMacros",
+                .product(name: "Dependencies", package: "swift-dependencies")
             ],
             path: "Sources",
             exclude: ["Benchmarks", "WeaveDIMacros"],

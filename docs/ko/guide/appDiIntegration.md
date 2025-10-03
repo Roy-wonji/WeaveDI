@@ -686,6 +686,6 @@ class LegacyAppMigration {
 ## 더 보기(See Also)
 
 - [Module System](/ko/guide/moduleSystem) — 대규모 앱을 모듈로 조직화
-- [Property Wrappers](/ko/guide/propertyWrappers) — `@Factory` 와 `@Inject` 사용법
+- [Property Wrappers](/ko/guide/propertyWrappers) — `@Factory` 와 `@Injected` 사용법
 - [Bootstrap Guide](/ko/guide/bootstrap) — 애플리케이션 초기화 패턴
 - [UnifiedDI vs WeaveDI.Container](/ko/guide/unifiedDi) — 어떤 API를 선택할지 가이드

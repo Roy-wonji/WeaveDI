@@ -1,81 +1,143 @@
-import SwiftCompilerPlugin
+import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-private struct ComponentMacroError: Error {
-  let message: String
-  init(_ message: String) { self.message = message }
+public enum ComponentMacro {}
+
+private struct ProvideProperty {
+  enum Storage { case transient, singleton }
+  let name: String
+  let type: String
+  let storage: Storage
 }
 
-public enum ComponentMacro {}
+private enum ComponentMacroError: Error {
+  case invalidDeclaration
+  case missingType(String)
+}
+
+private struct ComponentDiagnostic: DiagnosticMessage {
+  let message: String
+  let diagnosticID: MessageID
+  let severity: DiagnosticSeverity
+
+  init(_ message: String, node: SyntaxProtocol) {
+    self.message = message
+    self.diagnosticID = MessageID(domain: "WeaveDI.Component", id: "component-error")
+    self.severity = .error
+  }
+}
 
 extension ComponentMacro: MemberMacro {
   public static func expansion(
-    of node: AttributeSyntax,
+    of attribute: AttributeSyntax,
     providingMembersOf declaration: some DeclGroupSyntax,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
-    guard let structDecl = declaration.as(StructDeclSyntax.self) else {
-      throw ComponentMacroError("@Component는 struct에서만 사용할 수 있습니다")
+    guard declaration.is(StructDeclSyntax.self) else {
+      throw ComponentMacroError.invalidDeclaration
     }
 
-    let registrations = structDecl.memberBlock.members.compactMap { member -> (String, String)? in
-      guard
-        let varDecl = member.decl.as(VariableDeclSyntax.self),
-        !varDecl.modifiers.contains(where: { $0.name.text == "static" }),
-        let binding = varDecl.bindings.first,
-        let identifier = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier.text,
-        let typeSyntax = binding.typeAnnotation?.type
-      else {
-        return nil
-      }
-      let typeName = typeSyntax.description.trimmingCharacters(in: .whitespacesAndNewlines)
-      return (identifier, typeName)
-    }
-
-    let registrationBody: String
-    if registrations.isEmpty {
-      registrationBody = """
-      guard !Self.isRegistered else { return }
-      Self.isRegistered = true
-      """
-    } else {
-      let lines = registrations.map { (name, type) in
-        "DIContainer.live.register(\(type).self, build: { self.\(name) })"
-      }.joined(separator: "\n      ")
-      registrationBody = """
-      guard !Self.isRegistered else { return }
-      Self.isRegistered = true
-      \(lines)
-      """
-    }
-
-    let isRegisteredDecl: DeclSyntax = "public static var isRegistered: Bool = false"
-    let registerDecl: DeclSyntax = """
-    public func register() {
-      \(raw: registrationBody)
-    }
-    """
-
-    return [isRegisteredDecl, registerDecl]
+    let storageVar: DeclSyntax = "private static var __componentIsRegistered = false"
+    return [storageVar]
   }
 }
 
 extension ComponentMacro: ExtensionMacro {
   public static func expansion(
-    of node: AttributeSyntax,
+    of attribute: AttributeSyntax,
     attachedTo declaration: some DeclGroupSyntax,
     providingExtensionsOf type: some TypeSyntaxProtocol,
     conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [ExtensionDeclSyntax] {
-    guard declaration.is(StructDeclSyntax.self) else {
-      throw ComponentMacroError("@Component는 struct에서만 사용할 수 있습니다")
+    guard let structDecl = declaration.as(StructDeclSyntax.self) else {
+      throw ComponentMacroError.invalidDeclaration
     }
 
-    let extensionDecl = try ExtensionDeclSyntax("extension \(type): ComponentProtocol {}")
-    let sendableDecl = try ExtensionDeclSyntax("extension \(type): @unchecked Sendable {}")
-    return [extensionDecl, sendableDecl]
+    let properties = try collectProvideProperties(from: structDecl, context: context)
+    let typeName = structDecl.name.text
+
+    let statements = properties.map { property -> String in
+      switch property.storage {
+      case .singleton:
+        return "container.register(\(property.type).self, instance: instance.\(property.name))"
+      case .transient:
+        return "container.register(\(property.type).self) { instance.\(property.name) }"
+      }
+    }.joined(separator: "\n        ")
+
+    let extensionDecl: DeclSyntax = """
+    extension \(raw: typeName): ComponentProtocol {
+      public static func registerAll(into container: DIContainer) {
+        guard __componentIsRegistered == false else { return }
+        __componentIsRegistered = true
+        let instance = Self()
+        \(raw: statements)
+      }
+
+      public static func registerAll() {
+        registerAll(into: DIContainer.shared)
+      }
+    }
+    """
+
+    guard let ext = extensionDecl.as(ExtensionDeclSyntax.self) else {
+      return []
+    }
+
+    return [ext]
+  }
+
+  private static func collectProvideProperties(
+    from structDecl: StructDeclSyntax,
+    context: some MacroExpansionContext
+  ) throws -> [ProvideProperty] {
+    var result: [ProvideProperty] = []
+
+    for member in structDecl.memberBlock.members {
+      guard let varDecl = member.decl.as(VariableDeclSyntax.self) else { continue }
+      let attributes = varDecl.attributes
+      guard !attributes.isEmpty else { continue }
+      guard let provideAttribute = attributes.first(where: { attr in
+        attr.as(AttributeSyntax.self)?.attributeName.trimmedDescription == "Provide"
+      })?.as(AttributeSyntax.self) else { continue }
+
+      guard varDecl.bindings.count == 1,
+        let binding = varDecl.bindings.first,
+        let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else { continue }
+
+      guard let typeAnnotation = binding.typeAnnotation else {
+        let message = ComponentDiagnostic("Provide 속성은 명시적 타입이 필요합니다", node: Syntax(varDecl))
+        context.diagnose(Diagnostic(node: Syntax(varDecl), message: message))
+        throw ComponentMacroError.missingType(pattern.identifier.text)
+      }
+
+      let name = pattern.identifier.text
+      let type = typeAnnotation.type.trimmedDescription
+      let storage = storage(from: provideAttribute)
+
+      result.append(ProvideProperty(name: name, type: type, storage: storage))
+    }
+
+    return result
+  }
+
+  private static func storage(from attribute: AttributeSyntax) -> ProvideProperty.Storage {
+    guard let arguments = attribute.arguments?.as(LabeledExprListSyntax.self) else {
+      return .transient
+    }
+
+    for argument in arguments {
+      let label = argument.label?.text ?? ""
+      let valueText = argument.expression.trimmedDescription
+      if label == "scope" || label.isEmpty {
+        if valueText.contains("singleton") {
+          return .singleton
+        }
+      }
+    }
+    return .transient
   }
 }

@@ -81,7 +81,7 @@ public struct RegisterModule: Sendable {
     repositoryProtocol: Repo.Type,
     repositoryFallback: @Sendable @autoclosure @escaping () -> Repo,
     factory: @Sendable @escaping (Repo) -> UseCase
-  ) -> @Sendable () -> Module where UseCase: Sendable {
+  ) -> @Sendable () -> Module where UseCase: Sendable, Repo: Sendable {
     Task.detached { @Sendable in
       await DependencyGraph.shared.addEdge(from: useCaseProtocol, to: repositoryProtocol, label: "uses")
     }
@@ -101,7 +101,7 @@ public struct RegisterModule: Sendable {
   public func resolveOrDefault<T>(
     for type: T.Type,
     fallback: @Sendable @autoclosure @escaping () -> T
-  ) -> T {
+  ) -> T where T: Sendable {
     if let resolved: T = WeaveDI.Container.live.resolve(type) {
       return resolved
     }
@@ -128,7 +128,7 @@ public struct RegisterModule: Sendable {
   public func defaultInstance<T>(
     for type: T.Type,
     fallback: @Sendable @autoclosure @escaping () -> T
-  ) -> T {
+  ) -> T where T: Sendable {
     return resolveOrDefault(for: type, fallback: fallback())
   }
 }

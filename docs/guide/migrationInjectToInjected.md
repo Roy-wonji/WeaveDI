@@ -1,13 +1,13 @@
-# Migrating from @Inject to @Injected
+# Migrating from @Injected to @Injected
 
-Complete guide for migrating from deprecated `@Inject`/`@SafeInject` to modern `@Injected` property wrapper (v3.2.0+).
+Complete guide for migrating from deprecated `@Injected`/`@SafeInject` to modern `@Injected` property wrapper (v3.2.0+).
 
 ## Why Migrate?
 
-### @Inject/@SafeInject (Deprecated v3.2.0)
+### @Injected/@SafeInject (Deprecated v3.2.0)
 ```swift
 class ViewModel {
-    @Inject var userService: UserService?        // ⚠️ Deprecated
+    @Injected var userService: UserService?        // ⚠️ Deprecated
     @SafeInject var apiClient: APIClient?        // ⚠️ Deprecated
 }
 ```
@@ -38,9 +38,9 @@ class ViewModel {
 
 ### Step 1: Define InjectedKey
 
-For each service you're using with `@Inject`, create an `InjectedKey`:
+For each service you're using with `@Injected`, create an `InjectedKey`:
 
-**Before (with @Inject):**
+**Before (with @Injected):**
 ```swift
 // Just register
 let service = UnifiedDI.register(UserService.self) {
@@ -81,12 +81,12 @@ extension InjectedValues {
 - `set`: Allows overriding in tests
 - Provides KeyPath `\.userService` for type-safe access
 
-### Step 3: Replace @Inject with @Injected
+### Step 3: Replace @Injected with @Injected
 
 **Before:**
 ```swift
 class UserViewModel {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func loadUser() async {
         guard let service = userService else {
@@ -111,13 +111,13 @@ class UserViewModel {
 ```
 
 **What changed:**
-- `@Inject var userService: UserService?` → `@Injected(\.userService) var userService`
+- `@Injected var userService: UserService?` → `@Injected(\.userService) var userService`
 - Removed `guard let` unwrapping (non-optional)
 - Cleaner, more concise code
 
 ### Step 4: Update Tests
 
-**Before (with @Inject):**
+**Before (with @Injected):**
 ```swift
 override func setUp() {
     UnifiedDI.releaseAll()
@@ -179,7 +179,7 @@ struct MyApp: App {
 
 // ViewModel
 class UserViewModel {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func loadUser() async {
         guard let service = userService else { return }
@@ -273,7 +273,7 @@ class UserViewModelTests: XCTestCase {
 
 **Before:**
 ```swift
-@Inject var logger: Logger?
+@Injected var logger: Logger?
 ```
 
 **After:**
@@ -299,9 +299,9 @@ extension InjectedValues {
 **Before:**
 ```swift
 class ViewModel {
-    @Inject var userService: UserService?
-    @Inject var apiClient: APIClient?
-    @Inject var cache: CacheService?
+    @Injected var userService: UserService?
+    @Injected var apiClient: APIClient?
+    @Injected var cache: CacheService?
 }
 ```
 
@@ -367,7 +367,7 @@ extension UserServiceImpl: InjectedKey {
 **Problem:**
 ```swift
 // Old code expects optional
-@Inject var service: UserService?
+@Injected var service: UserService?
 if let service = service {
     // Use service
 }
@@ -433,9 +433,9 @@ You don't need to migrate everything at once. Here's a gradual approach:
 
 ### Phase 1: New Code Only
 ```swift
-// Keep existing @Inject code
+// Keep existing @Injected code
 class OldViewModel {
-    @Inject var service: UserService?  // Keep as-is
+    @Injected var service: UserService?  // Keep as-is
 }
 
 // Use @Injected for new code
@@ -472,18 +472,18 @@ class MainFeedViewModel {
 
 // Less critical features can wait
 class SettingsViewModel {
-    @Inject var settingsService: SettingsService?  // Not migrated yet
+    @Injected var settingsService: SettingsService?  // Not migrated yet
 }
 ```
 
 ## Compatibility Notes
 
-### Both @Inject and @Injected Can Coexist
+### Both @Injected and @Injected Can Coexist
 
 ```swift
 // This is valid during migration
 class HybridViewModel {
-    @Inject var oldService: OldService?           // Works
+    @Injected var oldService: OldService?           // Works
     @Injected(\.newService) var newService        // Works
     @Factory var generator: ReportGenerator       // Works
 }
@@ -498,7 +498,7 @@ _ = UnifiedDI.register(LegacyService.self) {
 }
 
 // Can be resolved with @Inject
-@Inject var legacy: LegacyService?
+@Injected var legacy: LegacyService?
 ```
 
 ## Performance Considerations
@@ -509,15 +509,15 @@ _ = UnifiedDI.register(LegacyService.self) {
 - Better optimization by the compiler
 
 **Benchmarks (approximate):**
-- @Inject: ~0.001ms per resolution
+- @Injected: ~0.001ms per resolution
 - @Injected: ~0.0001ms per resolution (10x faster)
 
 ## Migration Checklist
 
-- [ ] Review all `@Inject` and `@SafeInject` usage in codebase
+- [ ] Review all `@Injected` and `@SafeInject` usage in codebase
 - [ ] Create `InjectedKey` for each service
 - [ ] Extend `InjectedValues` with computed properties
-- [ ] Replace `@Inject` with `@Injected(\.keyPath)`
+- [ ] Replace `@Injected` with `@Injected(\.keyPath)`
 - [ ] Remove optional unwrapping code
 - [ ] Update test setup to use `withInjectedValues`
 - [ ] Remove `UnifiedDI.register` calls (if using InjectedKey.liveValue)

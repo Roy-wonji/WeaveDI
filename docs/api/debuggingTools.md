@@ -16,7 +16,7 @@ WeaveDI.Container.setLogLevel(.verbose)
 #endif
 
 class MyService {
-    @Inject var logger: LoggerProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func performOperation() {
         // Debugging automatically traces this resolution
@@ -143,8 +143,8 @@ Enable detailed tracing of dependency resolution:
 WeaveDI.Container.enableResolutionTracing()
 
 class CounterViewModel: ObservableObject {
-    @Inject var repository: CounterRepository?
-    @Inject var logger: LoggerProtocol?
+    @Injected var repository: CounterRepository?
+    @Injected var logger: LoggerProtocol?
 
     func increment() {
         // Resolution is automatically traced
@@ -346,8 +346,8 @@ class CounterViewModel: ObservableObject {
     @Published var count = 0
     @Published var isLoading = false
 
-    @Inject var counterService: CounterService?
-    @Inject var logger: LoggerProtocol?
+    @Injected var counterService: CounterService?
+    @Injected var logger: LoggerProtocol?
 
     init() {
         #if DEBUG
@@ -471,9 +471,9 @@ class WeatherAppDebugManager {
 
 /// Enhanced Weather Service with debug logging
 class WeatherService: WeatherServiceProtocol {
-    @Inject var httpClient: HTTPClientProtocol?
-    @Inject var cache: CacheServiceProtocol?
-    @Inject var logger: LoggerProtocol?
+    @Injected var httpClient: HTTPClientProtocol?
+    @Injected var cache: CacheServiceProtocol?
+    @Injected var logger: LoggerProtocol?
 
     func fetchCurrentWeather(for city: String) async throws -> Weather {
         #if DEBUG
@@ -685,7 +685,7 @@ class ConfigurationValidator {
     }
 
     private static func findRequiredDependencies() -> [Any.Type] {
-        // Scan code for @Inject property wrappers
+        // Scan code for @Injected property wrappers
         // This would be implemented using reflection or compile-time analysis
         return []
     }

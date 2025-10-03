@@ -8,7 +8,7 @@ WeaveDI에 대해 자주 묻는 질문과 답변입니다.
 
 WeaveDI는 Swift 네이티브 의존성 주입 프레임워크로 다음을 제공합니다:
 - **타입 안전 의존성 주입** - 컴파일 타임 보장
-- **다양한 주입 패턴**: `@Injected`, `@Factory`, 레거시 `@Inject`
+- **다양한 주입 패턴**: `@Injected`, `@Factory`, 레거시 `@Injected`
 - **TCA 호환 API** - KeyPath 기반 접근
 - **Swift Concurrency 지원** - Actor 격리
 - **성능 최적화** - 내장 캐싱 및 지연 로딩
@@ -39,7 +39,7 @@ class UserViewModel {
 |------|---------|----------|--------|---------|
 | **타입 안전성** | ✅ 컴파일 타임 | ⚠️ 런타임 | ✅ 컴파일 타임 | ✅ 컴파일 타임 |
 | **TCA 호환** | ✅ Yes | ❌ No | ❌ No | ⚠️ 제한적 |
-| **Property Wrappers** | ✅ @Injected, @Factory | ✅ @Inject | ❌ No | ✅ @Injected |
+| **Property Wrappers** | ✅ @Injected, @Factory | ✅ @Injected | ❌ No | ✅ @Injected |
 | **Swift Concurrency** | ✅ 완전 지원 | ⚠️ 부분 지원 | ⚠️ 제한적 | ✅ 완전 지원 |
 | **성능** | ✅ 최적화됨 | ⚠️ 보통 | ✅ 빠름 | ✅ 빠름 |
 | **학습 곡선** | ⚠️ 보통 | ⚠️ 보통 | ❌ 가파름 | ✅ 쉬움 |
@@ -184,12 +184,12 @@ class DocumentService {
     └─ 예: Services, Repositories, Managers
 ```
 
-### @Inject와 @SafeInject는 어떻게 되었나요?
+### @Injected와 @SafeInject는 어떻게 되었나요?
 
 **v3.2.0부터 Deprecated:**
 ```swift
 // ❌ Deprecated (여전히 작동하지만 권장하지 않음)
-@Inject var service: UserService?
+@Injected var service: UserService?
 @SafeInject var api: APIClient?
 
 // ✅ @Injected로 마이그레이션
@@ -204,7 +204,7 @@ class DocumentService {
 - 제한적인 테스트 지원
 
 **마이그레이션 가이드:**
-[마이그레이션: @Inject → @Injected](./migrationInjectToInjected.md) 참조
+[마이그레이션: @Injected → @Injected](./migrationInjectToInjected.md) 참조
 
 ### 생성자 주입을 대신 사용할 수 있나요?
 
@@ -535,11 +535,11 @@ struct UserServiceKey: InjectedKey {
 ```swift
 // ❌ 문제: 타입 불일치
 container.register(Animal.self) { Dog() }
-@Inject var cat: Cat?  // 잘못된 타입!
+@Injected var cat: Cat?  // 잘못된 타입!
 
 // ✅ 해결: 올바른 타입 사용
 container.register(Dog.self) { Dog() }
-@Inject var dog: Dog?
+@Injected var dog: Dog?
 ```
 
 3. **너무 일찍 접근:**
@@ -665,14 +665,14 @@ class ViewModel {
 }
 ```
 
-### @Inject에서 @Injected로 어떻게 마이그레이션하나요?
+### @Injected에서 @Injected로 어떻게 마이그레이션하나요?
 
 완전한 [마이그레이션 가이드](./migrationInjectToInjected.md)를 참조하세요.
 
 **빠른 마이그레이션:**
 ```swift
 // 단계 1: 이전 코드
-@Inject var service: UserService?
+@Injected var service: UserService?
 
 // 단계 2: InjectedKey 정의
 struct UserServiceKey: InjectedKey {

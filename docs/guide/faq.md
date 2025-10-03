@@ -8,7 +8,7 @@ Common questions and answers about WeaveDI.
 
 WeaveDI is a modern, Swift-native dependency injection framework that provides:
 - **Type-safe dependency injection** with compile-time guarantees
-- **Multiple injection patterns**: `@Injected`, `@Factory`, and legacy `@Inject`
+- **Multiple injection patterns**: `@Injected`, `@Factory`, and legacy `@Injected`
 - **TCA-compatible API** with KeyPath-based access
 - **Swift Concurrency support** with Actor isolation
 - **Performance optimization** with built-in caching and lazy loading
@@ -39,7 +39,7 @@ class UserViewModel {
 |---------|---------|----------|--------|---------|
 | **Type Safety** | ✅ Compile-time | ⚠️ Runtime | ✅ Compile-time | ✅ Compile-time |
 | **TCA Compatible** | ✅ Yes | ❌ No | ❌ No | ⚠️ Limited |
-| **Property Wrappers** | ✅ @Injected, @Factory | ✅ @Inject | ❌ No | ✅ @Injected |
+| **Property Wrappers** | ✅ @Injected, @Factory | ✅ @Injected | ❌ No | ✅ @Injected |
 | **Swift Concurrency** | ✅ Full support | ⚠️ Partial | ⚠️ Limited | ✅ Full support |
 | **Performance** | ✅ Optimized | ⚠️ Moderate | ✅ Fast | ✅ Fast |
 | **Learning Curve** | ⚠️ Moderate | ⚠️ Moderate | ❌ Steep | ✅ Easy |
@@ -48,7 +48,7 @@ class UserViewModel {
 ```swift
 // Easy to migrate from other frameworks
 // Old (Swinject-style)
-@Inject var service: UserService?
+@Injected var service: UserService?
 
 // New (WeaveDI v3.2.0+)
 @Injected(\.userService) var service  // Type-safe, non-optional
@@ -194,12 +194,12 @@ Need new instance each time?
     └─ Examples: Services, Repositories, Managers
 ```
 
-### What happened to @Inject and @SafeInject?
+### What happened to @Injected and @SafeInject?
 
 **Deprecated in v3.2.0:**
 ```swift
 // ❌ Deprecated (still works but not recommended)
-@Inject var service: UserService?
+@Injected var service: UserService?
 @SafeInject var api: APIClient?
 
 // ✅ Migrate to @Injected
@@ -214,7 +214,7 @@ Need new instance each time?
 - Limited testing support
 
 **Migration Guide:**
-See [Migration: @Inject → @Injected](./migrationInjectToInjected.md)
+See [Migration: @Injected → @Injected](./migrationInjectToInjected.md)
 
 ### Can I use constructor injection instead?
 
@@ -686,11 +686,11 @@ struct UserServiceKey: InjectedKey {
 ```swift
 // ❌ Problem: Type mismatch
 container.register(Animal.self) { Dog() }
-@Inject var cat: Cat?  // Wrong type!
+@Injected var cat: Cat?  // Wrong type!
 
 // ✅ Solution: Use correct type
 container.register(Dog.self) { Dog() }
-@Inject var dog: Dog?
+@Injected var dog: Dog?
 ```
 
 3. **Accessing too early:**
@@ -816,14 +816,14 @@ class ViewModel {
 }
 ```
 
-### How do I migrate from @Inject to @Injected?
+### How do I migrate from @Injected to @Injected?
 
 See complete [Migration Guide](./migrationInjectToInjected.md).
 
 **Quick migration:**
 ```swift
 // Step 1: Old code
-@Inject var service: UserService?
+@Injected var service: UserService?
 
 // Step 2: Define InjectedKey
 struct UserServiceKey: InjectedKey {

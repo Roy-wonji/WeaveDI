@@ -98,7 +98,7 @@ class ComplexService {
 ```swift
 @MainActor
 class ViewController {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
     
     func updateUI() async {
         // Measure Actor hop optimization
@@ -133,7 +133,7 @@ class ViewController {
 // WeaveDI native async/await support
 @MainActor
 class UIService {
-    @Inject var dataService: DataService?
+    @Injected var dataService: DataService?
     
     func loadData() async {
         // No Actor hop required - optimized path
@@ -194,7 +194,7 @@ xcodebuild -scheme WeaveDI -configuration Release \
 
 2. **Use Property Wrappers**:
    ```swift
-   @Inject var service: UserService? // Optimized injection
+   @Injected var service: UserService? // Optimized injection
    ```
 
 3. **Leverage Scopes**:

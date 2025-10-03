@@ -870,7 +870,7 @@ final class ModuleFactoryTests: XCTestCase {
 ```
 
 **WeaveDI의 작동 방식:**
-- **프로퍼티 래퍼**: `@Injected`, `@Factory`가 의존성 주입을 처리합니다 (`@Inject`와 `@SafeInject`는 3.2.0에서 deprecated)
+- **프로퍼티 래퍼**: `@Injected`, `@Factory`가 의존성 주입을 처리합니다 (`@Injected`와 `@SafeInject`는 3.2.0에서 deprecated)
 - **자동 해결**: 접근 시 자동으로 의존성이 주입됩니다
 - **타입 안전 레지스트리**: 런타임 유연성과 함께 컴파일 타임 타입 체킹
 - **Swift Concurrency**: async/await 및 actor에 대한 내장 지원

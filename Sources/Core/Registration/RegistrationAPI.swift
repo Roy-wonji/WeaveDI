@@ -58,7 +58,7 @@ public enum RegisterAndReturn {
     return keyPathString
   }
 
-  public static func isRegistered<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> Bool {
+  public static func isRegistered<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> Bool where T: Sendable {
     return WeaveDI.Container.live.resolve(T.self) != nil
   }
 }

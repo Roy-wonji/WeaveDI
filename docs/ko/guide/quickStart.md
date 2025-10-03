@@ -81,7 +81,7 @@ import WeaveDI
 ```
 
 **사용 가능한 기능:**
-- `@Injected` (v3.2.0+), `@Factory`, `@Inject` (deprecated), `@SafeInject` (deprecated) 프로퍼티 래퍼 접근
+- `@Injected` (v3.2.0+), `@Factory`, `@Injected` (deprecated), `@SafeInject` (deprecated) 프로퍼티 래퍼 접근
 - UnifiedDI 등록 및 해결 API
 - WeaveDI.Container 부트스트랩 기능
 - 모든 WeaveDI 유틸리티 클래스와 프로토콜
@@ -182,13 +182,13 @@ class UserViewController {
 - **타입 안전**: 컴파일 타임 타입 검사
 - **TCA 호환**: TCA 개발자에게 친숙한 패턴
 
-#### 레거시: @Inject (v3.2.0부터 Deprecated)
+#### 레거시: @Injected (v3.2.0부터 Deprecated)
 
 ```swift
 class UserViewController {
-    // @Inject는 DI 컨테이너에서 UserService를 자동으로 해결합니다
+    // @Injected는 DI 컨테이너에서 UserService를 자동으로 해결합니다
     // '?'는 옵셔널로 만듭니다 - 서비스가 등록되지 않았어도 앱이 크래시되지 않습니다
-    @Inject var userService: UserService?  // ⚠️ Deprecated
+    @Injected var userService: UserService?  // ⚠️ Deprecated
 
     func loadUser() async {
         // 주입된 의존성을 항상 안전하게 언래핑하세요
@@ -209,7 +209,7 @@ class UserViewController {
 }
 ```
 
-**@Inject 작동 방식:**
+**@Injected 작동 방식:**
 - **자동 해결**: WeaveDI가 등록된 구현을 자동으로 찾아 주입합니다
 - **옵셔널 안전성**: 서비스가 등록되지 않았으면 `nil`을 반환합니다 (크래시 방지)
 - **지연 로딩**: 서비스는 처음 접근될 때만 해결됩니다
@@ -254,14 +254,14 @@ class ViewModel {
 - **TCA 프로젝트**: TCA 개발자에게 친숙한 패턴
 - **테스팅**: `withInjectedValues`로 쉽게 오버라이드
 
-### @Inject - 선택적 의존성 (v3.2.0부터 Deprecated)
+### @Injected - 선택적 의존성 (v3.2.0부터 Deprecated)
 
-대부분의 의존성 주입 시나리오에서 `@Inject`를 사용하세요. 의존성이 등록되지 않았어도 앱을 크래시시키지 않는 안전한 옵셔널 주입을 제공합니다:
+대부분의 의존성 주입 시나리오에서 `@Injected`를 사용하세요. 의존성이 등록되지 않았어도 앱을 크래시시키지 않는 안전한 옵셔널 주입을 제공합니다:
 
 ```swift
 class ViewController {
     // 표준 의존성 주입 - 안전하고 옵셔널
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func viewDidLoad() {
         super.viewDidLoad()
@@ -287,7 +287,7 @@ class ViewController {
 }
 ```
 
-**@Inject를 사용하는 경우:**
+**@Injected를 사용하는 경우:**
 - **레거시 코드**: 기존 코드 유지보수
 - **선택적 의존성**: 중요하지 않지만 있으면 좋은 서비스
 - **안전한 주입**: 누락된 의존성으로 인한 크래시를 방지하고 싶을 때

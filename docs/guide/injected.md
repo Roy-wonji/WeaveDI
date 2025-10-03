@@ -85,7 +85,7 @@ func testFetchData() async {
 
 ## Comparison with @Inject
 
-| Feature | @Inject (Legacy) | @Injected (New) |
+| Feature | @Injected (Legacy) | @Injected (New) |
 |---------|------------------|-----------------|
 | Type Safety | ❌ Optional-based | ✅ Compile-time |
 | TCA Style | ❌ Different | ✅ Familiar |
@@ -100,7 +100,7 @@ func testFetchData() async {
 
 ```swift
 // ❌ Old
-@Inject var repository: UserRepository?
+@Injected var repository: UserRepository?
 
 // ✅ New
 @Injected(\.repository) var repository

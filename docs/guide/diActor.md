@@ -12,7 +12,7 @@ An **actor hop** is a fundamental concept in Swift's actor model that occurs whe
 // Example demonstrating actor hop concept
 @MainActor
 class UIViewController {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func updateUI() async {
         // 1. Currently on MainActor (UI thread)
@@ -86,7 +86,7 @@ func optimizedSetup() async {
 #### 3. Contextual Resolution Strategy
 ```swift
 actor BusinessLogicActor {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func processUserData() async {
         // Property wrapper injection minimizes actor hops
@@ -205,7 +205,7 @@ actor DataProcessingActor {
 ```swift
 // ✅ OPTIMAL: Property wrappers minimize actor hops
 class OptimizedService {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
     @Factory var logger: Logger  // New instance each access, but optimized
     @SafeInject var database: Database?
 

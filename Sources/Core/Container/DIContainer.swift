@@ -47,8 +47,8 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   
   // MARK: - Properties
   
-  /// 타입 안전한 의존성 저장소
-  private let typeSafeRegistry = TypeSafeRegistry()
+  /// 통합된 의존성 저장소 (UnifiedRegistry 기반)
+  private let unifiedRegistry = UnifiedRegistry()
   
   /// 모듈 기반 일괄 등록을 위한 모듈 배열 (동시성 안전: concurrent + barrier)
   private let modulesQueue = DispatchQueue(label: "com.diContainer.modules", attributes: .concurrent)
@@ -176,8 +176,8 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     factory: @escaping @Sendable () -> T
   ) -> T where T: Sendable {
     let instance = factory()
-    typeSafeRegistry.register(type, instance: instance)
-    
+    Task { await unifiedRegistry.register(type, factory: { instance }) }
+
     // 🚀 기존 자동 그래프 추적 (유지)
     Task { @DIActor in
       AutoDIOptimizer.shared.trackRegistration(type)
@@ -206,8 +206,11 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     build factory: @escaping @Sendable () -> T
   ) -> @Sendable () -> Void where T: Sendable {
-    let releaseHandler = typeSafeRegistry.register(type, factory: factory)
-    
+    Task { await unifiedRegistry.register(type, factory: factory) }
+    let releaseHandler: @Sendable () -> Void = { [weak self] in
+      Task { await self?.unifiedRegistry.release(type) }
+    }
+
     // 🚀 기존 자동 그래프 추적 (유지)
     Task { @DIActor in
       AutoDIOptimizer.shared.trackRegistration(type)
@@ -231,8 +234,8 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     instance: T
   ) where T: Sendable {
-    typeSafeRegistry.register(type, instance: instance)
-    
+    Task { await unifiedRegistry.register(type, factory: { instance }) }
+
     // 🚀 기존 자동 그래프 추적 (유지)
     Task { @DIActor in
       AutoDIOptimizer.shared.trackRegistration(type)
@@ -263,16 +266,26 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   ///
   /// - Parameter type: 조회할 타입
   /// - Returns: 해결된 인스턴스 (없으면 nil)
-  public func resolve<T>(_ type: T.Type) -> T? {
+  public func resolve<T>(_ type: T.Type) -> T? where T: Sendable {
     // 🚀 기존 자동 성능 최적화 추적 (유지)
     Task { @DIActor in
       AutoDIOptimizer.shared.trackResolution(type)
     }
     
-    // 1. 현재 컨테이너에서 해결 시도
-    if let result = typeSafeRegistry.resolve(type) {
+    // 1. 현재 컨테이너에서 해결 시도 (동기 호환성을 위한 RunLoop)
+    let semaphore = DispatchSemaphore(value: 0)
+    var result: T?
+
+    Task.detached { [unifiedRegistry] in
+      result = await unifiedRegistry.resolveAsync(type)
+      semaphore.signal()
+    }
+
+    semaphore.wait()
+
+    if let value = result {
       Log.debug("Resolved \(String(describing: type)) from current container")
-      return result
+      return value
     }
     
     // 2. Parent 컨테이너에서 해결 시도
@@ -305,7 +318,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   public func resolveOrDefault<T>(
     _ type: T.Type,
     default defaultValue: @autoclosure () -> T
-  ) -> T {
+  ) -> T where T: Sendable {
     resolve(type) ?? defaultValue()
   }
   
@@ -313,7 +326,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   ///
   /// - Parameter type: 해제할 타입
   public func release<T>(_ type: T.Type) {
-    typeSafeRegistry.release(type)
+    Task { await unifiedRegistry.release(type) }
     Log.debug("Released \(String(describing: type))")
   }
   
@@ -323,7 +336,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   ///
   /// - Parameter keyPath: WeaveDI.Container의 T?를 가리키는 키패스
   /// - Returns: resolve(T.self) 결과
-  public subscript<T>(keyPath: KeyPath<DIContainer, T?>) -> T? {
+  public subscript<T>(keyPath: KeyPath<DIContainer, T?>) -> T? where T: Sendable {
     get { resolve(T.self) }
   }
   

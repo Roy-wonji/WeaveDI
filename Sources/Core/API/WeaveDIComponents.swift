@@ -14,73 +14,58 @@ import Foundation
 ///     var userService: UserService { UserServiceImpl() }
 /// }
 ///
-/// WeaveDI.Components.register(AppComponent.self)
+/// let component = await WeaveDI.Components.register(AppComponent.self)
+/// let resolved = await WeaveDI.Components.resolve(AppComponent.self)
 /// ```
 public extension WeaveDI {
 
   /// 컴포넌트 관리 네임스페이스
   enum Components {
 
-    /// 등록된 컴포넌트를 보관하는 레지스트리 (NSLock으로 동시성 보장)
-    private nonisolated(unsafe) static var registry: [String: Any] = [:]
-    private static let lock = NSLock()
+    /// UnifiedRegistry 기반 컴포넌트 저장소 (Actor 기반 동시성 보장)
+    private static let registry = UnifiedRegistry()
 
     /// @Component 매크로로 생성된 컴포넌트를 등록합니다.
     @discardableResult
-    public static func register<T>(_ componentType: T.Type) -> T where T: ComponentProtocol {
-      lock.lock()
-      defer { lock.unlock() }
-
-      let key = String(describing: componentType)
-
-      if let existing = registry[key] as? T {
+    public static func register<T>(_ componentType: T.Type) async -> T where T: ComponentProtocol {
+      // 이미 등록된 컴포넌트가 있는지 확인
+      if let existing = await registry.resolveAsync(componentType) {
         return existing
       }
 
-      let component = componentType.init()
-      component.register()
-      registry[key] = component
+      // 새 컴포넌트 인스턴스 생성 및 의존성 등록
+      let component = T()
+      componentType.registerAll()
 
-      // DIContainer에 동일한 컴포넌트를 등록해 Needle-style resolve와 호환
-      DIContainer.live.register(componentType, instance: component)
+      // UnifiedRegistry에 싱글톤으로 등록
+      await registry.registerScoped(
+        componentType,
+        scope: .singleton,
+        factory: { component }
+      )
 
 #if DEBUG && WEAVE_DI_VERBOSE
-      print("📦 [WeaveDI.Components] \(key) 등록 완료")
+      let typeName = String(describing: componentType)
+      print("📦 [WeaveDI.Components] \(typeName) 등록 완료")
 #endif
 
       return component
     }
 
     /// 등록된 컴포넌트를 조회합니다.
-    public static func resolve<T>(_ componentType: T.Type) -> T? where T: ComponentProtocol {
-      let key = String(describing: componentType)
-      lock.lock()
-      let cached = registry[key] as? T
-      lock.unlock()
-
-      if let cached { return cached }
-      return DIContainer.live.resolve(componentType)
+    public static func resolve<T>(_ componentType: T.Type) async -> T? where T: ComponentProtocol {
+      return await registry.resolveAsync(componentType)
     }
 
-    /// 등록된 컴포넌트 이름 목록을 반환합니다.
-    public static var registeredComponents: [String] {
-      lock.lock()
-      defer { lock.unlock() }
-      return Array(registry.keys)
+    /// 등록된 컴포넌트 개수를 반환합니다.
+    public static func registeredComponentCount() async -> Int {
+      return await registry.registeredTypeCount()
     }
 
     /// 테스트를 위해 레지스트리를 초기화합니다.
-    public static func clearRegistry() {
-      lock.lock()
-      registry.removeAll()
-      lock.unlock()
+    public static func clearRegistry() async {
+      await registry.releaseAll()
     }
   }
 }
 
-/// @Component 매크로로 생성된 타입이 채택하는 기본 프로토콜입니다.
-public protocol ComponentProtocol: Sendable {
-  init()
-  func register()
-  static var isRegistered: Bool { get }
-}

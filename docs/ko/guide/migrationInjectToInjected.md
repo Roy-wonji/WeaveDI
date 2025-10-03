@@ -1,13 +1,13 @@
-# @Inject에서 @Injected로 마이그레이션
+# @Injected에서 @Injected로 마이그레이션
 
-Deprecated된 `@Inject`/`@SafeInject`에서 최신 `@Injected` 프로퍼티 래퍼로 마이그레이션하는 완전한 가이드 (v3.2.0+).
+Deprecated된 `@Injected`/`@SafeInject`에서 최신 `@Injected` 프로퍼티 래퍼로 마이그레이션하는 완전한 가이드 (v3.2.0+).
 
 ## 왜 마이그레이션해야 하나요?
 
-### @Inject/@SafeInject (v3.2.0부터 Deprecated)
+### @Injected/@SafeInject (v3.2.0부터 Deprecated)
 ```swift
 class ViewModel {
-    @Inject var userService: UserService?        // ⚠️ Deprecated
+    @Injected var userService: UserService?        // ⚠️ Deprecated
     @SafeInject var apiClient: APIClient?        // ⚠️ Deprecated
 }
 ```
@@ -38,9 +38,9 @@ class ViewModel {
 
 ### 1단계: InjectedKey 정의
 
-`@Inject`로 사용 중인 각 서비스에 대해 `InjectedKey`를 생성합니다:
+`@Injected`로 사용 중인 각 서비스에 대해 `InjectedKey`를 생성합니다:
 
-**이전 (@Inject 사용):**
+**이전 (@Injected 사용):**
 ```swift
 // 등록만 함
 let service = UnifiedDI.register(UserService.self) {
@@ -81,12 +81,12 @@ extension InjectedValues {
 - `set`: 테스트에서 오버라이드 가능
 - 타입 안전 접근을 위한 KeyPath `\.userService` 제공
 
-### 3단계: @Inject를 @Injected로 교체
+### 3단계: @Injected를 @Injected로 교체
 
 **이전:**
 ```swift
 class UserViewModel {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func loadUser() async {
         guard let service = userService else {
@@ -111,13 +111,13 @@ class UserViewModel {
 ```
 
 **변경사항:**
-- `@Inject var userService: UserService?` → `@Injected(\.userService) var userService`
+- `@Injected var userService: UserService?` → `@Injected(\.userService) var userService`
 - `guard let` 언래핑 제거 (non-optional)
 - 더 깔끔하고 간결한 코드
 
 ### 4단계: 테스트 업데이트
 
-**이전 (@Inject 사용):**
+**이전 (@Injected 사용):**
 ```swift
 override func setUp() {
     UnifiedDI.releaseAll()
@@ -179,7 +179,7 @@ struct MyApp: App {
 
 // ViewModel
 class UserViewModel {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
 
     func loadUser() async {
         guard let service = userService else { return }
@@ -273,7 +273,7 @@ class UserViewModelTests: XCTestCase {
 
 **이전:**
 ```swift
-@Inject var logger: Logger?
+@Injected var logger: Logger?
 ```
 
 **이후:**
@@ -299,9 +299,9 @@ extension InjectedValues {
 **이전:**
 ```swift
 class ViewModel {
-    @Inject var userService: UserService?
-    @Inject var apiClient: APIClient?
-    @Inject var cache: CacheService?
+    @Injected var userService: UserService?
+    @Injected var apiClient: APIClient?
+    @Injected var cache: CacheService?
 }
 ```
 
@@ -367,7 +367,7 @@ extension UserServiceImpl: InjectedKey {
 **문제:**
 ```swift
 // 기존 코드는 optional 예상
-@Inject var service: UserService?
+@Injected var service: UserService?
 if let service = service {
     // service 사용
 }
@@ -433,9 +433,9 @@ func testExample() async {
 
 ### 1단계: 새 코드만
 ```swift
-// 기존 @Inject 코드 유지
+// 기존 @Injected 코드 유지
 class OldViewModel {
-    @Inject var service: UserService?  // 그대로 유지
+    @Injected var service: UserService?  // 그대로 유지
 }
 
 // 새 코드에 @Injected 사용
@@ -472,18 +472,18 @@ class MainFeedViewModel {
 
 // 덜 중요한 기능은 나중에
 class SettingsViewModel {
-    @Inject var settingsService: SettingsService?  // 아직 마이그레이션 안함
+    @Injected var settingsService: SettingsService?  // 아직 마이그레이션 안함
 }
 ```
 
 ## 호환성 참고사항
 
-### @Inject와 @Injected 공존 가능
+### @Injected와 @Injected 공존 가능
 
 ```swift
 // 마이그레이션 중에 유효함
 class HybridViewModel {
-    @Inject var oldService: OldService?           // 작동함
+    @Injected var oldService: OldService?           // 작동함
     @Injected(\.newService) var newService        // 작동함
     @Factory var generator: ReportGenerator       // 작동함
 }
@@ -497,8 +497,8 @@ _ = UnifiedDI.register(LegacyService.self) {
     LegacyServiceImpl()
 }
 
-// @Inject로 해결 가능
-@Inject var legacy: LegacyService?
+// @Injected로 해결 가능
+@Injected var legacy: LegacyService?
 ```
 
 ## 성능 고려사항
@@ -509,15 +509,15 @@ _ = UnifiedDI.register(LegacyService.self) {
 - 컴파일러에 의한 더 나은 최적화
 
 **벤치마크 (근사값):**
-- @Inject: 해결당 ~0.001ms
+- @Injected: 해결당 ~0.001ms
 - @Injected: 해결당 ~0.0001ms (10배 빠름)
 
 ## 마이그레이션 체크리스트
 
-- [ ] 코드베이스의 모든 `@Inject` 및 `@SafeInject` 사용 검토
+- [ ] 코드베이스의 모든 `@Injected` 및 `@SafeInject` 사용 검토
 - [ ] 각 서비스에 대한 `InjectedKey` 생성
 - [ ] computed property로 `InjectedValues` 확장
-- [ ] `@Inject`를 `@Injected(\.keyPath)`로 교체
+- [ ] `@Injected`를 `@Injected(\.keyPath)`로 교체
 - [ ] 옵셔널 언래핑 코드 제거
 - [ ] `withInjectedValues` 사용하도록 테스트 설정 업데이트
 - [ ] `UnifiedDI.register` 호출 제거 (InjectedKey.liveValue 사용 시)

@@ -249,6 +249,7 @@ let service = DIContainer.shared.resolve(UserService.self)
 - [AppDI Simplification](docs/guide/appDiSimplification.md) - Automatic dependency registration
 - [Performance Optimization Guide](PERFORMANCE-OPTIMIZATION.md)
 - [Migration Guide](MIGRATION.md)
+- [@Component Quick Start](docs/guide/tcaIntegration.md#component-quick-start) - Needle-style compile-time wiring
 
 ## 🤝 Contributing
 

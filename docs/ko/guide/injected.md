@@ -83,9 +83,9 @@ func testFetchData() async {
 }
 ```
 
-## @Inject와 비교
+## @Injected와 비교
 
-| 기능 | @Inject (레거시) | @Injected (신규) |
+| 기능 | @Injected (레거시) | @Injected (신규) |
 |------|------------------|------------------|
 | 타입 안전 | ❌ 옵셔널 기반 | ✅ 컴파일 타임 |
 | TCA 스타일 | ❌ 다름 | ✅ 친숙함 |
@@ -96,11 +96,11 @@ func testFetchData() async {
 
 ## 마이그레이션 가이드
 
-### @Inject에서
+### @Injected에서
 
 ```swift
 // ❌ 이전
-@Inject var repository: UserRepository?
+@Injected var repository: UserRepository?
 
 // ✅ 신규
 @Injected(\.repository) var repository

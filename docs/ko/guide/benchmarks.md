@@ -98,7 +98,7 @@ class ComplexService {
 ```swift
 @MainActor
 class ViewController {
-    @Inject var userService: UserService?
+    @Injected var userService: UserService?
     
     func updateUI() async {
         // Actor hop 최적화 측정
@@ -133,7 +133,7 @@ class ViewController {
 // WeaveDI 네이티브 async/await 지원
 @MainActor
 class UIService {
-    @Inject var dataService: DataService?
+    @Injected var dataService: DataService?
     
     func loadData() async {
         // Actor hop 불필요 - 최적화된 경로
@@ -194,7 +194,7 @@ xcodebuild -scheme WeaveDI -configuration Release \
 
 2. **프로퍼티 래퍼 사용**:
    ```swift
-   @Inject var service: UserService? // 최적화된 주입
+   @Injected var service: UserService? // 최적화된 주입
    ```
 
 3. **스코프 활용**:

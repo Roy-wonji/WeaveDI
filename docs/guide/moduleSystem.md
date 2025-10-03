@@ -686,6 +686,6 @@ class LegacyAppMigration {
 ## See Also
 
 - [Module System](./moduleSystem.md) — Organize large apps into modules
-- [Property Wrappers](./propertyWrappers.md) — Using `@Factory` and `@Inject`
+- [Property Wrappers](./propertyWrappers.md) — Using `@Factory` and `@Injected`
 - [Bootstrap Guide](./bootstrap.md) — Application initialization patterns
 - [UnifiedDI vs WeaveDI.Container](./unifiedDi.md) — Guide to choosing which API

@@ -5,307 +5,261 @@
 //  Created by Wonja Suh on 9/24/25.
 //
 
-//import XCTest
-//@testable import WeaveDI
-//
-//// MARK: - Property Wrapper Tests
-//
-//final class PropertyWrapperTests: XCTestCase {
-//
-//    @MainActor
-//    override func setUp() async throws {
-//        try await super.setUp()
-//        UnifiedDI.releaseAll()
-//        UnifiedDI.setLogLevel(.off)
-//    }
-//
-//    @MainActor
-//    override func tearDown() async throws {
-//        UnifiedDI.releaseAll()
-//        UnifiedDI.resetStats()
-//        try await super.tearDown()
-//    }
-//
-//    // MARK: - @Inject Tests
-//
-//  func testInjectOptional_옵셔널주입() async {
-//        // Test class with optional injection
-//        class TestService {
-//            @Inject var userService: TestUserService?
-//
-//            func performOperation() -> String? {
-//                return userService?.getUser(id: "inject_test")
-//            }
-//        }
-//
-//        let service = TestService()
-//
-//        // Test without registration
-//        XCTAssertNil(service.userService)
-//        XCTAssertNil(service.performOperation())
-//
-//        // Test with registration
-//        _ =  UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
-//        await UnifiedDI.waitForRegistration()
-//        XCTAssertNotNil(service.userService)
-//        XCTAssertEqual(service.performOperation(), "user_inject_test")
-//    }
-//
-//    func testInjectWithKeyPath_키패스주입() async {
-//        // Register service
-//        _ = UnifiedDI.register(\.propertyTestUserService) { TestUserServiceImpl() }
-//        await UnifiedDI.waitForRegistration()
-//
-//        // Test class with KeyPath injection
-//        class TestService {
-//            @Inject(\.propertyTestUserService) var userService: TestUserService?
-//
-//            func performOperation() -> String? {
-//                return userService?.getUser(id: "keypath_test")
-//            }
-//        }
-//
-//        let service = TestService()
-//        XCTAssertNotNil(service.userService)
-//        XCTAssertEqual(service.performOperation(), "user_keypath_test")
-//    }
-//
-//    func testInjectWithExplicitType_명시적타입주입() async {
-//        // Register service
-//        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
-//        await UnifiedDI.waitForRegistration()
-//
-//        // Test class with explicit type injection
-//        class TestService {
-//            @Inject(TestUserService.self) var userService: TestUserService?
-//
-//            func performOperation() -> String? {
-//                return userService?.getUser(id: "explicit_test")
-//            }
-//        }
-//
-//        let service = TestService()
-//        XCTAssertNotNil(service.userService)
-//        XCTAssertEqual(service.performOperation(), "user_explicit_test")
-//    }
-//
-//    func testInjectNonOptional_필수주입() async {
-//        // Register service first to prevent fatalError
-//        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
-//        await UnifiedDI.waitForRegistration()
-//
-//        // Test class with non-optional injection (requires registration)
-//        class TestService {
-//            @Inject var userService: TestUserService?
-//
-//            func performOperation() -> String {
-//                return userService?.getUser(id: "required_test") ?? "service_missing"
-//            }
-//        }
-//
-//        let service = TestService()
-//        XCTAssertEqual(service.performOperation(), "user_required_test")
-//    }
-//
-//    // MARK: - @Factory Tests
-//
-//    func testFactoryCreatesNewInstances_팩토리새인스턴스생성() {
-//        // Register service
-//        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
-//
-//        // Test class with factory injection
-//        class TestService {
-//            @Factory(factory: { TestUserServiceImpl() }) var userService1: TestUserService
-//            @Factory(factory: { TestUserServiceImpl() }) var userService2: TestUserService
-//
-//            func areInstancesDifferent() -> Bool {
-//                // Factory should create new instances each time
-//                // We test by calling the services and ensuring they work
-//                let result1 = userService1.getUser(id: "factory1")
-//                let result2 = userService2.getUser(id: "factory2")
-//                return result1 == "user_factory1" && result2 == "user_factory2"
-//            }
-//        }
-//
-//        let service = TestService()
-//        XCTAssertTrue(service.areInstancesDifferent())
-//    }
-//
-//    func testFactoryWithDirectFactory_직접팩토리() {
-//        // Test class with direct factory
-//        class TestService {
-//            @Factory(factory: { TestUserServiceImpl() }) var userService: TestUserService
-//
-//            func performOperation() -> String {
-//                return userService.getUser(id: "factory_test")
-//            }
-//        }
-//
-//        let service = TestService()
-//        XCTAssertEqual(service.performOperation(), "user_factory_test")
-//    }
-//
-//    // MARK: - @SafeInject Tests
-//
-//    @MainActor
-//    func testSafeInjectSuccess_안전주입성공() async throws {
-//        // Register service directly into live container to avoid async timing issues
-//      WeaveDI.Container.live.register(TestUserService.self, instance: TestUserServiceImpl())
-//
-//        // Test class with safe injection
-//        class TestService {
-//            @SafeInject var userService: SafeInjectResult<TestUserService>
-//
-//            func performOperation() throws -> String {
-//                let service = try userService.get()
-//                return service.getUser(id: "safe_test")
-//            }
-//        }
-//
-//        let service = TestService()
-//        let result = try service.performOperation()
-//        XCTAssertEqual(result, "user_safe_test")
-//    }
-//
-//    func testSafeInjectFailure_안전주입실패() {
-//        // Don't register service - should throw error
-//
-//        class TestService {
-//            @SafeInject var userService: SafeInjectResult<TestUserService>
-//
-//            func performOperation() throws -> String {
-//                let service = try userService.get()
-//                return service.getUser(id: "safe_test")
-//            }
-//        }
-//
-//        let service = TestService()
-//
-//        XCTAssertThrowsError(try service.performOperation()) { error in
-//            // Should throw an error when service is not registered
-//            XCTAssertTrue(error is SafeInjectError)
-//        }
-//    }
-//
-//    // MARK: - Integration Tests
-//
-//    func testComplexPropertyWrapperIntegration_복합래퍼통합() {
-//        // Register services
-//        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
-//        _ = UnifiedDI.register(TestNetworkService.self) { TestNetworkServiceImpl() }
-//        _ = UnifiedDI.register(TestDatabaseService.self) { TestDatabaseServiceImpl() }
-//
-//        // Complex service with multiple property wrappers
-//        class ComplexService {
-//            @Inject var userService: TestUserService?
-//            @SafeInject var networkService: SafeInjectResult<TestNetworkService>
-//            @Factory(factory: { TestDatabaseServiceImpl() }) var dbService: TestDatabaseService
-//
-//            func performComplexOperation() throws -> String {
-//                let user = userService?.getUser(id: "complex") ?? "no_user"
-//                let network = try networkService.get().fetchData()
-//                let db = dbService.query("SELECT * FROM test").first ?? "no_data"
-//
-//                return "\(user)_\(network)_\(db)"
-//            }
-//        }
-//
-//        let service = ComplexService()
-//
-//        do {
-//            let result = try service.performComplexOperation()
-//            XCTAssertEqual(result, "user_complex_network_data_result_SELECT * FROM test")
-//        } catch {
-//            XCTFail("Complex operation should succeed: \(error)")
-//        }
-//    }
-//
-//    // MARK: - Performance Tests
-//
-//    func testPropertyWrapperPerformance_래퍼성능() {
-//        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
-//
-//        class TestService: @unchecked Sendable {
-//            @Inject var userService: TestUserService?
-//        }
-//
-//        // Create multiple instances and access the property wrapper
-//        measure {
-//            for _ in 0..<1000 {
-//                let service = TestService()
-//                _ = service.userService?.getUser(id: "perf_test")
-//            }
-//        }
-//    }
-//
-//    func testFactoryPerformance_팩토리성능() {
-//        class TestService {
-//            @Factory(factory: { TestUserServiceImpl() }) var userService: TestUserService
-//        }
-//
-//        let service = TestService()
-//
-//        // Factory should create new instances each time
-//        measure {
-//            for _ in 0..<100 {
-//                _ = service.userService.getUser(id: "factory_perf")
-//            }
-//        }
-//    }
-//
-//    // MARK: - Error Handling Tests
-//
-//    func testSafeInjectErrorHandling_안전주입에러처리() {
-//        class TestService {
-//            @SafeInject var missingService: SafeInjectResult<TestUserService>
-//
-//            func safeOperation() -> String {
-//                do {
-//                    let service = try missingService.get()
-//                    return service.getUser(id: "error_test")
-//                } catch {
-//                    return "error_handled"
-//                }
-//            }
-//        }
-//
-//        let service = TestService()
-//        XCTAssertEqual(service.safeOperation(), "error_handled")
-//    }
-//
-//    // MARK: - Thread Safety Tests
-//
-//    func testConcurrentPropertyWrapperAccess_동시래퍼접근() async {
-//        _ = UnifiedDI.register(TestUserService.self) { TestUserServiceImpl() }
-//
-//        class TestService: @unchecked Sendable {
-//            @Inject var userService: TestUserService?
-//        }
-//
-//        let service = TestService()
-//        await withTaskGroup(of: Void.self) { group in
-//            for _ in 0..<100 {
-//                group.addTask {
-//                    _ = service.userService?.getUser(id: "concurrent")
-//                }
-//            }
-//        }
-//        XCTAssertTrue(true)
-//    }
-//}
-//
-//// MARK: - WeaveDI.Container Extension for Tests
-//
-//extension WeaveDI.Container {
-//    var propertyTestUserService: TestUserService? {
-//        return resolve(TestUserService.self)
-//    }
-//
-//    var propertyTestNetworkService: TestNetworkService? {
-//        return resolve(TestNetworkService.self)
-//    }
-//
-//    var propertyTestDatabaseService: TestDatabaseService? {
-//        return resolve(TestDatabaseService.self)
-//    }
-//}
+import XCTest
+@testable import WeaveDI
+
+// MARK: - Test Services
+
+protocol PropertyWrapperTestUserService: Sendable {
+    func getUser(id: String) -> String
+}
+
+final class PropertyWrapperTestUserServiceImpl: PropertyWrapperTestUserService, InjectedKey, @unchecked Sendable {
+    static let liveValue: PropertyWrapperTestUserServiceImpl = PropertyWrapperTestUserServiceImpl()
+    static let testValue: PropertyWrapperTestUserServiceImpl = PropertyWrapperTestUserServiceImpl()
+
+    func getUser(id: String) -> String {
+        return "User-\(id)"
+    }
+}
+
+final class MockPropertyWrapperTestUserService: PropertyWrapperTestUserService, InjectedKey, @unchecked Sendable {
+    static let liveValue: MockPropertyWrapperTestUserService = MockPropertyWrapperTestUserService()
+    static let testValue: MockPropertyWrapperTestUserService = MockPropertyWrapperTestUserService()
+
+    private let lock = NSLock()
+    private var _mockValue = "MockUser"
+
+    var mockValue: String {
+        get {
+            lock.lock()
+            let value = _mockValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _mockValue = newValue
+            lock.unlock()
+        }
+    }
+
+    func getUser(id: String) -> String {
+        return "\(mockValue)-\(id)"
+    }
+}
+
+// MARK: - Property Wrapper Tests
+
+final class PropertyWrapperTests: XCTestCase {
+
+    override func setUp() async throws {
+        try await super.setUp()
+        // 각 테스트마다 깨끗한 컨테이너로 시작
+        WeaveDI.Container.live = WeaveDI.Container()
+    }
+
+    override func tearDown() async throws {
+        WeaveDI.Container.live = WeaveDI.Container()
+        try await super.tearDown()
+    }
+
+    // MARK: - @Injected Tests (Type-based)
+
+    func testInjectedWithType() async throws {
+        // Given: TestService를 타입으로 주입받는 클래스
+        class TestService {
+            @Injected(PropertyWrapperTestUserServiceImpl.self) var userService
+
+            func performOperation() -> String {
+                return userService.getUser(id: "injected_test")
+            }
+        }
+
+        // When: 서비스 등록
+        WeaveDI.Container.live.register(PropertyWrapperTestUserServiceImpl.self, instance: PropertyWrapperTestUserServiceImpl())
+
+        let service = TestService()
+
+        // Then: 주입된 서비스가 정상 작동
+        XCTAssertEqual(service.performOperation(), "User-injected_test")
+    }
+
+    func testInjectedWithTypeOptional() async throws {
+        // Given: Optional 타입 주입 (컨테이너 resolve 직접 사용)
+        class TestService {
+            var userService: PropertyWrapperTestUserServiceImpl? {
+                return WeaveDI.Container.live.resolve(PropertyWrapperTestUserServiceImpl.self)
+            }
+
+            func performOperation() -> String? {
+                return userService?.getUser(id: "optional_test")
+            }
+        }
+
+        let service = TestService()
+
+        // When: 등록되지 않은 상태에서 접근
+        // Then: nil 반환
+        XCTAssertNil(service.userService)
+        XCTAssertNil(service.performOperation())
+
+        // When: 서비스 등록 후
+        WeaveDI.Container.live.register(PropertyWrapperTestUserServiceImpl.self, instance: PropertyWrapperTestUserServiceImpl())
+
+        // Then: 주입된 서비스 사용 가능
+        XCTAssertNotNil(service.userService)
+        XCTAssertEqual(service.performOperation(), "User-optional_test")
+    }
+
+    // MARK: - @Factory Tests
+
+    func testFactory() async throws {
+        // Given: Factory로 새 인스턴스를 생성하는 클래스
+        class TestService {
+            func createUsers() -> [String] {
+                // Factory 패턴으로 새 인스턴스 생성
+                let factory = { PropertyWrapperTestUserServiceImpl() }
+                let user1 = factory().getUser(id: "1")
+                let user2 = factory().getUser(id: "2")
+                return [user1, user2]
+            }
+        }
+
+        let service = TestService()
+
+        // Then: 매번 새 인스턴스 생성
+        let users = service.createUsers()
+        XCTAssertEqual(users.count, 2)
+        XCTAssertEqual(users[0], "User-1")
+        XCTAssertEqual(users[1], "User-2")
+    }
+
+    // MARK: - Integration Tests
+
+    func testPropertyWrapperIntegration() async throws {
+        // Given: 여러 방식을 함께 사용하는 복합 서비스
+        class ComplexService {
+            @Injected(PropertyWrapperTestUserServiceImpl.self) var userService
+
+            func processUsers() -> [String] {
+                // 기존 서비스 사용
+                let existingUser = userService.getUser(id: "existing")
+
+                // Factory 패턴으로 새 인스턴스 생성
+                let newUser = PropertyWrapperTestUserServiceImpl().getUser(id: "new")
+
+                return [existingUser, newUser]
+            }
+        }
+
+        // When: 서비스 등록
+        WeaveDI.Container.live.register(PropertyWrapperTestUserServiceImpl.self, instance: PropertyWrapperTestUserServiceImpl())
+
+        let complexService = ComplexService()
+
+        // Then: 모든 방식이 정상 작동
+        let results = complexService.processUsers()
+        XCTAssertEqual(results.count, 2)
+        XCTAssertEqual(results[0], "User-existing")
+        XCTAssertEqual(results[1], "User-new")
+    }
+
+    // MARK: - Error Handling Tests
+
+    func testMissingDependency() async throws {
+        // Given: 등록되지 않은 의존성을 주입받는 서비스
+        class TestService {
+            var userService: PropertyWrapperTestUserServiceImpl? {
+                return WeaveDI.Container.live.resolve(PropertyWrapperTestUserServiceImpl.self)
+            }
+        }
+
+        let service = TestService()
+
+        // When & Then: 등록되지 않은 경우 nil 반환
+        XCTAssertNil(service.userService)
+    }
+
+    // MARK: - Performance Tests
+
+    func testPropertyWrapperPerformance() async throws {
+        // Given: 성능 테스트를 위한 서비스
+        class TestService {
+            @Injected(PropertyWrapperTestUserServiceImpl.self) var userService
+        }
+
+        WeaveDI.Container.live.register(PropertyWrapperTestUserServiceImpl.self, instance: PropertyWrapperTestUserServiceImpl())
+        let service = TestService()
+
+        // When & Then: Property Wrapper 접근 성능 측정
+        measure {
+            for _ in 0..<1000 {
+                let _ = service.userService.getUser(id: "perf_test")
+            }
+        }
+    }
+
+    // MARK: - Thread Safety Tests
+
+    func testPropertyWrapperThreadSafety() async throws {
+        // Given: 멀티스레드 환경에서 사용할 서비스
+        final class TestService: @unchecked Sendable {
+            @Injected(PropertyWrapperTestUserServiceImpl.self) var userService
+
+            func safeOperation() -> String {
+                return userService.getUser(id: "thread_test")
+            }
+        }
+
+        WeaveDI.Container.live.register(PropertyWrapperTestUserServiceImpl.self, instance: PropertyWrapperTestUserServiceImpl())
+        let service = TestService()
+
+        // When: 여러 스레드에서 동시 접근
+        let results = await withTaskGroup(of: String.self) { group in
+            for _ in 0..<10 {
+                group.addTask { @Sendable in
+                    return service.safeOperation()
+                }
+            }
+
+            // Then: 모든 작업이 성공적으로 완료
+            var taskResults: [String] = []
+            for await result in group {
+                taskResults.append(result)
+            }
+            return taskResults
+        }
+
+        XCTAssertEqual(results.count, 10)
+        for result in results {
+            XCTAssertEqual(result, "User-thread_test")
+        }
+    }
+
+    // MARK: - Mock and Testing Support
+
+    func testMockingWithPropertyWrappers() async throws {
+        // Given: Mock 서비스를 사용하는 테스트 (Mock을 직접 주입)
+        class TestService {
+            @Injected(MockPropertyWrapperTestUserService.self) var userService
+
+            func businessLogic() -> String {
+                let user = userService.getUser(id: "business")
+                return "Processed: \(user)"
+            }
+        }
+
+        let mockService = MockPropertyWrapperTestUserService()
+        mockService.mockValue = "TestMock"
+
+        // When: Mock 서비스 등록
+        WeaveDI.Container.live.register(MockPropertyWrapperTestUserService.self, instance: mockService)
+
+        let service = TestService()
+
+        // Then: Mock 서비스가 주입되어 테스트 가능
+        let result = service.businessLogic()
+        XCTAssertEqual(result, "Processed: TestMock-business")
+    }
+}

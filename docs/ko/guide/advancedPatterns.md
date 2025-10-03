@@ -21,8 +21,8 @@
 ```swift
 // 환경 기반 조건부 주입
 class EnvironmentAwareService {
-    @Inject private var productionAPI: ProductionAPIService?
-    @Inject private var developmentAPI: DevelopmentAPIService?
+    @Injected private var productionAPI: ProductionAPIService?
+    @Injected private var developmentAPI: DevelopmentAPIService?
 
     private var apiService: APIServiceProtocol? {
         #if DEBUG
@@ -33,8 +33,8 @@ class EnvironmentAwareService {
     }
 
     // 대안: 런타임 조건 기반 주입
-    @Inject private var userService: UserService?
-    @Inject private var adminService: AdminService?
+    @Injected private var userService: UserService?
+    @Injected private var adminService: AdminService?
 
     private func getService(for user: User) -> UserServiceProtocol? {
         return user.isAdmin ? adminService : userService
@@ -58,8 +58,8 @@ protocol Repository<Entity> {
 class CoreDataRepository<T: Codable>: Repository {
     typealias Entity = T
 
-    @Inject private var coreDataStack: CoreDataStack?
-    @Inject private var logger: Logger?
+    @Injected private var coreDataStack: CoreDataStack?
+    @Injected private var logger: Logger?
 
     func save(_ entity: T) async throws {
         logger?.info("\(T.self) 타입의 엔티티를 저장합니다")
@@ -92,7 +92,7 @@ await WeaveDI.Container.bootstrap { container in
 
 // 사용
 class UserManager {
-    @Inject private var userRepository: Repository<User>?
+    @Injected private var userRepository: Repository<User>?
 
     func createUser(_ user: User) async throws {
         try await userRepository?.save(user)
@@ -111,8 +111,8 @@ protocol OrderService {
 }
 
 class BasicOrderService: OrderService {
-    @Inject private var paymentService: PaymentService?
-    @Inject private var inventoryService: InventoryService?
+    @Injected private var paymentService: PaymentService?
+    @Injected private var inventoryService: InventoryService?
 
     func processOrder(_ order: Order) async throws -> OrderResult {
         // 기본 주문 처리 로직
@@ -122,7 +122,7 @@ class BasicOrderService: OrderService {
 
 // 로깅 데코레이터
 class LoggingOrderService: OrderService {
-    @Inject private var logger: Logger?
+    @Injected private var logger: Logger?
     private let decorated: OrderService
 
     init(decorated: OrderService) {
@@ -145,7 +145,7 @@ class LoggingOrderService: OrderService {
 
 // 분석 데코레이터
 class AnalyticsOrderService: OrderService {
-    @Inject private var analytics: AnalyticsService?
+    @Injected private var analytics: AnalyticsService?
     private let decorated: OrderService
 
     init(decorated: OrderService) {
@@ -202,7 +202,7 @@ await WeaveDI.Container.bootstrap { container in
 ```swift
 // 지연 주입을 사용하여 순환 의존성 해결
 class UserService {
-    @Inject private var orderService: OrderService?  // 처음에는 nil
+    @Injected private var orderService: OrderService?  // 처음에는 nil
 
     // 순환을 끊기 위한 지연 해결
     private lazy var lazyOrderService: OrderService? = {
@@ -215,7 +215,7 @@ class UserService {
 }
 
 class OrderService {
-    @Inject private var userService: UserService?
+    @Injected private var userService: UserService?
 
     private lazy var lazyUserService: UserService? = {
         UnifiedDI.resolve(UserService.self)
@@ -240,7 +240,7 @@ protocol OrderServiceProtocol {
 }
 
 class UserServiceImpl: UserServiceProtocol {
-    @Inject private var orderService: OrderServiceProtocol?
+    @Injected private var orderService: OrderServiceProtocol?
 
     func getUser(id: String) async throws -> User? {
         // 구현
@@ -249,7 +249,7 @@ class UserServiceImpl: UserServiceProtocol {
 }
 
 class OrderServiceImpl: OrderServiceProtocol {
-    @Inject private var userService: UserServiceProtocol?
+    @Injected private var userService: UserServiceProtocol?
 
     func getOrdersForUser(_ userId: String) async throws -> [Order] {
         // 구현
@@ -328,7 +328,7 @@ struct MyApp: App {
 ```swift
 class PerformanceOptimizedService {
     // 비용이 많이 드는 작업을 위한 지연 프로퍼티
-    @Inject private var _expensiveService: ExpensiveService?
+    @Injected private var _expensiveService: ExpensiveService?
     private lazy var expensiveService: ExpensiveService? = {
         print("💰 비용이 많이 드는 서비스가 생성되었습니다")
         return _expensiveService
@@ -461,7 +461,7 @@ class ImageProcessorPool {
 }
 
 class ImageService {
-    @Inject private var processorPool: ImageProcessorPool?
+    @Injected private var processorPool: ImageProcessorPool?
 
     func processImages(_ images: [UIImage]) async -> [UIImage] {
         var processedImages: [UIImage] = []
@@ -488,9 +488,9 @@ class ImageService {
 
 ```swift
 class ResilientService {
-    @Inject private var primaryService: PrimaryService?
-    @Inject private var fallbackService: FallbackService?
-    @Inject private var logger: Logger?
+    @Injected private var primaryService: PrimaryService?
+    @Injected private var fallbackService: FallbackService?
+    @Injected private var logger: Logger?
 
     func performOperation() async throws -> Result {
         // 먼저 주 서비스 시도
@@ -545,10 +545,10 @@ enum HealthStatus {
 }
 
 class HealthMonitorService {
-    @Inject private var userService: UserService?
-    @Inject private var databaseService: DatabaseService?
-    @Inject private var networkService: NetworkService?
-    @Inject private var logger: Logger?
+    @Injected private var userService: UserService?
+    @Injected private var databaseService: DatabaseService?
+    @Injected private var networkService: NetworkService?
+    @Injected private var logger: Logger?
 
     func performHealthCheck() async -> [String: HealthStatus] {
         var results: [String: HealthStatus] = [:]
@@ -1013,7 +1013,7 @@ class ProductionConfiguration {
 
 ```swift
 class ProductionMonitoring {
-    @Inject private var logger: Logger?
+    @Injected private var logger: Logger?
 
     static func setupMonitoring() {
         // 느린 의존성 해결 모니터링

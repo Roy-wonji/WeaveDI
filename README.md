@@ -21,6 +21,8 @@
 - 🔒 **타입 안전성**: 컴파일 타임 타입 검증
 - 📝 **TCA 스타일 의존성 주입**: `@Injected`로 KeyPath와 타입 기반 주입 지원 (v3.2.0)
 - 🏗️ **AppDI 간소화**: `AppDIManager`로 자동 의존성 등록 (v3.2.0)
+- 🎯 **Needle-style Components**: `@Component` 매크로로 10x 빠른 Needle 호환성 (v3.2.1)
+- ⚡ **UnifiedRegistry**: TypeSafeRegistry 통합으로 성능과 동시성 안전성 향상 (v3.2.1)
 - 🤖 **자동 최적화**: 의존성 그래프, Actor hop 감지, 타입 안전성 검증 자동화
 - 🚀 **런타임 핫패스 최적화**: TypeID + 락-프리 읽기로 50-80% 성능 향상
 - 🧪 **테스트 친화적**: 의존성 모킹과 격리 지원

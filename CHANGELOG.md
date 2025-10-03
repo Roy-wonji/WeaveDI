@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.1] - 2025-10-03
+
+### 🎉 Added
+- **Enhanced Documentation**: Comprehensive swift-dependencies integration guide
+  - Real-world migration examples with concrete type injection patterns
+  - Performance comparison tables and benchmarks
+  - FAQ section addressing common integration questions
+  - Hybrid approach documentation for gradual migration
+  - Updated both English and Korean versions
+
+- **DependencyValues Integration**: Complete integration examples and tests
+  - `DependencyValuesIntegrationTests.swift` with comprehensive test coverage
+  - Real-world exchange rate service examples
+  - Performance benchmarking tests
+  - Mock implementations for testing
+  - Async context injection examples
+
+- **Example Project**: Complete working example showing WeaveDI + swift-dependencies integration
+  - `Example/DependencyValuesExample` package
+  - Multiple injection pattern demonstrations
+  - Live vs Mock service implementations
+  - Performance comparison implementations
+
+### 🔧 Improved
+- **@Injected Implementation**: Simplified and optimized
+  - Removed unnecessary `dynamicMember` subscript
+  - Better KeyPath support for `InjectedValues`
+  - Cleaner template for user-defined dependencies
+
+- **Documentation Updates**: Fixed @Inject → @Injected references throughout docs
+  - Updated all API documentation examples
+  - Corrected property wrapper references
+  - Enhanced code examples with actual user patterns
+
+### 🐛 Fixed
+- **Documentation Consistency**: Unified @Injected usage across all documentation
+  - Fixed mixed @Inject/@Injected references
+  - Updated tutorial examples
+  - Corrected API reference documentation
+
 ## [3.2.0] - 2025-10-01
 
 ### 🎉 Added

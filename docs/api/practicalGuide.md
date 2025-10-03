@@ -19,8 +19,8 @@ protocol UserRepository {
 }
 
 class UserRepositoryImpl: UserRepository {
-    @Inject var apiService: APIService?
-    @Inject var cacheService: CacheService?
+    @Injected var apiService: APIService?
+    @Injected var cacheService: CacheService?
 
     func fetchUser(id: String) async throws -> User {
         // Check cache
@@ -46,7 +46,7 @@ class UserViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    @Inject var userRepository: UserRepository?
+    @Injected var userRepository: UserRepository?
     @RequiredInject var logger: LoggerProtocol
 
     func loadUser(id: String) {
@@ -114,7 +114,7 @@ struct UserProfile {
 class UserUseCaseImpl: UserUseCase {
     @RequiredInject var userRepository: UserRepository
     @RequiredInject var validationService: ValidationService
-    @Inject var analyticsService: AnalyticsService?
+    @Injected var analyticsService: AnalyticsService?
 
     func getUserProfile(id: String) async throws -> UserProfile {
         analyticsService?.track("user_profile_requested", parameters: ["user_id": id])
@@ -324,8 +324,8 @@ class IntegrationTests: XCTestCase {
 
 ```swift
 class ExpensiveService {
-    @Inject private var heavyComputation: HeavyComputationService?
-    @Inject private var databaseService: DatabaseService?
+    @Injected private var heavyComputation: HeavyComputationService?
+    @Injected private var databaseService: DatabaseService?
 
     // Computed property for lazy initialization
     private var _processedData: ProcessedData?
@@ -411,7 +411,7 @@ enum DependencyScope {
 
 ```swift
 class MemoryEfficientService {
-    @Inject private weak var optionalService: OptionalService?
+    @Injected private weak var optionalService: OptionalService?
     @RequiredInject private var requiredService: RequiredService
 
     private var cache: [String: Any] = [:]
@@ -511,7 +511,7 @@ class ObservableService {
         }
     }
 
-    @Inject private var dependentService: DependentService?
+    @Injected private var dependentService: DependentService?
 
     var state: ServiceState { _state }
 
