@@ -391,6 +391,7 @@ python3 Scripts/plot_bench.py --csv bench.csv --out bench_plot
 - [API 문서](https://roy-wonji.github.io/WeaveDI/documentation/dicontainer)
 - [로드맵 (v3.2.0)](docs/ko/guide/roadmap.md) - 현재 버전 및 향후 계획
 - [@Injected 가이드](docs/ko/api/injected.md) - TCA 스타일 의존성 주입
+- [TCA 통합 가이드](docs/ko/guide/tcaIntegration.md) - Composable Architecture에서 WeaveDI 사용
 - [AppDI 간소화](docs/ko/guide/appDiSimplification.md) - 자동 의존성 등록
 - [자동 최적화 가이드](Sources/WeaveDI.docc/ko.lproj/AutoDIOptimizer.md)
 - [Property Wrapper 가이드](Sources/WeaveDI.docc/ko.lproj/PropertyWrappers.md)

@@ -245,6 +245,7 @@ let service = DIContainer.shared.resolve(UserService.self)
 - [Official Documentation](https://roy-wonji.github.io/WeaveDI/documentation/weavedi)
 - [Roadmap (v3.2.0)](docs/guide/roadmap.md) - Current version and future plans
 - [@Injected Guide](docs/api/injected.md) - TCA-style dependency injection
+- [TCA Integration](docs/guide/tcaIntegration.md) - Use WeaveDI within Composable Architecture
 - [AppDI Simplification](docs/guide/appDiSimplification.md) - Automatic dependency registration
 - [Performance Optimization Guide](PERFORMANCE-OPTIMIZATION.md)
 - [Migration Guide](MIGRATION.md)
