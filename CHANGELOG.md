@@ -4,80 +4,85 @@ All notable changes to this project will be documented in this file.
 
 ## [3.2.1] - 2025-10-03
 
-### 🎉 Added
-- **Enhanced Documentation**: Comprehensive swift-dependencies integration guide
-  - Real-world migration examples with concrete type injection patterns
-  - Performance comparison tables and benchmarks
-  - FAQ section addressing common integration questions
-  - Hybrid approach documentation for gradual migration
-  - Updated both English and Korean versions
+### 🎉 추가됨
+- **문서 강화**: Swift-dependencies 통합 가이드 제공
+- 실제 마이그레이션 예제와 구체적인 타입 주입 패턴
+- 성능 비교 표와 벤치마크 결과
+- 통합 관련 FAQ 섹션 추가
+- 점진적 마이그레이션을 위한 하이브리드 접근 방식 문서화
+- 한국어/영어 버전 모두 업데이트
 
-- **DependencyValues Integration**: Complete integration examples and tests
-  - `DependencyValuesIntegrationTests.swift` with comprehensive test coverage
-  - Real-world exchange rate service examples
-  - Performance benchmarking tests
-  - Mock implementations for testing
-  - Async context injection examples
+- **DependencyValues 통합**: 완전한 예제 및 테스트 추가
+- `DependencyValuesIntegrationTests.swift`에 포괄적인 테스트 커버리지
+- 실제 환율 서비스 예제 포함
+- 성능 벤치마킹 테스트 추가
+- 테스트용 Mock 구현 제공
+- 비동기 컨텍스트 주입 예제
 
-- **Example Project**: Complete working example showing WeaveDI + swift-dependencies integration
-  - `Example/DependencyValuesExample` package
-  - Multiple injection pattern demonstrations
-  - Live vs Mock service implementations
-  - Performance comparison implementations
+- **예제 프로젝트**: WeaveDI + swift-dependencies 통합 작동 예제 제공
+- `Example/DependencyValuesExample` 패키지
+- 다양한 주입 패턴 시연
+- 실서비스 vs Mock 서비스 구현
+- 성능 비교 구현
 
-### 🔧 Improved
-- **@Injected Implementation**: Simplified and optimized
-  - Removed unnecessary `dynamicMember` subscript
-  - Better KeyPath support for `InjectedValues`
-  - Cleaner template for user-defined dependencies
+---
 
-- **Documentation Updates**: Fixed @Inject → @Injected references throughout docs
-  - Updated all API documentation examples
-  - Corrected property wrapper references
-  - Enhanced code examples with actual user patterns
 
-### 🐛 Fixed
-- **Documentation Consistency**: Unified @Injected usage across all documentation
-  - Fixed mixed @Inject/@Injected references
-  - Updated tutorial examples
-  - Corrected API reference documentation
+### 🔧 개선됨
+- **@Injected 구현**: 단순화 및 최적화
+- 불필요한 `dynamicMember` 서브스크립트 제거
+- `InjectedValues`에 대한 더 나은 KeyPath 지원
+- 사용자 정의 의존성 등록을 위한 더 깔끔한 템플릿 제공
+
+- **문서 업데이트**: @Inject → @Injected 변경 반영
+- 전체 API 문서 예제 최신화
+- 프로퍼티 래퍼 참조 정정
+- 실제 사용자 패턴 기반 코드 예제 강화
+
+---
+
+### 🐛 수정됨
+- **문서 일관성**: @Injected 사용 통일
+- 혼용된 @Inject/@Injected 참조 수정
+- 튜토리얼 예제 최신화
+- API 레퍼런스 문서 정정
 
 ## [3.2.0] - 2025-10-01
 
 ### 🎉 Added
 - **@Injected Property Wrapper**: New TCA-style dependency injection inspired by The Composable Architecture
-  - KeyPath-based access: `@Injected(\.apiClient) var apiClient`
-  - Type-based access: `@Injected(ExchangeUseCaseImpl.self) var useCase`
-  - `InjectedKey` protocol for defining dependencies
-  - `InjectedValues` container for managing injected values
-  - `withInjectedValues` for testing and overriding dependencies
-  - Non-mutating access (no `mutating get` required)
-  - Full compile-time type safety
-  - 파일: `Sources/PropertyWrappers/Dependency.swift`
+- KeyPath-based access: `@Injected(\.apiClient) var apiClient`
+- Type-based access: `@Injected(ExchangeUseCaseImpl.self) var useCase`
+- `InjectedKey` protocol for defining dependencies
+- `InjectedValues` container for managing injected values
+- `withInjectedValues` for testing and overriding dependencies
+- Non-mutating access (no `mutating get` required)
+- Full compile-time type safety
+- 파일: `Sources/PropertyWrappers/Dependency.swift`
 
 - **AppDI Simplification**: Streamlined app initialization with `AppDIManager`
-  - `bootstrapInTask` with `@DIContainerActor` for actor-safe initialization
-  - `AppDIManager.shared.registerDefaultDependencies()` for automatic registration
-  - Module-based registration with `asyncForEach` for parallel processing
-  - Cleaner app setup with less boilerplate
-  - 파일: `Sources/Core/AppDI/AppDIManager.swift`
+- `bootstrapInTask` with `@DIContainerActor` for actor-safe initialization
+- `AppDIManager.shared.registerDefaultDependencies()` for automatic registration
+- Module-based registration with `asyncForEach` for parallel processing
+- Cleaner app setup with less boilerplate
+- 파일: `Sources/Core/AppDI/AppDIManager.swift`
 
 ### ⚠️ Deprecated
 - **@Inject Property Wrapper**: Will be removed in 4.0.0
-  - Use `@Injected` instead for modern, type-safe dependency injection
-  - Migration guide available at `/docs/guide/migration-3.2.0.md`
+- Use `@Injected` instead for modern, type-safe dependency injection
+- Migration guide available at `/docs/guide/migration-3.2.0.md`
 
 - **@SafeInject Property Wrapper**: Will be removed in 4.0.0
-  - Use `@Injected` with proper `InjectedKey` definitions instead
-  - Migration guide available at `/docs/guide/migration-3.2.0.md`
+- Use `@Injected` with proper `InjectedKey` definitions instead
+- Migration guide available at `/docs/guide/migration-3.2.0.md`
 
 ### 📚 Documentation
 - Comprehensive English and Korean documentation for `@Injected`
-  - `/docs/api/injected.md` (English)
-  - `/docs/ko/api/injected.md` (Korean)
+- `/docs/api/injected.md` (English)
+- `/docs/ko/api/injected.md` (Korean)
 - AppDI Simplification guide with real-world examples
-  - `/docs/guide/appDiSimplification.md` (English)
-  - `/docs/ko/guide/appDiSimplification.md` (Korean)
+- `/docs/guide/appDiSimplification.md` (English)
+- `/docs/ko/guide/appDiSimplification.md` (Korean)
 - Updated API reference with deprecation notices
 - Migration guides from `@Inject` and `@SafeInject` to `@Injected`
 - VitePress documentation site improvements
@@ -93,40 +98,40 @@ All notable changes to this project will be documented in this file.
 ### Added
 #### 🚀 런타임 핫패스 미세최적화
 - **TypeID + 인덱스 접근 시스템**
-  - ObjectIdentifier → Int 슬롯 ID 매핑으로 딕셔너리 대신 O(1) 배열 인덱스 접근
-  - 타입 초기화 비용 제거 및 메모리 접근 패턴 최적화
-  - 파일: `Sources/Core/Optimized/OptimizedTypeRegistry.swift`
+- ObjectIdentifier → Int 슬롯 ID 매핑으로 딕셔너리 대신 O(1) 배열 인덱스 접근
+- 타입 초기화 비용 제거 및 메모리 접근 패턴 최적화
+- 파일: `Sources/Core/Optimized/OptimizedTypeRegistry.swift`
 
 - **스냅샷/락-프리 읽기 시스템**
-  - 불변 Storage 클래스 기반 스냅샷 방식으로 읽기 경합 제거
-  - 원자적 포인터 교체로 쓰기 시에만 락 사용, 읽기는 완전 락-프리
-  - 파일: `Sources/Core/Optimized/AtomicStorage.swift`
+- 불변 Storage 클래스 기반 스냅샷 방식으로 읽기 경합 제거
+- 원자적 포인터 교체로 쓰기 시에만 락 사용, 읽기는 완전 락-프리
+- 파일: `Sources/Core/Optimized/AtomicStorage.swift`
 
 - **inlinable + final + @_alwaysEmitIntoClient 최적화**
-  - 핫패스 API에 인라인 최적화 속성 적용으로 함수 호출 오버헤드 축소
-  - 클라이언트 코드에 직접 인라인 방출로 크로스 모듈 최적화 지원
-  - 파일: `Sources/Core/Optimized/FastDI.swift`
+- 핫패스 API에 인라인 최적화 속성 적용으로 함수 호출 오버헤드 축소
+- 클라이언트 코드에 직접 인라인 방출로 크로스 모듈 최적화 지원
+- 파일: `Sources/Core/Optimized/FastDI.swift`
 
 - **코스트리 반영 및 팩토리 체이닝 제거**
-  - 팩토리 중간 단계 없는 직접 호출 경로 생성
-  - 의존성 체인 플래튼화로 다단계 팩토리 호출 비용 제거
-  - 파일: `Sources/Core/Optimized/DirectCallRegistry.swift`
+- 팩토리 중간 단계 없는 직접 호출 경로 생성
+- 의존성 체인 플래튼화로 다단계 팩토리 호출 비용 제거
+- 파일: `Sources/Core/Optimized/DirectCallRegistry.swift`
 
 - **스코프별 정적 저장소 + once 초기화**
-  - 싱글톤/세션/리퀘스트 스코프별 전용 저장소 분리
-  - 원자적 once 초기화로 싱글톤 생성 경합 제거
-  - 파일: `Sources/Core/Optimized/OptimizedScopeStorage.swift`
+- 싱글톤/세션/리퀘스트 스코프별 전용 저장소 분리
+- 원자적 once 초기화로 싱글톤 생성 경합 제거
+- 파일: `Sources/Core/Optimized/OptimizedScopeStorage.swift`
 
 ### Changed
 - **UnifiedDI 내부 최적화 통합**
-  - 기존 API 유지하면서 내부적으로 최적화 경로 적용
-  - `enableOptimization()` / `disableOptimization()`으로 최적화 모드 제어
-  - 기존 동작과 100% 호환성 보장
+- 기존 API 유지하면서 내부적으로 최적화 경로 적용
+- `enableOptimization()` / `disableOptimization()`으로 최적화 모드 제어
+- 기존 동작과 100% 호환성 보장
 
 - **성능 개선**
-  - resolve 경로에서 딕셔너리 탐색 → 배열 인덱스 접근으로 전환
-  - 읽기 경합 제거로 멀티스레드 환경에서 처리량 향상
-  - 싱글톤 초기화 once 보장으로 경합 조건 제거
+- resolve 경로에서 딕셔너리 탐색 → 배열 인덱스 접근으로 전환
+- 읽기 경합 제거로 멀티스레드 환경에서 처리량 향상
+- 싱글톤 초기화 once 보장으로 경합 조건 제거
 
 ### Performance
 - 핫패스 해결 성능 **50-80%** 향상 (예상)
@@ -138,51 +143,51 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking
 - AutoDIOptimizer 읽기 API 일원화 및 표면 축소
-  - AutoDIOptimizer의 다수 읽기용 nonisolated(static) API를 내부화(internal) 또는 Deprecated로 전환했습니다.
-  - 외부에서는 UnifiedDI/DIContainer의 동기 헬퍼(스냅샷 기반)만 사용하세요.
-  - 내부 동작(자동 수집/최적화)은 동일하며, 공용 읽기 경로만 통일되었습니다.
+- AutoDIOptimizer의 다수 읽기용 nonisolated(static) API를 내부화(internal) 또는 Deprecated로 전환했습니다.
+- 외부에서는 UnifiedDI/DIContainer의 동기 헬퍼(스냅샷 기반)만 사용하세요.
+- 내부 동작(자동 수집/최적화)은 동일하며, 공용 읽기 경로만 통일되었습니다.
 - AutoMonitor 동일 글로벌 액터로 정렬
-  - AutoMonitor를 @DIActor로 통일하여 내부 hop을 제거했습니다. 외부 API 시그니처는 동일합니다.
+- AutoMonitor를 @DIActor로 통일하여 내부 hop을 제거했습니다. 외부 API 시그니처는 동일합니다.
 
 ### Added
 - Benchmarks 실행 타깃 추가(간단 벤치 템플릿)
-  - Target: Benchmarks (swift run -c release Benchmarks)
-  - 인자: --count 10k/100k/1M, --debounce 50/100/200, --quick
-  - p50/p95/p99 및 total(ms) 출력
+- Target: Benchmarks (swift run -c release Benchmarks)
+- 인자: --count 10k/100k/1M, --debounce 50/100/200, --quick
+- p50/p95/p99 및 total(ms) 출력
 - DocC/README 문서 보강
-  - Bootstrap 가이드 추가(동기/비동기/혼합/조건부/보장/테스트)
-  - Deprecated 읽기 API → 대체 경로 표 추가
+- Bootstrap 가이드 추가(동기/비동기/혼합/조건부/보장/테스트)
+- Deprecated 읽기 API → 대체 경로 표 추가
 - 디바운스 설정 노출
-  - UnifiedDI.configureOptimization(debounceMs:)로 AutoDIOptimizer 디바운스 간격 제어(50~1000ms)
+- UnifiedDI.configureOptimization(debounceMs:)로 AutoDIOptimizer 디바운스 간격 제어(50~1000ms)
 
 ### Changed
 - 읽기 경로 완전 일원화(스냅샷 기반 동기 반환)
-  - UnifiedDI/DIContainer에서 autoGraph/optimizedTypes/circularDependencies/stats/isOptimized가 스냅샷에서 즉시 반환되도록 간소화
+- UnifiedDI/DIContainer에서 autoGraph/optimizedTypes/circularDependencies/stats/isOptimized가 스냅샷에서 즉시 반환되도록 간소화
 - 핫패스 fire-and-forget
-  - register/resolve 추적은 비차단 전송(Task { @DIActor in ... })으로 전환 → p95/p99 지연 개선에 유리
+- register/resolve 추적은 비차단 전송(Task { @DIActor in ... })으로 전환 → p95/p99 지연 개선에 유리
 - 스냅샷/그래프 갱신 디바운스(기본 100ms)
-  - 대량 호출 시 CPU/로그 부하 감소
+- 대량 호출 시 CPU/로그 부하 감소
 - 로깅 레벨 설정 일관성 개선
-  - UnifiedDI.setLogLevel은 먼저 스냅샷을 즉시 갱신 후 액터에 위임(테스트/동기 읽기 일관성 향상)
+- UnifiedDI.setLogLevel은 먼저 스냅샷을 즉시 갱신 후 액터에 위임(테스트/동기 읽기 일관성 향상)
 
 ### Removed
 - DocC의 미사용/구 문서 제거
-  - BootstrapRationale.md, BootstrapSystem.md, DocumentationStandards.md 삭제
+- BootstrapRationale.md, BootstrapSystem.md, DocumentationStandards.md 삭제
 - 플러그인 시스템 관련 톱페이지 섹션 제거(기능 비노출)
 
 ### Fixed
 - “No 'async' operations occur within 'await' expression” 경고 제거(비동기 경로 정리, fire-and-forget 조정)
 - 테스트 안정성 개선
-  - 스냅샷 반영 대기를 폴링(waitUntil/waitAsyncUntil)으로 통일
-  - 전체 테스트 통과 확인
+- 스냅샷 반영 대기를 폴링(waitUntil/waitAsyncUntil)으로 통일
+- 전체 테스트 통과 확인
 
 ### [2.3.0] - 2025-09-25
 
 ### Breaking
 - DIContainer 동기화 변경
-  - DIContainer.getAutoGeneratedGraph(), getOptimizedTypes(), getDetectedCircularDependencies(), getUsageStatistics(), isAutoOptimized(_:)가 동기 함수로 변경됨. 호출부의 await 제거 필요. 파일: Sources/Core/Container/DIContainer.swift:536
+- DIContainer.getAutoGeneratedGraph(), getOptimizedTypes(), getDetectedCircularDependencies(), getUsageStatistics(), isAutoOptimized(_:)가 동기 함수로 변경됨. 호출부의 await 제거 필요. 파일: Sources/Core/Container/DIContainer.swift:536
 - UnifiedDI 동기화 변경
-  - UnifiedDI.autoGraph(), optimizedTypes(), circularDependencies(), stats(), isOptimized(_:)가 동기 함수로 변경됨. 호출부의 await 제거 필요. 파일: Sources/Core/API/UnifiedDI.swift:318
+- UnifiedDI.autoGraph(), optimizedTypes(), circularDependencies(), stats(), isOptimized(_:)가 동기 함수로 변경됨. 호출부의 await 제거 필요. 파일: Sources/Core/API/UnifiedDI.swift:318
 
 ### Added
 - 동기 접근용 로깅 레벨 프로퍼티 추가: UnifiedDI.logLevel. 파일: Sources/Core/API/UnifiedDI.swift:393
@@ -190,9 +195,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - AutoDIOptimizer 스레드 안전화
-  - NSLock 기반 내부 상태 보호 및 스냅샷 접근 도입(등록/해결/그래프/통계/순환 탐지). 파일: Sources/Core/Auto/AutoDIOptimizer.swift:31
-  - getCurrentLogLevel()이 실제 설정 값을 반환하도록 수정. 파일: Sources/Core/Auto/AutoDIOptimizer.swift:100
-  - trackResolution(_:)가 최적화 비활성화 상태에서도 사용 통계를 항상 집계하도록 변경(최적화 제안만 비활성화). 파일: Sources/Core/Auto/AutoDIOptimizer.swift:63
+- NSLock 기반 내부 상태 보호 및 스냅샷 접근 도입(등록/해결/그래프/통계/순환 탐지). 파일: Sources/Core/Auto/AutoDIOptimizer.swift:31
+- getCurrentLogLevel()이 실제 설정 값을 반환하도록 수정. 파일: Sources/Core/Auto/AutoDIOptimizer.swift:100
+- trackResolution(_:)가 최적화 비활성화 상태에서도 사용 통계를 항상 집계하도록 변경(최적화 제안만 비활성화). 파일: Sources/Core/Auto/AutoDIOptimizer.swift:63
 
 ### Fixed
 - 동시성 접근 시 간헐적 크래시(EXC_BAD_ACCESS) 해결: AutoDIOptimizer 내부 데이터 경쟁 제거. 파일: Sources/Core/Auto/AutoDIOptimizer.swift
