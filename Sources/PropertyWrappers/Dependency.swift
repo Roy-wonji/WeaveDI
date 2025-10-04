@@ -77,15 +77,45 @@ public struct InjectedValues: Sendable {
   public init() {}
   
   /// Subscript for dependency access by type
+  /// 🎯 TCA 자동 동기화: 모든 InjectedKey가 자동으로 TCA DependencyValues와 동기화됩니다!
   public subscript<Key: InjectedKey>(key: Key.Type) -> Key.Value where Key.Value: Sendable {
     get {
+      // 1. 기존 storage에서 먼저 확인
       if let value = storage[ObjectIdentifier(key)]?.value as? Key.Value {
         return value
       }
-      return Key.liveValue
+
+      // 2. WeaveDI에서 조회 시도
+      if let resolved = UnifiedDI.resolve(Key.Value.self) {
+        return resolved
+      }
+
+      // 3. 기본 InjectedKey liveValue 사용
+      let value = key.liveValue
+
+      // 4. 🎯 자동 동기화: WeaveDI와 TCA에 모두 등록
+      // WeaveDI에 등록
+      _ = UnifiedDI.register(Key.Value.self) { value }
+
+      // TCA DependencyValues에 자동 동기화 (조건부)
+      #if canImport(Dependencies)
+      TCABridgeHelper.autoSyncToTCA(Key.Value.self, value: value)
+      #endif
+
+      return value
     }
     set {
+      // 1. 기존 storage 업데이트
       storage[ObjectIdentifier(key)] = AnySendable(newValue)
+
+      // 2. 🎯 자동 동기화: WeaveDI와 TCA에 모두 등록
+      // WeaveDI에 등록
+      _ = UnifiedDI.register(Key.Value.self) { newValue }
+
+      // TCA DependencyValues에 자동 동기화 (조건부)
+      #if canImport(Dependencies)
+      TCABridgeHelper.autoSyncToTCA(Key.Value.self, value: newValue)
+      #endif
     }
   }
   
@@ -112,8 +142,12 @@ public protocol InjectedKey {
 }
 
 public extension InjectedKey {
-  static var testValue: Value {
+  static var liveValue: Value {
     liveValue
+  }
+
+  static var testValue: Value {
+    testValue
   }
 }
 

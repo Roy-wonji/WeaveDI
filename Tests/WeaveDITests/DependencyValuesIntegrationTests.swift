@@ -180,7 +180,7 @@ final class DependencyValuesIntegrationTests: XCTestCase {
         mockService.mockValue = "custom_mock"
 
         // When: withInjectedValues로 값 오버라이드
-        let result = await withInjectedValues {
+        let result = withInjectedValues {
             $0[TestServiceKey.self] = mockService
         } operation: {
             let service = InjectedValues.current[TestServiceKey.self]
@@ -196,7 +196,7 @@ final class DependencyValuesIntegrationTests: XCTestCase {
         mockService.mockValue = "keypath_test"
 
         // When: KeyPath 기반으로 값 설정하고 @Injected로 접근
-        let result = await withInjectedValues {
+        let result = withInjectedValues {
             $0.testService = mockService
         } operation: {
             let consumer = TestServiceConsumer()
@@ -253,12 +253,12 @@ final class DependencyValuesIntegrationTests: XCTestCase {
         innerMock.mockValue = "inner"
 
         // When: 중첩된 withInjectedValues 테스트
-        let results = await withInjectedValues {
+        let results = withInjectedValues {
             $0.testService = outerMock
         } operation: {
             let outerResult = InjectedValues.current.testService.getValue()
 
-            let innerResult = await withInjectedValues {
+            let innerResult = withInjectedValues {
                 $0.testService = innerMock
             } operation: {
                 return InjectedValues.current.testService.getValue()
@@ -289,7 +289,7 @@ final class DependencyValuesIntegrationTests: XCTestCase {
 
         await measureAsync {
             for _ in 0..<100 {
-                await withInjectedValues {
+                withInjectedValues {
                     $0.testService = mockService
                 } operation: {
                     let _ = InjectedValues.current.testService.getValue()

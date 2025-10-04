@@ -26,11 +26,11 @@ final class MockUserService: TestUserService, @unchecked Sendable {
     }
 }
 
-protocol TestNetworkService: Sendable {
+protocol CoreTestNetworkService: Sendable {
     func fetchData() -> String
 }
 
-final class TestNetworkServiceImpl: TestNetworkService, @unchecked Sendable {
+final class CoreTestNetworkServiceImpl: CoreTestNetworkService, @unchecked Sendable {
     func fetchData() -> String {
         return "network_data"
     }
@@ -122,12 +122,12 @@ final class CoreTests: XCTestCase {
     func testBatchRegistration_배치등록() async throws {
         // When - 배치 등록 대신 개별 등록으로 변경
         _ = await UnifiedDI.registerAsync(TestUserService.self) { TestUserServiceImpl() }
-        _ = await UnifiedDI.registerAsync(TestNetworkService.self) { TestNetworkServiceImpl() }
+        _ = await UnifiedDI.registerAsync(CoreTestNetworkService.self) { CoreTestNetworkServiceImpl() }
         _ = await UnifiedDI.registerAsync(TestDatabaseService.self) { TestDatabaseServiceImpl() }
 
         // Then
         let userService = await UnifiedDI.resolveAsync(TestUserService.self)
-        let networkService = await UnifiedDI.resolveAsync(TestNetworkService.self)
+        let networkService = await UnifiedDI.resolveAsync(CoreTestNetworkService.self)
         let dbService = await UnifiedDI.resolveAsync(TestDatabaseService.self)
 
         XCTAssertNotNil(userService)
@@ -238,11 +238,11 @@ final class CoreTests: XCTestCase {
 
         // Register some dependencies
         _ = await UnifiedDI.registerAsync(TestUserService.self) { TestUserServiceImpl() }
-        _ = await UnifiedDI.registerAsync(TestNetworkService.self) { TestNetworkServiceImpl() }
+        _ = await UnifiedDI.registerAsync(CoreTestNetworkService.self) { CoreTestNetworkServiceImpl() }
 
         // Verify registrations
         let userService = await UnifiedDI.resolveAsync(TestUserService.self)
-        let networkService = await UnifiedDI.resolveAsync(TestNetworkService.self)
+        let networkService = await UnifiedDI.resolveAsync(CoreTestNetworkService.self)
         XCTAssertNotNil(userService)
         XCTAssertNotNil(networkService)
     }
@@ -314,8 +314,8 @@ extension WeaveDI.Container {
         return resolve(TestUserService.self)
     }
 
-    var testNetworkService: TestNetworkService? {
-        return resolve(TestNetworkService.self)
+    var testNetworkService: CoreTestNetworkService? {
+        return resolve(CoreTestNetworkService.self)
     }
 
     var testDatabaseService: TestDatabaseService? {
