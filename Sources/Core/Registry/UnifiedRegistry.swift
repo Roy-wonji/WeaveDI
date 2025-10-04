@@ -115,32 +115,62 @@ public actor UnifiedRegistry {
   public typealias AsyncFactory = @Sendable () async -> ValueBox
   
   // MARK: - Internal Storage
-  
+
   /// 동기 팩토리 저장소 (매번 새 인스턴스 생성)
-  private var syncFactories: [AnyTypeIdentifier: SyncFactory] = [:]
-  
+  internal var syncFactories: [AnyTypeIdentifier: SyncFactory] = [:]
+
   /// 비동기 팩토리 저장소 (매번 새 인스턴스 생성)
-  private var asyncFactories: [AnyTypeIdentifier: AsyncFactory] = [:]
-  
+  internal var asyncFactories: [AnyTypeIdentifier: AsyncFactory] = [:]
+
   /// In-flight async singleton creation tasks (once-only semantics)
   private var asyncSingletonTasks: [AnyTypeIdentifier: Task<ValueBox, Never>] = [:]
-  
+
   // Scoped registrations and instances
-  private var scopedFactories: [AnyTypeIdentifier: (ScopeKind, SyncFactory)] = [:]
-  private var scopedAsyncFactories: [AnyTypeIdentifier: (ScopeKind, AsyncFactory)] = [:]
-  private var scopedInstances: [ScopedTypeKey: ValueBox] = [:]
-  
-  
+  internal var scopedFactories: [AnyTypeIdentifier: (ScopeKind, SyncFactory)] = [:]
+  internal var scopedAsyncFactories: [AnyTypeIdentifier: (ScopeKind, AsyncFactory)] = [:]
+  internal var scopedInstances: [ScopedTypeKey: ValueBox] = [:]
+
+
   /// KeyPath 매핑 (KeyPath String -> TypeIdentifier)
   private var keyPathMappings: [String: AnyTypeIdentifier] = [:]
-  
+
   /// 등록된 타입 통계 (디버깅 및 모니터링용)
-  private var registrationStats: [AnyTypeIdentifier: RegistrationInfo] = [:]
+  internal var registrationStats: [AnyTypeIdentifier: RegistrationInfo] = [:]
+
+  // MARK: - Batch Pipeline & Auto Health Monitoring
+
+  /// 🚀 배치 파이프라인 이벤트 큐
+  internal var pendingEvents: [RegistrationEvent] = []
+
+  /// 배치 처리 태스크
+  internal var batchTask: Task<Void, Never>?
+
+  /// 자동 건강성 체크 태스크
+  internal var healthCheckTask: Task<Void, Never>?
+
+  /// 파이프라인 실행 상태
+  internal var isPipelineRunning: Bool = false
+
+  /// 배치 파이프라인 설정
+  internal var pipelineConfig: BatchPipelineConfig = .default
+
+  /// 배치 처리 통계
+  internal var totalEventsProcessed: Int = 0
+  internal var totalBatchesProcessed: Int = 0
+  internal var lastHealthCheckTime: Date?
+  internal var lastAutoFixTime: Date?
   
-  // MARK: - Initialization
-  
+  // MARK: - Singleton & Initialization
+
+  /// 🌟 UnifiedRegistry 싱글톤 인스턴스
+  public static let shared = UnifiedRegistry()
+
   public init() {
     Log.debug("🏗️ [UnifiedRegistry] Initialized")
+    // 🚀 배치 파이프라인 자동 시작 (비동기)
+    Task {
+      await startBatchPipeline()
+    }
   }
   
   // MARK: - Synchronous Registration
@@ -156,14 +186,35 @@ public actor UnifiedRegistry {
   ) where T: Sendable {
     let key = AnyTypeIdentifier(type: type)
     let syncFactory: SyncFactory = { ValueBox(factory()) }
-    
+
+    // 🚨 중복 등록 방지: 이미 등록된 타입인지 확인
+    let wasAlreadyRegistered = syncFactories[key] != nil ||
+                               asyncFactories[key] != nil ||
+                               scopedFactories[key] != nil ||
+                               scopedAsyncFactories[key] != nil
+
+    if wasAlreadyRegistered {
+      Log.error("⚠️ [UnifiedRegistry] Duplicate registration detected for \(String(describing: type))")
+      Log.error("💡 Previous registration will be overwritten. Use 'isRegistered' to check before registering.")
+    }
+
     syncFactories[key] = syncFactory
     updateRegistrationInfo(key, type: .syncFactory)
-    
+
     // 🚀 최적화 등록도 수행
     tryOptimizedRegister(type, factory: factory)
-    
-    Log.debug("✅ [UnifiedRegistry] Registered sync factory for \(String(describing: type))")
+
+    // 📝 배치 파이프라인에 이벤트 추가
+    let event = RegistrationEvent(
+      eventType: .registered(typeName: String(describing: type), registrationType: .syncFactory)
+    )
+    addEvent(event)
+
+    if wasAlreadyRegistered {
+      Log.info("🔄 [UnifiedRegistry] Overwritten sync factory for \(String(describing: type))")
+    } else {
+      Log.debug("✅ [UnifiedRegistry] Registered sync factory for \(String(describing: type))")
+    }
   }
   
   
@@ -179,11 +230,32 @@ public actor UnifiedRegistry {
   ) where T: Sendable {
     let key = AnyTypeIdentifier(type: type)
     let asyncFactory: AsyncFactory = { ValueBox(await factory()) }
-    
+
+    // 🚨 중복 등록 방지: 이미 등록된 타입인지 확인
+    let wasAlreadyRegistered = syncFactories[key] != nil ||
+                               asyncFactories[key] != nil ||
+                               scopedFactories[key] != nil ||
+                               scopedAsyncFactories[key] != nil
+
+    if wasAlreadyRegistered {
+      Log.error("⚠️ [UnifiedRegistry] Duplicate async registration detected for \(String(describing: type))")
+      Log.error("💡 Previous registration will be overwritten. Use 'isRegistered' to check before registering.")
+    }
+
     asyncFactories[key] = asyncFactory
     updateRegistrationInfo(key, type: .asyncFactory)
-    
-    Log.debug("✅ [UnifiedRegistry] Registered async factory for \(String(describing: type))")
+
+    // 📝 배치 파이프라인에 이벤트 추가
+    let event = RegistrationEvent(
+      eventType: .registered(typeName: String(describing: type), registrationType: .asyncFactory)
+    )
+    addEvent(event)
+
+    if wasAlreadyRegistered {
+      Log.info("🔄 [UnifiedRegistry] Overwritten async factory for \(String(describing: type))")
+    } else {
+      Log.debug("✅ [UnifiedRegistry] Registered async factory for \(String(describing: type))")
+    }
   }
   
   /// 비동기 싱글톤 등록 (최초 1회 생성 후 캐시)
@@ -198,6 +270,13 @@ public actor UnifiedRegistry {
     }
     asyncFactories[key] = cachedFactory
     updateRegistrationInfo(key, type: .asyncSingleton)
+
+    // 📝 배치 파이프라인에 이벤트 추가
+    let event = RegistrationEvent(
+      eventType: .registered(typeName: String(describing: type), registrationType: .asyncSingleton)
+    )
+    addEvent(event)
+
     Log.debug("✅ [UnifiedRegistry] Registered async singleton for \(String(describing: type))")
   }
   
@@ -278,6 +357,13 @@ public actor UnifiedRegistry {
     let syncFactory: SyncFactory = { ValueBox(factory()) }
     scopedFactories[key] = (scope, syncFactory)
     updateRegistrationInfo(key, type: .scopedFactory)
+
+    // 📝 배치 파이프라인에 이벤트 추가
+    let event = RegistrationEvent(
+      eventType: .registered(typeName: String(describing: type), registrationType: .scopedFactory)
+    )
+    addEvent(event)
+
     Log.debug("🔒 [UnifiedRegistry] Registered scoped factory (\(scope.rawValue)) for \(String(describing: type))")
   }
   
@@ -290,6 +376,13 @@ public actor UnifiedRegistry {
     let asyncFactory: AsyncFactory = { ValueBox(await factory()) }
     scopedAsyncFactories[key] = (scope, asyncFactory)
     updateRegistrationInfo(key, type: .scopedAsyncFactory)
+
+    // 📝 배치 파이프라인에 이벤트 추가
+    let event = RegistrationEvent(
+      eventType: .registered(typeName: String(describing: type), registrationType: .scopedAsyncFactory)
+    )
+    addEvent(event)
+
     Log.debug("🔒 [UnifiedRegistry] Registered async scoped factory (\(scope.rawValue)) for \(String(describing: type))")
   }
   
@@ -386,12 +479,26 @@ public actor UnifiedRegistry {
         scopedInstances[sKey] = box
         if let resolved: T = box.unwrap() {
           await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+
+          // 📝 배치 파이프라인에 해결 이벤트 추가
+          let event = RegistrationEvent(
+            eventType: .resolved(typeName: String(describing: type))
+          )
+          addEvent(event)
+
           return resolved
         }
       } else {
         let box = await asyncFactory()
         if let resolved: T = box.unwrap() {
           await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+
+          // 📝 배치 파이프라인에 해결 이벤트 추가
+          let event = RegistrationEvent(
+            eventType: .resolved(typeName: String(describing: type))
+          )
+          addEvent(event)
+
           return resolved
         }
       }
@@ -404,6 +511,13 @@ public actor UnifiedRegistry {
       if let result = resolved {
         Log.debug("✅ [UnifiedRegistry] Resolved from async factory \(String(describing: type))")
         await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+
+        // 📝 배치 파이프라인에 해결 이벤트 추가
+        let event = RegistrationEvent(
+          eventType: .resolved(typeName: String(describing: type))
+        )
+        addEvent(event)
+
         return result
       }
     }
@@ -415,11 +529,19 @@ public actor UnifiedRegistry {
       if let result = resolved {
         Log.debug("✅ [UnifiedRegistry] Resolved from sync factory (async context) \(String(describing: type))")
         await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
+
+        // 📝 배치 파이프라인에 해결 이벤트 추가
+        let event = RegistrationEvent(
+          eventType: .resolved(typeName: String(describing: type))
+        )
+        addEvent(event)
+
         return result
       }
     }
     
-    Log.debug("❌ [UnifiedRegistry] Failed to resolve async \(String(describing: type))")
+    // 🔍 상세한 실패 진단 제공
+    await logDetailedResolutionFailure(type)
     return nil
   }
   
@@ -452,7 +574,13 @@ public actor UnifiedRegistry {
     
     // KeyPath 매핑에서도 제거
     keyPathMappings = keyPathMappings.filter { $0.value != key }
-    
+
+    // 📝 배치 파이프라인에 해제 이벤트 추가
+    let event = RegistrationEvent(
+      eventType: .released(typeName: String(describing: type))
+    )
+    addEvent(event)
+
     Log.debug("🗑️ [UnifiedRegistry] Released \(String(describing: type))")
   }
   
@@ -522,10 +650,12 @@ public actor UnifiedRegistry {
   public func getAllRegisteredTypeNames() -> [String] {
     let allKeys = Set(syncFactories.keys)
       .union(Set(asyncFactories.keys))
-    
+
     return allKeys.map(\.typeName).sorted()
   }
-  
+
+
+
   // MARK: - Private Helpers
   
   /// 등록 정보 업데이트
@@ -538,135 +668,5 @@ public actor UnifiedRegistry {
     )
     registrationStats[key] = info
   }
+
 }
-
-// MARK: - Supporting Types
-
-/// 등록 타입
-public enum RegistrationType {
-  case syncFactory
-  case asyncFactory
-  case asyncSingleton
-  case scopedFactory
-  case scopedAsyncFactory
-  
-  public var description: String {
-    switch self {
-      case .syncFactory: return "Sync Factory"
-      case .asyncFactory: return "Async Factory"
-      case .asyncSingleton: return "Async Singleton"
-      case .scopedFactory: return "Scoped Factory"
-      case .scopedAsyncFactory: return "Scoped Async Factory"
-    }
-  }
-}
-
-/// 등록 정보
-public struct RegistrationInfo {
-  public let type: RegistrationType
-  public let registrationCount: Int
-  public let lastRegistrationDate: Date
-  
-  public var summary: String {
-    return """
-        Type: \(type.description)
-        Count: \(registrationCount)
-        Last: \(lastRegistrationDate)
-        """
-  }
-}
-
-// MARK: - Optimization Integration
-
-extension UnifiedRegistry {
-  
-  /// 런타임 최적화를 활성화합니다
-  public func enableOptimization() {
-    SimpleOptimizationManager.shared.enable()
-    Log.info("🚀 [UnifiedRegistry] Runtime optimization enabled")
-  }
-  
-  /// 런타임 최적화를 비활성화합니다
-  public func disableOptimization() {
-    SimpleOptimizationManager.shared.disable()
-    Log.info("🔧 [UnifiedRegistry] Runtime optimization disabled")
-  }
-  
-  /// 최적화 상태 확인
-  public var isOptimizationEnabled: Bool {
-    return SimpleOptimizationManager.shared.isEnabled()
-  }
-}
-
-// 최적화 저장소 지원을 위한 내부 확장
-internal extension UnifiedRegistry {
-  
-  /// 최적화된 해결 시도 (내부용)
-  func tryOptimizedResolve<T>(_ type: T.Type) -> T? where T: Sendable {
-    return SimpleOptimizationManager.shared.tryResolve(type)
-  }
-  
-  /// 최적화된 등록 (내부용)
-  func tryOptimizedRegister<T>(_ type: T.Type, factory: @escaping @Sendable () -> T) where T: Sendable {
-    SimpleOptimizationManager.shared.tryRegister(type, factory: factory)
-  }
-}
-
-// MARK: - Simple Optimization Manager
-
-/// 간단한 최적화 관리자
-internal final class SimpleOptimizationManager: @unchecked Sendable {
-  static let shared = SimpleOptimizationManager()
-  
-  private let lock = NSLock()
-  private var enabledState = false
-  // OptimizedScopeManager는 사용하지 않고 간단한 딕셔너리로 대체
-  private var optimizedInstances: [ObjectIdentifier: Any] = [:]
-  
-  private init() {}
-  
-  func enable() {
-    lock.lock()
-    defer { lock.unlock() }
-    enabledState = true
-  }
-  
-  func disable() {
-    lock.lock()
-    defer { lock.unlock() }
-    enabledState = false
-  }
-  
-  func isEnabled() -> Bool {
-    lock.lock()
-    defer { lock.unlock() }
-    return enabledState
-  }
-  
-  func tryResolve<T>(_ type: T.Type) -> T? where T: Sendable {
-    guard isEnabled() else { return nil }
-    
-    lock.lock()
-    defer { lock.unlock() }
-    
-    let key = ObjectIdentifier(type)
-    return optimizedInstances[key] as? T
-  }
-  
-  func tryRegister<T>(_ type: T.Type, factory: @escaping @Sendable () -> T) where T: Sendable {
-    guard isEnabled() else { return }
-    
-    lock.lock()
-    defer { lock.unlock() }
-    
-    let key = ObjectIdentifier(type)
-    let instance = factory()
-    optimizedInstances[key] = instance
-  }
-}
-
-// MARK: - Global Instance
-
-/// 글로벌 통합 Registry 인스턴스
-/// WeaveDI.Container.live에서 내부적으로 사용
-public let GlobalUnifiedRegistry = UnifiedRegistry()

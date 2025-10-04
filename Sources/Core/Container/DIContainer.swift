@@ -47,8 +47,9 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   
   // MARK: - Properties
   
-  /// 통합된 의존성 저장소 (UnifiedRegistry 기반)
-  private let unifiedRegistry = UnifiedRegistry()
+  /// 통합된 의존성 저장소 (UnifiedRegistry.shared 사용)
+  /// 🔧 Fix: 모든 컨테이너가 동일한 UnifiedRegistry.shared 인스턴스를 사용하도록 수정
+  private let unifiedRegistry = UnifiedRegistry.shared
   
   /// 모듈 기반 일괄 등록을 위한 모듈 배열 (동시성 안전: concurrent + barrier)
   private let modulesQueue = DispatchQueue(label: "com.diContainer.modules", attributes: .concurrent)

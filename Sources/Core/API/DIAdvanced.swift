@@ -106,7 +106,7 @@ public enum DIAdvanced {
       factory: @escaping @Sendable () -> T
     ) -> @Sendable () -> Void where T: Sendable {
       Task.detached { @Sendable in
-        await GlobalUnifiedRegistry.registerScoped(type, scope: scope, factory: factory)
+        await UnifiedRegistry.shared.registerScoped(type, scope: scope, factory: factory)
       }
       return { }
     }
@@ -118,20 +118,20 @@ public enum DIAdvanced {
       factory: @escaping @Sendable () async -> T
     ) where T: Sendable {
       Task.detached { @Sendable in
-        await GlobalUnifiedRegistry.registerAsyncScoped(type, scope: scope, factory: factory)
+        await UnifiedRegistry.shared.registerAsyncScoped(type, scope: scope, factory: factory)
       }
     }
     
     /// 특정 스코프의 모든 인스턴스를 해제합니다 (async)
     @discardableResult
     public static func releaseScope(_ kind: ScopeKind, id: String) async -> Int {
-      return await GlobalUnifiedRegistry.releaseScope(kind: kind, id: id)
+      return await UnifiedRegistry.shared.releaseScope(kind: kind, id: id)
     }
     
     /// 특정 타입의 스코프 인스턴스를 해제합니다 (async)
     @discardableResult
     public static func releaseScoped<T>(_ type: T.Type, kind: ScopeKind, id: String) async -> Bool {
-      return await GlobalUnifiedRegistry.releaseScoped(type, kind: kind, id: id)
+      return await UnifiedRegistry.shared.releaseScoped(type, kind: kind, id: id)
     }
   }
 }

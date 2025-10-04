@@ -161,7 +161,7 @@ public struct GenerateAutoSyncMacro: MemberMacro {
             }
         }
 
-        guard let keyExpr = keyExpression, let typeExpr = typeExpression else {
+        guard let keyExpr = keyExpression, let _ = typeExpression else {
             return []
         }
 

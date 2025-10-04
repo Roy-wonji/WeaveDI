@@ -673,9 +673,3 @@ struct EnvironmentAwareModule: Module {
 }
 ```
 
-## 다음 단계
-
-- <doc:CoreAPIs>
-- <doc:PropertyWrappers>
-- <doc:AutoDIOptimizer>
-- <doc:ModuleFactory>

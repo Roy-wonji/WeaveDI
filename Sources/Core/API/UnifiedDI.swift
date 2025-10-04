@@ -577,6 +577,46 @@ public extension UnifiedDI {
     await AutoDIOptimizer.shared.reset()
     await AutoMonitor.shared.reset()
   }
+
+  // MARK: - Registry Health & Verification
+
+  /// 🔍 레지스트리 동기화 상태 검증
+  /// - Returns: 상세한 검증 보고서
+  static func verifyRegistryHealth() async -> RegistrySyncReport {
+    return await UnifiedRegistry.shared.verifyRegistrySync()
+  }
+
+  /// 🚨 레지스트리 문제점 자동 복구 시도
+  /// - Returns: 복구 시도 결과
+  static func autoFixRegistry() async -> RegistryFixReport {
+    return await UnifiedRegistry.shared.attemptRegistryAutoFix()
+  }
+
+  /// 🏥 레지스트리 건강성 점수 (간단 체크)
+  /// - Returns: 0-100 점수 (100이 가장 건강함)
+  static func getRegistryHealthScore() async -> Double {
+    let report = await UnifiedRegistry.shared.verifyRegistrySync()
+    return report.healthScore
+  }
+
+  /// 📋 레지스트리 상태 요약 출력
+  static func printRegistryStatus() async {
+    let report = await verifyRegistryHealth()
+    Log.info("📊 WeaveDI Registry Status:")
+    Log.info(report.summary)
+
+    if report.healthScore < 90.0 {
+      Log.info("💡 Suggestions:")
+      if !report.factoryInconsistencies.isEmpty {
+        Log.info("  • Fix duplicate registrations: \(report.factoryInconsistencies.joined(separator: ", "))")
+      }
+      if !report.optimizationStats.isEnabled && report.totalRegistrations > 5 {
+        Log.info("  • Consider enabling optimization: GlobalUnifiedRegistry.enableOptimization()")
+      }
+    } else {
+      Log.info("✅ Registry is in excellent health!")
+    }
+  }
 }
 
 // MARK: - Test Helpers
