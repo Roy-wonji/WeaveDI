@@ -44,26 +44,25 @@ public actor DIContainerActor {
 /// - **테스트 지원**: 테스트 간 격리 보장
 /// - **Swift 6 동시성**: 기존 API는 동기, Actor API는 자동 생성
 public final class DIContainer: ObservableObject, @unchecked Sendable {
-  
+
   // MARK: - Properties
-  
-  /// 통합된 의존성 저장소 (UnifiedRegistry.shared 사용)
-  /// 🔧 Fix: 모든 컨테이너가 동일한 UnifiedRegistry.shared 인스턴스를 사용하도록 수정
-  private let unifiedRegistry = UnifiedRegistry.shared
-  
+
+  /// 통합된 의존성 저장소 (UnifiedRegistry 기반)
+  private let unifiedRegistry = UnifiedRegistry()
+
   /// 모듈 기반 일괄 등록을 위한 모듈 배열 (동시성 안전: concurrent + barrier)
   private let modulesQueue = DispatchQueue(label: "com.diContainer.modules", attributes: .concurrent)
   private var modules: [Module] = []
-  
+
   /// Parent-Child 관계 지원
   private let parent: DIContainer?
   private var children: [DIContainer] = []
   private let childrenQueue = DispatchQueue(label: "com.diContainer.children", attributes: .concurrent)
-  
+
   /// Swift 6 완전 호환 shared 인스턴스 관리
   nonisolated(unsafe) private static var sharedContainer = DIContainer()
   private static let sharedLock = NSLock()
-  
+
   /// 전역 인스턴스 (동기 API - 기존 호환성)
   public static var shared: DIContainer {
     get {
@@ -77,50 +76,50 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
       sharedContainer = newValue
     }
   }
-  
+
   // MARK: - Actor Protected API (자동 생성)
-  
+
   /// @DIContainerActor로 보호된 shared 인스턴스
   @DIContainerActor
   public static var actorShared: DIContainer {
     get { shared }  // 내부적으로 락으로 보호됨
     set { shared = newValue }
   }
-  
+
   /// Actor 보호하에 의존성 등록
   @DIContainerActor
   public static func registerAsync<T>(_ type: T.Type, factory: @Sendable @escaping () -> T) -> T where T: Sendable {
     return actorShared.register(type, factory: factory)
   }
-  
+
   /// Actor 보호하에 의존성 해결
   @DIContainerActor
   public static func resolveAsync<T>(_ type: T.Type) -> T? where T: Sendable {
     return actorShared.resolve(type)
   }
-  
-  
+
+
   // MARK: - Initialization
-  
+
   /// 빈 컨테이너를 생성합니다
   /// 기본 초기화 (루트 컨테이너)
   public init() {
     self.parent = nil
   }
-  
+
   /// Parent-Child 초기화
   /// - Parameter parent: 부모 컨테이너 (의존성을 상속받음)
   public init(parent: DIContainer) {
     self.parent = parent
-    
+
     // 부모에 자식으로 등록
     parent.childrenQueue.sync(flags: .barrier) {
       parent.children.append(self)
     }
   }
-  
+
   // MARK: - Parent-Child Container API
-  
+
   /// 새로운 자식 컨테이너를 생성합니다.
   /// 자식 컨테이너는 부모의 의존성을 상속받습니다.
   ///
@@ -139,22 +138,22 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   public func createChild() -> DIContainer {
     return DIContainer(parent: self)
   }
-  
+
   /// 모든 자식 컨테이너를 가져옵니다
   /// - Returns: 현재 등록된 자식 컨테이너들
   public func getChildren() -> [DIContainer] {
     return childrenQueue.sync { children }
   }
-  
+
   /// 부모 컨테이너를 가져옵니다.
   /// - Returns: 부모 컨테이너 (루트인 경우 nil)
   public func getParent() -> DIContainer? {
     return parent
   }
-  
-  
+
+
   // MARK: - Core Registration API
-  
+
   /// 의존성을 등록하고 즉시 생성된 인스턴스를 반환합니다
   ///
   /// 팩토리를 즉시 실행하여 인스턴스를 생성하고, 컨테이너에 등록한 후 반환합니다.
@@ -183,16 +182,16 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     Task { @DIActor in
       AutoDIOptimizer.shared.trackRegistration(type)
     }
-    
+
     // 🔍 간단한 모니터링 (추가 옵션)
     Task {
       await AutoMonitor.shared.onModuleRegistered(type)
     }
-    
+
     Log.debug("Registered instance for \(String(describing: type))")
     return instance
   }
-  
+
   /// 팩토리 패턴으로 의존성을 등록합니다 (지연 생성)
   ///
   /// 실제 `resolve` 호출 시에만 팩토리가 실행되어 매번 새로운 인스턴스가 생성됩니다.
@@ -216,16 +215,16 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     Task { @DIActor in
       AutoDIOptimizer.shared.trackRegistration(type)
     }
-    
+
     // 🔍 간단한 모니터링 (추가 옵션)
     Task {
       await AutoMonitor.shared.onModuleRegistered(type)
     }
-    
+
     Log.debug("Registered factory for \(String(describing: type))")
     return releaseHandler
   }
-  
+
   /// 이미 생성된 인스턴스를 등록합니다
   ///
   /// - Parameters:
@@ -241,15 +240,15 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     Task { @DIActor in
       AutoDIOptimizer.shared.trackRegistration(type)
     }
-    
+
     // 🔍 간단한 모니터링 (추가 옵션)
-    Task { 
+    Task {
       await AutoMonitor.shared.onModuleRegistered(type)
     }
-    
+
     Log.debug("Registered instance for \(String(describing: type))")
   }
-  
+
   /// Actor 보호된 인스턴스 등록 (동시성 안전)
   @DIContainerActor
   public func actorRegister<T>(
@@ -258,9 +257,9 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   ) where T: Sendable {
     register(type, instance: instance)
   }
-  
+
   // MARK: - Core Resolution API
-  
+
   /// 등록된 의존성을 조회합니다
   ///
   /// 의존성이 등록되지 않은 경우 nil을 반환하므로 안전하게 처리할 수 있습니다.
@@ -272,7 +271,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     Task { @DIActor in
       AutoDIOptimizer.shared.trackResolution(type)
     }
-    
+
     // 1. 현재 컨테이너에서 해결 시도 (QoS 우선순위 보존)
     let semaphore = DispatchSemaphore(value: 0)
     var result: T?
@@ -288,28 +287,28 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
       Log.debug("Resolved \(String(describing: type)) from current container")
       return value
     }
-    
+
     // 2. Parent 컨테이너에서 해결 시도
     if let parent = parent, let result = parent.resolve(type) {
       Log.debug("Resolved \(String(describing: type)) from parent container")
       return result
     }
-    
+
     // 3. 🤖 @AutoRegister 타입 자동 등록 시도
     let typeName = String(describing: type)
     Log.info("🔍 해결: \(typeName) (총 1회)")
     Log.info("⚠️ Nil 해결 감지: \(typeName)")
     Log.error("No registered dependency found for \(typeName)")
     Log.info("💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
-    
+
     // 🚨 자동 타입 안전성 처리
     Task { @DIActor in
       AutoDIOptimizer.shared.handleNilResolution(type)
     }
-    
+
     return nil
   }
-  
+
   /// 의존성을 조회하거나 기본값을 반환합니다
   ///
   /// - Parameters:
@@ -322,7 +321,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   ) -> T where T: Sendable {
     resolve(type) ?? defaultValue()
   }
-  
+
   /// 특정 타입의 의존성 등록을 해제합니다
   ///
   /// - Parameter type: 해제할 타입
@@ -330,9 +329,9 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     Task { await unifiedRegistry.release(type) }
     Log.debug("Released \(String(describing: type))")
   }
-  
+
   // MARK: - KeyPath Support
-  
+
   /// KeyPath 기반 의존성 조회 서브스크립트
   ///
   /// - Parameter keyPath: WeaveDI.Container의 T?를 가리키는 키패스
@@ -340,9 +339,9 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   public subscript<T>(keyPath: KeyPath<DIContainer, T?>) -> T? where T: Sendable {
     get { resolve(T.self) }
   }
-  
+
   // MARK: - Module System
-  
+
   /// 모듈을 컨테이너에 추가합니다 (스레드 안전)
   ///
   /// 실제 등록은 `buildModules()` 호출 시에 병렬로 처리됩니다.
@@ -354,7 +353,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     modulesQueue.sync(flags: .barrier) { self.modules.append(module) }
     return self
   }
-  
+
   /// 수집된 모든 모듈의 등록을 병렬로 실행합니다 (스레드 안전)
   ///
   /// TaskGroup을 사용하여 모든 모듈을 동시에 병렬 처리합니다.
@@ -365,9 +364,9 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
       let snap = self.modules
       return (snap, snap.count)
     }
-    
+
     guard !snapshot.isEmpty else { return }
-    
+
     // 병렬 실행 + 전체 완료 대기
     await withTaskGroup(of: Void.self) { group in
       for module in snapshot {
@@ -377,7 +376,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
       }
       await group.waitForAll()
     }
-    
+
     // 처리된 모듈 제거 (스레드 안전)
     modulesQueue.sync(flags: .barrier) {
       if self.modules.count >= processedCount {
@@ -386,7 +385,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
         self.modules.removeAll()
       }
     }
-    
+
     Log.debug("Built \(processedCount) modules")
   }
   
@@ -396,9 +395,9 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   public func buildModulesWithMetrics() async -> ModuleBuildMetrics {
     let startTime = CFAbsoluteTimeGetCurrent()
     let initialCount = modules.count
-    
+
     await buildModules()
-    
+
     let duration = CFAbsoluteTimeGetCurrent() - startTime
     return ModuleBuildMetrics(
       moduleCount: initialCount,
@@ -406,30 +405,30 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
       modulesPerSecond: initialCount > 0 ? Double(initialCount) / duration : 0
     )
   }
-  
+
   /// 현재 등록 대기 중인 모듈의 개수를 반환합니다
   public var moduleCount: Int {
     modulesQueue.sync { modules.count }
   }
-  
+
   /// 컨테이너가 비어있는지 확인합니다
   public var isEmpty: Bool {
     modulesQueue.sync { modules.isEmpty }
   }
-  
+
   /// 모듈을 등록하는 편의 메서드
   public func register(_ module: Module) async {
     modulesQueue.sync(flags: .barrier) { self.modules.append(module) }
     await module.register()
   }
-  
+
   /// 함수 호출 스타일을 지원하는 메서드 (체이닝용)
   @discardableResult
   public func callAsFunction(_ configure: () -> Void = {}) -> Self {
     configure()
     return self
   }
-  
+
   /// 모듈 빌드 메서드 (기존 buildModules와 동일)
   public func build() async {
     await buildModules()
@@ -439,7 +438,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
 // MARK: - Bootstrap System
 
 public extension DIContainer {
-  
+
   /// 컨테이너를 부트스트랩합니다 (동기 등록)
   ///
   /// 앱 시작 시 의존성을 안전하게 초기화하기 위한 메서드입니다.
@@ -452,7 +451,7 @@ public extension DIContainer {
     Self.shared = newContainer
     Log.debug("Container bootstrapped (sync)")
   }
-  
+
   /// 컨테이너를 부트스트랩합니다 (비동기 등록)
   ///
   /// 비동기 초기화가 필요한 의존성(예: 데이터베이스, 원격 설정)이 있을 때 사용합니다.
@@ -463,11 +462,11 @@ public extension DIContainer {
     do {
       let startTime = CFAbsoluteTimeGetCurrent()
       Log.debug("Starting Container async bootstrap...")
-      
+
       let newContainer = DIContainer()
       try await configure(newContainer)
       Self.shared = newContainer
-      
+
       let duration = CFAbsoluteTimeGetCurrent() - startTime
       Log.debug("Container bootstrapped successfully in \(String(format: "%.3f", duration))s")
       return true
@@ -480,7 +479,7 @@ public extension DIContainer {
 #endif
     }
   }
-  
+
   /// 별도의 Task 컨텍스트에서 비동기 부트스트랩을 수행하는 편의 메서드입니다
   static func bootstrapInTask(_ configure: @Sendable @escaping (DIContainer) async throws -> Void) {
     Task.detached(priority: .high) {
@@ -492,7 +491,7 @@ public extension DIContainer {
       }
     }
   }
-  
+
   /// 혼합 부트스트랩 (동기 + 비동기)
   ///
   /// - Parameters:
@@ -510,11 +509,11 @@ public extension DIContainer {
     // 2) 비동기 등록
     await async(newContainer)
     Log.debug("Extended dependencies registered asynchronously")
-    
+
     Self.shared = newContainer
     Log.debug("Container bootstrapped with mixed dependencies")
   }
-  
+
   /// 이미 부트스트랩되어 있지 않은 경우에만 실행합니다
   ///
   /// - Parameter configure: 의존성 등록 클로저
@@ -529,7 +528,7 @@ public extension DIContainer {
     Log.debug("Container bootstrap skipped - already initialized")
     return false
   }
-  
+
   /// 이미 부트스트랩되어 있지 않은 경우에만 비동기 부트스트랩을 수행합니다
   @discardableResult
   static func bootstrapAsyncIfNeeded(_ configure: @Sendable (DIContainer) async throws -> Void) async -> Bool {
@@ -540,7 +539,7 @@ public extension DIContainer {
       return false
     }
   }
-  
+
   /// 런타임에 의존성을 업데이트합니다 (동기)
   ///
   /// - Parameter configure: 업데이트할 의존성 등록 클로저
@@ -548,7 +547,7 @@ public extension DIContainer {
     configure(shared)
     Log.debug("Container updated (sync)")
   }
-  
+
   /// 런타임에 의존성을 업데이트합니다 (비동기)
   ///
   /// - Parameter configure: 비동기 업데이트 클로저
@@ -556,7 +555,7 @@ public extension DIContainer {
     await configure(shared)
     Log.debug("Container updated (async)")
   }
-  
+
   /// DI 컨테이너 접근 전, 부트스트랩이 완료되었는지를 보장합니다
   static func ensureBootstrapped(
     file: StaticString = #fileID,
@@ -569,7 +568,7 @@ public extension DIContainer {
       line: line
     )
   }
-  
+
   /// 테스트를 위해 컨테이너를 초기화합니다
   ///
   /// ⚠️ DEBUG 빌드에서만 사용 가능합니다.
@@ -582,7 +581,7 @@ public extension DIContainer {
     fatalError("resetForTesting() is only available in DEBUG builds")
 #endif
   }
-  
+
   /// 부트스트랩 상태를 확인합니다
   static var isBootstrapped: Bool {
     !shared.isEmpty
@@ -621,17 +620,17 @@ public extension WeaveDI.Container {
     // 자동으로 registerRepositories()와 registerUseCases() 호출
     await registerRepositories()
     await registerUseCases()
-    
+
 #if DEBUG
     print("✅ WeaveDI.Container.registerAllDependencies() 완료")
 #endif
   }
-  
+
   /// 📦 Repository 등록 (프로젝트에서 오버라이드)
   static func registerRepositories() async {
     // 기본 구현 없음
   }
-  
+
   /// 🔧 UseCase 등록 (프로젝트에서 오버라이드)
   static func registerUseCases() async {
     // 기본 구현 없음
@@ -650,22 +649,22 @@ public extension DIContainer {
 
 /// Factory 타입들을 위한 KeyPath 확장
 public extension DIContainer {
-  
+
   /// Repository 모듈 팩토리 KeyPath
   var repositoryFactory: RepositoryModuleFactory? {
     resolve(RepositoryModuleFactory.self)
   }
-  
+
   /// UseCase 모듈 팩토리 KeyPath
   var useCaseFactory: UseCaseModuleFactory? {
     resolve(UseCaseModuleFactory.self)
   }
-  
+
   /// Scope 모듈 팩토리 KeyPath
   var scopeFactory: ScopeModuleFactory? {
     resolve(ScopeModuleFactory.self)
   }
-  
+
   /// 모듈 팩토리 매니저 KeyPath
   var moduleFactoryManager: ModuleFactoryManager? {
     resolve(ModuleFactoryManager.self)
@@ -678,13 +677,13 @@ public extension DIContainer {
 public struct ModuleBuildMetrics {
   /// 처리된 모듈 수
   public let moduleCount: Int
-  
+
   /// 총 실행 시간 (초)
   public let duration: TimeInterval
-  
+
   /// 초당 처리 모듈 수
   public let modulesPerSecond: Double
-  
+
   /// 포맷된 요약 정보
   public var summary: String {
     return """
@@ -700,14 +699,14 @@ public struct ModuleBuildMetrics {
 
 /// 자동 의존성 주입 기능 확장
 public extension DIContainer {
-  
+
   /// 🚀 자동 생성된 의존성 그래프를 시각화합니다
   ///
   /// 별도 설정 없이 자동으로 수집된 의존성 관계를 텍스트로 출력합니다.
   func getAutoGeneratedGraph() -> String {
     AutoDIOptimizer.readSnapshot().graphText
   }
-  
+
   /// ⚡ 자동 최적화된 타입들을 반환합니다
   ///
   /// 사용 패턴을 분석하여 자동으로 성능 최적화가 적용된 타입들의 목록입니다.
@@ -715,7 +714,7 @@ public extension DIContainer {
     let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
     return Set(freq.filter { $0.value >= 3 }.keys)
   }
-  
+
   /// ⚠️ 자동 감지된 순환 의존성을 반환합니다
   ///
   /// 의존성 등록/해결 과정에서 자동으로 감지된 순환 의존성 목록입니다.
@@ -734,14 +733,14 @@ public extension DIContainer {
     for t in snap.registered where !visited.contains(t) { dfs(t) }
     return cycles
   }
-  
+
   /// 📊 자동 수집된 성능 통계를 반환합니다
   ///
   /// 각 타입의 사용 빈도가 자동으로 추적됩니다.
   func getUsageStatistics() -> [String: Int] {
     AutoDIOptimizer.readSnapshot().frequentlyUsed
   }
-  
+
   /// 🔍 특정 타입이 자동 최적화되었는지 확인합니다
   ///
   /// - Parameter type: 확인할 타입
@@ -751,14 +750,14 @@ public extension DIContainer {
     let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
     return (freq[name] ?? 0) >= 5
   }
-  
+
   /// ⚙️ 자동 최적화 기능을 제어합니다
   ///
   /// - Parameter enabled: 활성화 여부 (기본값: true)
   func setAutoOptimization(_ enabled: Bool) {
     Task { @DIActor in AutoDIOptimizer.shared.setOptimizationEnabled(enabled) }
   }
-  
+
   /// 🧹 자동 수집된 통계를 초기화합니다
   func resetAutoStats() {
     Task { @DIActor in AutoDIOptimizer.shared.resetStats() }
