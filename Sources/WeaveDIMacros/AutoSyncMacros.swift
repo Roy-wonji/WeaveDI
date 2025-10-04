@@ -241,6 +241,12 @@ public struct GenerateAutoSyncMacro: MemberMacro {
 /// - WeaveDI InjectedKey → TCA DependencyKey ✅
 /// - 자동 감지 및 동기화 ✅
 /// - TestDependencyKey 호환성 해결 ✅
+///
+/// ## 사용 전 필수 호출:
+/// ```swift
+/// // AppDelegate 또는 main에서 한 번 호출
+/// enableBidirectionalTCASync()
+/// ```
 public struct AutoSyncMacro: MemberMacro {
 
     /// 🎯 사용자가 원하는 @AutoSync: extension 내 모든 computed property의 동기화 버전을 자동 생성
@@ -351,21 +357,8 @@ public struct AutoSyncMacro: MemberMacro {
             }
         }
 
-        // 🎯 자동 초기화: @AutoSync 사용 시 양방향 동기화 자동 활성화
-        if !autoSyncMembers.isEmpty {
-            let autoInitializer = """
-            /// 🎯 @AutoSync 자동 초기화: 양방향 동기화 활성화
-            static let _autoSyncInitializer: Void = {
-                #if canImport(WeaveDI)
-                Task { @MainActor in
-                    TCASmartSync.enableGlobalAutoSync()
-                }
-                #endif
-                return ()
-            }()
-            """
-            autoSyncMembers.append(DeclSyntax(stringLiteral: autoInitializer))
-        }
+        // 🎯 수동 초기화: 사용자가 enableBidirectionalTCASync() 호출 필요
+        // 자동 초기화는 중복 선언 문제로 제거함
 
         return autoSyncMembers
     }

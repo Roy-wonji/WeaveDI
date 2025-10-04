@@ -120,22 +120,23 @@ public struct TCASmartSync {
         Log.info("🎯 \(type) → InjectedValues 동기화 완료")
     }
 
-    /// 🎯 **스마트 감지**: DependencyKey 사용을 감지해서 자동 동기화
-    @MainActor
+    /// 🎯 **스마트 감지**: DependencyKey 사용을 감지해서 자동 동기화 (nonisolated)
     public static func autoDetectAndSync<T: DependencyKey>(_ keyType: T.Type, value: T.Value) where T.Value: Sendable {
-        guard isEnabled else { return }
+        Task { @MainActor in
+            guard isEnabled else { return }
 
-        let keyName = String(describing: keyType)
-        if !registeredKeys.contains(keyName) {
-            // 🔧 Fix: 두 곳 모두에 자동 등록 (DIContainer + InjectedValues)
-            _ = UnifiedDI.register(T.Value.self) { value }
+            let keyName = String(describing: keyType)
+            if !registeredKeys.contains(keyName) {
+                // 🔧 Fix: 두 곳 모두에 자동 등록 (DIContainer + InjectedValues)
+                _ = UnifiedDI.register(T.Value.self) { value }
 
-            // 🎯 InjectedValues에도 자동 등록
-            registerToInjectedValues(keyType: keyType, value: value)
+                // 🎯 InjectedValues에도 자동 등록
+                registerToInjectedValues(keyType: keyType, value: value)
 
-            registeredKeys.insert(keyName)
+                registeredKeys.insert(keyName)
 
-            Log.info("🎯 자동 감지: \(keyType) → WeaveDI + InjectedValues 동기화 완료")
+                Log.info("🎯 자동 감지: \(keyType) → WeaveDI + InjectedValues 동기화 완료")
+            }
         }
     }
 
@@ -200,11 +201,16 @@ public struct TCASmartSync {
         }
     }
 
-    /// 🔄 **TCA 호환 값 조회**: TCA DependencyValues에서 값 조회
-    @MainActor
-    public static func retrieveTCACompatibleValue<T>(_ type: T.Type) -> T? {
-        let key = String(describing: type)
-        return tcaCompatibleStorage[key] as? T
+    /// 🔄 **TCA 호환 값 조회**: TCA DependencyValues에서 값 조회 (nonisolated)
+    public static func retrieveTCACompatibleValue<T: Sendable>(_ type: T.Type) -> T? {
+        // 동기적 접근을 위해 MainActor.assumeIsolated 사용 (안전한 컨텍스트에서만)
+        if Thread.isMainThread {
+            return MainActor.assumeIsolated {
+                let key = String(describing: type)
+                return tcaCompatibleStorage[key] as? T
+            }
+        }
+        return nil // 메인 스레드가 아니면 nil 반환
     }
 }
 
@@ -235,15 +241,16 @@ public extension TCASmartSync {
         Log.info("🔧 \(type) TestDependencyKey 호환성 해결 완료")
     }
 
-    /// 🔄 **자동 역방향 동기화**: WeaveDI 등록을 감지하여 TCA에 자동 동기화
-    @MainActor
+    /// 🔄 **자동 역방향 동기화**: WeaveDI 등록을 감지하여 TCA에 자동 동기화 (nonisolated)
     static func autoDetectWeaveDIRegistration<T: Sendable>(_ type: T.Type, value: T) {
-        guard isEnabled else { return }
+        Task { @MainActor in
+            guard isEnabled else { return }
 
-        let typeName = String(describing: type)
-        if !registeredInjectedKeys.contains(typeName) {
-            reverseSyncFromWeaveDI(type, injectedInstance: value)
-            Log.info("🔄 자동 감지: WeaveDI 등록 → TCA 동기화 (\(type))")
+            let typeName = String(describing: type)
+            if !registeredInjectedKeys.contains(typeName) {
+                reverseSyncFromWeaveDI(type, injectedInstance: value)
+                Log.info("🔄 자동 감지: WeaveDI 등록 → TCA 동기화 (\(type))")
+            }
         }
     }
 }

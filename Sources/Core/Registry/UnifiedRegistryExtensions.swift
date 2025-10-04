@@ -392,7 +392,7 @@ extension UnifiedRegistry {
     var asyncCount = 0
     var scopedCount = 0
 
-    for (typeName, info) in updates {
+    for (_, info) in updates {
       switch info.type {
       case .syncFactory:
         syncCount += 1
