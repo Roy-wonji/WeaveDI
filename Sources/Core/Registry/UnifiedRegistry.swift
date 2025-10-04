@@ -540,6 +540,12 @@ public actor UnifiedRegistry {
       }
     }
     
+    // 🔄 DIContainer fallback 시도 (3.2.1 호환성)
+    if let fallbackResult = WeaveDI.Container.live.resolve(type) {
+      Log.debug("✅ [UnifiedRegistry] Resolved from DIContainer fallback: \(String(describing: type))")
+      return fallbackResult
+    }
+
     // 🔍 상세한 실패 진단 제공
     await logDetailedResolutionFailure(type)
     return nil
