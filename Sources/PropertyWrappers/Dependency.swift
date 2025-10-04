@@ -43,14 +43,29 @@ public struct Injected<Value> {
   public init<K: InjectedKey>(_ type: K.Type) where K.Value == Value, K.Value: Sendable {
     self.keyPath = nil
     self.keyType = type
+
+    // 🔄 자동 @Dependency 호환성 처리 (완전 자동화!)
+    Task { @MainActor in
+      TCASmartSync.ensureAutoInitialized()
+      TCASmartSync.createTestDependencyKey(K.Value.self, liveValue: K.liveValue)
+    }
   }
 
   public var wrappedValue: Value {
     get {
+      // 🎯 완전 자동 초기화 (처음 사용 시)
+      Task { @MainActor in
+        TCASmartSync.ensureAutoInitialized()
+      }
+
       if let keyPath = keyPath {
         return InjectedValues.current[keyPath: keyPath]
       } else if let keyType = keyType {
-        // Use a helper function to bridge the type-erased call
+        // 🔄 통합 저장소에서 값 조회 (@Dependency와 동일한 인스턴스 보장)
+        if let unifiedValue = TCASmartSync.getUnifiedValueSafe(Value.self) {
+          return unifiedValue
+        }
+        // Fallback: Use a helper function to bridge the type-erased call
         return _getValue(from: keyType)
       } else {
         fatalError("@Injected requires either keyPath or keyType")
