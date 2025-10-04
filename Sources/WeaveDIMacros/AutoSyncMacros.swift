@@ -105,20 +105,24 @@ public struct AutoSyncPropertyMacro: PeerMacro {
 
         let autoSyncPropertyName = "\(identifier.text)AutoSync"
 
-        // 동기화 버전의 property 생성
+        // 🎯 양방향 동기화 버전의 property 생성
         let autoSyncProperty = """
         var \(autoSyncPropertyName): \(type) {
             get {
                 let value = self[\(keyExpression)]
                 #if canImport(WeaveDI)
-                TCAAutoSyncContainer.autoSyncToWeaveDI(\(type).self, value: value)
+                TCASmartSync.autoDetectAndSync(\(keyExpression), value: value)
+                if let reverseSyncValue = TCASmartSync.retrieveTCACompatibleValue(\(type).self) {
+                    return reverseSyncValue
+                }
                 #endif
                 return value
             }
             set {
                 self[\(keyExpression)] = newValue
                 #if canImport(WeaveDI)
-                TCAAutoSyncContainer.autoSyncToWeaveDI(\(type).self, value: newValue)
+                TCASmartSync.autoDetectAndSync(\(keyExpression), value: newValue)
+                TCASmartSync.autoDetectWeaveDIRegistration(\(type).self, value: newValue)
                 #endif
             }
         }
@@ -171,20 +175,24 @@ public struct GenerateAutoSyncMacro: MemberMacro {
         // typeExpr에서 .self 제거 (타입만 추출)
         let cleanTypeExpr = typeExpression?.replacingOccurrences(of: ".self", with: "") ?? "Any"
 
-        // 완전한 동기화 property 생성
+        // 🎯 완전한 양방향 동기화 property 생성
         let autoSyncProperty = """
         var \(propertyName): \(cleanTypeExpr) {
             get {
                 let value = self[\(keyExpr)]
                 #if canImport(WeaveDI)
-                TCAAutoSyncContainer.autoSyncToWeaveDI(\(cleanTypeExpr).self, value: value)
+                TCASmartSync.autoDetectAndSync(\(keyExpr), value: value)
+                if let reverseSyncValue = TCASmartSync.retrieveTCACompatibleValue(\(cleanTypeExpr).self) {
+                    return reverseSyncValue
+                }
                 #endif
                 return value
             }
             set {
                 self[\(keyExpr)] = newValue
                 #if canImport(WeaveDI)
-                TCAAutoSyncContainer.autoSyncToWeaveDI(\(cleanTypeExpr).self, value: newValue)
+                TCASmartSync.autoDetectAndSync(\(keyExpr), value: newValue)
+                TCASmartSync.autoDetectWeaveDIRegistration(\(cleanTypeExpr).self, value: newValue)
                 #endif
             }
         }
@@ -210,16 +218,29 @@ public struct GenerateAutoSyncMacro: MemberMacro {
 
 // MARK: - AutoSyncMacro (Main)
 
-/// 🎯 **사용자가 원하는 @AutoSync 매크로**: extension에 붙이면 자동으로 동기화 extension 생성!
+/// 🎯 **양방향 @AutoSync 매크로**: 한 줄로 TCA ↔ WeaveDI 완전 자동 동기화!
 ///
-/// ## 사용법 (사용자가 원하는 패턴):
+/// ## 사용법 (한 줄로 양방향 동기화):
 /// ```swift
-/// @AutoSync  // ← 이것만 추가!
+/// // TCA DependencyValues → WeaveDI 동기화
+/// @AutoSync  // ← 이것만 추가하면 양방향 동기화!
 /// extension DependencyValues {
 ///   var service1: Service1 { get { self[Service1Key.self] } set { self[Service1Key.self] = newValue } }
 ///   var service2: Service2 { get { self[Service2Key.self] } set { self[Service2Key.self] = newValue } }
 /// }
+///
+/// // WeaveDI InjectedValues → TCA 동기화
+/// @AutoSync  // ← InjectedValues도 지원!
+/// extension InjectedValues {
+///   var service1: Service1 { get { self[Service1Key.self] } set { self[Service1Key.self] = newValue } }
+/// }
 /// ```
+///
+/// ## 자동 생성되는 기능:
+/// - TCA DependencyKey → WeaveDI InjectedKey ✅
+/// - WeaveDI InjectedKey → TCA DependencyKey ✅
+/// - 자동 감지 및 동기화 ✅
+/// - TestDependencyKey 호환성 해결 ✅
 public struct AutoSyncMacro: MemberMacro {
 
     /// 🎯 사용자가 원하는 @AutoSync: extension 내 모든 computed property의 동기화 버전을 자동 생성
@@ -229,9 +250,16 @@ public struct AutoSyncMacro: MemberMacro {
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
 
-        // DependencyValues extension인지 확인
-        guard let extensionDecl = declaration.as(ExtensionDeclSyntax.self),
-              "\(extensionDecl.extendedType)".contains("DependencyValues") else {
+        // DependencyValues 또는 InjectedValues extension인지 확인
+        guard let extensionDecl = declaration.as(ExtensionDeclSyntax.self) else {
+            return []
+        }
+
+        let extendedTypeName = "\(extensionDecl.extendedType)"
+        let isDependencyValues = extendedTypeName.contains("DependencyValues")
+        let isInjectedValues = extendedTypeName.contains("InjectedValues")
+
+        guard isDependencyValues || isInjectedValues else {
             return []
         }
 
@@ -252,27 +280,91 @@ public struct AutoSyncMacro: MemberMacro {
                 // 실제 accessor body에서 사용되는 Key 추출
                 let keyName = extractKeyFromAccessor(binding.accessorBlock) ?? "\(propertyName.prefix(1).uppercased())\(propertyName.dropFirst())Key"
 
-                // 동기화 property 생성 (원본 이름 그대로 사용하되 Sync 접미사 추가)
-                let autoSyncProperty = """
-                var \(propertyName)Sync: \(propertyType) {
-                    get {
-                        let value = self[\(keyName).self]
-                        #if canImport(WeaveDI)
-                        TCAAutoSyncContainer.autoSyncToWeaveDI(\(propertyType).self, value: value)
-                        #endif
-                        return value
+                // 🎯 양방향 동기화 property 생성 (DependencyValues vs InjectedValues에 따라 다른 로직)
+                let autoSyncProperty: String
+                if isDependencyValues {
+                    // TCA DependencyValues → WeaveDI 중심 동기화
+                    autoSyncProperty = """
+                    var \(propertyName)Sync: \(propertyType) {
+                        get {
+                            // 🔄 1. TCA → WeaveDI 동기화
+                            let value = self[\(keyName).self]
+                            #if canImport(WeaveDI)
+                            TCASmartSync.autoDetectAndSync(\(keyName).self, value: value)
+                            #endif
+
+                            // 🔄 2. WeaveDI → TCA 역방향 동기화 (기존 값이 있다면)
+                            #if canImport(WeaveDI)
+                            if let reverseSyncValue = TCASmartSync.retrieveTCACompatibleValue(\(propertyType).self) {
+                                return reverseSyncValue
+                            }
+                            #endif
+
+                            return value
+                        }
+                        set {
+                            // 🔄 1. TCA 저장
+                            self[\(keyName).self] = newValue
+
+                            // 🔄 2. WeaveDI 양방향 동기화
+                            #if canImport(WeaveDI)
+                            TCASmartSync.autoDetectAndSync(\(keyName).self, value: newValue)
+                            TCASmartSync.autoDetectWeaveDIRegistration(\(propertyType).self, value: newValue)
+                            #endif
+                        }
                     }
-                    set {
-                        self[\(keyName).self] = newValue
-                        #if canImport(WeaveDI)
-                        TCAAutoSyncContainer.autoSyncToWeaveDI(\(propertyType).self, value: newValue)
-                        #endif
+                    """
+                } else {
+                    // WeaveDI InjectedValues → TCA 중심 동기화
+                    autoSyncProperty = """
+                    var \(propertyName)Sync: \(propertyType) {
+                        get {
+                            // 🔄 1. WeaveDI → TCA 역방향 동기화
+                            let value = self[\(keyName).self]
+                            #if canImport(WeaveDI)
+                            TCASmartSync.autoDetectWeaveDIRegistration(\(propertyType).self, value: value)
+                            #endif
+
+                            // 🔄 2. TCA에서 동기화된 값 확인
+                            #if canImport(WeaveDI)
+                            if let tcaSyncValue = TCASmartSync.retrieveTCACompatibleValue(\(propertyType).self) {
+                                return tcaSyncValue
+                            }
+                            #endif
+
+                            return value
+                        }
+                        set {
+                            // 🔄 1. WeaveDI 저장
+                            self[\(keyName).self] = newValue
+
+                            // 🔄 2. TCA 양방향 동기화
+                            #if canImport(WeaveDI)
+                            TCASmartSync.autoDetectWeaveDIRegistration(\(propertyType).self, value: newValue)
+                            #endif
+                        }
                     }
+                    """
                 }
-                """
 
                 autoSyncMembers.append(DeclSyntax(stringLiteral: autoSyncProperty))
             }
+        }
+
+        // 🎯 자동 초기화: @AutoSync 사용 시 양방향 동기화 자동 활성화
+        if !autoSyncMembers.isEmpty {
+            let autoInitializer = """
+            /// 🎯 @AutoSync 자동 초기화: 양방향 동기화 활성화
+            static let _autoSyncInitializer: Void = {
+                #if canImport(WeaveDI)
+                Task { @MainActor in
+                    TCASmartSync.enableGlobalAutoSync()
+                }
+                #endif
+                return ()
+            }()
+            """
+            autoSyncMembers.append(DeclSyntax(stringLiteral: autoInitializer))
         }
 
         return autoSyncMembers

@@ -238,19 +238,29 @@ extension UnifiedRegistry {
     pendingEvents.removeAll()
     totalBatchesProcessed += 1
 
+#if DEBUG
     Log.info("🔄 [UnifiedRegistry] Processing batch #\(totalBatchesProcessed) with \(eventsToProcess.count) events")
+#endif
 
-    // 이벤트별 통계 수집
+    // 이벤트별 통계 수집 (RegistrationInfo 활용)
     var registrationCount = 0
     var resolutionCount = 0
     var releaseCount = 0
     var typeNames: Set<String> = []
+    var registrationInfoUpdates: [String: (count: Int, type: RegistrationType)] = [:]
 
     for event in eventsToProcess {
       switch event.eventType {
-      case .registered(let typeName, _):
+      case .registered(let typeName, let registrationType):
         registrationCount += 1
         typeNames.insert(typeName)
+
+        // RegistrationInfo 활용: 등록 통계 수집
+        registrationInfoUpdates[typeName] = (
+          count: registrationInfoUpdates[typeName]?.count ?? 0 + 1,
+          type: registrationType
+        )
+
       case .resolved(let typeName):
         resolutionCount += 1
         typeNames.insert(typeName)
@@ -262,6 +272,9 @@ extension UnifiedRegistry {
       }
     }
 
+    // RegistrationInfo 기반 상세 분석
+    await analyzeRegistrationPatterns(registrationInfoUpdates)
+
     // 배치 처리 실행
     await executeBatchProcessing(
       registrations: registrationCount,
@@ -272,7 +285,9 @@ extension UnifiedRegistry {
 
     totalEventsProcessed += eventsToProcess.count
 
+#if DEBUG
     Log.debug("✅ [UnifiedRegistry] Batch processed: \(registrationCount) reg, \(resolutionCount) res, \(releaseCount) rel")
+#endif
   }
 
   /// ⚡ 배치 처리 실행
@@ -286,6 +301,7 @@ extension UnifiedRegistry {
     if registrations > 0 || resolutions > 0 {
       Task { @DIActor in
         for typeName in affectedTypes {
+#if DEBUG
           if registrations > 0 {
             // 실제 타입을 알 수 없으므로 타입명으로만 추적
             Log.debug("📈 [BatchPipeline] Tracking registration for \(typeName)")
@@ -293,13 +309,16 @@ extension UnifiedRegistry {
           if resolutions > 0 {
             Log.debug("📈 [BatchPipeline] Tracking resolution for \(typeName)")
           }
+#endif
         }
       }
     }
 
     // 2. AutoMonitor 업데이트 (배치)
     Task {
+#if DEBUG
       Log.debug("📊 [BatchPipeline] Batch monitoring update: +\(registrations) reg, +\(resolutions) res, -\(releases) rel")
+#endif
     }
 
     // 3. 자동 최적화 적용 (필요시)
@@ -364,14 +383,56 @@ extension UnifiedRegistry {
     }
   }
 
+  /// 📊 RegistrationInfo 기반 등록 패턴 분석
+  private func analyzeRegistrationPatterns(_ updates: [String: (count: Int, type: RegistrationType)]) async {
+    guard !updates.isEmpty else { return }
+
+    // 등록 패턴 분석
+    var syncCount = 0
+    var asyncCount = 0
+    var scopedCount = 0
+
+    for (typeName, info) in updates {
+      switch info.type {
+      case .syncFactory:
+        syncCount += 1
+      case .asyncFactory, .asyncSingleton:
+        asyncCount += 1
+      case .scopedFactory, .scopedAsyncFactory:
+        scopedCount += 1
+      }
+
+      // 기존 RegistrationInfo와 병합
+      let key = AnyTypeIdentifier(type: String.self) // 임시로 String 사용
+      if let existingInfo = registrationStats[key] {
+        let updatedInfo = RegistrationInfo(
+          type: info.type,
+          registrationCount: existingInfo.registrationCount + info.count,
+          lastRegistrationDate: Date()
+        )
+        registrationStats[key] = updatedInfo
+      }
+    }
+
+#if DEBUG
+    if syncCount > 0 || asyncCount > 0 || scopedCount > 0 {
+      Log.info("📊 [RegistrationInfo] Pattern Analysis: sync=\(syncCount), async=\(asyncCount), scoped=\(scopedCount)")
+    }
+#endif
+  }
+
   /// 🚀 자동 최적화 적용
   private func applyAutoOptimization(for typeNames: Set<String>) async {
+#if DEBUG
     Log.info("🚀 [UnifiedRegistry] Applying auto-optimization for \(typeNames.count) types")
+#endif
 
     // 자주 사용되는 타입들에 대해 최적화 활성화
     if typeNames.count >= 3 {
       enableOptimization()
+#if DEBUG
       Log.info("✅ [UnifiedRegistry] Optimization enabled due to frequent usage pattern")
+#endif
     }
   }
 
@@ -391,12 +452,14 @@ extension UnifiedRegistry {
     let hasScopedAsync = scopedAsyncFactories[key] != nil
     let isOptimizationEnabled = SimpleOptimizationManager.shared.isEnabled()
 
+#if DEBUG
     Log.error("🔍 [Resolution Diagnostics] for \(typeName):")
     Log.error("  📦 Sync Factory: \(hasSync ? "✅ Found" : "❌ None")")
     Log.error("  ⚡ Async Factory: \(hasAsync ? "✅ Found" : "❌ None")")
     Log.error("  🔒 Scoped Factory: \(hasScoped ? "✅ Found" : "❌ None")")
     Log.error("  🔒⚡ Scoped Async Factory: \(hasScopedAsync ? "✅ Found" : "❌ None")")
     Log.error("  🚀 Optimization Enabled: \(isOptimizationEnabled ? "✅ Yes" : "❌ No")")
+#endif
 
     // 등록된 모든 타입 목록 출력 (디버깅용)
     let allRegisteredTypes = getAllRegisteredTypeNames()

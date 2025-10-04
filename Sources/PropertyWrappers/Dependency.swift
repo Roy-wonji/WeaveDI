@@ -117,6 +117,10 @@ public extension InjectedKey {
   static var testValue: Value {
     testValue
   }
+
+  static var previewValue: Value {
+    previewValue
+  }
 }
 
 // MARK: - withInjectedValues
