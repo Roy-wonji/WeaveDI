@@ -329,6 +329,9 @@ public enum TCABridgedKey<Key: DependencyKey>: InjectedKey where Key.Value: Send
   public static var testValue: Key.Value {
     Key.testValue
   }
+  public static var previewValue: Key.Value {
+    Key.previewValue
+  }
 }
 
 // MARK: - Convenience Extensions
