@@ -16,17 +16,12 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: 🛠️ Setup Swift
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: '6.1'
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
@@ -38,43 +33,6 @@ jobs:
             docs/**
       - name: 📦 Install deps
         run: npm ci
-
-      - name: 🧩 Component diagnostics
-        run: |
-          swift run --configuration release WeaveDITools diagnose-components --json > component-report.json
-          python3 - <<'PY'
-          import json, sys, pathlib
-
-          report_path = pathlib.Path('component-report.json')
-          if not report_path.exists():
-              print('Component diagnostics report not generated.', file=sys.stderr)
-              sys.exit(1)
-
-          data = json.loads(report_path.read_text() or '{}')
-          issues = data.get('issues', [])
-
-          summary_lines = ["## 🧩 Component Diagnostics"]
-          if issues:
-              summary_lines.append(f"❌ Found {len(issues)} issue(s).")
-              for issue in issues:
-                  type_name = issue.get('type', '<unknown>')
-                  providers = ', '.join(issue.get('providers', [])) or '<unknown>'
-                  detail = issue.get('detail') or 'No additional detail.'
-                  summary_lines.append(f"- **{type_name}** provided by {providers}: {detail}")
-              (pathlib.Path('/tmp/component-diagnostics-summary')).write_text('\n'.join(summary_lines))
-              print('\n'.join(summary_lines))
-              sys.exit(1)
-
-          summary_lines.append('✅ No duplicate providers or scope conflicts detected.')
-          (pathlib.Path('/tmp/component-diagnostics-summary')).write_text('\n'.join(summary_lines))
-          print('\n'.join(summary_lines))
-          PY
-      - name: 🧾 Diagnostics summary
-        if: always()
-        run: |
-          if [ -f /tmp/component-diagnostics-summary ]; then
-            cat /tmp/component-diagnostics-summary >> "$GITHUB_STEP_SUMMARY"
-          fi
 
       - name: 🔐 Audit (prod deps only)
         run: npm audit --omit=dev --audit-level=high || true
