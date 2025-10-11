@@ -171,25 +171,83 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   /// }
   /// ```
   @discardableResult
-  public func register<T>(
+  public func registerAsync<T>(
     _ type: T.Type,
     factory: @escaping @Sendable () -> T
-  ) -> T where T: Sendable {
+  ) async -> T where T: Sendable {
     let instance = factory()
-    Task { await unifiedRegistry.register(type, factory: { instance }) }
+    await unifiedRegistry.register(type, factory: { instance })
 
-    // 🚀 기존 자동 그래프 추적 (유지)
     Task { @DIActor in
       AutoDIOptimizer.shared.trackRegistration(type)
     }
 
-    // 🔍 간단한 모니터링 (추가 옵션)
     Task {
       await AutoMonitor.shared.onModuleRegistered(type)
     }
 
     Log.debug("Registered instance for \(String(describing: type))")
     return instance
+  }
+
+  @discardableResult
+  public func registerAsync<T>(
+    _ type: T.Type,
+    factory: @escaping @Sendable () async -> T
+  ) async -> T where T: Sendable {
+    let instance = await factory()
+    return await registerAsync(type, factory: { instance })
+  }
+
+  @discardableResult
+  public func registerFactoryAsync<T>(
+    _ type: T.Type,
+    build factory: @escaping @Sendable () -> T
+  ) async -> @Sendable () async -> Void where T: Sendable {
+    await unifiedRegistry.register(type, factory: factory)
+
+    Task { @DIActor in
+      AutoDIOptimizer.shared.trackRegistration(type)
+    }
+
+    Task {
+      await AutoMonitor.shared.onModuleRegistered(type)
+    }
+
+    Log.debug("Registered factory for \(String(describing: type))")
+
+    return { [weak self] in
+      guard let self else { return }
+      await self.unifiedRegistry.release(type)
+      Log.debug("Released \(String(describing: type))")
+    }
+  }
+
+  public func registerAsync<T>(
+    _ type: T.Type,
+    instance: T
+  ) async where T: Sendable {
+    await unifiedRegistry.register(type, factory: { instance })
+
+    Task { @DIActor in
+      AutoDIOptimizer.shared.trackRegistration(type)
+    }
+
+    Task {
+      await AutoMonitor.shared.onModuleRegistered(type)
+    }
+
+    Log.debug("Registered instance for \(String(describing: type))")
+  }
+
+  @discardableResult
+  public func register<T>(
+    _ type: T.Type,
+    factory: @escaping @Sendable () -> T
+  ) -> T where T: Sendable {
+    return blockingAwait { [self] in
+      await self.registerAsync(type, factory: factory)
+    }
   }
 
   /// 팩토리 패턴으로 의존성을 등록합니다 (지연 생성)
@@ -206,22 +264,17 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     build factory: @escaping @Sendable () -> T
   ) -> @Sendable () -> Void where T: Sendable {
-    Task { await unifiedRegistry.register(type, factory: factory) }
+    let releaseAsync = blockingAwait { [self] in
+      await self.registerFactoryAsync(type, build: factory)
+    }
+
     let releaseHandler: @Sendable () -> Void = { [weak self] in
-      Task { await self?.unifiedRegistry.release(type) }
+      guard let self else { return }
+      self.blockingAwait {
+        await releaseAsync()
+      }
     }
 
-    // 🚀 기존 자동 그래프 추적 (유지)
-    Task { @DIActor in
-      AutoDIOptimizer.shared.trackRegistration(type)
-    }
-
-    // 🔍 간단한 모니터링 (추가 옵션)
-    Task {
-      await AutoMonitor.shared.onModuleRegistered(type)
-    }
-
-    Log.debug("Registered factory for \(String(describing: type))")
     return releaseHandler
   }
 
@@ -234,19 +287,9 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     instance: T
   ) where T: Sendable {
-    Task { await unifiedRegistry.register(type, factory: { instance }) }
-
-    // 🚀 기존 자동 그래프 추적 (유지)
-    Task { @DIActor in
-      AutoDIOptimizer.shared.trackRegistration(type)
+    blockingAwait { [self] in
+      await self.registerAsync(type, instance: instance)
     }
-
-    // 🔍 간단한 모니터링 (추가 옵션)
-    Task {
-      await AutoMonitor.shared.onModuleRegistered(type)
-    }
-
-    Log.debug("Registered instance for \(String(describing: type))")
   }
 
   /// Actor 보호된 인스턴스 등록 (동시성 안전)
@@ -255,7 +298,9 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     instance: T
   ) where T: Sendable {
-    register(type, instance: instance)
+    blockingAwait { [self] in
+      await self.registerAsync(type, instance: instance)
+    }
   }
 
   // MARK: - Core Resolution API
@@ -267,46 +312,9 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   /// - Parameter type: 조회할 타입
   /// - Returns: 해결된 인스턴스 (없으면 nil)
   public func resolve<T>(_ type: T.Type) -> T? where T: Sendable {
-    // 🚀 기존 자동 성능 최적화 추적 (유지)
-    Task { @DIActor in
-      AutoDIOptimizer.shared.trackResolution(type)
+    return blockingAwait { [self] in
+      await self.resolveAsync(type)
     }
-
-    // 1. 현재 컨테이너에서 해결 시도 (QoS 우선순위 보존)
-    let semaphore = DispatchSemaphore(value: 0)
-    var result: T?
-
-    Task.detached { [unifiedRegistry] in
-      result = await unifiedRegistry.resolveAsync(type)
-      semaphore.signal()
-    }
-
-    semaphore.wait()
-
-    if let value = result {
-      Log.debug("Resolved \(String(describing: type)) from current container")
-      return value
-    }
-
-    // 2. Parent 컨테이너에서 해결 시도
-    if let parent = parent, let result = parent.resolve(type) {
-      Log.debug("Resolved \(String(describing: type)) from parent container")
-      return result
-    }
-
-    // 3. 🤖 @AutoRegister 타입 자동 등록 시도
-    let typeName = String(describing: type)
-    Log.info("🔍 해결: \(typeName) (총 1회)")
-    Log.info("⚠️ Nil 해결 감지: \(typeName)")
-    Log.error("No registered dependency found for \(typeName)")
-    Log.info("💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
-
-    // 🚨 자동 타입 안전성 처리
-    Task { @DIActor in
-      AutoDIOptimizer.shared.handleNilResolution(type)
-    }
-
-    return nil
   }
 
   /// 의존성을 조회하거나 기본값을 반환합니다
@@ -325,8 +333,42 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   /// 특정 타입의 의존성 등록을 해제합니다
   ///
   /// - Parameter type: 해제할 타입
-  public func release<T>(_ type: T.Type) {
-    Task { await unifiedRegistry.release(type) }
+  public func release<T>(_ type: T.Type) where T: Sendable {
+    blockingAwait { [self] in
+      await self.releaseAsync(type)
+    }
+  }
+
+  public func resolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
+    Task { @DIActor in
+      AutoDIOptimizer.shared.trackResolution(type)
+    }
+
+    if let value = await unifiedRegistry.resolveAsync(type) {
+      Log.debug("Resolved \(String(describing: type)) from current container")
+      return value
+    }
+
+    if let parent = parent, let value = await parent.resolveAsync(type) {
+      Log.debug("Resolved \(String(describing: type)) from parent container")
+      return value
+    }
+
+    let typeName = String(describing: type)
+    Log.info("🔍 해결: \(typeName) (총 1회)")
+    Log.info("⚠️ Nil 해결 감지: \(typeName)")
+    Log.error("No registered dependency found for \(typeName)")
+    Log.info("💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
+
+    Task { @DIActor in
+      AutoDIOptimizer.shared.handleNilResolution(type)
+    }
+
+    return nil
+  }
+
+  public func releaseAsync<T>(_ type: T.Type) async where T: Sendable {
+    await unifiedRegistry.release(type)
     Log.debug("Released \(String(describing: type))")
   }
 
@@ -424,14 +466,34 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
 
   /// 함수 호출 스타일을 지원하는 메서드 (체이닝용)
   @discardableResult
-  public func callAsFunction(_ configure: () -> Void = {}) -> Self {
-    configure()
-    return self
-  }
+public func callAsFunction(_ configure: () -> Void = {}) -> Self {
+  configure()
+  return self
+}
 
-  /// 모듈 빌드 메서드 (기존 buildModules와 동일)
-  public func build() async {
-    await buildModules()
+/// 모듈 빌드 메서드 (기존 buildModules와 동일)
+public func build() async {
+  await buildModules()
+}
+}
+
+// MARK: - Synchronous bridging helpers
+
+private extension DIContainer {
+
+  /// Bridges an async operation to the existing synchronous API surface.
+  @preconcurrency
+  func blockingAwait<T: Sendable>(_ operation: @escaping @Sendable () async -> T) -> T {
+    let semaphore = DispatchSemaphore(value: 0)
+    var result: T?
+
+    Task(priority: .utility) {
+      result = await operation()
+      semaphore.signal()
+    }
+
+    semaphore.wait()
+    return result!
   }
 }
 
@@ -763,4 +825,3 @@ public extension DIContainer {
     Task { @DIActor in AutoDIOptimizer.shared.resetStats() }
   }
 }
-

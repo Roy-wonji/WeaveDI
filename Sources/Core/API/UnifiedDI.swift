@@ -66,6 +66,15 @@ public enum UnifiedDI {
   
   // MARK: - Async Registration (New AsyncDIContainer-based)
 
+  /// 🚀 Sync factory 기반 async register
+  @discardableResult
+  public static func registerAsync<T>(
+    _ type: T.Type,
+    factory: @escaping @Sendable () -> T
+  ) async -> T where T: Sendable {
+    return await DIContainer.shared.registerAsync(type, factory: factory)
+  }
+
   /// 🚀 **Actor 격리된 async register** - 즉시 일관성 확보
   ///
   /// ## Swift 6 Pure Async 기반 등록:
@@ -88,9 +97,7 @@ public enum UnifiedDI {
     scope: ProvideScope = .transient,
     factory: @escaping @Sendable () async -> T
   ) async -> T where T: Sendable {
-    let instance = await factory()
-    await DIContainer.shared.actorRegister(type, instance: instance)
-    return instance
+    return await DIContainer.shared.registerAsync(type, factory: factory)
   }
 
   /// 🚀 Singleton 등록 (즉시 생성으로 일관성 보장)
@@ -125,10 +132,7 @@ public enum UnifiedDI {
     scope: ProvideScope = .transient,
     factory: @escaping @Sendable () async -> T
   ) async -> T where T: Sendable {
-    let instance = await factory()
-    // KeyPath를 통한 타입 추론으로 T.self를 등록
-    await DIContainer.shared.actorRegister(T.self, instance: instance)
-    return instance
+    return await DIContainer.shared.registerAsync(T.self, factory: factory)
   }
   
   /// KeyPath를 사용한 타입 안전한 등록 (UnifiedDI.register(\.keyPath) 스타일)
@@ -226,12 +230,12 @@ public enum UnifiedDI {
   /// }
   /// ```
   public static func resolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
-    return WeaveDI.Container.live.resolve(type)
+    return await WeaveDI.Container.live.resolveAsync(type)
   }
 
   /// 🚀 필수 의존성 조회 (Non-blocking)
   public static func requireResolveAsync<T: Sendable>(_ type: T.Type) async -> T {
-    guard let instance = WeaveDI.Container.live.resolve(type) else {
+    guard let instance = await resolveAsync(type) else {
       fatalError("Required dependency not found: \(String(describing: type))")
     }
     return instance
@@ -367,8 +371,13 @@ public enum UnifiedDI {
   /// UnifiedDI.release(UserService.self)
   /// // 이후 resolve 시 nil 반환
   /// ```
-  public static func release<T>(_ type: T.Type) {
+  public static func release<T>(_ type: T.Type) where T: Sendable {
     WeaveDI.Container.live.release(type)
+    FastResolveCache.shared.set(type, value: nil)
+  }
+
+  public static func releaseAsync<T>(_ type: T.Type) async where T: Sendable {
+    await WeaveDI.Container.live.releaseAsync(type)
     FastResolveCache.shared.set(type, value: nil)
   }
   
@@ -926,3 +935,20 @@ public extension UnifiedDI {
 }
 
 // MARK: - Legacy Compatibility
+
+private extension UnifiedDI {
+
+  @preconcurrency
+  static func blockingAwait<T: Sendable>(_ operation: @escaping @Sendable () async -> T) -> T {
+    let semaphore = DispatchSemaphore(value: 0)
+    var result: T?
+
+    Task(priority: .utility) {
+      result = await operation()
+      semaphore.signal()
+    }
+
+    semaphore.wait()
+    return result!
+  }
+}
