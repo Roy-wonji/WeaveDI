@@ -4,40 +4,49 @@ This document outlines the future development plans, upcoming features, and long
 
 ## Version History & Current Status
 
-### Current Version: 3.2.0 ✅ (Released 2025-10-01)
+### Current Version: 3.3.0 ✅ (Released 2025-10-12)
 
-**Released Features:**
+**Latest Released Features:**
+- ✅ **Environment Flags Performance Optimization** - Achieved 0% overhead in production
+- ✅ **TCA Bridge Policy Configuration** - Dynamic dependency priority control
+- ✅ **Modern Batch Registration DSL** - Result Builder-based declarative registration
+- ✅ **ComponentDiagnostics System** - Automatic dependency analysis and issue detection
+- ✅ **Advanced Performance Monitoring** - Memory-efficient tracking and optimization suggestions
+- ✅ **Complete Warning Resolution** - Enhanced type safety improvements
+
+**Previous Features (v3.2.x):**
 - ✅ Swift 6.0 full compatibility with strict concurrency
 - ✅ Actor-aware dependency injection with `@DIContainerActor`
 - ✅ **@Injected Property Wrapper** - TCA-style dependency injection
 - ✅ **AppDI Simplification** - Streamlined app initialization with `AppDIManager`
 - ✅ Runtime optimization with TypeID and lock-free reading
-- ✅ Automatic performance monitoring and optimization suggestions
 - ✅ TCA (The Composable Architecture) integration
 - ✅ Multi-scope dependency management
 - ✅ Comprehensive testing utilities
 - ✅ Bilingual documentation (English & Korean)
 
 **Deprecated:**
-- ⚠️ `@Injected` - Will be removed in 4.0.0 (use `@Injected`)
+- ⚠️ `@Inject` - Will be removed in 4.0.0 (use `@Injected`)
 - ⚠️ `@SafeInject` - Will be removed in 4.0.0 (use `@Injected`)
 
-**Performance Metrics:**
+**Performance Metrics (v3.3.0):**
 - ⚡ 50-80% faster dependency resolution vs v2.x
 - 🧠 2-3x better memory efficiency in multi-threaded scenarios
-- 🔧 Zero-cost abstractions in optimized builds
+- 🚀 Complete zero-cost abstractions in production environments
+- 📊 Real-time performance insights in development environments
 
 ## Upcoming Releases
 
-### Version 3.3.0 🚧 (Q1 2026)
+### Version 3.4.0 🚧 (Q4 2025)
 
 **Focus: Developer Tools & Visualization**
 
 #### New Features
 - 🔧 **WeaveDI Inspector**: Visual dependency graph analysis tool with SwiftUI overlay
-- 📊 **Enhanced Performance Profiler**: Real-time DI performance monitoring dashboard
-- 🎯 **Smart Code Completion**: Enhanced Xcode integration
+- 📊 **Enhanced Performance Dashboard**: Real-time DI performance monitoring dashboard
+- 🎯 **Smart Code Completion**: Enhanced Xcode integration and autocomplete
 - 📝 **Auto-Generated Documentation**: Dependency documentation from code
+- 🔍 **Dependency Graph Visualization**: Visual representation of complex dependency relationships
 
 #### Enhancements
 - 🚀 **Enhanced @Factory**: Support for complex factory patterns with parameters

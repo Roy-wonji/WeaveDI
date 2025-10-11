@@ -257,11 +257,13 @@ public final actor AppDIManager {
     UnifiedDI.configureOptimization(debounceMs: 100, threshold: 10, realTimeUpdate: true)
     UnifiedDI.setAutoOptimization(true)
     UnifiedDI.setLogLevel(.errors)
-    
+
     // Swift 6 안전성을 위해 Task 내에서 실행
     await withCheckedContinuation { continuation in
       Task {
-        await registerModules(container)
+        await container.performBatchRegistration { batchContainer in
+          await registerModules(batchContainer)
+        }
         await container {
           // 빈 클로저: callAsFunction() 체이닝을 위해 사용
         }.build()

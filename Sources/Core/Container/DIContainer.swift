@@ -422,6 +422,12 @@ public func build() async {
 
 private extension DIContainer {
 
+  final class RegistrationBatchContext: @unchecked Sendable {
+    var operations: [@Sendable (UnifiedRegistry) async -> Void] = []
+  }
+
+  @TaskLocal static var batchContext: RegistrationBatchContext?
+
   /// Bridges an async operation to the existing synchronous API surface.
   @preconcurrency
   func blockingAwait<T: Sendable>(_ operation: @escaping @Sendable () async -> T) -> T {
@@ -440,12 +446,20 @@ private extension DIContainer {
   @discardableResult
   func registerInstanceSync<T>(_ type: T.Type, instance: T) -> T where T: Sendable {
     syncRegistry.registerInstance(type, instance: instance)
-    scheduleActorUpdate {
-      await $0.register(type, factory: { instance })
+    if let batch = DIContainer.batchContext {
+      batch.operations.append { registry in
+        await registry.register(type, factory: { instance })
+      }
+    } else {
+      scheduleActorUpdate {
+        await $0.register(type, factory: { instance })
+      }
     }
     postRegistrationHook(for: type)
     FastResolveCache.shared.set(type, value: instance)
-    Log.debug("Registered instance for \(String(describing: type))")
+    if WeaveDIConfiguration.enableVerboseLogging {
+      Log.debug("Registered instance for \(String(describing: type))")
+    }
     return instance
   }
 
@@ -455,18 +469,28 @@ private extension DIContainer {
     factory: @escaping @Sendable () -> T
   ) -> @Sendable () -> Void where T: Sendable {
     syncRegistry.registerFactory(type, factory: factory)
-    scheduleActorUpdate {
-      await $0.register(type, factory: factory)
+    if let batch = DIContainer.batchContext {
+      batch.operations.append { registry in
+        await registry.register(type, factory: factory)
+      }
+    } else {
+      scheduleActorUpdate {
+        await $0.register(type, factory: factory)
+      }
     }
     postRegistrationHook(for: type)
     FastResolveCache.shared.set(type, value: nil)
-    Log.debug("Registered factory for \(String(describing: type))")
+    if WeaveDIConfiguration.enableVerboseLogging {
+      Log.debug("Registered factory for \(String(describing: type))")
+    }
 
     let release: @Sendable () -> Void = { [weak self] in
       guard let self else { return }
       self.syncRegistry.release(type)
       self.scheduleActorRelease(type)
-      Log.debug("Released \(String(describing: type))")
+      if WeaveDIConfiguration.enableVerboseLogging {
+        Log.debug("Released \(String(describing: type))")
+      }
     }
 
     return release
@@ -476,16 +500,22 @@ private extension DIContainer {
     syncRegistry.release(type)
     scheduleActorRelease(type)
     FastResolveCache.shared.set(type, value: nil)
-    Log.debug("Released \(String(describing: type))")
+    if WeaveDIConfiguration.enableVerboseLogging {
+      Log.debug("Released \(String(describing: type))")
+    }
   }
 
   func postRegistrationHook<T>(for type: T.Type) where T: Sendable {
-    Task { @DIActor in
-      AutoDIOptimizer.shared.trackRegistration(type)
+    if WeaveDIConfiguration.enableOptimizerTracking {
+      Task { @DIActor in
+        AutoDIOptimizer.shared.trackRegistration(type)
+      }
     }
 
-    Task {
-      await AutoMonitor.shared.onModuleRegistered(type)
+    if WeaveDIConfiguration.enableAutoMonitor {
+      Task {
+        await AutoMonitor.shared.onModuleRegistered(type)
+      }
     }
   }
 
@@ -567,6 +597,50 @@ public extension DIContainer {
   /// 전역 컨테이너의 백그라운드 싱크 작업을 모두 처리합니다.
   static func flushPendingRegistryTasks() async {
     await shared.awaitPendingRegistryTasks()
+  }
+
+  /// Registers multiple dependencies using a single UnifiedRegistry task to reduce overhead.
+  func performBatchRegistration(_ block: @Sendable (DIContainer) -> Void) async {
+    let context = RegistrationBatchContext()
+    DIContainer.$batchContext.withValue(context) {
+      block(self)
+    }
+
+    guard !context.operations.isEmpty else { return }
+
+    let taskID = UUID()
+    let task = Task(priority: .utility) { [weak self] in
+      guard let self else { return }
+      defer { self.removePendingTask(taskID) }
+      for operation in context.operations {
+        await operation(self.unifiedRegistry)
+      }
+    }
+
+    addPendingTask(taskID, task: task)
+    await task.value
+  }
+
+  /// Async overload for batch registration.
+  func performBatchRegistration(_ block: @Sendable (DIContainer) async -> Void) async {
+    let context = RegistrationBatchContext()
+    await DIContainer.$batchContext.withValue(context) {
+      await block(self)
+    }
+
+    guard !context.operations.isEmpty else { return }
+
+    let taskID = UUID()
+    let task = Task(priority: .utility) { [weak self] in
+      guard let self else { return }
+      defer { self.removePendingTask(taskID) }
+      for operation in context.operations {
+        await operation(self.unifiedRegistry)
+      }
+    }
+
+    addPendingTask(taskID, task: task)
+    await task.value
   }
 
   /// 컨테이너를 부트스트랩합니다 (비동기 등록)

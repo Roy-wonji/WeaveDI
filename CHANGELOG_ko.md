@@ -2,6 +2,70 @@
 
 이 프로젝트의 모든 주요 변경사항이 이 파일에 문서화됩니다.
 
+## [3.3.0] - 2025-10-12
+
+### 🚀 주요 성능 향상
+- **환경 플래그 최적화**: 프로덕션 환경에서 성능 모니터링 오버헤드 완전 제거
+  - 조건부 성능 추적을 위한 `DI_MONITORING_ENABLED` 컴파일 플래그
+  - 릴리즈 빌드에서 0% Task 생성 오버헤드
+  - 디버그 모드에서 완전한 모니터링 기능 유지
+  - `UnifiedDI` 및 `DIAdvanced.Performance` 전반에 걸친 스마트 조건부 컴파일
+  - 파일: `Sources/Core/API/UnifiedDI.swift`, `Sources/Core/API/DIAdvanced.swift`
+
+- **고급 성능 모니터링 시스템**: 포괄적인 성능 최적화 프레임워크
+  - 조건부 데이터 저장을 통한 메모리 효율적 추적
+  - 개발 환경에서 실시간 메트릭 수집
+  - 자동 최적화 제안 및 병목 현상 감지
+  - CI/CD 파이프라인 통합을 통한 성능 검증
+  - 문서: `docs/api/performanceOptimizations.md`, `docs/ko/api/performanceOptimizations.md`
+
+### 🎯 TCA 통합 개선
+- **TCA 브릿지 정책 설정**: 유연한 TCA 통합을 위한 동적 의존성 우선순위 제어
+  - `.testPriority`, `.livePriority`, `.contextual` 모드를 가진 `TCABridgePolicy` 열거형
+  - 다양한 배포 환경을 위한 런타임 정책 전환
+  - 실행 환경에 따른 컨텍스트 인식 값 선택
+  - 개발자 설정을 위한 SwiftUI 통합 지원
+  - 파일: `Sources/Core/Integration/TCASmartSync.swift`
+  - 문서: `docs/api/tcaPolicyConfiguration.md`, `docs/ko/api/tcaPolicyConfiguration.md`
+
+### 🏗️ 향상된 배치 등록
+- **현대적 Result Builder DSL**: 완전히 새롭게 설계된 배치 등록 시스템
+  - 선언적 의존성 등록을 위한 `@BatchRegistrationBuilder`
+  - 팩토리, 기본값, 조건부 등록 패턴 지원
+  - 완전한 Swift Result Builder 기능을 활용한 타입 안전 컴파일
+  - 조건부 등록 블록 및 배열 기반 등록 지원
+  - 파일: `Sources/Core/API/DIAdvanced.swift`
+  - 문서: `docs/api/batchRegistration.md`, `docs/ko/api/batchRegistration.md`
+
+### 🛡️ 자동 이슈 감지
+- **ComponentDiagnostics 시스템**: 혁신적인 자동 의존성 분석
+  - 중복 프로바이더 및 스코프 불일치의 컴파일 타임 감지
+  - 자동 해결책 제안 및 상세 문제 리포트
+  - 자동 검증을 위한 CI/CD 파이프라인 통합
+  - 외부 도구 통합을 위한 JSON 내보내기 기능
+  - 정밀한 메타데이터 분석으로 false positive 0%
+  - 문서: `docs/api/componentDiagnostics.md`, `docs/ko/api/componentDiagnostics.md`
+
+### 🔧 코드 품질 개선
+- **경고 해결**: Swift 컴파일러 경고 완전 제거
+  - `TCASmartSync.swift`의 조건부 캐스트 경고 수정
+  - 런타임 프로토콜 체크를 통한 타입 안전성 향상
+  - 향상된 오류 처리 및 엣지 케이스 관리
+  - 최적화된 성능 경로를 가진 더 깔끔한 코드베이스
+
+### 📚 포괄적인 문서화
+- **환경 플래그 문서**: 컴파일 타임 최적화를 위한 완전한 가이드
+  - 빌드 설정 예제 및 CI/CD 통합
+  - 성능 벤치마킹 및 메모리 사용량 분석
+  - 문서: `docs/api/environmentFlags.md`, `docs/ko/api/environmentFlags.md`
+
+### 🎨 개발자 경험
+- **향상된 IDE 지원**: 개선된 자동완성 및 타입 추론
+- **더 나은 오류 메시지**: 더 설명적인 컴파일 및 런타임 오류
+- **성능 인사이트**: 상세한 메트릭 및 최적화 권장사항
+
+---
+
 ## [3.2.0] - 2025-10-01
 
 ### 🎉 추가됨

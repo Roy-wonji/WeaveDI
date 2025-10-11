@@ -41,6 +41,7 @@ Comprehensive guide to safely and efficiently initializing your dependency injec
 @main
 struct MyApp: App {
     init() {
+        WeaveDIConfiguration.applyFromEnvironment()
         Task {
             await bootstrapDependencies()
         }
@@ -59,6 +60,7 @@ struct MyApp: App {
 class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        WeaveDIConfiguration.applyFromEnvironment()
         Task {
             await bootstrapDependencies()
         }
@@ -66,6 +68,44 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 }
 ```
+
+### Auto-configure for the current environment
+
+Call `WeaveDIConfiguration.applyFromEnvironment()` before bootstrapping to automatically align optimizer, monitor, and logging flags with your build context.
+
+```swift
+enum Bootstrap {
+    static func configure() {
+        // Reads environment variables injected via scheme, xcconfig, or CI
+        WeaveDIConfiguration.applyFromEnvironment()
+
+        Task.detached {
+            await bootstrapDependencies()
+        }
+    }
+}
+
+@main
+struct MyApp: App {
+    init() {
+        Bootstrap.configure()
+    }
+
+    var body: some Scene {
+        WindowGroup { ContentView() }
+    }
+}
+```
+
+Supported environment variables:
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `WEAVEDI_ENABLE_OPTIMIZER` | `true` | Enables AutoDI optimizer tracking |
+| `WEAVEDI_ENABLE_MONITOR` | `true` | Turns on automatic monitoring |
+| `WEAVEDI_VERBOSE_LOGGING` | `false` | Switches internal logging to verbose mode |
+
+Inject different values per scheme/CI job to ensure production keeps optimizers enabled while local debugging can turn on verbose logging early in the bootstrap sequence.
 
 ## Synchronous Bootstrap
 

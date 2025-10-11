@@ -22,6 +22,10 @@ let package = Package(
             name: "Benchmarks",
             targets: ["Benchmarks"]
         ),
+        .executable(
+            name: "WeaveDITools",
+            targets: ["WeaveDITools"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/Roy-wonji/LogMacro.git", exact: "1.1.1"),
@@ -42,7 +46,7 @@ let package = Package(
                 .product(name: "Dependencies", package: "swift-dependencies")
             ],
             path: "Sources",
-            exclude: ["Benchmarks", "WeaveDIMacros"],
+            exclude: ["Benchmarks", "WeaveDIMacros", "WeaveDITools"],
             resources: [
                 .process("WeaveDI.docc")
             ],
@@ -71,6 +75,11 @@ let package = Package(
             name: "Benchmarks",
             dependencies: ["WeaveDI"],
             path: "Sources/Benchmarks"
+        ),
+        .executableTarget(
+            name: "WeaveDITools",
+            dependencies: ["WeaveDI"],
+            path: "Sources/WeaveDITools"
         ),
     ],
     swiftLanguageModes: [.v6]

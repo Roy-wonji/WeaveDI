@@ -562,3 +562,32 @@ class UserService {
 - [TCA Integration](./tcaIntegration) - Using with The Composable Architecture
 - [Performance Guide](./runtimeOptimization) - Optimization techniques
 - [Testing Guide](../tutorial/testing) - Advanced testing patterns
+
+## CI Diagnostics Automation
+
+### Catch duplicate providers/scope drifts
+Add `WeaveDITools diagnose-components --json` to your CI pipeline to block duplicate providers or scope mismatches before the build stage. The `deploy.yml` example:
+
+```yaml
+- name: 🧩 Component diagnostics
+  run: |
+    swift run --configuration release WeaveDITools diagnose-components --json > component-report.json
+    python3 - <<'PY'
+    import json, sys
+    data = json.load(open('component-report.json'))
+    issues = data.get('issues', [])
+    if issues:
+        for item in issues:
+            print(f"- {item['type']}: {', '.join(item['providers'])} -> {item.get('detail')}")
+        sys.exit(1)
+    PY
+```
+
+### Metadata-powered cycle hints
+The new `check-cycles` subcommand inspects compile-time component metadata to surface simple component cycles:
+
+```bash
+swift run WeaveDITools check-cycles --json
+```
+
+For CI, call the bundled `Scripts/check-component-cycles.sh` helper. It exits with code `1` when a cycle is found, enriching your “compile-time hint channel” with actionable failures.

@@ -11,6 +11,18 @@ import LogMacro
 #if canImport(Dependencies)
 import Dependencies
 
+// MARK: - TCA Bridge Policy Configuration
+
+/// TCA ↔ WeaveDI 브릿지 정책 설정
+public enum TCABridgePolicy: String, CaseIterable, Sendable {
+    /// testValue 우선 (테스트 환경에 적합)
+    case testPriority = "test_priority"
+    /// liveValue 우선 (프로덕션 환경에 적합)
+    case livePriority = "live_priority"
+    /// 컨텍스트에 따라 자동 결정
+    case contextual = "contextual"
+}
+
 /// 🎯 **Super Simple** TCA ↔ WeaveDI 양방향 자동 동기화
 /// 사용자 코드 수정을 최소화하는 스마트 동기화 시스템
 ///
@@ -18,11 +30,16 @@ import Dependencies
 /// - TCA DependencyKey → WeaveDI InjectedKey ✅
 /// - WeaveDI InjectedKey → TCA DependencyKey ✅
 /// - 완전 자동 초기화 (수동 호출 불필요) ✅
+/// - 정책 기반 우선순위 설정 ✅
 public struct TCASmartSync {
 
     /// 글로벌 자동 동기화 활성화/비활성화
     @MainActor
     public static var isEnabled: Bool = false
+
+    /// 현재 브릿지 정책
+    @MainActor
+    public static var currentPolicy: TCABridgePolicy = .testPriority
 
     /// 자동 초기화 완료 여부
     @MainActor
@@ -77,6 +94,40 @@ public struct TCASmartSync {
         Log.info("   이제 모든 TCA DependencyKey가 자동으로 WeaveDI와 동기화됩니다.")
     }
 
+    /// 🎯 **브릿지 정책 설정**: TCA ↔ WeaveDI 우선순위 정책 변경
+    ///
+    /// ## 사용법:
+    /// ```swift
+    /// // 프로덕션 환경
+    /// TCASmartSync.configure(policy: .livePriority)
+    ///
+    /// // 테스트 환경
+    /// TCASmartSync.configure(policy: .testPriority)
+    ///
+    /// // 자동 결정
+    /// TCASmartSync.configure(policy: .contextual)
+    /// ```
+    @MainActor
+    public static func configure(policy: TCABridgePolicy) {
+        currentPolicy = policy
+        Log.info("🎯 TCA 브릿지 정책이 '\(policy.rawValue)'로 변경되었습니다!")
+
+        switch policy {
+        case .testPriority:
+            Log.info("   testValue가 우선됩니다 (테스트 환경에 적합)")
+        case .livePriority:
+            Log.info("   liveValue가 우선됩니다 (프로덕션 환경에 적합)")
+        case .contextual:
+            Log.info("   컨텍스트에 따라 자동으로 결정됩니다")
+        }
+    }
+
+    /// 🎯 **현재 정책 조회**: 현재 설정된 브릿지 정책 반환
+    @MainActor
+    public static func getCurrentPolicy() -> TCABridgePolicy {
+        return currentPolicy
+    }
+
     /// 🎯 **벌크 등록**: 여러 DependencyKey를 한 번에 WeaveDI와 동기화
     ///
     /// ## 사용법:
@@ -99,7 +150,7 @@ public struct TCASmartSync {
     /// 🎯 **개별 등록**: 특정 DependencyKey를 WeaveDI와 동기화
     @MainActor
     public static func syncSingle<T: DependencyKey>(_ keyType: T.Type) where T.Value: Sendable {
-        let value = keyType.liveValue
+        let value = getValueByPolicy(keyType: keyType)
 
         // 🔧 Fix: 두 곳 모두에 등록 (DIContainer + InjectedValues 호환성)
         _ = UnifiedDI.register(T.Value.self) { value }
@@ -110,7 +161,59 @@ public struct TCASmartSync {
         // 등록된 키 추가
         registeredKeys.insert(String(describing: keyType))
 
-        Log.info("🎯 \(keyType) → WeaveDI + InjectedValues 동기화 완료")
+        Log.info("🎯 \(keyType) → WeaveDI + InjectedValues 동기화 완료 (정책: \(currentPolicy.rawValue))")
+    }
+
+    /// 🎯 **정책 기반 값 선택**: 현재 정책에 따라 적절한 값 반환
+    @MainActor
+    private static func getValueByPolicy<T: DependencyKey>(keyType: T.Type) -> T.Value where T.Value: Sendable {
+        switch currentPolicy {
+        case .livePriority:
+            return keyType.liveValue
+        case .testPriority:
+            // TestDependencyKey가 가능한 경우 testValue 사용, 아니면 liveValue
+            return getTestValueSafely(for: keyType) ?? keyType.liveValue
+        case .contextual:
+            // 테스트 환경이면 testValue, 아니면 liveValue
+            #if DEBUG
+            return getTestValueSafely(for: keyType) ?? keyType.liveValue
+            #else
+            return keyType.liveValue
+            #endif
+        }
+    }
+
+    /// TestDependencyKey의 testValue를 안전하게 가져오는 헬퍼 메서드
+    @MainActor
+    private static func getTestValueSafely<T: DependencyKey>(for keyType: T.Type) -> T.Value? where T.Value: Sendable {
+        // 메모리에서 testValue 속성 존재 여부 확인
+        if hasTestValueProperty(keyType) {
+            // testValue가 있는 경우에만 접근
+            return extractTestValue(from: keyType)
+        }
+
+        return nil
+    }
+
+    /// 타입에 testValue 속성이 있는지 확인
+    @MainActor
+    private static func hasTestValueProperty<T: DependencyKey>(_ keyType: T.Type) -> Bool {
+        // Mirror를 사용하여 타입의 정적 속성 확인
+        let mirror = Mirror(reflecting: keyType)
+        return mirror.children.contains { $0.label == "testValue" }
+    }
+
+    /// TestDependencyKey의 testValue를 추출
+    @MainActor
+    private static func extractTestValue<T: DependencyKey>(from keyType: T.Type) -> T.Value? {
+        // 안전한 타입 변환을 통한 testValue 추출
+        // TestDependencyKey 프로토콜을 직접 참조하지 않고 값 추출
+        let anyTestKey = keyType as Any
+        if let testDependencyKey = anyTestKey as? any TestDependencyKey.Type {
+            let testValue = testDependencyKey.testValue
+            return testValue as? T.Value
+        }
+        return nil
     }
 
     /// 🎯 **InjectedValues 자동 등록**: DependencyKey를 InjectedKey로 변환하여 등록
@@ -413,9 +516,10 @@ public extension TCASmartSync {
 
     /// ⚙️ 테스트 전용 초기화: 모든 내부 상태를 리셋합니다.
     @MainActor
-    public static func resetForTesting() {
+    static func resetForTesting() {
         isEnabled = false
         isAutoInitialized = false
+        currentPolicy = .testPriority  // 테스트용 기본 정책으로 리셋
         registeredKeys.removeAll()
         registeredInjectedKeys.removeAll()
         tcaCompatibleStorage.removeAll()

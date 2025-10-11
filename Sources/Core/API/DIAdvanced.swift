@@ -34,7 +34,9 @@ public enum DIAdvanced {
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
     public static func resolveWithTracking<T>(_ type: T.Type) -> T? where T: Sendable {
+#if DEBUG && DI_MONITORING_ENABLED
       Task { @DIActor in AutoDIOptimizer.shared.trackResolution(type) }
+#endif
       return WeaveDI.Container.live.resolve(type)
     }
     
@@ -44,13 +46,17 @@ public enum DIAdvanced {
     @MainActor
     public static func markAsFrequentlyUsed<T>(_ type: T.Type) {
       // AutoDIOptimizer가 자동으로 처리하므로 별도 처리 불필요
+#if DEBUG && DI_MONITORING_ENABLED
       Task { @DIActor in AutoDIOptimizer.shared.trackResolution(type) }
+#endif
     }
     
     /// 성능 최적화를 활성화합니다
     @MainActor
     public static func enableOptimization() {
+#if DEBUG && DI_MONITORING_ENABLED
       Task { @DIActor in AutoDIOptimizer.shared.setOptimizationEnabled(true) }
+#endif
     }
     
     /// 현재 성능 통계를 반환합니다

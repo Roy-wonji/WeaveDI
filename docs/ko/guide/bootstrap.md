@@ -41,6 +41,7 @@
 @main
 struct MyApp: App {
     init() {
+        WeaveDIConfiguration.applyFromEnvironment()
         Task {
             await bootstrapDependencies()
         }
@@ -59,6 +60,7 @@ struct MyApp: App {
 class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        WeaveDIConfiguration.applyFromEnvironment()
         Task {
             await bootstrapDependencies()
         }
@@ -66,6 +68,44 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 }
 ```
+
+### 환경별 자동 구성 적용
+
+애플리케이션 진입점에서 `WeaveDIConfiguration.applyFromEnvironment()`를 호출하면 빌드나 실행 환경에 맞춰 최적화/모니터링/로그 옵션을 자동으로 맞출 수 있습니다.
+
+```swift
+struct Bootstrap {
+    static func configure() {
+        // CI, 개발, 프로덕션 각각의 환경 변수를 읽어 설정을 적용
+        WeaveDIConfiguration.applyFromEnvironment()
+
+        Task.detached {
+            await bootstrapDependencies()
+        }
+    }
+}
+
+@main
+struct MyApp: App {
+    init() {
+        Bootstrap.configure()
+    }
+
+    var body: some Scene {
+        WindowGroup { ContentView() }
+    }
+}
+```
+
+사용 가능한 환경 변수는 아래와 같습니다.
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `WEAVEDI_ENABLE_OPTIMIZER` | `true` | AutoDI 최적화 트래킹 활성화 여부 |
+| `WEAVEDI_ENABLE_MONITOR` | `true` | 자동 모니터링 시스템 활성화 |
+| `WEAVEDI_VERBOSE_LOGGING` | `false` | 내부 로깅을 상세 모드로 전환 |
+
+프로덕션에서는 최적화/모니터링을 켜고, 로컬 디버깅 시에는 로깅을 켜는 식으로 `.xcconfig`나 CI 스크립트에서 환경 변수를 주입하면 부트스트랩 전에 즉시 적용됩니다.
 
 ## 동기 부트스트랩
 

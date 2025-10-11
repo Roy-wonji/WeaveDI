@@ -360,6 +360,10 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
     let autoRegisterMethod = generateAutoRegisterMethod(for: provideProperties, structName: structName)
     generatedMembers.append(autoRegisterMethod)
 
+    if let metadataDecl = generateMetadataRegistration(for: provideProperties, structName: structName) {
+      generatedMembers.append(metadataDecl)
+    }
+
     return generatedMembers
   }
 
@@ -524,6 +528,31 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
             """
 
     return methodDecl
+  }
+
+  private static func generateMetadataRegistration(for properties: [ProvideProperty], structName: String) -> DeclSyntax? {
+    guard !properties.isEmpty else { return nil }
+
+    let providedTypesLiteral = properties.map { "\"\($0.type)\"" }.joined(separator: ", ")
+    let propertyNamesLiteral = properties.map { "\"\($0.name)\"" }.joined(separator: ", ")
+    let scopesLiteral = properties.map { "\"\($0.scope)\"" }.joined(separator: ", ")
+    let componentNameLiteral = "\"\(structName)\""
+
+    let decl: DeclSyntax = """
+            @discardableResult
+            static let __componentMetadata: ComponentMetadata = {
+                let metadata = ComponentMetadata(
+                    componentName: \(raw: componentNameLiteral),
+                    providedTypes: [\(raw: providedTypesLiteral)],
+                    propertyNames: [\(raw: propertyNamesLiteral)],
+                    scopes: [\(raw: scopesLiteral)]
+                )
+                ComponentMetadataRegistry.register(metadata)
+                return metadata
+            }()
+            """
+
+    return decl
   }
 
   /// @Injected 자동 등록 메서드

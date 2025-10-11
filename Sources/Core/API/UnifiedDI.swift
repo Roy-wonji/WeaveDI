@@ -9,6 +9,28 @@
 import Foundation
 import LogMacro
 
+// MARK: - Performance Configuration
+//
+// 🚀 **WeaveDI Performance Flags**
+//
+// For maximum production performance, add these build flags:
+//
+// **Release Build (Recommended):**
+// - No flags needed - monitoring automatically disabled
+//
+// **Debug Build with Monitoring:**
+// - Add `-D DI_MONITORING_ENABLED` to Swift Compiler - Custom Flags
+//
+// **Performance Impact:**
+// - Without DI_MONITORING_ENABLED: 0 Task overhead (100% performance)
+// - With DI_MONITORING_ENABLED: Full monitoring + statistics
+//
+// **Usage:**
+// ```
+// # In Xcode Build Settings > Swift Compiler - Custom Flags > Other Swift Flags
+// -D DI_MONITORING_ENABLED
+// ```
+
 // MARK: - Simplified DI API
 
 /// ## 개요
@@ -184,9 +206,11 @@ public enum UnifiedDI {
   @inlinable
   public static func resolve<T>(_ type: T.Type) -> T? where T: Sendable {
     if let cached = FastResolveCache.shared.get(type) {
+#if DEBUG && DI_MONITORING_ENABLED
       Task { @DIActor in
         AutoDIOptimizer.shared.trackResolution(type)
       }
+#endif
       return cached
     }
 
@@ -195,6 +219,11 @@ public enum UnifiedDI {
     }
 
     FastResolveCache.shared.set(type, value: resolved)
+#if DEBUG && DI_MONITORING_ENABLED
+    Task { @DIActor in
+      AutoDIOptimizer.shared.trackResolution(type)
+    }
+#endif
     return resolved
   }
   
@@ -562,7 +591,9 @@ public extension UnifiedDI {
       graphText: snap.graphText
     ))
     // 2) 진짜 설정은 액터에 위임
+#if DEBUG && DI_MONITORING_ENABLED
     Task { @DIActor in AutoDIOptimizer.shared.setLogLevel(level) }
+#endif
   }
   
   /// 📋 현재 로깅 레벨을 반환합니다 (스냅샷)
@@ -709,7 +740,9 @@ public extension UnifiedDI {
   
   /// 🔧 최적화 기능 켜기/끄기
   static func enableOptimization(_ enabled: Bool = true) {
+#if DEBUG && DI_MONITORING_ENABLED
     Task { @DIActor in AutoDIOptimizer.shared.setOptimizationEnabled(enabled) }
+#endif
   }
   
   /// 🧹 모니터링 초기화
@@ -782,6 +815,192 @@ extension UnifiedDI {
     await Task.yield()
     try? await Task.sleep(nanoseconds: 1_000_000) // 1ms 추가 대기
     await DIContainer.flushPendingRegistryTasks()
+  }
+
+  /// Preloads frequently used dependencies so the synchronous cache is warm
+  /// before the first resolve happens.
+  public static func prewarm<T: Sendable>(_ types: [T.Type]) {
+    for type in types {
+      if let value = resolve(type) {
+        FastResolveCache.shared.set(type, value: value)
+      }
+    }
+  }
+
+  /// Flush any pending background registration tasks.
+  public static func flushPendingRegistrations() async {
+    await DIContainer.flushPendingRegistryTasks()
+  }
+
+  /// Perform a batch of registrations using a single UnifiedRegistry task.
+  public static func performBatchRegistration(_ block: @Sendable (DIContainer) -> Void) async {
+    await DIContainer.shared.performBatchRegistration(block)
+  }
+
+  public static func performBatchRegistration(_ block: @Sendable (DIContainer) async -> Void) async {
+    await DIContainer.shared.performBatchRegistration(block)
+  }
+
+public struct ComponentDiagnostics: Codable, Sendable {
+  public struct Issue: Codable, Sendable {
+    public let type: String
+    public let providers: [String]
+    public let detail: String?
+  }
+
+  public let issues: [Issue]
+
+  public init(issues: [Issue]) {
+    self.issues = issues
+  }
+}
+
+public struct ComponentCycleReport: Codable, Sendable {
+  public let cycles: [[String]]
+  public let componentCount: Int
+  public let edgeCount: Int
+
+  public init(cycles: [[String]], componentCount: Int, edgeCount: Int) {
+    self.cycles = cycles
+    self.componentCount = componentCount
+    self.edgeCount = edgeCount
+  }
+}
+
+  /// Returns compile-time component metadata registered via @Component macros.
+  public static func componentMetadata() -> [ComponentMetadata] {
+    ComponentMetadataRegistry.allMetadata()
+  }
+
+  /// Human-readable dump of component metadata for diagnostics.
+  public static func dumpComponentMetadata() -> String {
+    ComponentMetadataRegistry.dumpMetadata()
+  }
+
+  /// Analyze metadata for duplicate providers and inconsistent scopes.
+  public static func analyzeComponentMetadata() -> ComponentDiagnostics {
+    let metadata = ComponentMetadataRegistry.allMetadata()
+    var typeProviders: [String: [(component: String, scope: String)]] = [:]
+
+    for meta in metadata {
+      for (index, typeName) in meta.providedTypes.enumerated() {
+        let scope = index < meta.scopes.count ? meta.scopes[index] : "unknown"
+        typeProviders[typeName, default: []].append((meta.componentName, scope))
+      }
+    }
+
+    var issues: [ComponentDiagnostics.Issue] = []
+
+    for (type, entries) in typeProviders {
+      let components = entries.map { $0.component }
+      let uniqueComponents = Array(Set(components))
+      if uniqueComponents.count > 1 {
+        issues.append(
+          .init(
+            type: type,
+            providers: uniqueComponents,
+            detail: "Multiple components provide this type."
+          )
+        )
+      }
+
+      let scopes = entries.map { $0.scope }
+      let uniqueScopes = Array(Set(scopes))
+      if uniqueScopes.count > 1 {
+        issues.append(
+          .init(
+            type: type,
+            providers: uniqueComponents,
+            detail: "Inconsistent scopes: \(uniqueScopes.joined(separator: ", "))"
+          )
+        )
+      }
+    }
+
+    return ComponentDiagnostics(issues: issues)
+  }
+
+  public static func detectComponentCycles() -> ComponentCycleReport {
+    let metadata = ComponentMetadataRegistry.allMetadata()
+    let componentNames = Set(metadata.map { $0.componentName })
+    var graph: [String: [String]] = [:]
+    var edgeCount = 0
+
+    for meta in metadata {
+      let neighbors = meta.providedTypes.filter { componentNames.contains($0) }
+      if !neighbors.isEmpty {
+        graph[meta.componentName, default: []].append(contentsOf: neighbors)
+        edgeCount += neighbors.count
+      }
+    }
+
+    var recorded: Set<String> = []
+    var cycles: [[String]] = []
+
+    func visit(
+      start: String,
+      current: String,
+      path: inout [String]
+    ) {
+      path.append(current)
+
+      for neighbor in graph[current, default: []] {
+        if neighbor == start {
+          var cycle = path
+          cycle.append(neighbor)
+          let (key, normalized) = canonicalizeCycle(cycle)
+          if !key.isEmpty && !recorded.contains(key) {
+            recorded.insert(key)
+            cycles.append(normalized)
+          }
+        } else if !path.contains(neighbor) {
+          visit(start: start, current: neighbor, path: &path)
+        }
+      }
+
+      path.removeLast()
+    }
+
+    for node in graph.keys.sorted() {
+      var path: [String] = []
+      visit(start: node, current: node, path: &path)
+    }
+
+    cycles.sort { $0.joined(separator: " -> ") < $1.joined(separator: " -> ") }
+
+    return ComponentCycleReport(
+      cycles: cycles,
+      componentCount: metadata.count,
+      edgeCount: edgeCount
+    )
+  }
+
+  private static func canonicalizeCycle(_ cycle: [String]) -> (String, [String]) {
+    guard !cycle.isEmpty else { return ("", []) }
+    var trimmed = cycle
+    if let first = trimmed.first, let last = trimmed.last, first == last {
+      trimmed.removeLast()
+    }
+    guard !trimmed.isEmpty else { return ("", []) }
+
+    func rotations(of array: [String]) -> [[String]] {
+      guard !array.isEmpty else { return [[]] }
+      return (0..<array.count).map { index in
+        Array(array[index...]) + Array(array[..<index])
+      }
+    }
+
+    let candidates = rotations(of: trimmed) + rotations(of: trimmed.reversed())
+    var bestSequence: [String] = []
+    var bestKey = ""
+    for sequence in candidates {
+      let key = sequence.joined(separator: " -> ")
+      if bestKey.isEmpty || key < bestKey {
+        bestKey = key
+        bestSequence = sequence
+      }
+    }
+    return (bestKey, bestSequence)
   }
 }
 

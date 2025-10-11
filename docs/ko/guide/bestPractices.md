@@ -562,3 +562,32 @@ class UserService {
 - [TCA 통합](./tcaIntegration) - The Composable Architecture와 함께 사용
 - [성능 가이드](./runtimeOptimization) - 최적화 기법
 - [테스트 가이드](../tutorial/testing) - 고급 테스트 패턴
+
+## CI 진단 자동화
+
+### 컴포넌트 중복/스코프 헬스 체크
+`WeaveDITools diagnose-components --json` 명령을 CI 파이프라인에 추가해 빌드 전에 중복 제공자나 스코프 충돌을 차단하세요. `deploy.yml` 예시는 다음과 같습니다.
+
+```yaml
+- name: 🧩 Component diagnostics
+  run: |
+    swift run --configuration release WeaveDITools diagnose-components --json > component-report.json
+    python3 - <<'PY'
+    import json, sys
+    data = json.load(open('component-report.json'))
+    issues = data.get('issues', [])
+    if issues:
+        for item in issues:
+            print(f"- {item['type']}: {', '.join(item['providers'])} -> {item.get('detail')}")
+        sys.exit(1)
+    PY
+```
+
+### 메타데이터 기반 사이클 검증
+새로운 `check-cycles` 서브커맨드는 컴파일 타임에 등록된 컴포넌트 메타데이터를 통해 간단한 사이클을 탐지합니다.
+
+```bash
+swift run WeaveDITools check-cycles --json
+```
+
+CI에서 간단히 활용하려면 제공된 `Scripts/check-component-cycles.sh` 스크립트를 호출하세요. 사이클이 발견되면 로그를 출력하고 종료 코드 1로 실패하므로, “compile-time hint channel”을 한층 강화할 수 있습니다.
