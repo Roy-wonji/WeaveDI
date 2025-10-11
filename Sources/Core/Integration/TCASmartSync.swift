@@ -142,26 +142,26 @@ public struct TCASmartSync {
 
     /// 🎯 **스마트 감지**: DependencyKey 사용을 감지해서 자동 동기화 (nonisolated)
     public static func autoDetectAndSync<T: DependencyKey>(_ keyType: T.Type, value: T.Value) where T.Value: Sendable {
+        let keyTypeName = String(describing: keyType)
         Task { @MainActor in
             // 🎯 완전 자동 초기화 (처음 사용 시)
             ensureAutoInitialized()
 
             guard isEnabled else { return }
 
-            let keyName = String(describing: keyType)
-            if !registeredKeys.contains(keyName) {
+            if !registeredKeys.contains(keyTypeName) {
                 // 🔧 Fix: 두 곳 모두에 자동 등록 (DIContainer + InjectedValues)
                 _ = UnifiedDI.register(T.Value.self) { value }
 
-                // 🎯 InjectedValues에도 자동 등록
-                registerToInjectedValues(keyType: keyType, value: value)
+                // 🎯 InjectedValues에도 자동 등록 (직접 호출)
+                registerAsInjectedKey(valueType: T.Value.self, value: value)
 
                 // 🔧 자동 TestDependencyKey 호환성 해결
                 autoFixTestDependencyKeyForType(T.Value.self, value: value)
 
-                registeredKeys.insert(keyName)
+                registeredKeys.insert(keyTypeName)
 
-                Log.info("🎯 자동 감지: \(keyType) → WeaveDI + InjectedValues 동기화 완료")
+                Log.info("🎯 자동 감지: \(keyTypeName) → WeaveDI + InjectedValues 동기화 완료")
             }
         }
     }
@@ -246,7 +246,7 @@ public struct TCASmartSync {
         }
 
         // 🔄 3. UnifiedDI에서 조회
-        return try? DIContainer.shared.resolve(type)
+        return DIContainer.shared.resolve(type)
     }
 
     /// 🔄 **완전 통합 저장소**: @Dependency와 @Injected가 동일한 인스턴스 반환하도록 보장
@@ -267,7 +267,7 @@ public struct TCASmartSync {
         }
 
         // 🔄 3. DIContainer에서 조회
-        if let resolvedValue = try? DIContainer.shared.resolve(type) {
+        if let resolvedValue = DIContainer.shared.resolve(type) {
             tcaCompatibleStorage[key] = resolvedValue
             return resolvedValue
         }
@@ -298,18 +298,14 @@ public struct TCASmartSync {
     }
 
     /// 🔄 **통합 값 조회 (타입 안전)**: @Injected에서 사용하는 범용 접근
-    public static func getUnifiedValueSafe<T>(_ type: T.Type) -> T? {
+    public static func getUnifiedValueSafe<T: Sendable>(_ type: T.Type) -> T? {
         // 🔄 1. InjectedKey에서 liveValue 사용 (우선순위 1)
         if let injectedType = type as? any InjectedKey.Type {
             return injectedType.liveValue as? T
         }
 
-        // 🔄 2. Sendable 타입인 경우에만 추가 조회
-        if let sendableType = type as? any Sendable.Type {
-            return getUnifiedValueSync(sendableType) as? T
-        }
-
-        return nil
+        // 🔄 2. Sendable 타입인 경우 UnifiedDI에서 조회
+        return getUnifiedValueSync(type)
     }
 }
 
@@ -381,15 +377,15 @@ public extension TCASmartSync {
 
     /// 🔄 **동적 TestDependencyKey 생성**: Runtime에 TestDependencyKey conform 제공
     @MainActor
-    public static func createTestDependencyKey<T: Sendable>(_ type: T.Type, liveValue: T, testValue: T? = nil) {
-        // 🔄 통합 저장소에 저장
-        tcaCompatibleStorage[String(describing: type)] = liveValue
+  static func createTestDependencyKey<T: Sendable>(_ type: T.Type, liveValue: T, testValue: T? = nil) {
+    // 🔄 통합 저장소에 저장
+    tcaCompatibleStorage[String(describing: type)] = liveValue
 
-        // 🔧 TestDependencyKey 호환성 추가
-        makeTestDependencyKeyCompatible(type, liveValue: liveValue, testValue: testValue)
+    // 🔧 TestDependencyKey 호환성 추가
+    makeTestDependencyKeyCompatible(type, liveValue: liveValue, testValue: testValue)
 
-        Log.info("🔄 동적 TestDependencyKey 생성: \(type)")
-    }
+    Log.info("🔄 동적 TestDependencyKey 생성: \(type)")
+  }
 
     /// 🔄 **자동 역방향 동기화**: WeaveDI 등록을 감지하여 TCA에 자동 동기화 (nonisolated)
     static func autoDetectWeaveDIRegistration<T: Sendable>(_ type: T.Type, value: T) {

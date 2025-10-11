@@ -247,7 +247,7 @@ public struct GenerateAutoSyncMacro: MemberMacro {
 /// // AppDelegate 또는 main에서 한 번 호출
 /// enableBidirectionalTCASync()
 /// ```
-public struct AutoSyncMacro: MemberMacro {
+public struct AutoSyncGroupMacro: MemberMacro {
 
     /// 🎯 사용자가 원하는 @AutoSync: extension 내 모든 computed property의 동기화 버전을 자동 생성
     public static func expansion(

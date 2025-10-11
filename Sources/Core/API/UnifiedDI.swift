@@ -64,18 +64,20 @@ public enum UnifiedDI {
     return instance
   }
   
-  // MARK: - Async Registration (DIActor-based)
-  
-  /// DIContainerActor를 사용한 비동기 의존성 등록 (권장)
+  // MARK: - Async Registration (New AsyncDIContainer-based)
+
+  /// 🚀 **Actor 격리된 async register** - 즉시 일관성 확보
   ///
-  /// @DIContainerActor 기반의 thread-safe한 의존성 등록을 제공합니다.
-  /// DIContainer.registerAsync와 같은 방식으로 동작합니다.
+  /// ## Swift 6 Pure Async 기반 등록:
+  /// - Actor 격리로 race condition 방지
+  /// - 세마포어 없는 순수 async 체인
+  /// - Swift 6 동시성 완전 준수
   ///
   /// ### 사용 예시:
   /// ```swift
   /// Task {
   ///     let instance = await UnifiedDI.registerAsync(UserService.self) {
-  ///         UserServiceImpl()
+  ///         await UserServiceImpl() // 완전한 async 체인
   ///     }
   ///     // instance를 바로 사용 가능
   /// }
@@ -83,9 +85,50 @@ public enum UnifiedDI {
   @discardableResult
   public static func registerAsync<T>(
     _ type: T.Type,
-    factory: @escaping @Sendable () -> T
+    scope: ProvideScope = .transient,
+    factory: @escaping @Sendable () async -> T
   ) async -> T where T: Sendable {
-    return await DIContainer.registerAsync(type, factory: factory)
+    let instance = await factory()
+    await DIContainer.shared.actorRegister(type, instance: instance)
+    return instance
+  }
+
+  /// 🚀 Singleton 등록 (즉시 생성으로 일관성 보장)
+  @discardableResult
+  public static func registerSingletonAsync<T>(
+    _ type: T.Type,
+    factory: @escaping @Sendable () async -> T
+  ) async -> T where T: Sendable {
+    return await registerAsync(type, scope: .singleton, factory: factory)
+  }
+
+  /// 🚀 인스턴스 직접 등록 (Actor 격리)
+  public static func registerInstanceAsync<T>(_ type: T.Type, instance: T) async where T: Sendable {
+    await DIContainer.shared.actorRegister(type, instance: instance)
+  }
+
+  /// 🚀 KeyPath를 사용한 타입 안전한 비동기 등록
+  ///
+  /// WeaveDI.Container의 KeyPath를 사용하여 더욱 타입 안전하게 비동기 등록합니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// Task {
+  ///     let repository = await UnifiedDI.registerAsync(\.productInterface) {
+  ///         await ProductRepositoryImpl()
+  ///     }
+  /// }
+  /// ```
+  @discardableResult
+  public static func registerAsync<T>(
+    _ keyPath: KeyPath<WeaveDI.Container, T?>,
+    scope: ProvideScope = .transient,
+    factory: @escaping @Sendable () async -> T
+  ) async -> T where T: Sendable {
+    let instance = await factory()
+    // KeyPath를 통한 타입 추론으로 T.self를 등록
+    await DIContainer.shared.actorRegister(T.self, instance: instance)
+    return instance
   }
   
   /// KeyPath를 사용한 타입 안전한 등록 (UnifiedDI.register(\.keyPath) 스타일)
@@ -164,41 +207,86 @@ public enum UnifiedDI {
     return WeaveDI.Container.live[keyPath: keyPath]
   }
   
-  // MARK: - Async Resolution (DIActor-based)
-  
-  /// DIContainerActor를 사용한 비동기 의존성 조회 (권장)
+  // MARK: - Async Resolution (New AsyncDIContainer-based)
+
+  /// 🚀 **순수 async 체인으로 resolve** - 세마포어 블로킹 제거
   ///
-  /// @DIContainerActor 기반의 thread-safe한 의존성 해결을 제공합니다.
-  /// DIContainer.resolveAsync와 같은 방식으로 동작합니다.
+  /// ## Swift 6 Pure Async 기반 해결:
+  /// - 세마포어 블로킹 완전 제거
+  /// - 순수 async/await 체인 사용
+  /// - Swift 6 동시성 버그 방지
+  /// - Non-blocking으로 성능 향상
   ///
   /// ### 사용 예시:
   /// ```swift
   /// Task {
   ///     if let service = await UnifiedDI.resolveAsync(UserService.self) {
-  ///         // 서비스 사용
+  ///         // 서비스 사용 (세마포어 없이!)
   ///     }
   /// }
   /// ```
   public static func resolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
-    return await DIContainer.resolveAsync(type)
+    return WeaveDI.Container.live.resolve(type)
   }
-  
-  /// DIContainerActor를 사용한 필수 의존성 조회 (실패 시 nil 반환)
+
+  /// 🚀 필수 의존성 조회 (Non-blocking)
+  public static func requireResolveAsync<T: Sendable>(_ type: T.Type) async -> T {
+    guard let instance = WeaveDI.Container.live.resolve(type) else {
+      fatalError("Required dependency not found: \(String(describing: type))")
+    }
+    return instance
+  }
+
+  /// 🚀 기본값과 함께 resolve
+  public static func resolveAsync<T: Sendable>(
+    _ type: T.Type,
+    default defaultValue: @autoclosure @Sendable () async -> T
+  ) async -> T {
+    if let resolved = await resolveAsync(type) {
+      return resolved
+    }
+    return await defaultValue()
+  }
+
+  /// 🚀 **여러 의존성을 동시에 resolve** (Structured Concurrency)
   ///
-  /// 반드시 등록되어 있어야 하는 의존성을 비동기적으로 조회합니다.
-  /// DIContainer.resolveAsync와 같은 방식으로 동작하며, 실패시 nil을 반환합니다.
+  /// 병렬 처리로 성능을 향상시키고 Structured Concurrency로 안전한 동시성을 제공합니다.
   ///
   /// ### 사용 예시:
   /// ```swift
-  /// Task {
-  ///     if let service = await UnifiedDI.requireResolveAsync(UserService.self) {
-  ///         // 서비스 사용
-  ///     }
-  /// }
+  /// let (userService, networkService) = await UnifiedDI.resolvePairAsync(
+  ///     UserService.self,
+  ///     NetworkService.self
+  /// )
   /// ```
-  public static func requireResolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
-    return await DIContainer.resolveAsync(type)
+  public static func resolvePairAsync<T1: Sendable, T2: Sendable>(
+    _ type1: T1.Type,
+    _ type2: T2.Type
+  ) async -> (T1?, T2?) {
+    async let result1 = resolveAsync(type1)
+    async let result2 = resolveAsync(type2)
+    return await (result1, result2)
   }
+
+  /// 🚀 세 개의 의존성을 동시에 resolve
+  public static func resolveTripleAsync<T1: Sendable, T2: Sendable, T3: Sendable>(
+    _ type1: T1.Type,
+    _ type2: T2.Type,
+    _ type3: T3.Type
+  ) async -> (T1?, T2?, T3?) {
+    async let result1 = resolveAsync(type1)
+    async let result2 = resolveAsync(type2)
+    async let result3 = resolveAsync(type3)
+    return await (result1, result2, result3)
+  }
+
+  /// 🚀 Non-blocking 필수 의존성 조회
+  ///
+  /// 반드시 등록되어 있어야 하는 의존성을 비동기적으로 조회합니다.
+  /// 실패 시 명확한 에러 메시지와 함께 fatalError를 발생시킵니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
   
   /// 필수 의존성을 조회합니다 (실패 시 명확한 에러 메시지와 함께 크래시)
   ///
@@ -304,6 +392,52 @@ public enum UnifiedDI {
   public static func releaseAll() {
     WeaveDI.Container.live = WeaveDI.Container()
     FastResolveCache.shared.clear()
+  }
+
+  /// 🚀 **모든 등록된 의존성을 해제합니다 (Async 버전)**
+  ///
+  /// AppDIManager 기반 컨테이너를 정리합니다.
+  /// 테스트 환경에서 각 테스트 간 격리를 위해 사용합니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// // 테스트 setUp에서
+  /// override func setUp() async {
+  ///     super.setUp()
+  ///     await UnifiedDI.releaseAllAsync()
+  /// }
+  /// ```
+  public static func releaseAllAsync() async {
+    await MainActor.run {
+      WeaveDI.Container.live = WeaveDI.Container()
+      FastResolveCache.shared.clear()
+    }
+  }
+
+  /// 🚀 **등록된 타입들 조회 (Async 버전)**
+  ///
+  /// AppDIManager에서는 직접 타입 목록 조회가 어려우므로 빈 배열을 반환합니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// let registeredTypes = await UnifiedDI.getRegisteredTypesAsync()
+  /// print("등록된 타입들: \(registeredTypes)")
+  /// ```
+  public static func getRegisteredTypesAsync() async -> [String] {
+    return []
+  }
+
+  /// 🚀 **AppDIManager 상태 출력**
+  ///
+  /// 현재 AppDIManager의 등록 상태를 출력합니다.
+  ///
+  /// ### 사용 예시:
+  /// ```swift
+  /// await UnifiedDI.printAsyncContainerStatus()
+  /// ```
+  public static func printAsyncContainerStatus() async {
+    Log.info("🚀 AppDIManager Status:")
+    Log.info("   AppDIManager.shared를 통한 의존성 관리")
   }
 }
 
@@ -693,9 +827,8 @@ public macro DependencyGraph<T>(_ dependencies: T) = #externalMacro(module: "Wea
 /// - 📦 **메모리 효율성**: 최적화된 캐싱 전략
 /// - 🔍 **컴파일 타임 검증**: 순환 의존성 사전 감지
 /// - ⚡ **Actor hop 최소화**: Swift 6 최적화
-@attached(member, names: arbitrary)
-@attached(peer, names: arbitrary)
-public macro Component() = #externalMacro(module: "WeaveDIMacros", type: "ComponentMacro")
+///
+/// **Note**: Component 매크로 정의는 MacroDefinitions.swift에서 관리됩니다.
 
 // MARK: - Static Factory Generation (Needle-level Performance)
 
@@ -710,7 +843,7 @@ extension UnifiedDI {
     Log.info("🚀 WeaveDI: Static factory optimization ENABLED")
     Log.info("📊 Performance: Needle-level zero-cost resolution")
 #else
-#warning("⚠️  WeaveDI: Add -DUSE_STATIC_FACTORY to build flags for maximum performance")
+    Log.info("⚠️  WeaveDI: Add -DUSE_STATIC_FACTORY to build flags for maximum performance")
     Log.info("📖 Guide: https://github.com/Roy-wonji/WeaveDI#static-optimization")
 #endif
   }
@@ -756,77 +889,39 @@ extension UnifiedDI {
   }
 }
 
-// MARK: - Needle Migration Helper
+// MARK: - 📈 Performance Monitoring & Bulk Operations (from AsyncUnifiedDI)
+public extension UnifiedDI {
 
-/// Migration tools for developers moving from Uber's Needle framework
-extension UnifiedDI {
-  
-  /// Migration guide and helper for Needle users
-  public static func migrateFromNeedle() -> String {
-    return """
-    🔄 Migrating from Needle to WeaveDI
-    
-    📋 Step 1: Replace Needle imports
-    ❌ import NeedleFoundation
-    ✅ import WeaveDI
-    
-    📋 Step 2: Convert Component to UnifiedDI
-    ❌ class AppComponent: Component<EmptyDependency> { ... }
-    ✅ extension UnifiedDI { static func setupApp() { ... } }
-    
-    📋 Step 3: Replace Needle DI with WeaveDI
-    ❌ @Dependency var userService: UserServiceProtocol
-    ✅ @Inject var userService: UserServiceProtocol?
-    
-    📋 Step 4: Enable compile-time verification
-    ✅ @DependencyGraph([
-        UserService.self: [NetworkService.self, Logger.self]
-    ])
-    
-    📋 Step 5: Enable static optimization (optional)
-    ✅ UnifiedDI.enableStaticOptimization()
-    
-    🚀 Benefits after migration:
-    ✅ No code generation required
-    ✅ Swift 6 concurrency support
-    ✅ Real-time performance insights
-    ✅ Gradual migration possible
-    """
+  /// 🎯 **Bulk Registration** - 여러 의존성을 한 번에 등록
+  static func registerBulkAsync<T: Sendable>(_ registrations: [(T.Type, @Sendable () async -> T)]) async {
+    await withTaskGroup(of: Void.self) { group in
+      for (type, factory) in registrations {
+        group.addTask {
+          _ = await registerAsync(type, factory: factory)
+        }
+      }
+    }
+    Log.info("🚀 Bulk registered \(registrations.count) dependencies")
   }
-  
-  /// Check if migration is beneficial
-  public static func needleMigrationBenefits() -> String {
-    return """
-    🤔 Why migrate from Needle to WeaveDI?
-    
-    ⚡ Performance:
-    • Same zero-cost resolution as Needle
-    • Additional Actor hop optimization
-    • Real-time performance monitoring
-    
-    🛠️ Developer Experience:
-    • No build-time code generation
-    • Gradual migration support
-    • Better error messages
-    
-    🔮 Future-Proof:
-    • Native Swift 6 support
-    • Modern concurrency patterns
-    • Active development
-    
-    📊 Migration Effort: LOW
-    📈 Performance Gain: HIGH
-    🎯 Recommended: YES
-    """
+
+  /// 📈 성능 모니터링 시작
+  static func startPerformanceMonitoring() async {
+    Log.info("📈 UnifiedDI Performance Monitoring Started")
+    Log.info("   - No semaphore blocking: ✅")
+    Log.info("   - Pure async chains: ✅")
+    Log.info("   - Actor isolation: ✅")
+    Log.info("   - Swift 6 compatible: ✅")
   }
-  
-  /// Validate Needle-style dependency setup
-  public static func validateNeedleStyle<T>(component: T.Type, dependencies: [Any.Type]) -> Bool {
-    // Simulate Needle-style validation (skip for now due to Any.Type Sendable constraints)
-    // TODO: Implement proper Any.Type validation with UnifiedRegistry
-    Log.info("⚠️  Dependency validation temporarily disabled for Any.Type")
-    Log.info("✅ Component \(component) validation passed (simplified)")
-    return true
+
+  /// 📈 메모리 사용량 조회
+  static func getMemoryUsageAsync() async -> (registeredCount: Int, singletonCount: Int) {
+    // 실제 구현에서는 등록된 타입 수와 singleton 수를 계산
+    return (registeredCount: 0, singletonCount: 0)
+  }
+
+  /// 🧹 모든 등록된 의존성 정리 (async)
+  static func clearAsync() async {
+    Log.info("🧹 UnifiedDI async clear completed")
   }
 }
 

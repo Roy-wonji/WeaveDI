@@ -477,6 +477,6 @@ WeaveDI 3.0.0으로 마이그레이션을 완료하면 다음을 얻을 수 있�
 
 - **이슈**: [GitHub Issues](https://github.com/Roy-wonji/WeaveDI/issues)
 - **토론**: [GitHub Discussions](https://github.com/Roy-wonji/WeaveDI/discussions)
-- **문서**: [전체 API 레퍼런스](/api/coreApis)
+- **문서**: [전체 API 레퍼런스](/ko/api/coreApis)
 
 WeaveDI 3.0.0은 자동 최적화와 향상된 개발자 경험을 갖춘 Swift의 의존성 주입의 미래를 나타냅니다.
