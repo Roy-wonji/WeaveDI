@@ -59,9 +59,7 @@ public enum UnifiedDI {
     _ type: T.Type,
     factory: @escaping @Sendable () -> T
   ) -> T where T: Sendable {
-    let instance = factory()
-    Task { await DIContainer.shared.actorRegister(type, instance: instance) }
-    return instance
+    return DIContainer.shared.register(type, factory: factory)
   }
   
   // MARK: - Async Registration (New AsyncDIContainer-based)
@@ -111,7 +109,7 @@ public enum UnifiedDI {
 
   /// 🚀 인스턴스 직접 등록 (Actor 격리)
   public static func registerInstanceAsync<T>(_ type: T.Type, instance: T) async where T: Sendable {
-    await DIContainer.shared.actorRegister(type, instance: instance)
+    await DIContainer.shared.registerAsync(type, instance: instance)
   }
 
   /// 🚀 KeyPath를 사용한 타입 안전한 비동기 등록
@@ -150,10 +148,7 @@ public enum UnifiedDI {
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
     factory: @escaping @Sendable () -> T
   ) -> T where T: Sendable {
-    let instance = factory()
-    // KeyPath를 통한 타입 추론으로 T.self를 등록
-    Task { await DIContainer.shared.actorRegister(T.self, instance: instance) }
-    return instance
+    return DIContainer.shared.register(T.self, factory: factory)
   }
   
   
@@ -401,6 +396,7 @@ public enum UnifiedDI {
   public static func releaseAll() {
     WeaveDI.Container.live = WeaveDI.Container()
     FastResolveCache.shared.clear()
+    TCASmartSync.resetForTesting()
   }
 
   /// 🚀 **모든 등록된 의존성을 해제합니다 (Async 버전)**
@@ -420,6 +416,7 @@ public enum UnifiedDI {
     await MainActor.run {
       WeaveDI.Container.live = WeaveDI.Container()
       FastResolveCache.shared.clear()
+      TCASmartSync.resetForTesting()
     }
   }
 
@@ -784,6 +781,7 @@ extension UnifiedDI {
     // 더 강력한 대기: Task.yield() + 짧은 대기
     await Task.yield()
     try? await Task.sleep(nanoseconds: 1_000_000) // 1ms 추가 대기
+    await DIContainer.flushPendingRegistryTasks()
   }
 }
 

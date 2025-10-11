@@ -48,11 +48,18 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   // MARK: - Properties
 
   /// 통합된 의존성 저장소 (UnifiedRegistry 기반)
-  private let unifiedRegistry = UnifiedRegistry()
+  private let unifiedRegistry = UnifiedRegistry.shared
+
+  /// 초고속 동기 접근을 위한 스냅샷 레지스트리 (락 기반)
+  private let syncRegistry = SyncDependencyRegistry()
 
   /// 모듈 기반 일괄 등록을 위한 모듈 배열 (동시성 안전: concurrent + barrier)
   private let modulesQueue = DispatchQueue(label: "com.diContainer.modules", attributes: .concurrent)
   private var modules: [Module] = []
+
+  /// UnifiedRegistry 백그라운드 싱크 대기열
+  private let pendingTasksQueue = DispatchQueue(label: "com.weaveDI.pendingRegistryTasks", attributes: .concurrent)
+  private var pendingRegistryTasks: [UUID: Task<Void, Never>] = [:]
 
   /// Parent-Child 관계 지원
   private let parent: DIContainer?
@@ -175,19 +182,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     factory: @escaping @Sendable () -> T
   ) async -> T where T: Sendable {
-    let instance = factory()
-    await unifiedRegistry.register(type, factory: { instance })
-
-    Task { @DIActor in
-      AutoDIOptimizer.shared.trackRegistration(type)
-    }
-
-    Task {
-      await AutoMonitor.shared.onModuleRegistered(type)
-    }
-
-    Log.debug("Registered instance for \(String(describing: type))")
-    return instance
+    registerInstanceSync(type, instance: factory())
   }
 
   @discardableResult
@@ -196,7 +191,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     factory: @escaping @Sendable () async -> T
   ) async -> T where T: Sendable {
     let instance = await factory()
-    return await registerAsync(type, factory: { instance })
+    return registerInstanceSync(type, instance: instance)
   }
 
   @discardableResult
@@ -204,22 +199,9 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     build factory: @escaping @Sendable () -> T
   ) async -> @Sendable () async -> Void where T: Sendable {
-    await unifiedRegistry.register(type, factory: factory)
-
-    Task { @DIActor in
-      AutoDIOptimizer.shared.trackRegistration(type)
-    }
-
-    Task {
-      await AutoMonitor.shared.onModuleRegistered(type)
-    }
-
-    Log.debug("Registered factory for \(String(describing: type))")
-
-    return { [weak self] in
-      guard let self else { return }
-      await self.unifiedRegistry.release(type)
-      Log.debug("Released \(String(describing: type))")
+    let release = registerFactorySync(type, factory: factory)
+    return {
+      release()
     }
   }
 
@@ -227,17 +209,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     instance: T
   ) async where T: Sendable {
-    await unifiedRegistry.register(type, factory: { instance })
-
-    Task { @DIActor in
-      AutoDIOptimizer.shared.trackRegistration(type)
-    }
-
-    Task {
-      await AutoMonitor.shared.onModuleRegistered(type)
-    }
-
-    Log.debug("Registered instance for \(String(describing: type))")
+    registerInstanceSync(type, instance: instance)
   }
 
   @discardableResult
@@ -245,9 +217,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     factory: @escaping @Sendable () -> T
   ) -> T where T: Sendable {
-    return blockingAwait { [self] in
-      await self.registerAsync(type, factory: factory)
-    }
+    registerInstanceSync(type, instance: factory())
   }
 
   /// 팩토리 패턴으로 의존성을 등록합니다 (지연 생성)
@@ -264,18 +234,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     build factory: @escaping @Sendable () -> T
   ) -> @Sendable () -> Void where T: Sendable {
-    let releaseAsync = blockingAwait { [self] in
-      await self.registerFactoryAsync(type, build: factory)
-    }
-
-    let releaseHandler: @Sendable () -> Void = { [weak self] in
-      guard let self else { return }
-      self.blockingAwait {
-        await releaseAsync()
-      }
-    }
-
-    return releaseHandler
+    registerFactorySync(type, factory: factory)
   }
 
   /// 이미 생성된 인스턴스를 등록합니다
@@ -287,9 +246,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     instance: T
   ) where T: Sendable {
-    blockingAwait { [self] in
-      await self.registerAsync(type, instance: instance)
-    }
+    registerInstanceSync(type, instance: instance)
   }
 
   /// Actor 보호된 인스턴스 등록 (동시성 안전)
@@ -298,9 +255,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     instance: T
   ) where T: Sendable {
-    blockingAwait { [self] in
-      await self.registerAsync(type, instance: instance)
-    }
+    registerInstanceSync(type, instance: instance)
   }
 
   // MARK: - Core Resolution API
@@ -312,9 +267,22 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   /// - Parameter type: 조회할 타입
   /// - Returns: 해결된 인스턴스 (없으면 nil)
   public func resolve<T>(_ type: T.Type) -> T? where T: Sendable {
-    return blockingAwait { [self] in
-      await self.resolveAsync(type)
+    Task { @DIActor in
+      AutoDIOptimizer.shared.trackResolution(type)
     }
+
+    if let value: T = syncRegistry.resolve(type) {
+      Log.debug("Resolved \(String(describing: type)) from current container")
+      return value
+    }
+
+    if let parent = parent, let value: T = parent.resolve(type) {
+      Log.debug("Resolved \(String(describing: type)) from parent container")
+      return value
+    }
+
+    logResolutionMiss(type)
+    return nil
   }
 
   /// 의존성을 조회하거나 기본값을 반환합니다
@@ -334,42 +302,15 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   ///
   /// - Parameter type: 해제할 타입
   public func release<T>(_ type: T.Type) where T: Sendable {
-    blockingAwait { [self] in
-      await self.releaseAsync(type)
-    }
+    releaseSync(type)
   }
 
   public func resolveAsync<T>(_ type: T.Type) async -> T? where T: Sendable {
-    Task { @DIActor in
-      AutoDIOptimizer.shared.trackResolution(type)
-    }
-
-    if let value = await unifiedRegistry.resolveAsync(type) {
-      Log.debug("Resolved \(String(describing: type)) from current container")
-      return value
-    }
-
-    if let parent = parent, let value = await parent.resolveAsync(type) {
-      Log.debug("Resolved \(String(describing: type)) from parent container")
-      return value
-    }
-
-    let typeName = String(describing: type)
-    Log.info("🔍 해결: \(typeName) (총 1회)")
-    Log.info("⚠️ Nil 해결 감지: \(typeName)")
-    Log.error("No registered dependency found for \(typeName)")
-    Log.info("💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
-
-    Task { @DIActor in
-      AutoDIOptimizer.shared.handleNilResolution(type)
-    }
-
-    return nil
+    resolve(type)
   }
 
   public func releaseAsync<T>(_ type: T.Type) async where T: Sendable {
-    await unifiedRegistry.release(type)
-    Log.debug("Released \(String(describing: type))")
+    releaseSync(type)
   }
 
   // MARK: - KeyPath Support
@@ -495,6 +436,104 @@ private extension DIContainer {
     semaphore.wait()
     return result!
   }
+
+  @discardableResult
+  func registerInstanceSync<T>(_ type: T.Type, instance: T) -> T where T: Sendable {
+    syncRegistry.registerInstance(type, instance: instance)
+    scheduleActorUpdate {
+      await $0.register(type, factory: { instance })
+    }
+    postRegistrationHook(for: type)
+    FastResolveCache.shared.set(type, value: instance)
+    Log.debug("Registered instance for \(String(describing: type))")
+    return instance
+  }
+
+  @discardableResult
+  func registerFactorySync<T>(
+    _ type: T.Type,
+    factory: @escaping @Sendable () -> T
+  ) -> @Sendable () -> Void where T: Sendable {
+    syncRegistry.registerFactory(type, factory: factory)
+    scheduleActorUpdate {
+      await $0.register(type, factory: factory)
+    }
+    postRegistrationHook(for: type)
+    FastResolveCache.shared.set(type, value: nil)
+    Log.debug("Registered factory for \(String(describing: type))")
+
+    let release: @Sendable () -> Void = { [weak self] in
+      guard let self else { return }
+      self.syncRegistry.release(type)
+      self.scheduleActorRelease(type)
+      Log.debug("Released \(String(describing: type))")
+    }
+
+    return release
+  }
+
+  func releaseSync<T>(_ type: T.Type) where T: Sendable {
+    syncRegistry.release(type)
+    scheduleActorRelease(type)
+    FastResolveCache.shared.set(type, value: nil)
+    Log.debug("Released \(String(describing: type))")
+  }
+
+  func postRegistrationHook<T>(for type: T.Type) where T: Sendable {
+    Task { @DIActor in
+      AutoDIOptimizer.shared.trackRegistration(type)
+    }
+
+    Task {
+      await AutoMonitor.shared.onModuleRegistered(type)
+    }
+  }
+
+  func scheduleActorUpdate(_ operation: @escaping @Sendable (UnifiedRegistry) async -> Void) {
+    let taskID = UUID()
+    let task = Task(priority: .utility) { [weak self] in
+      guard let self else { return }
+      defer { self.removePendingTask(taskID) }
+      await operation(self.unifiedRegistry)
+    }
+    addPendingTask(taskID, task: task)
+  }
+
+  func scheduleActorRelease<T>(_ type: T.Type) where T: Sendable {
+    scheduleActorUpdate {
+      await $0.release(type)
+    }
+  }
+
+  func addPendingTask(_ id: UUID, task: Task<Void, Never>) {
+    pendingTasksQueue.async(flags: .barrier) {
+      self.pendingRegistryTasks[id] = task
+    }
+  }
+
+  func removePendingTask(_ id: UUID) {
+    pendingTasksQueue.async(flags: .barrier) {
+      self.pendingRegistryTasks.removeValue(forKey: id)
+    }
+  }
+
+  func snapshotPendingTasks() -> [Task<Void, Never>] {
+    pendingTasksQueue.sync {
+      Array(self.pendingRegistryTasks.values)
+    }
+  }
+
+  func logResolutionMiss<T>(_ type: T.Type) where T: Sendable {
+    let typeName = String(describing: type)
+    Log.info("🔍 해결: \(typeName) (총 1회)")
+    Log.info("⚠️ Nil 해결 감지: \(typeName)")
+    Log.error("No registered dependency found for \(typeName)")
+    Log.info("💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
+
+    Task { @DIActor in
+      AutoDIOptimizer.shared.handleNilResolution(type)
+    }
+  }
 }
 
 // MARK: - Bootstrap System
@@ -512,6 +551,22 @@ public extension DIContainer {
     configure(newContainer)
     Self.shared = newContainer
     Log.debug("Container bootstrapped (sync)")
+  }
+
+  /// 백그라운드 UnifiedRegistry 싱크 작업을 모두 기다립니다.
+  /// 테스트나 진단 시점에서 사용하면, 동기 API 호출 직후에도
+  /// UnifiedRegistry 상태가 최신임을 보장할 수 있습니다.
+  func awaitPendingRegistryTasks() async {
+    let tasks = snapshotPendingTasks()
+    guard !tasks.isEmpty else { return }
+    for task in tasks {
+      _ = await task.value
+    }
+  }
+
+  /// 전역 컨테이너의 백그라운드 싱크 작업을 모두 처리합니다.
+  static func flushPendingRegistryTasks() async {
+    await shared.awaitPendingRegistryTasks()
   }
 
   /// 컨테이너를 부트스트랩합니다 (비동기 등록)

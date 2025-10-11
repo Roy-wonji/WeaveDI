@@ -394,11 +394,7 @@ public extension UnifiedDI {
     _ type: T.Type,
     factory: @escaping @Sendable () -> T
   ) -> T where T: Sendable {
-    let instance = factory()
-
-    // 1. WeaveDI에 등록 (기존 로직)
-    Task { await DIContainer.shared.actorRegister(type, instance: instance) }
-
+    let instance = DIContainer.shared.register(type, factory: factory)
     // 2. TCA DependencyValues에 자동 동기화
     BridgeResolver.reverseSync(type, value: instance)
 
@@ -410,11 +406,7 @@ public extension UnifiedDI {
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
     factory: @escaping @Sendable () -> T
   ) -> T where T: Sendable {
-    let instance = factory()
-
-    // 1. WeaveDI KeyPath 등록
-    Task { await DIContainer.shared.actorRegister(T.self, instance: instance) }
-
+    let instance = DIContainer.shared.register(T.self, factory: factory)
     // 2. TCA DependencyValues에 자동 동기화
     BridgeResolver.reverseSync(T.self, value: instance)
 

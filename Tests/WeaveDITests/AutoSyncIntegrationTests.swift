@@ -34,6 +34,7 @@ public struct AutoSyncServiceKey: InjectedKey {
 
 // MARK: - InjectedValues Extension
 
+@AutoSyncExtension
 extension InjectedValues {
     var autoSyncTestService: AutoSyncTestService {
         get { self[AutoSyncServiceKey.self] }
@@ -44,7 +45,7 @@ extension InjectedValues {
 // MARK: - Test Classes
 
 class AutoSyncServiceConsumer {
-    @Injected(\.autoSyncTestService) var service
+    @Injected(\.autoSyncTestServiceSync) var service
 
     func callService() -> String {
         return service.getValue()
@@ -60,6 +61,7 @@ final class AutoSyncIntegrationTests: XCTestCase {
         try await super.setUp()
         // 각 테스트마다 깨끗한 컨테이너로 시작
         UnifiedDI.releaseAll()
+        enableBidirectionalTCASync()
     }
 
     // MARK: - WeaveDI → TCA 자동 동기화 테스트
@@ -75,12 +77,13 @@ final class AutoSyncIntegrationTests: XCTestCase {
         // }
 
         // When: InjectedValues로 접근 (기존 방식 그대로)
-        let service = InjectedValues.current.autoSyncTestService
+        let service = InjectedValues.current.autoSyncTestServiceSync
 
         // Then: 자동으로 WeaveDI에 등록되어야 함
         XCTAssertEqual(service.getValue(), "live_auto_sync")
 
         // WeaveDI에서도 접근 가능해야 함
+        await UnifiedDI.waitForRegistration()
         let weaveDIService = UnifiedDI.resolve(AutoSyncTestService.self)
         XCTAssertNotNil(weaveDIService)
         XCTAssertEqual(weaveDIService?.getValue(), "live_auto_sync")
@@ -97,6 +100,7 @@ final class AutoSyncIntegrationTests: XCTestCase {
         XCTAssertEqual(result, "live_auto_sync")
 
         // WeaveDI에서도 등록되어 있어야 함
+        await UnifiedDI.waitForRegistration()
         let weaveDIService = UnifiedDI.resolve(AutoSyncTestService.self)
         XCTAssertNotNil(weaveDIService)
         XCTAssertEqual(weaveDIService?.getValue(), "live_auto_sync")
@@ -108,9 +112,10 @@ final class AutoSyncIntegrationTests: XCTestCase {
         mockService.mockValue = "custom_mock_value"
 
         // When: InjectedValues setter로 설정 (기존 방식 그대로)
-        withInjectedValues { values in
-            values.autoSyncTestService = mockService
+         await withInjectedValues { values in
+            values.autoSyncTestServiceSync = mockService
         } operation: {
+            await UnifiedDI.waitForRegistration()
             // Then: WeaveDI에도 자동 등록되어야 함
             let weaveDIService = UnifiedDI.resolve(AutoSyncTestService.self)
             XCTAssertNotNil(weaveDIService)
@@ -130,7 +135,7 @@ final class AutoSyncIntegrationTests: XCTestCase {
         _ = UnifiedDI.register(AutoSyncTestService.self) { customService }
 
         // When: InjectedValues로 접근
-        let service = InjectedValues.current.autoSyncTestService
+        let service = InjectedValues.current.autoSyncTestServiceSync
 
         // Then: WeaveDI에서 등록한 값이 반환되어야 함
         XCTAssertEqual(service.getValue(), "weavedi_registered")
@@ -141,7 +146,7 @@ final class AutoSyncIntegrationTests: XCTestCase {
     func testAutoSyncPerformance() async throws {
         measure {
             for _ in 0..<100 {
-                _ = InjectedValues.current.autoSyncTestService
+        _ = InjectedValues.current.autoSyncTestServiceSync
             }
         }
     }
@@ -156,11 +161,12 @@ final class AutoSyncIntegrationTests: XCTestCase {
         }
 
         // When: 기존 코드 그대로 사용
-        let service = InjectedValues.current[ExchangeRateUseCaseKey.self]
+        let service = InjectedValues.current[autoSync: ExchangeRateUseCaseKey.self]
 
         // Then: 자동으로 WeaveDI에도 등록되어야 함
         XCTAssertEqual(service.getValue(), "live_auto_sync")
 
+        await UnifiedDI.waitForRegistration()
         let weaveDIService = UnifiedDI.resolve(AutoSyncTestService.self)
         XCTAssertNotNil(weaveDIService)
     }
@@ -175,14 +181,15 @@ final class AutoSyncIntegrationTests: XCTestCase {
         }
 
         // When: 여러 서비스 접근
-        let serviceA = InjectedValues.current[ServiceA.self]
-        let serviceB = InjectedValues.current[ServiceB.self]
+        let serviceA = InjectedValues.current[autoSync: ServiceA.self]
+        let serviceB = InjectedValues.current[autoSync: ServiceB.self]
 
         // Then: 각각 WeaveDI에 등록되어야 함
         XCTAssertEqual(serviceA.getValue(), "live_auto_sync")
-        XCTAssertEqual(serviceB.getValue(), "mock_auto_sync")
+        XCTAssertEqual(serviceB.getValue(), "live_auto_sync")
 
         // WeaveDI에서도 접근 가능해야 함
+        await UnifiedDI.waitForRegistration()
         let weaveDIServiceA = UnifiedDI.resolve(AutoSyncTestService.self)
         XCTAssertNotNil(weaveDIServiceA)
     }

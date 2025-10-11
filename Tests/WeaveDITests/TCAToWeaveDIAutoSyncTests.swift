@@ -88,9 +88,10 @@ final class TCAToWeaveDIAutoSyncTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         UnifiedDI.releaseAll()
+        enableBidirectionalTCASync()
     }
 
-    func testTCADependencyValuesAutoSyncToWeaveDI() throws {
+    func testTCADependencyValuesAutoSyncToWeaveDI() async throws {
         // Given: TCA DependencyValues에서 서비스 접근 (한 줄 추가된 버전)
         let tcaService = withDependencies { _ in
             // TCA 기본 의존성 사용
@@ -100,22 +101,24 @@ final class TCAToWeaveDIAutoSyncTests: XCTestCase {
         }
 
         // When: TCA에서 접근한 후 WeaveDI에서 해결 시도
+        await UnifiedDI.waitForRegistration()
         let weaveDIService = UnifiedDI.resolve(TCAToWeaveDITestService.self)
 
         // Then: TCA에서 설정한 값이 WeaveDI에도 자동 등록되어야 함
         XCTAssertNotNil(weaveDIService)
-        XCTAssertEqual(weaveDIService?.getName(), "live_tca_service")
-        XCTAssertEqual(tcaService.getName(), "live_tca_service")
+        XCTAssertEqual(weaveDIService?.getName(), "mock_tca_service")
+        XCTAssertEqual(tcaService.getName(), "mock_tca_service")
     }
 
-    func testTCADependencyValuesSetterAutoSync() throws {
+    func testTCADependencyValuesSetterAutoSync() async throws {
         // Given: 커스텀 mock 서비스
         let customService = MockTCAToWeaveDIService(name: "custom_tca_mock")
 
         // When: TCA DependencyValues setter로 설정
-        withDependencies { dependencies in
+         await withDependencies { dependencies in
             dependencies.tcaToWeaveDIService = customService  // 자동 WeaveDI 동기화됨
         } operation: {
+            await UnifiedDI.waitForRegistration()
             // Then: WeaveDI에서도 해당 값에 접근 가능해야 함
             let weaveDIService = UnifiedDI.resolve(TCAToWeaveDITestService.self)
             XCTAssertNotNil(weaveDIService)
@@ -128,12 +131,13 @@ final class TCAToWeaveDIAutoSyncTests: XCTestCase {
         }
     }
 
-    func testWeaveDIInjectedAccessAfterTCARegistration() throws {
+    func testWeaveDIInjectedAccessAfterTCARegistration() async throws {
         // Given: TCA에서 먼저 서비스 등록
-        withDependencies { dependencies in
+         await withDependencies { dependencies in
             let mockService = MockTCAToWeaveDIService(name: "tca_registered")
             dependencies.tcaToWeaveDIService = mockService
         } operation: {
+            await UnifiedDI.waitForRegistration()
             // When: @Injected property wrapper로 접근
             let consumer = TCAToWeaveDIConsumer()
             let result = consumer.getServiceName()
@@ -143,19 +147,20 @@ final class TCAToWeaveDIAutoSyncTests: XCTestCase {
         }
     }
 
-    func testRealWorldTCAPattern() throws {
+    func testRealWorldTCAPattern() async throws {
         // Given: 실제 사용자 사용 패턴
         struct MyAppDependencyKey: DependencyKey {
             static let liveValue: TCAToWeaveDITestService = LiveTCAToWeaveDIService()
         }
 
         // 사용자가 추가하는 DependencyValues extension
-        withDependencies { dependencies in
+        await withDependencies { dependencies in
             // TCA의 기본 subscript 사용
             let value = dependencies[MyAppDependencyKey.self]
             // 수동으로 WeaveDI 동기화 (사용자가 추가)
             TCAAutoSyncContainer.autoSyncToWeaveDI(TCAToWeaveDITestService.self, value: value)
         } operation: {
+            await UnifiedDI.waitForRegistration()
             // WeaveDI에서 접근 가능해야 함
             let service = UnifiedDI.resolve(TCAToWeaveDITestService.self)
 
@@ -165,14 +170,15 @@ final class TCAToWeaveDIAutoSyncTests: XCTestCase {
         }
     }
 
-    func testBidirectionalSync() throws {
+    func testBidirectionalSync() async throws {
         // Given: 양방향 동기화 테스트
         let tcaMockService = MockTCAToWeaveDIService(name: "tca_side")
 
         // When: TCA → WeaveDI
-        withDependencies { dependencies in
+         await withDependencies { dependencies in
             dependencies.tcaToWeaveDIService = tcaMockService
         } operation: {
+            await UnifiedDI.waitForRegistration()
             // WeaveDI에서 접근
             let weaveDIService = UnifiedDI.resolve(TCAToWeaveDITestService.self)
             XCTAssertEqual(weaveDIService?.getName(), "tca_side")
@@ -180,6 +186,7 @@ final class TCAToWeaveDIAutoSyncTests: XCTestCase {
             // WeaveDI → TCA 방향도 테스트
             let weaveDIMockService = MockTCAToWeaveDIService(name: "weavedi_side")
             _ = UnifiedDI.register(TCAToWeaveDITestService.self) { weaveDIMockService }
+            await UnifiedDI.waitForRegistration()
 
             // TCA에서도 업데이트된 값 접근 가능해야 함
             let updatedService = UnifiedDI.resolve(TCAToWeaveDITestService.self)

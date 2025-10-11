@@ -1,6 +1,6 @@
 //
 //  UserWantedAutoSyncTests.swift
-//  WeaveDI - 사용자가 원하는 @AutoSync 패턴 테스트
+//  WeaveDI - 사용자가 원하는 @AutoSyncExtension 패턴 테스트
 //
 //  Created by Wonji Suh on 2025.
 //
@@ -37,10 +37,10 @@ public struct UserWantedServiceKey: DependencyKey {
     public static let testValue: UserWantedTestService = MockUserWantedService()
 }
 
-// MARK: - 🎯 사용자가 원하는 패턴: @AutoSync만 추가!
+// MARK: - 🎯 사용자가 원하는 패턴: @AutoSyncExtension만 추가!
 
-/// 🎯 **사용자가 정말 원했던 패턴**: @AutoSync만 추가하면 기존 코드 그대로!
-@AutoSync  // ← 이것만 추가!
+/// 🎯 **사용자가 정말 원했던 패턴**: @AutoSyncExtension만 추가하면 기존 코드 그대로!
+@AutoSyncExtension  // ← 이것만 추가!
 extension DependencyValues {
     var userWantedService: UserWantedTestService {
         get { self[UserWantedServiceKey.self] }  // 기존 코드 그대로
@@ -87,10 +87,11 @@ final class UserWantedAutoSyncTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         UnifiedDI.releaseAll()
+        enableBidirectionalTCASync()
     }
 
-    func testUserWantedAutoSyncPattern() throws {
-        // Given: 사용자가 원하는 패턴 - @AutoSync만 추가했을 때
+    func testUserWantedAutoSyncPattern() async throws {
+        // Given: 사용자가 원하는 패턴 - @AutoSyncExtension만 추가했을 때
 
         // When: 기존 property 사용 (그대로)
         let tcaService = withDependencies { _ in
@@ -114,20 +115,23 @@ final class UserWantedAutoSyncTests: XCTestCase {
         // Then: Sync 버전은 자동으로 WeaveDI와 동기화되어야 함
         XCTAssertEqual(tcaSyncService.getName(), "mock_user_wanted_service")
 
+        await UnifiedDI.waitForRegistration()
+
         // WeaveDI에서도 접근 가능해야 함
         let weaveDIService = UnifiedDI.resolve(UserWantedTestService.self)
         XCTAssertNotNil(weaveDIService)
         XCTAssertEqual(weaveDIService?.getName(), "mock_user_wanted_service")
     }
 
-    func testAutoSyncSetterSynchronization() throws {
+    func testAutoSyncSetterSynchronization() async throws {
         // Given: 커스텀 mock 서비스
         let customService = MockUserWantedService(name: "custom_user_wanted")
 
         // When: 매크로 생성된 Sync setter 사용
-        withDependencies { dependencies in
+         await withDependencies { dependencies in
             dependencies.userWantedServiceSync = customService  // 매크로 생성 Sync setter로 자동 WeaveDI 동기화
         } operation: {
+            await UnifiedDI.waitForRegistration()
             // Then: WeaveDI에서도 해당 값에 접근 가능해야 함
             let weaveDIService = UnifiedDI.resolve(UserWantedTestService.self)
             XCTAssertNotNil(weaveDIService)
@@ -140,8 +144,8 @@ final class UserWantedAutoSyncTests: XCTestCase {
         }
     }
 
-    func testMultiplePropertiesAutoSync() throws {
-        // Given: @AutoSync가 여러 property에 적용될 때
+    func testMultiplePropertiesAutoSync() async throws {
+        // Given: @AutoSyncExtension이 여러 property에 적용될 때
 
         // When: 여러 Sync property 사용
         let service1 = withDependencies { _ in
@@ -161,8 +165,8 @@ final class UserWantedAutoSyncTests: XCTestCase {
         XCTAssertEqual(service2.getName(), "mock_user_wanted_service")
     }
 
-    func testOriginalPropertiesUnchanged() throws {
-        // Given: @AutoSync 추가 후에도
+    func testOriginalPropertiesUnchanged() async throws {
+        // Given: @AutoSyncExtension 추가 후에도
 
         // When: 기존 property들을 사용할 때
         let originalService = withDependencies { _ in
@@ -179,7 +183,7 @@ final class UserWantedAutoSyncTests: XCTestCase {
         // 실제로는 Sync 버전만 WeaveDI와 동기화됨
     }
 
-    func testUserExperienceRealistic() throws {
+    func testUserExperienceRealistic() async throws {
         // Given: 실제 사용자 사용 시나리오
 
         // 1. 사용자는 기존 코드를 그대로 사용
@@ -190,9 +194,10 @@ final class UserWantedAutoSyncTests: XCTestCase {
         }
 
         // 2. 동기화가 필요한 경우에만 Sync 버전 사용
-        let syncService = withDependencies { dependencies in
+        let syncService =  await withDependencies { dependencies in
             let customService = MockUserWantedService(name: "realistic_sync_test")
             dependencies.userWantedServiceSync = customService  // 동기화 버전으로 설정
+            await UnifiedDI.waitForRegistration()
         } operation: {
             @Dependency(\.userWantedServiceSync) var service
             return service

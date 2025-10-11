@@ -107,6 +107,7 @@ final class AutoSyncMacroTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         UnifiedDI.releaseAll()
+        enableBidirectionalTCASync()
     }
 
     func testAutoSyncBasicFunctionality() throws {
@@ -220,7 +221,7 @@ final class AutoSyncMacroTests: XCTestCase {
 
             // WeaveDI 등록 후 값 확인 - WeaveDI가 우선됨
             let updatedService = UnifiedDI.resolve(AutoSyncMacroTestService.self)
-            XCTAssertEqual(updatedService?.getName(), "tca_autosync_side") // TCA 값이 유지됨 (마지막에 설정된 값)
+            XCTAssertEqual(updatedService?.getName(), "weavedi_autosync_side")
         }
     }
 }

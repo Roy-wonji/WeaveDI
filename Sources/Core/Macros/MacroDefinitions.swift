@@ -56,7 +56,34 @@ import Foundation
 /// - liveValue의 타입이 명확해야 합니다 (타입 어노테이션 또는 추론 가능한 초기화)
 @attached(member, names: named(testValue), named(previewValue), named(_autoSyncTrigger))
 @attached(extension, conformances: InjectedKey)
-public macro AutoSync() = #externalMacro(module: "WeaveDIMacros", type: "AutoSyncMacro")
+public macro AutoSync() = #externalMacro(module: "WeaveDIMacros", type: "AutoSyncStructMacro")
+
+/// @AutoSyncExtension 매크로: DependencyValues/InjectedValues extension에 대해 단계적으로 양방향 동기화 코드를 생성합니다.
+///
+/// ## 사용법:
+/// ```swift
+/// @AutoSyncExtension
+/// extension DependencyValues {
+///   var userService: UserService {
+///     get { self[UserServiceKey.self] }
+///     set { self[UserServiceKey.self] = newValue }
+///   }
+/// }
+/// ```
+///
+/// ## 생성되는 코드:
+/// - `userServiceSync` 접근자 추가 (양방향 동기화 포함)
+/// - TCASmartSync 훅 호출을 자동 삽입
+@attached(member, names: arbitrary)
+public macro AutoSyncExtension() = #externalMacro(module: "WeaveDIMacros", type: "AutoSyncExtensionMacro")
+
+/// @AutoSyncProperty 매크로: 기존 DependencyValues property 옆에 동기화 버전을 추가합니다.
+@attached(peer, names: arbitrary)
+public macro AutoSyncProperty(key: Any.Type? = nil) = #externalMacro(module: "WeaveDIMacros", type: "AutoSyncPropertyMacro")
+
+/// @GenerateAutoSync 매크로: 빈 extension에 자동 동기화 프로퍼티를 생성합니다.
+@attached(member, names: arbitrary)
+public macro GenerateAutoSync(key: Any.Type, type: Any.Type) = #externalMacro(module: "WeaveDIMacros", type: "GenerateAutoSyncMacro")
 
 // MARK: - @ReverseAutoSync Macro Definition
 

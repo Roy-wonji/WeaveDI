@@ -5,66 +5,66 @@ import Foundation
 import Dependencies
 
 // 🧪 테스트용 Service 프로토콜
-protocol TestService: Sendable {
+protocol AutoSyncDemoService: Sendable {
     func getName() -> String
 }
 
 // 🧪 테스트용 구현체
-struct TestServiceImpl: TestService {
+struct AutoSyncDemoServiceImpl: AutoSyncDemoService {
     func getName() -> String {
-        return "TestService from WeaveDI"
+        return "AutoSyncDemoService from WeaveDI"
     }
 }
 
 // 🧪 테스트용 DependencyKey
-struct TestServiceKey: DependencyKey {
-    static let liveValue: TestService = TestServiceImpl()
+struct AutoSyncDemoServiceKey: DependencyKey {
+    static let liveValue: AutoSyncDemoService = AutoSyncDemoServiceImpl()
 }
 
 // 🧪 테스트용 InjectedKey
-extension TestServiceImpl: InjectedKey {
-    public static var liveValue: TestService {
-        TestServiceImpl()
+extension AutoSyncDemoServiceImpl: InjectedKey {
+    public static var liveValue: AutoSyncDemoService {
+        AutoSyncDemoServiceImpl()
     }
 }
 
-// 🎯 테스트 1: DependencyValues + @AutoSync
-@AutoSync
+// 🎯 테스트 1: DependencyValues + @AutoSyncExtension
+@AutoSyncExtension
 extension DependencyValues {
-    var testService: TestService {
-        get { self[TestServiceKey.self] }
-        set { self[TestServiceKey.self] = newValue }
+    var autoSyncDemoService: AutoSyncDemoService {
+        get { self[AutoSyncDemoServiceKey.self] }
+        set { self[AutoSyncDemoServiceKey.self] = newValue }
     }
 }
 
-// 🎯 테스트 2: InjectedValues + @AutoSync
-@AutoSync
+// 🎯 테스트 2: InjectedValues + @AutoSyncExtension
+@AutoSyncExtension
 extension InjectedValues {
-    var testService2: TestService {
-        get { self[TestServiceImpl.self] }
-        set { self[TestServiceImpl.self] = newValue }
+    var autoSyncDemoService: AutoSyncDemoService {
+        get { self[AutoSyncDemoServiceImpl.self] }
+        set { self[AutoSyncDemoServiceImpl.self] = newValue }
     }
 }
 
 // 🧪 테스트 실행 함수
 @MainActor
 func runAutoSyncTest() {
-    print("🧪 @AutoSync 매크로 테스트 시작...")
+    print("🧪 @AutoSyncExtension 매크로 테스트 시작...")
 
     // 1. 양방향 동기화 활성화
     enableBidirectionalTCASync()
 
     // 2. DependencyValues 테스트
     print("📋 DependencyValues 테스트:")
-    @Dependency(\.testService) var service1
+    @Dependency(\.autoSyncDemoService) var service1
     print("   - service1.getName(): \(service1.getName())")
 
     // 3. InjectedValues 테스트
     print("📋 InjectedValues 테스트:")
-    @Injected var service2: TestService
+    @Injected(\.autoSyncDemoService) var service2: AutoSyncDemoService
     print("   - service2.getName(): \(service2.getName())")
 
-    print("🎉 @AutoSync 매크로 테스트 완료!")
+    print("🎉 @AutoSyncExtension 매크로 테스트 완료!")
 }
 
 #else

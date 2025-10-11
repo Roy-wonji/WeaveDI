@@ -16,7 +16,7 @@ import SwiftCompilerPlugin
 // Note: @main plugin definition moved to Plugin.swift to avoid duplication
 // This file only contains macro implementations
 
-// MARK: - @AutoSync Macro
+// MARK: - @AutoSync Struct Macro
 
 /// @AutoSync 매크로: TCA DependencyKey와 WeaveDI InjectedKey를 자동으로 동기화합니다.
 ///
@@ -52,46 +52,46 @@ import SwiftCompilerPlugin
 ///     }
 /// }
 /// ```
-public struct AutoSyncMacro: MemberMacro, ExtensionMacro {
+public struct AutoSyncStructMacro: MemberMacro, ExtensionMacro {
 
-    public static func expansion(
-        of node: AttributeSyntax,
-        providingMembersOf declaration: some DeclGroupSyntax,
-        in context: some MacroExpansionContext
-    ) throws -> [DeclSyntax] {
+  public static func expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
 
-        // 구조체인지 확인
-        guard let structDecl = declaration.as(StructDeclSyntax.self) else {
-            throw AutoSyncError.onlyApplicableToStruct
-        }
+    // 구조체인지 확인
+    guard let structDecl = declaration.as(StructDeclSyntax.self) else {
+      throw AutoSyncError.onlyApplicableToStruct
+    }
 
-        // DependencyKey conformance 확인
-        let hasDependencyKey = structDecl.inheritanceClause?.inheritedTypes.contains { type in
-            type.type.as(IdentifierTypeSyntax.self)?.name.text == "DependencyKey"
-        } ?? false
+    // DependencyKey conformance 확인
+    let hasDependencyKey = structDecl.inheritanceClause?.inheritedTypes.contains { type in
+      type.type.as(IdentifierTypeSyntax.self)?.name.text == "DependencyKey"
+    } ?? false
 
-        guard hasDependencyKey else {
-            throw AutoSyncError.mustConformToDependencyKey
-        }
+    guard hasDependencyKey else {
+      throw AutoSyncError.mustConformToDependencyKey
+    }
 
-        // liveValue 분석
-        guard let liveValueInfo = analyzeLiveValue(from: structDecl) else {
-            throw AutoSyncError.cannotInferLiveValueType
-        }
+    // liveValue 분석
+    guard let liveValueInfo = analyzeLiveValue(from: structDecl) else {
+      throw AutoSyncError.cannotInferLiveValueType
+    }
 
-        let structName = structDecl.name.text
+    let structName = structDecl.name.text
 
-        // InjectedKey conformance용 멤버들 생성
-        let testValueDecl: DeclSyntax = """
+    // InjectedKey conformance용 멤버들 생성
+    let testValueDecl: DeclSyntax = """
             static var testValue: \(raw: liveValueInfo.type) { liveValue }
             """
 
-        let previewValueDecl: DeclSyntax = """
+    let previewValueDecl: DeclSyntax = """
             static var previewValue: \(raw: liveValueInfo.type) { liveValue }
             """
 
-        // 자동 동기화 초기화 코드
-        let autoSyncInitDecl: DeclSyntax = """
+    // 자동 동기화 초기화 코드
+    let autoSyncInitDecl: DeclSyntax = """
             private static let _autoSyncTrigger: Void = {
                 #if canImport(Dependencies)
                 TCASmartSync.autoDetectAndSync(\(raw: structName).self, value: liveValue)
@@ -100,40 +100,40 @@ public struct AutoSyncMacro: MemberMacro, ExtensionMacro {
             }()
             """
 
-        return [testValueDecl, previewValueDecl, autoSyncInitDecl]
+    return [testValueDecl, previewValueDecl, autoSyncInitDecl]
+  }
+
+  public static func expansion(
+    of node: AttributeSyntax,
+    providingConformancesOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] {
+
+    // InjectedKey conformance 추가
+    return [("InjectedKey", nil)]
+  }
+
+  public static func expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+
+    guard let structDecl = declaration.as(StructDeclSyntax.self) else {
+      return []
     }
 
-    public static func expansion(
-        of node: AttributeSyntax,
-        providingConformancesOf declaration: some DeclGroupSyntax,
-        in context: some MacroExpansionContext
-    ) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] {
-
-        // InjectedKey conformance 추가
-        return [("InjectedKey", nil)]
+    guard let liveValueInfo = analyzeLiveValue(from: structDecl) else {
+      return []
     }
 
-    public static func expansion(
-        of node: AttributeSyntax,
-        attachedTo declaration: some DeclGroupSyntax,
-        providingExtensionsOf type: some TypeSyntaxProtocol,
-        conformingTo protocols: [TypeSyntax],
-        in context: some MacroExpansionContext
-    ) throws -> [ExtensionDeclSyntax] {
+    let structName = structDecl.name.text
+    let propertyName = generatePropertyName(from: structName)
 
-        guard let structDecl = declaration.as(StructDeclSyntax.self) else {
-            return []
-        }
-
-        guard let liveValueInfo = analyzeLiveValue(from: structDecl) else {
-            return []
-        }
-
-        let structName = structDecl.name.text
-        let propertyName = generatePropertyName(from: structName)
-
-        // InjectedValues extension 생성
-        let extensionDecl: DeclSyntax = """
+    // InjectedValues extension 생성
+    let extensionDecl: DeclSyntax = """
             extension InjectedValues {
                 /// Auto-generated by @AutoSync for \(raw: structName)
                 var \(raw: propertyName): \(raw: liveValueInfo.type) {
@@ -143,93 +143,93 @@ public struct AutoSyncMacro: MemberMacro, ExtensionMacro {
             }
             """
 
-        guard let extensionSyntax = extensionDecl.as(ExtensionDeclSyntax.self) else {
-            return []
-        }
-
-        return [extensionSyntax]
+    guard let extensionSyntax = extensionDecl.as(ExtensionDeclSyntax.self) else {
+      return []
     }
 
-    // MARK: - Helper Methods
+    return [extensionSyntax]
+  }
 
-    private static func analyzeLiveValue(from structDecl: StructDeclSyntax) -> LiveValueInfo? {
-        for member in structDecl.memberBlock.members {
-            if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
-                for binding in variableDecl.bindings {
-                    if let identifier = binding.pattern.as(IdentifierPatternSyntax.self),
-                       identifier.identifier.text == "liveValue" {
+  // MARK: - Helper Methods
 
-                        let type: String
-                        let expression: ExprSyntax?
+  private static func analyzeLiveValue(from structDecl: StructDeclSyntax) -> LiveValueInfo? {
+    for member in structDecl.memberBlock.members {
+      if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
+        for binding in variableDecl.bindings {
+          if let identifier = binding.pattern.as(IdentifierPatternSyntax.self),
+             identifier.identifier.text == "liveValue" {
 
-                        // 타입 어노테이션이 있는 경우
-                        if let typeAnnotation = binding.typeAnnotation {
-                            type = typeAnnotation.type.description.trimmingCharacters(in: .whitespaces)
-                            expression = binding.initializer?.value
-                        }
-                        // 초기화 표현식에서 타입 추론
-                        else if let initializer = binding.initializer {
-                            if let inferredType = inferTypeFromExpression(initializer.value) {
-                                type = inferredType
-                                expression = initializer.value
-                            } else {
-                                return nil
-                            }
-                        } else {
-                            return nil
-                        }
+            let type: String
+            let expression: ExprSyntax?
 
-                        return LiveValueInfo(type: type, expression: expression)
-                    }
-                }
+            // 타입 어노테이션이 있는 경우
+            if let typeAnnotation = binding.typeAnnotation {
+              type = typeAnnotation.type.description.trimmingCharacters(in: .whitespaces)
+              expression = binding.initializer?.value
             }
-        }
-        return nil
-    }
-
-    internal static func inferTypeFromExpression(_ expression: ExprSyntax) -> String? {
-        // 함수 호출 표현식 (예: UserServiceImpl())
-        if let functionCall = expression.as(FunctionCallExprSyntax.self) {
-            if let identifier = functionCall.calledExpression.as(DeclReferenceExprSyntax.self) {
-                return identifier.baseName.text
+            // 초기화 표현식에서 타입 추론
+            else if let initializer = binding.initializer {
+              if let inferredType = inferTypeFromExpression(initializer.value) {
+                type = inferredType
+                expression = initializer.value
+              } else {
+                return nil
+              }
+            } else {
+              return nil
             }
-        }
 
-        // 멤버 접근 표현식 (예: ServiceFactory.shared)
-        if let memberAccess = expression.as(MemberAccessExprSyntax.self) {
-            if let baseType = memberAccess.base?.description.trimmingCharacters(in: .whitespaces) {
-                return baseType
-            }
+            return LiveValueInfo(type: type, expression: expression)
+          }
         }
+      }
+    }
+    return nil
+  }
 
-        // 식별자 표현식 (예: sharedInstance)
-        if let identifier = expression.as(DeclReferenceExprSyntax.self) {
-            return identifier.baseName.text
-        }
-
-        return nil
+  internal static func inferTypeFromExpression(_ expression: ExprSyntax) -> String? {
+    // 함수 호출 표현식 (예: UserServiceImpl())
+    if let functionCall = expression.as(FunctionCallExprSyntax.self) {
+      if let identifier = functionCall.calledExpression.as(DeclReferenceExprSyntax.self) {
+        return identifier.baseName.text
+      }
     }
 
-    private static func generatePropertyName(from structName: String) -> String {
-        var name = structName
-
-        // "Key" 접미사 제거
-        if name.hasSuffix("Key") {
-            name = String(name.dropLast(3))
-        }
-
-        // "DependencyKey" 접미사 제거
-        if name.hasSuffix("DependencyKey") {
-            name = String(name.dropLast(13))
-        }
-
-        // 첫 글자를 소문자로 변경
-        if !name.isEmpty {
-            name = name.prefix(1).lowercased() + name.dropFirst()
-        }
-
-        return name
+    // 멤버 접근 표현식 (예: ServiceFactory.shared)
+    if let memberAccess = expression.as(MemberAccessExprSyntax.self) {
+      if let baseType = memberAccess.base?.description.trimmingCharacters(in: .whitespaces) {
+        return baseType
+      }
     }
+
+    // 식별자 표현식 (예: sharedInstance)
+    if let identifier = expression.as(DeclReferenceExprSyntax.self) {
+      return identifier.baseName.text
+    }
+
+    return nil
+  }
+
+  private static func generatePropertyName(from structName: String) -> String {
+    var name = structName
+
+    // "Key" 접미사 제거
+    if name.hasSuffix("Key") {
+      name = String(name.dropLast(3))
+    }
+
+    // "DependencyKey" 접미사 제거
+    if name.hasSuffix("DependencyKey") {
+      name = String(name.dropLast(13))
+    }
+
+    // 첫 글자를 소문자로 변경
+    if !name.isEmpty {
+      name = name.prefix(1).lowercased() + name.dropFirst()
+    }
+
+    return name
+  }
 }
 
 // MARK: - @ReverseAutoSync Macro
@@ -237,39 +237,39 @@ public struct AutoSyncMacro: MemberMacro, ExtensionMacro {
 /// @ReverseAutoSync 매크로: WeaveDI InjectedKey를 TCA DependencyKey로 자동 변환합니다
 public struct ReverseAutoSyncMacro: MemberMacro {
 
-    public static func expansion(
-        of node: AttributeSyntax,
-        providingMembersOf declaration: some DeclGroupSyntax,
-        in context: some MacroExpansionContext
-    ) throws -> [DeclSyntax] {
+  public static func expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
 
-        // 구조체인지 확인
-        guard let structDecl = declaration.as(StructDeclSyntax.self) else {
-            throw AutoSyncError.onlyApplicableToStruct
-        }
+    // 구조체인지 확인
+    guard let structDecl = declaration.as(StructDeclSyntax.self) else {
+      throw AutoSyncError.onlyApplicableToStruct
+    }
 
-        // InjectedKey conformance 확인
-        let hasInjectedKey = structDecl.inheritanceClause?.inheritedTypes.contains { type in
-            type.type.as(IdentifierTypeSyntax.self)?.name.text == "InjectedKey"
-        } ?? false
+    // InjectedKey conformance 확인
+    let hasInjectedKey = structDecl.inheritanceClause?.inheritedTypes.contains { type in
+      type.type.as(IdentifierTypeSyntax.self)?.name.text == "InjectedKey"
+    } ?? false
 
-        guard hasInjectedKey else {
-            throw AutoSyncError.mustConformToInjectedKey
-        }
+    guard hasInjectedKey else {
+      throw AutoSyncError.mustConformToInjectedKey
+    }
 
-        // liveValue의 Value 타입 추출
-        guard let valueType = extractValueType(from: structDecl) else {
-            throw AutoSyncError.cannotInferValueType
-        }
+    // liveValue의 Value 타입 추출
+    guard let valueType = extractValueType(from: structDecl) else {
+      throw AutoSyncError.cannotInferValueType
+    }
 
-        // DependencyKey conformance용 멤버들 생성
-        let typeAliasDecl: DeclSyntax = """
+    // DependencyKey conformance용 멤버들 생성
+    let typeAliasDecl: DeclSyntax = """
             typealias Value = \(raw: valueType)
             """
 
-        // TCA 동기화 초기화 코드
-        let _ = structDecl.name.text
-        let tcaSyncDecl: DeclSyntax = """
+    // TCA 동기화 초기화 코드
+    let _ = structDecl.name.text
+    let tcaSyncDecl: DeclSyntax = """
             private static let _tcaSyncTrigger: Void = {
                 #if canImport(Dependencies)
                 TCASmartSync.autoDetectWeaveDIRegistration(Value.self, value: liveValue)
@@ -278,43 +278,43 @@ public struct ReverseAutoSyncMacro: MemberMacro {
             }()
             """
 
-        return [typeAliasDecl, tcaSyncDecl]
-    }
+    return [typeAliasDecl, tcaSyncDecl]
+  }
 
-    public static func expansion(
-        of node: AttributeSyntax,
-        providingConformancesOf declaration: some DeclGroupSyntax,
-        in context: some MacroExpansionContext
-    ) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] {
+  public static func expansion(
+    of node: AttributeSyntax,
+    providingConformancesOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] {
 
-        // DependencyKey conformance 추가
-        return [("DependencyKey", nil)]
-    }
+    // DependencyKey conformance 추가
+    return [("DependencyKey", nil)]
+  }
 
-    /// Value 타입을 추출합니다
-    private static func extractValueType(from structDecl: StructDeclSyntax) -> String? {
-        // liveValue의 리턴 타입에서 추출
-        for member in structDecl.memberBlock.members {
-            if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
-                for binding in variableDecl.bindings {
-                    if let identifier = binding.pattern.as(IdentifierPatternSyntax.self),
-                       identifier.identifier.text == "liveValue" {
+  /// Value 타입을 추출합니다
+  private static func extractValueType(from structDecl: StructDeclSyntax) -> String? {
+    // liveValue의 리턴 타입에서 추출
+    for member in structDecl.memberBlock.members {
+      if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
+        for binding in variableDecl.bindings {
+          if let identifier = binding.pattern.as(IdentifierPatternSyntax.self),
+             identifier.identifier.text == "liveValue" {
 
-                        // 타입 어노테이션이 있는 경우
-                        if let typeAnnotation = binding.typeAnnotation {
-                            return typeAnnotation.type.description.trimmingCharacters(in: .whitespaces)
-                        }
-
-                        // 초기화 표현식에서 타입 추론
-                        if let initializer = binding.initializer {
-                            return AutoSyncMacro.inferTypeFromExpression(initializer.value)
-                        }
-                    }
-                }
+            // 타입 어노테이션이 있는 경우
+            if let typeAnnotation = binding.typeAnnotation {
+              return typeAnnotation.type.description.trimmingCharacters(in: .whitespaces)
             }
+
+            // 초기화 표현식에서 타입 추론
+            if let initializer = binding.initializer {
+              return AutoSyncStructMacro.inferTypeFromExpression(initializer.value)
+            }
+          }
         }
-        return nil
+      }
     }
+    return nil
+  }
 }
 
 // MARK: - @Component Macro
@@ -329,210 +329,210 @@ public struct ReverseAutoSyncMacro: MemberMacro {
 /// 5. 자동 등록 시스템
 public struct ComponentMacro: MemberMacro, ExtensionMacro {
 
-    public static func expansion(
-        of node: AttributeSyntax,
-        providingMembersOf declaration: some DeclGroupSyntax,
-        in context: some MacroExpansionContext
-    ) throws -> [DeclSyntax] {
+  public static func expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
 
-        guard let structDecl = declaration.as(StructDeclSyntax.self) else {
-            throw ComponentMacroError.onlyApplicableToStruct
-        }
-
-        let structName = structDecl.name.text
-
-        // @Provide로 표시된 프로퍼티들을 찾습니다
-        let provideProperties = findProvideProperties(in: structDecl)
-
-        var generatedMembers: [DeclSyntax] = []
-
-        // 1. 각 @Provide에 대한 InjectedKey 생성
-        for property in provideProperties {
-            let injectedKey = generateInjectedKey(for: property)
-            generatedMembers.append(injectedKey)
-        }
-
-        // 2. registerAll 메서드 생성 (DIContainer + InjectedValues 통합)
-        let registerAllMethod = generateEnhancedRegisterAllMethod(for: provideProperties, structName: structName)
-        generatedMembers.append(registerAllMethod)
-
-        // 3. @Injected 자동 등록 메서드
-        let autoRegisterMethod = generateAutoRegisterMethod(for: provideProperties, structName: structName)
-        generatedMembers.append(autoRegisterMethod)
-
-        return generatedMembers
+    guard let structDecl = declaration.as(StructDeclSyntax.self) else {
+      throw ComponentMacroError.onlyApplicableToStruct
     }
 
-    public static func expansion(
-        of node: AttributeSyntax,
-        providingConformancesOf declaration: some DeclGroupSyntax,
-        in context: some MacroExpansionContext
-    ) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] {
+    let structName = structDecl.name.text
 
-        return [("ComponentProtocol", nil)]
+    // @Provide로 표시된 프로퍼티들을 찾습니다
+    let provideProperties = findProvideProperties(in: structDecl)
+
+    var generatedMembers: [DeclSyntax] = []
+
+    // 1. 각 @Provide에 대한 InjectedKey 생성
+    for property in provideProperties {
+      let injectedKey = generateInjectedKey(for: property)
+      generatedMembers.append(injectedKey)
     }
 
-    public static func expansion(
-        of node: AttributeSyntax,
-        attachedTo declaration: some DeclGroupSyntax,
-        providingExtensionsOf type: some TypeSyntaxProtocol,
-        conformingTo protocols: [TypeSyntax],
-        in context: some MacroExpansionContext
-    ) throws -> [ExtensionDeclSyntax] {
+    // 2. registerAll 메서드 생성 (DIContainer + InjectedValues 통합)
+    let registerAllMethod = generateEnhancedRegisterAllMethod(for: provideProperties, structName: structName)
+    generatedMembers.append(registerAllMethod)
 
-        guard let structDecl = declaration.as(StructDeclSyntax.self) else {
-            return []
-        }
+    // 3. @Injected 자동 등록 메서드
+    let autoRegisterMethod = generateAutoRegisterMethod(for: provideProperties, structName: structName)
+    generatedMembers.append(autoRegisterMethod)
 
-        let provideProperties = findProvideProperties(in: structDecl)
-        guard !provideProperties.isEmpty else { return [] }
+    return generatedMembers
+  }
 
-        // InjectedValues extension 생성
-        let injectedValuesExtension = generateInjectedValuesExtension(for: provideProperties)
+  public static func expansion(
+    of node: AttributeSyntax,
+    providingConformancesOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] {
 
-        guard let extensionSyntax = injectedValuesExtension.as(ExtensionDeclSyntax.self) else {
-            return []
-        }
+    return [("ComponentProtocol", nil)]
+  }
 
-        return [extensionSyntax]
+  public static func expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+
+    guard let structDecl = declaration.as(StructDeclSyntax.self) else {
+      return []
     }
 
-    // MARK: - Helper Methods
+    let provideProperties = findProvideProperties(in: structDecl)
+    guard !provideProperties.isEmpty else { return [] }
 
-    private static func findProvideProperties(in structDecl: StructDeclSyntax) -> [ProvideProperty] {
-        var properties: [ProvideProperty] = []
+    // InjectedValues extension 생성
+    let injectedValuesExtension = generateInjectedValuesExtension(for: provideProperties)
 
-        for member in structDecl.memberBlock.members {
-            if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
-                for binding in variableDecl.bindings {
-                    if let identifier = binding.pattern.as(IdentifierPatternSyntax.self) {
-                        // @Provide 속성이 있는지 확인
-                        let hasProvideAttribute = variableDecl.attributes.contains { attr in
-                            if case .attribute(let attributeSyntax) = attr,
-                               let identifierType = attributeSyntax.attributeName.as(IdentifierTypeSyntax.self) {
-                                return identifierType.name.text == "Provide"
-                            }
-                            return false
-                        }
+    guard let extensionSyntax = injectedValuesExtension.as(ExtensionDeclSyntax.self) else {
+      return []
+    }
 
-                        if hasProvideAttribute {
-                            let propertyName = identifier.identifier.text
-                            let propertyType = extractPropertyType(from: binding)
-                            let scope = extractScope(from: variableDecl.attributes)
+    return [extensionSyntax]
+  }
 
-                            properties.append(ProvideProperty(
-                                name: propertyName,
-                                type: propertyType,
-                                scope: scope,
-                                componentName: nil // 매크로 컨텍스트에서는 구조체 이름을 알 수 있음
-                            ))
-                        }
-                    }
-                }
+  // MARK: - Helper Methods
+
+  private static func findProvideProperties(in structDecl: StructDeclSyntax) -> [ProvideProperty] {
+    var properties: [ProvideProperty] = []
+
+    for member in structDecl.memberBlock.members {
+      if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
+        for binding in variableDecl.bindings {
+          if let identifier = binding.pattern.as(IdentifierPatternSyntax.self) {
+            // @Provide 속성이 있는지 확인
+            let hasProvideAttribute = variableDecl.attributes.contains { attr in
+              if case .attribute(let attributeSyntax) = attr,
+                 let identifierType = attributeSyntax.attributeName.as(IdentifierTypeSyntax.self) {
+                return identifierType.name.text == "Provide"
+              }
+              return false
             }
-        }
 
-        return properties
-    }
+            if hasProvideAttribute {
+              let propertyName = identifier.identifier.text
+              let propertyType = extractPropertyType(from: binding)
+              let scope = extractScope(from: variableDecl.attributes)
 
-    private static func extractPropertyType(from binding: PatternBindingSyntax) -> String {
-        // 타입 어노테이션이 있는 경우
-        if let typeAnnotation = binding.typeAnnotation {
-            return typeAnnotation.type.description.trimmingCharacters(in: .whitespaces)
-        }
-
-        // getter에서 타입 추론
-        if let accessorBlock = binding.accessorBlock,
-           case .getter(let _) = accessorBlock.accessors {
-            // 간단한 타입 추론 (실제로는 더 정교한 로직 필요)
-            return "Any"
-        }
-
-        return "Any"
-    }
-
-    private static func extractScope(from attributes: AttributeListSyntax) -> String {
-        for attr in attributes {
-            if case .attribute(let attributeSyntax) = attr,
-               let identifierType = attributeSyntax.attributeName.as(IdentifierTypeSyntax.self),
-               identifierType.name.text == "Provide" {
-
-                // @Provide의 scope 파라미터 추출
-                if let argumentList = attributeSyntax.arguments?.as(LabeledExprListSyntax.self) {
-                    for argument in argumentList {
-                        if argument.label?.text == "scope" {
-                            if let memberAccess = argument.expression.as(MemberAccessExprSyntax.self) {
-                                return memberAccess.declName.baseName.text
-                            }
-                        }
-                    }
-                }
+              properties.append(ProvideProperty(
+                name: propertyName,
+                type: propertyType,
+                scope: scope,
+                componentName: nil // 매크로 컨텍스트에서는 구조체 이름을 알 수 있음
+              ))
             }
+          }
         }
-        return "transient" // 기본값
+      }
     }
 
-    /// 개별 @Provide에 대한 InjectedKey 생성
-    private static func generateInjectedKey(for property: ProvideProperty) -> DeclSyntax {
-        let keyName = "\(property.name.prefix(1).uppercased())\(property.name.dropFirst())Key"
+    return properties
+  }
 
-        let keyDecl: DeclSyntax = """
+  private static func extractPropertyType(from binding: PatternBindingSyntax) -> String {
+    // 타입 어노테이션이 있는 경우
+    if let typeAnnotation = binding.typeAnnotation {
+      return typeAnnotation.type.description.trimmingCharacters(in: .whitespaces)
+    }
+
+    // getter에서 타입 추론
+    if let accessorBlock = binding.accessorBlock,
+       case .getter = accessorBlock.accessors {
+      // 간단한 타입 추론 (실제로는 더 정교한 로직 필요)
+      return "Any"
+    }
+
+    return "Any"
+  }
+
+  private static func extractScope(from attributes: AttributeListSyntax) -> String {
+    for attr in attributes {
+      if case .attribute(let attributeSyntax) = attr,
+         let identifierType = attributeSyntax.attributeName.as(IdentifierTypeSyntax.self),
+         identifierType.name.text == "Provide" {
+
+        // @Provide의 scope 파라미터 추출
+        if let argumentList = attributeSyntax.arguments?.as(LabeledExprListSyntax.self) {
+          for argument in argumentList {
+            if argument.label?.text == "scope" {
+              if let memberAccess = argument.expression.as(MemberAccessExprSyntax.self) {
+                return memberAccess.declName.baseName.text
+              }
+            }
+          }
+        }
+      }
+    }
+    return "transient" // 기본값
+  }
+
+  /// 개별 @Provide에 대한 InjectedKey 생성
+  private static func generateInjectedKey(for property: ProvideProperty) -> DeclSyntax {
+    let keyName = "\(property.name.prefix(1).uppercased())\(property.name.dropFirst())Key"
+
+    let keyDecl: DeclSyntax = """
             /// Auto-generated InjectedKey for @Provide \(raw: property.name)
             struct \(raw: keyName): InjectedKey {
                 typealias Value = \(raw: property.type)
-
+            
                 static var liveValue: \(raw: property.type) {
                     let component = \(raw: property.componentName ?? "Self")()
                     return component.\(raw: property.name)
                 }
-
+            
                 static var testValue: \(raw: property.type) {
                     return liveValue
                 }
-
+            
                 static var previewValue: \(raw: property.type) {
                     return liveValue
                 }
             }
             """
 
-        return keyDecl
-    }
+    return keyDecl
+  }
 
-    /// 강화된 registerAll 메서드 (DIContainer + InjectedValues 통합)
-    private static func generateEnhancedRegisterAllMethod(for properties: [ProvideProperty], structName: String) -> DeclSyntax {
-        var registrationStatements: [String] = []
+  /// 강화된 registerAll 메서드 (DIContainer + InjectedValues 통합)
+  private static func generateEnhancedRegisterAllMethod(for properties: [ProvideProperty], structName: String) -> DeclSyntax {
+    var registrationStatements: [String] = []
 
-        for property in properties {
-            let scopeText = property.scope == "singleton" ? ".singleton" : ".transient"
-            registrationStatements.append("""
+    for property in properties {
+      let scopeText = property.scope == "singleton" ? ".singleton" : ".transient"
+      registrationStatements.append("""
                 // DIContainer 등록
                 container.register(\(property.type).self, scope: \(scopeText)) { component.\(property.name) }
                 """)
-        }
+    }
 
-        let registrationBody = registrationStatements.joined(separator: "\n        ")
+    let registrationBody = registrationStatements.joined(separator: "\n        ")
 
-        let methodDecl: DeclSyntax = """
+    let methodDecl: DeclSyntax = """
             static func registerAll(into container: DIContainer) {
                 let component = \(raw: structName)()
                 \(raw: registrationBody)
-
+            
                 // @Injected 자동 등록도 함께 수행
                 Self.autoRegisterToInjectedValues()
             }
             """
 
-        return methodDecl
-    }
+    return methodDecl
+  }
 
-    /// @Injected 자동 등록 메서드
-    private static func generateAutoRegisterMethod(for properties: [ProvideProperty], structName: String) -> DeclSyntax {
-        var autoRegistrationStatements: [String] = []
+  /// @Injected 자동 등록 메서드
+  private static func generateAutoRegisterMethod(for properties: [ProvideProperty], structName: String) -> DeclSyntax {
+    var autoRegistrationStatements: [String] = []
 
-        for property in properties {
-            let keyName = "\(property.name.prefix(1).uppercased())\(property.name.dropFirst())Key"
-            autoRegistrationStatements.append("""
+    for property in properties {
+      let keyName = "\(property.name.prefix(1).uppercased())\(property.name.dropFirst())Key"
+      autoRegistrationStatements.append("""
                 // \(property.name) → @Injected 자동 등록
                 Task.detached {
                     await InjectedValuesAutoRegistrar.shared.registerValue(
@@ -541,71 +541,71 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
                     )
                 }
                 """)
-        }
+    }
 
-        let autoRegistrationBody = autoRegistrationStatements.joined(separator: "\n        ")
+    let autoRegistrationBody = autoRegistrationStatements.joined(separator: "\n        ")
 
-        let methodDecl: DeclSyntax = """
+    let methodDecl: DeclSyntax = """
             /// @Provide → @Injected 자동 연동
             static func autoRegisterToInjectedValues() {
                 \(raw: autoRegistrationBody)
-
+            
                 print("🔗 [\(raw: structName)] 모든 @Provide → @Injected 자동 등록 완료")
             }
             """
 
-        return methodDecl
-    }
+    return methodDecl
+  }
 
-    /// InjectedValues extension 자동 생성
-    private static func generateInjectedValuesExtension(for properties: [ProvideProperty]) -> DeclSyntax {
-        var extensionMembers: [String] = []
+  /// InjectedValues extension 자동 생성
+  private static func generateInjectedValuesExtension(for properties: [ProvideProperty]) -> DeclSyntax {
+    var extensionMembers: [String] = []
 
-        for property in properties {
-            let keyName = "\(property.name.prefix(1).uppercased())\(property.name.dropFirst())Key"
+    for property in properties {
+      let keyName = "\(property.name.prefix(1).uppercased())\(property.name.dropFirst())Key"
 
-            extensionMembers.append("""
+      extensionMembers.append("""
                 /// Auto-generated KeyPath for @Provide \(property.name)
                 var \(property.name): \(property.type) {
                     get { self[\(keyName).self] }
                     set { self[\(keyName).self] = newValue }
                 }
                 """)
-        }
+    }
 
-        let extensionBody = extensionMembers.joined(separator: "\n\n    ")
+    let extensionBody = extensionMembers.joined(separator: "\n\n    ")
 
-        let extensionDecl: DeclSyntax = """
+    let extensionDecl: DeclSyntax = """
             /// Auto-generated InjectedValues extension for @Component
             extension InjectedValues {
                 \(raw: extensionBody)
             }
             """
 
-        return extensionDecl
-    }
+    return extensionDecl
+  }
 
-    private static func generateRegisterAllMethod(for properties: [ProvideProperty], structName: String) -> DeclSyntax {
-        var registrationStatements: [String] = []
+  private static func generateRegisterAllMethod(for properties: [ProvideProperty], structName: String) -> DeclSyntax {
+    var registrationStatements: [String] = []
 
-        for property in properties {
-            let scopeText = property.scope == "singleton" ? ".singleton" : ".transient"
-            registrationStatements.append("""
+    for property in properties {
+      let scopeText = property.scope == "singleton" ? ".singleton" : ".transient"
+      registrationStatements.append("""
                 container.register(\(property.type).self, scope: \(scopeText)) { component.\(property.name) }
                 """)
-        }
+    }
 
-        let registrationBody = registrationStatements.joined(separator: "\n        ")
+    let registrationBody = registrationStatements.joined(separator: "\n        ")
 
-        let methodDecl: DeclSyntax = """
+    let methodDecl: DeclSyntax = """
             static func registerAll(into container: DIContainer) {
                 let component = \(raw: structName)()
                 \(raw: registrationBody)
             }
             """
 
-        return methodDecl
-    }
+    return methodDecl
+  }
 }
 
 // MARK: - @Provide Macro
@@ -613,73 +613,73 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
 /// @Provide 매크로: 컴포넌트 내에서 제공할 의존성을 표시합니다
 public struct ProvideMacro: AccessorMacro {
 
-    public static func expansion(
-        of node: AttributeSyntax,
-        providingAccessorsOf declaration: some DeclSyntaxProtocol,
-        in context: some MacroExpansionContext
-    ) throws -> [AccessorDeclSyntax] {
+  public static func expansion(
+    of node: AttributeSyntax,
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AccessorDeclSyntax] {
 
-        // @Provide는 단순한 마킹 역할이므로 추가 접근자 생성하지 않음
-        return []
-    }
+    // @Provide는 단순한 마킹 역할이므로 추가 접근자 생성하지 않음
+    return []
+  }
 }
 
 // MARK: - Supporting Types
 
 struct LiveValueInfo {
-    let type: String
-    let expression: ExprSyntax?
+  let type: String
+  let expression: ExprSyntax?
 }
 
 struct ProvideProperty {
-    let name: String
-    let type: String
-    let scope: String
-    let componentName: String?
+  let name: String
+  let type: String
+  let scope: String
+  let componentName: String?
 
-    init(name: String, type: String, scope: String, componentName: String? = nil) {
-        self.name = name
-        self.type = type
-        self.scope = scope
-        self.componentName = componentName
-    }
+  init(name: String, type: String, scope: String, componentName: String? = nil) {
+    self.name = name
+    self.type = type
+    self.scope = scope
+    self.componentName = componentName
+  }
 }
 
 // MARK: - Errors
 
 enum AutoSyncError: Error, CustomStringConvertible {
-    case onlyApplicableToStruct
-    case mustConformToDependencyKey
-    case mustConformToInjectedKey
-    case cannotInferLiveValueType
-    case cannotInferValueType
+  case onlyApplicableToStruct
+  case mustConformToDependencyKey
+  case mustConformToInjectedKey
+  case cannotInferLiveValueType
+  case cannotInferValueType
 
-    var description: String {
-        switch self {
-        case .onlyApplicableToStruct:
-            return "@AutoSync can only be applied to structs"
-        case .mustConformToDependencyKey:
-            return "@AutoSync requires the struct to conform to DependencyKey"
-        case .mustConformToInjectedKey:
-            return "@ReverseAutoSync requires the struct to conform to InjectedKey"
-        case .cannotInferLiveValueType:
-            return "Cannot infer the type of liveValue. Please add explicit type annotation."
-        case .cannotInferValueType:
-            return "Cannot infer the Value type. Please add explicit type annotation."
-        }
+  var description: String {
+    switch self {
+      case .onlyApplicableToStruct:
+        return "@AutoSync can only be applied to structs"
+      case .mustConformToDependencyKey:
+        return "@AutoSync requires the struct to conform to DependencyKey"
+      case .mustConformToInjectedKey:
+        return "@ReverseAutoSync requires the struct to conform to InjectedKey"
+      case .cannotInferLiveValueType:
+        return "Cannot infer the type of liveValue. Please add explicit type annotation."
+      case .cannotInferValueType:
+        return "Cannot infer the Value type. Please add explicit type annotation."
     }
+  }
 }
 
 enum ComponentMacroError: Error, CustomStringConvertible {
-    case onlyApplicableToStruct
-    case onlyApplicableToVariable
+  case onlyApplicableToStruct
+  case onlyApplicableToVariable
 
-    var description: String {
-        switch self {
-        case .onlyApplicableToStruct:
-            return "@Component can only be applied to structs"
-        case .onlyApplicableToVariable:
-            return "@Provide can only be applied to variables"
-        }
+  var description: String {
+    switch self {
+      case .onlyApplicableToStruct:
+        return "@Component can only be applied to structs"
+      case .onlyApplicableToVariable:
+        return "@Provide can only be applied to variables"
     }
+  }
 }

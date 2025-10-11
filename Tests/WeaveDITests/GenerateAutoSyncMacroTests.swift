@@ -181,9 +181,9 @@ final class GenerateAutoSyncMacroTests: XCTestCase {
             let weaveDIMockService = MockGenerateAutoSyncService(name: "weavedi_generate_autosync_side")
             _ = UnifiedDI.register(GenerateAutoSyncTestService.self) { weaveDIMockService }
 
-            // WeaveDI 등록 후 값 확인 - TCA 값이 유지됨
+            // WeaveDI 등록 후 값 확인 - 최신 WeaveDI 값이 우선됨
             let updatedService = UnifiedDI.resolve(GenerateAutoSyncTestService.self)
-            XCTAssertEqual(updatedService?.getName(), "tca_generate_autosync_side") // TCA 값이 유지됨 (마지막에 설정된 값)
+            XCTAssertEqual(updatedService?.getName(), "weavedi_generate_autosync_side")
         }
     }
 

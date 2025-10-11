@@ -29,8 +29,8 @@ extension TestAutoSyncServiceImpl: InjectedKey {
     }
 }
 
-// 🎯 테스트 1: DependencyValues + @AutoSync - 파일 레벨에서 선언
-@AutoSync
+// 🎯 테스트 1: DependencyValues + @AutoSyncExtension - 파일 레벨에서 선언
+@AutoSyncExtension
 extension DependencyValues {
     var testAutoSyncService: TestAutoSyncService {
         get { self[TestAutoSyncServiceKey.self] }
@@ -38,8 +38,8 @@ extension DependencyValues {
     }
 }
 
-// 🎯 테스트 2: InjectedValues + @AutoSync - 파일 레벨에서 선언
-@AutoSync
+// 🎯 테스트 2: InjectedValues + @AutoSyncExtension - 파일 레벨에서 선언
+@AutoSyncExtension
 extension InjectedValues {
     var testAutoSyncService2: TestAutoSyncService {
         get { self[TestAutoSyncServiceImpl.self] }
@@ -58,7 +58,7 @@ final class AutoSyncMacroTest: XCTestCase {
     }
 
     func testAutoSyncMacroCompilation() async throws {
-        // Given: @AutoSync 매크로가 적용된 extension들
+        // Given: @AutoSyncExtension 매크로가 적용된 extension들
 
         // When: 기본 동작 확인 (컴파일만 성공하면 OK)
         let service = TestAutoSyncServiceImpl()
@@ -66,7 +66,7 @@ final class AutoSyncMacroTest: XCTestCase {
 
         // Then: 정상 동작 확인
         XCTAssertEqual(result, "TestAutoSyncService from WeaveDI")
-        print("✅ @AutoSync 매크로 컴파일 테스트 성공: \(result)")
+        print("✅ @AutoSyncExtension 매크로 컴파일 테스트 성공: \(result)")
     }
 
     func testTCASmartSyncActivation() async throws {

@@ -136,12 +136,15 @@ public struct TCASmartSync {
     /// 🎯 **InjectedValues 동기화**: 실제 InjectedValues에 등록
     private static func syncToInjectedValues<T: Sendable>(type: T.Type, value: T) async {
         // 🔧 DIContainer를 통해 InjectedValues와 동기화
-        await DIContainer.shared.actorRegister(type, instance: value)
+        await DIContainer.shared.registerAsync(type, instance: value)
         Log.info("🎯 \(type) → InjectedValues 동기화 완료")
     }
 
     /// 🎯 **스마트 감지**: DependencyKey 사용을 감지해서 자동 동기화 (nonisolated)
     public static func autoDetectAndSync<T: DependencyKey>(_ keyType: T.Type, value: T.Value) where T.Value: Sendable {
+        // 즉시 WeaveDI에 등록하여 동기 API에서도 최신 값을 사용할 수 있도록 함
+        _ = UnifiedDI.register(T.Value.self) { value }
+
         let keyTypeName = String(describing: keyType)
         Task { @MainActor in
             // 🎯 완전 자동 초기화 (처음 사용 시)
@@ -150,9 +153,6 @@ public struct TCASmartSync {
             guard isEnabled else { return }
 
             if !registeredKeys.contains(keyTypeName) {
-                // 🔧 Fix: 두 곳 모두에 자동 등록 (DIContainer + InjectedValues)
-                _ = UnifiedDI.register(T.Value.self) { value }
-
                 // 🎯 InjectedValues에도 자동 등록 (직접 호출)
                 registerAsInjectedKey(valueType: T.Value.self, value: value)
 
@@ -162,6 +162,9 @@ public struct TCASmartSync {
                 registeredKeys.insert(keyTypeName)
 
                 Log.info("🎯 자동 감지: \(keyTypeName) → WeaveDI + InjectedValues 동기화 완료")
+            } else {
+                // 등록된 타입이라도 최신 값을 유지하도록 InjectedValues 갱신
+                registerAsInjectedKey(valueType: T.Value.self, value: value)
             }
         }
     }
@@ -329,7 +332,7 @@ public extension TCASmartSync {
         if let testValue = testValue {
             // 테스트 환경에서 사용할 수 있도록 별도 등록
             Task {
-                await DIContainer.shared.actorRegister(type, instance: testValue)
+            await DIContainer.shared.registerAsync(type, instance: testValue)
             }
         }
 
@@ -389,6 +392,7 @@ public extension TCASmartSync {
 
     /// 🔄 **자동 역방향 동기화**: WeaveDI 등록을 감지하여 TCA에 자동 동기화 (nonisolated)
     static func autoDetectWeaveDIRegistration<T: Sendable>(_ type: T.Type, value: T) {
+        _ = UnifiedDI.register(type) { value }
         Task { @MainActor in
             // 🎯 완전 자동 초기화 (처음 사용 시)
             ensureAutoInitialized()
@@ -405,6 +409,16 @@ public extension TCASmartSync {
                 Log.info("🔄 자동 감지: WeaveDI 등록 → TCA 동기화 (\(type))")
             }
         }
+    }
+
+    /// ⚙️ 테스트 전용 초기화: 모든 내부 상태를 리셋합니다.
+    @MainActor
+    public static func resetForTesting() {
+        isEnabled = false
+        isAutoInitialized = false
+        registeredKeys.removeAll()
+        registeredInjectedKeys.removeAll()
+        tcaCompatibleStorage.removeAll()
     }
 }
 
