@@ -57,9 +57,9 @@ import LogMacro
 /// let logger = UnifiedDI.requireResolve(Logger.self)
 /// ```
 public enum UnifiedDI {
-  
+
   // MARK: - Core Registration API
-  
+
   /// 의존성을 등록하고 즉시 생성된 인스턴스를 반환합니다 (권장 방식)
   ///
   /// 가장 직관적인 의존성 등록 방법입니다.
@@ -90,7 +90,7 @@ public enum UnifiedDI {
 
     return instance
   }
-  
+
   // MARK: - Async Registration (New AsyncDIContainer-based)
 
   /// 🚀 Sync factory 기반 async register
@@ -168,7 +168,7 @@ public enum UnifiedDI {
   ) async -> T where T: Sendable {
     return await DIContainer.shared.registerAsync(T.self, factory: factory)
   }
-  
+
   /// KeyPath를 사용한 타입 안전한 등록 (UnifiedDI.register(\.keyPath) 스타일)
   ///
   /// WeaveDI.Container의 KeyPath를 사용하여 더욱 타입 안전하게 등록합니다.
@@ -186,8 +186,8 @@ public enum UnifiedDI {
   ) -> T where T: Sendable {
     return DIContainer.shared.register(T.self, factory: factory)
   }
-  
-  
+
+
   // MARK: - Core Resolution API (Needle보다 빠른 성능!)
 
   /// ⚡ 초고속 의존성 조회 (Needle보다 10x 빠름)
@@ -250,7 +250,7 @@ public enum UnifiedDI {
 #endif
     return resolved
   }
-  
+
   /// KeyPath를 사용하여 의존성을 조회합니다
   ///
   /// - Parameter keyPath: WeaveDI.Container 내의 KeyPath
@@ -258,7 +258,7 @@ public enum UnifiedDI {
   public static func resolve<T>(_ keyPath: KeyPath<WeaveDI.Container, T?>) -> T? {
     return WeaveDI.Container.live[keyPath: keyPath]
   }
-  
+
   // MARK: - Async Resolution (New AsyncDIContainer-based)
 
   /// 🚀 **순수 async 체인으로 resolve** - 세마포어 블로킹 제거
@@ -345,7 +345,7 @@ public enum UnifiedDI {
   ///
   /// ### 사용 예시:
   /// ```swift
-  
+
   /// 필수 의존성을 조회합니다 (실패 시 명확한 에러 메시지와 함께 크래시)
   ///
   /// 반드시 등록되어 있어야 하는 의존성을 조회할 때 사용합니다.
@@ -363,10 +363,10 @@ public enum UnifiedDI {
   /// // logger는 항상 유효한 인스턴스
   /// ```
   public static func requireResolve<T>(_ type: T.Type) -> T where T: Sendable {
-    
+
     guard let resolved = WeaveDI.Container.live.resolve(type) else {
       let typeName = String(describing: type)
-      
+
       // 프로덕션에서는 더 안전한 처리
 #if DEBUG
       fatalError("""
@@ -388,8 +388,8 @@ public enum UnifiedDI {
     }
     return resolved
   }
-  
-  
+
+
   /// 의존성을 조회하거나 기본값을 반환합니다 (항상 성공)
   ///
   /// 의존성이 없어도 항상 성공하는 안전한 해결 방법입니다.
@@ -408,11 +408,11 @@ public enum UnifiedDI {
   public static func resolve<T>(_ type: T.Type, default defaultValue: @autoclosure () -> T) -> T where T: Sendable {
     return WeaveDI.Container.live.resolve(type) ?? defaultValue()
   }
-  
-  
-  
+
+
+
   // MARK: - Management API
-  
+
   /// 등록된 의존성을 해제합니다
   ///
   /// 특정 타입의 의존성을 컨테이너에서 제거합니다.
@@ -434,7 +434,7 @@ public enum UnifiedDI {
     await WeaveDI.Container.live.releaseAsync(type)
     FastResolveCache.shared.set(type, value: nil)
   }
-  
+
   /// 모든 등록된 의존성을 해제합니다 (테스트용)
   ///
   /// 주로 테스트 환경에서 각 테스트 간 격리를 위해 사용합니다.
@@ -513,7 +513,7 @@ public enum UnifiedDI {
 /// 일반적인 사용에서는 필요하지 않은 고급 기능들을 별도로 분리했습니다.
 /// 설계 철학에 따라 핵심 기능과 분리하여 복잡도를 줄였습니다.
 public extension UnifiedDI {
-  
+
   /// 조건부 등록을 위한 네임스페이스
   enum Conditional {
     /// 조건에 따라 다른 구현체를 등록합니다
@@ -541,395 +541,36 @@ public extension UnifiedDI {
 }
 
 
-// MARK: - Logging & Monitoring Configuration
+// MARK: - Advanced Configuration
 
-/// 로깅 및 모니터링 설정을 위한 UnifiedDI API
-public extension UnifiedDI {
-
-    /// 🔧 로그 레벨 설정
-    ///
-    /// WeaveDI의 로깅 수준을 동적으로 조정할 수 있습니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// // 에러만 로깅
-    /// UnifiedDI.setLogLevel(.errors)
-    ///
-    /// // 모든 로그 출력 (개발용)
-    /// UnifiedDI.setLogLevel(.all)
-    ///
-    /// // 로깅 끄기
-    /// UnifiedDI.setLogLevel(.off)
-    /// ```
-    static func setLogLevel(_ level: LogLevel) {
-        let optimizerLogLevel: AutoDIOptimizer.LogLevel
-
-        switch level {
-        case .all:
-            DILogger.configure(level: .all, severityThreshold: .debug)
-            optimizerLogLevel = .all
-        case .errors:
-            DILogger.configure(level: .errorsOnly, severityThreshold: .error)
-            optimizerLogLevel = .errors
-        case .warnings:
-            DILogger.configure(level: .errorsOnly, severityThreshold: .warning)
-            optimizerLogLevel = .errors
-        case .performance:
-            DILogger.configure(level: .optimization, severityThreshold: .info)
-            optimizerLogLevel = .optimization
-        case .registration:
-            DILogger.configure(level: .registration, severityThreshold: .info)
-            optimizerLogLevel = .registration
-        case .health:
-            DILogger.configure(level: .health, severityThreshold: .info)
-            optimizerLogLevel = .errors
-        case .off:
-            DILogger.configure(level: .off)
-            optimizerLogLevel = .off
-        }
-
-        Task { @DIActor in
-            AutoDIOptimizer.shared.setLogLevel(optimizerLogLevel, configureLogger: false)
-        }
-    }
-
-    /// 🔧 심각도 기반 로그 레벨 설정
-    ///
-    /// 지정된 심각도 이상의 로그만 출력됩니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// // 정보 레벨 이상만 로깅
-    /// UnifiedDI.setLogSeverity(.info)
-    ///
-    /// // 에러만 로깅
-    /// UnifiedDI.setLogSeverity(.error)
-    /// ```
-    static func setLogSeverity(_ severity: LogSeverity) {
-        switch severity {
-        case .debug:
-            DILogger.configure(level: .all, severityThreshold: .debug)
-        case .info:
-            DILogger.configure(level: .all, severityThreshold: .info)
-        case .warning:
-            DILogger.configure(level: .errorsOnly, severityThreshold: .warning)
-        case .error:
-            DILogger.configure(level: .errorsOnly, severityThreshold: .error)
-        }
-    }
-
-    /// 📊 현재 로그 설정 정보 가져오기
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let config = UnifiedDI.getLogConfiguration()
-    /// print("현재 로그 레벨: \(config.level)")
-    /// print("심각도 임계값: \(config.severity)")
-    /// ```
-    static func getLogConfiguration() -> (level: DILogLevel, severity: DILogSeverity) {
-        return (
-            level: DILogger.getCurrentLogLevel(),
-            severity: DILogger.getCurrentSeverityThreshold()
-        )
-    }
-
-    /// 🔄 로그 설정 초기화
-    ///
-    /// 로그 설정을 컴파일 타임 기본값으로 되돌립니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// UnifiedDI.resetLogConfiguration()
-    /// ```
-    static func resetLogConfiguration() {
-        DILogger.resetToDefaults()
-    }
-
-    /// 🚀 개발 모드 모니터링 시작
-    ///
-    /// 전체 로깅과 헬스체크를 활성화합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// #if DEBUG
-    /// await UnifiedDI.startDevelopmentMonitoring()
-    /// #endif
-    /// ```
-    @MainActor
-    static func startDevelopmentMonitoring() {
-        setLogLevel(.all)
-        DIMonitor.startDevelopmentMonitoring()
-    }
-
-    /// 🎯 프로덕션 모드 모니터링 시작
-    ///
-    /// 최소한의 로깅과 헬스체크만 활성화합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// await UnifiedDI.startProductionMonitoring()
-    /// ```
-    @MainActor
-    static func startProductionMonitoring() {
-        setLogLevel(.errors)
-        DIMonitor.startProductionMonitoring()
-    }
-
-    /// ⏹️ 모니터링 중지
-    ///
-    /// 모든 모니터링 활동을 중지합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// await UnifiedDI.stopMonitoring()
-    /// ```
-    @MainActor
-    static func stopMonitoring() {
-        DIMonitor.stop()
-    }
-
-    /// 📈 시스템 헬스체크 수행
-    ///
-    /// 즉시 DI 시스템의 상태를 점검합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let health = await UnifiedDI.performHealthCheck()
-    /// print("시스템 상태: \(health.overallHealth ? "✅ 정상" : "❌ 이상")")
-    /// ```
-    static func performHealthCheck() async -> DIHealthStatus {
-        return await DIHealthCheck.shared.performHealthCheck()
-    }
-
-    /// 📊 모니터링 리포트 생성
-    ///
-    /// 현재까지의 로깅 및 성능 데이터를 기반으로 리포트를 생성합니다.
-    ///
-    /// ### 사용 예시:
-    /// ```swift
-    /// let report = await UnifiedDI.generateMonitoringReport()
-    /// print("권장사항: \(report.recommendations)")
-    /// ```
-    static func generateMonitoringReport() async -> DIMonitorReport {
-        return await DIMonitor.shared.generateReport()
-    }
+/// 최적화 설정을 간편하게 조정합니다
+/// - Parameters:
+///   - debounceMs: 디바운스 간격 (50-500ms, 기본값: 100ms)
+///   - threshold: 자주 사용되는 타입 임계값 (5-100회, 기본값: 10회)
+///   - realTimeUpdate: 실시간 그래프 업데이트 여부 (기본값: true)
+static func configureOptimization(
+  debounceMs: Int = 100,
+  threshold: Int = 10,
+  realTimeUpdate: Bool = true
+) {
+  // 간단한 설정 업데이트 + 디바운스 간격 적용(50~100ms 제한)
+  Task { @DIActor in
+    AutoDIOptimizer.shared.updateConfig("threshold: \(threshold), realTime: \(realTimeUpdate)")
+    AutoDIOptimizer.shared.setDebounceInterval(ms: debounceMs)
+  }
 }
 
-/// UnifiedDI 로그 레벨 (사용자 친화적 인터페이스)
-public extension UnifiedDI {
-    enum LogLevel {
-        case all         // 모든 로그
-        case errors      // 에러만
-        case warnings    // 경고 이상
-        case performance // 성능 관련
-        case registration // 등록 관련
-        case health      // 헬스체크 관련
-        case off         // 로깅 끄기
-    }
-
-    enum LogSeverity {
-        case debug       // 디버그 이상
-        case info        // 정보 이상
-        case warning     // 경고 이상
-        case error       // 에러만
-    }
+/// 그래프 변경 히스토리를 가져옵니다
+/// - Parameter limit: 최대 반환 개수 (기본값: 10)
+/// - Returns: 최근 변경 히스토리
+static func getGraphChanges(limit: Int = 10) async -> [(timestamp: Date, changes: [String: NodeChangeType])] {
+  let deps = Array(AutoDIOptimizer.readSnapshot().dependencies.prefix(limit))
+  let now = Date()
+  return deps.enumerated().map { index, dep in
+    (timestamp: now.addingTimeInterval(-Double(index) * 60),
+     changes: [dep.from: NodeChangeType(change: "added dependency to \(dep.to)")])
+  }
 }
-
-// MARK: - Auto DI Features
-
-/// 자동 의존성 주입 기능 확장
-public extension UnifiedDI {
-  
-  /// 🚀 자동 생성된 의존성 그래프를 시각화합니다
-  ///
-  /// 별도 설정 없이 자동으로 수집된 의존성 관계를 확인할 수 있습니다.
-  ///
-  /// ### 사용 예시:
-  /// ```swift
-  /// // 현재까지 자동 수집된 의존성 그래프 출력
-  /// print(UnifiedDI.autoGraph)
-  /// ```
-  static func autoGraph() -> String {
-    DIContainer.shared.getAutoGeneratedGraph()
-  }
-  
-  /// ⚡ 자동 최적화된 타입들을 반환합니다
-  ///
-  /// 사용 패턴을 분석하여 자동으로 성능 최적화가 적용된 타입들입니다.
-  static func optimizedTypes() -> Set<String> {
-    DIContainer.shared.getOptimizedTypes()
-  }
-  
-  /// ⚠️ 자동 감지된 순환 의존성을 반환합니다
-  ///
-  /// 의존성 등록/해결 과정에서 자동으로 감지된 순환 의존성입니다.
-  static func circularDependencies() -> Set<String> {
-    DIContainer.shared.getDetectedCircularDependencies()
-  }
-  
-  /// 📊 자동 수집된 성능 통계를 반환합니다
-  ///
-  /// 각 타입의 사용 빈도가 자동으로 추적됩니다.
-  static func stats() -> [String: Int] {
-    DIContainer.shared.getUsageStatistics()
-  }
-  
-  /// 🔍 특정 타입이 자동 최적화되었는지 확인합니다
-  ///
-  /// - Parameter type: 확인할 타입
-  /// - Returns: 최적화 여부
-  static func isOptimized<T>(_ type: T.Type) -> Bool {
-    DIContainer.shared.isAutoOptimized(type)
-  }
-  
-  /// ⚙️ 자동 최적화 기능을 제어합니다
-  ///
-  /// - Parameter enabled: 활성화 여부 (기본값: true)
-  static func setAutoOptimization(_ enabled: Bool) {
-    DIContainer.shared.setAutoOptimization(enabled)
-  }
-  
-  /// 🧹 자동 수집된 통계를 초기화합니다
-  static func resetStats() {
-    DIContainer.shared.resetAutoStats()
-  }
-  
-  /// 📋 자동 최적화 시스템의 로깅 레벨을 설정합니다
-  ///
-  /// AutoDIOptimizer의 내부 로깅 수준을 조정합니다.
-  ///
-  /// - Parameter level: 로깅 레벨
-  ///   - `.all`: 모든 로그 출력 (기본값)
-  ///   - `.registration`: 등록만 로깅
-  ///   - `.optimization`: 최적화만 로깅
-  ///   - `.errors`: 에러만 로깅
-  ///   - `.off`: 로깅 끄기
-  static func setAutoOptimizerLogLevel(_ level: UnifiedDI.LogLevel) {
-    // TODO: Fix type conflicts between UnifiedDI.LogLevel and AutoDIOptimizer LogLevel
-    // For now, just log the setting
-    DILogger.info(channel: .general, "AutoDIOptimizer log level set to: \(level)")
-
-    // Temporarily commented out due to type conflicts
-    /*
-#if DEBUG && DI_MONITORING_ENABLED
-    Task { @DIActor in
-      // AutoDIOptimizer.shared.setLogLevel(optimizerLogLevel)
-    }
-#endif
-    */
-  }
-
-  
-  /// 📋 현재 로깅 레벨을 반환합니다 (스냅샷)
-  static func getLogLevel() async -> UnifiedDI.LogLevel {
-    // TODO: Implement proper snapshot reading after fixing type conflicts
-    // For now, return the current DILogger configuration
-    let currentDILogLevel = DILogger.getCurrentLogLevel()
-    switch currentDILogLevel {
-    case .all: return .all
-    case .errorsOnly: return .errors
-    case .registration: return .registration
-    case .optimization: return .performance
-    case .health: return .health
-    case .off: return .off
-    }
-  }
-
-  /// 현재 로깅 레벨(동기 접근용, 스냅샷)
-  static var logLevel: UnifiedDI.LogLevel {
-    let currentDILogLevel = DILogger.getCurrentLogLevel()
-    switch currentDILogLevel {
-    case .all: return .all
-    case .errorsOnly: return .errors
-    case .registration: return .registration
-    case .optimization: return .performance
-    case .health: return .health
-    case .off: return .off
-    }
-  }
-  
-  /// 🎯 자동 Actor 최적화 제안 (스냅샷 기반 간단 규칙)
-  static var actorOptimizations: [String: ActorOptimization] {
-    get async {
-      let regs = AutoDIOptimizer.readSnapshot().registered
-      var out: [String: ActorOptimization] = [:]
-      for t in regs where t.contains("Actor") {
-        out[t] = ActorOptimization(suggestion: "Actor 타입 감지됨")
-      }
-      return out
-    }
-  }
-  
-  /// 🔒 자동 감지된 타입 안전성 이슈 (간단 규칙)
-  static var typeSafetyIssues: [String: TypeSafetyIssue] {
-    get async {
-      let regs = AutoDIOptimizer.readSnapshot().registered
-      var issues: [String: TypeSafetyIssue] = [:]
-      for t in regs where t.contains("Unsafe") {
-        issues[t] = TypeSafetyIssue(issue: "Unsafe 타입 사용 감지")
-      }
-      return issues
-    }
-  }
-  
-  /// 🛠️ 자동으로 수정된 타입들 (상위 사용 빈도 기준 예시)
-  static var autoFixedTypes: Set<String> {
-    get async {
-      let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
-      return Set(freq.sorted { $0.value > $1.value }.prefix(3).map { $0.key })
-    }
-  }
-  
-  /// ⚡ Actor hop 통계 (간단 규칙: 이름에 Actor 포함)
-  static var actorHopStats: [String: Int] {
-    get async {
-      let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
-      return freq.filter { $0.key.contains("Actor") }
-    }
-  }
-  
-  /// 📊 비동기 성능 통계 (간단 규칙: 이름에 async/Async 포함)
-  static var asyncPerformanceStats: [String: Double] {
-    get async {
-      let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
-      var out: [String: Double] = [:]
-      for (t, c) in freq where t.contains("async") || t.contains("Async") {
-        out[t] = Double(c) * 0.1
-      }
-      return out
-    }
-  }
-  
-  // MARK: - Advanced Configuration
-  
-  /// 최적화 설정을 간편하게 조정합니다
-  /// - Parameters:
-  ///   - debounceMs: 디바운스 간격 (50-500ms, 기본값: 100ms)
-  ///   - threshold: 자주 사용되는 타입 임계값 (5-100회, 기본값: 10회)
-  ///   - realTimeUpdate: 실시간 그래프 업데이트 여부 (기본값: true)
-  static func configureOptimization(
-    debounceMs: Int = 100,
-    threshold: Int = 10,
-    realTimeUpdate: Bool = true
-  ) {
-    // 간단한 설정 업데이트 + 디바운스 간격 적용(50~100ms 제한)
-    Task { @DIActor in
-      AutoDIOptimizer.shared.updateConfig("threshold: \(threshold), realTime: \(realTimeUpdate)")
-      AutoDIOptimizer.shared.setDebounceInterval(ms: debounceMs)
-    }
-  }
-  
-  /// 그래프 변경 히스토리를 가져옵니다
-  /// - Parameter limit: 최대 반환 개수 (기본값: 10)
-  /// - Returns: 최근 변경 히스토리
-  static func getGraphChanges(limit: Int = 10) async -> [(timestamp: Date, changes: [String: NodeChangeType])] {
-    let deps = Array(AutoDIOptimizer.readSnapshot().dependencies.prefix(limit))
-    let now = Date()
-    return deps.enumerated().map { index, dep in
-      (timestamp: now.addingTimeInterval(-Double(index) * 60),
-       changes: [dep.from: NodeChangeType(change: "added dependency to \(dep.to)")])
-    }
-  }
 }
 
 
@@ -940,17 +581,17 @@ public extension UnifiedDI {
   static func showModules() async {
     await AutoDIOptimizer.shared.showAll()
   }
-  
+
   /// 📈 간단한 요약 정보
   static func summary() async -> String {
     return await AutoMonitor.shared.getSummary()
   }
-  
+
   /// 🔗 특정 모듈의 의존성 보기
   static func showDependencies(for module: String) async -> [String] {
     return await AutoMonitor.shared.showDependenciesFor(module: module)
   }
-  
+
   /// ⚡ 최적화 제안 보기
   static func getOptimizationTips() -> [String] {
     let snap = AutoDIOptimizer.readSnapshot()
@@ -973,20 +614,20 @@ public extension UnifiedDI {
     if !unused.isEmpty { tips.append("🗑️ 미사용 타입들: \(unused.joined(separator: ", "))") }
     return tips.isEmpty ? ["✅ 최적화 제안 없음 - 좋은 상태입니다!"] : tips
   }
-  
+
   /// 📊 자주 사용되는 타입 TOP 5
   static func getTopUsedTypes() -> [String] {
     let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
     return freq.sorted { $0.value > $1.value }.prefix(5).map { "\($0.key)(\($0.value)회)" }
   }
-  
+
   /// 🔧 최적화 기능 켜기/끄기
   static func enableOptimization(_ enabled: Bool = true) {
 #if DEBUG && DI_MONITORING_ENABLED
     Task { @DIActor in AutoDIOptimizer.shared.setOptimizationEnabled(enabled) }
 #endif
   }
-  
+
   /// 🧹 모니터링 초기화
   static func resetMonitoring() async {
     await AutoDIOptimizer.shared.reset()
@@ -1083,264 +724,101 @@ extension UnifiedDI {
     await DIContainer.shared.performBatchRegistration(block)
   }
 
-public struct ComponentDiagnostics: Codable, Sendable {
-  public struct Issue: Codable, Sendable {
-    public let type: String
-    public let providers: [String]
-    public let detail: String?
-  }
+  // MARK: - Compile-Time Dependency Graph Verification
 
-  public let issues: [Issue]
+  /// Compile-time dependency graph verification macro
+  /// Detects circular dependencies and validates dependency relationships at compile time
+  ///
+  /// Usage:
+  /// ```swift
+  /// @DependencyGraph([
+  ///     UserService.self: [NetworkService.self, Logger.self],
+  ///     NetworkService.self: [Logger.self]
+  /// ])
+  /// extension WeaveDI {}
+  /// ```
+  @attached(peer, names: named(validateDependencyGraph))
+  public macro DependencyGraph<T>(_ dependencies: T) = #externalMacro(module: "WeaveDIMacros", type: "DependencyGraphMacro")
 
-  public init(issues: [Issue]) {
-    self.issues = issues
-  }
-}
+  // MARK: - Needle-Style Component System
 
-public struct ComponentCycleReport: Codable, Sendable {
-  public let cycles: [[String]]
-  public let componentCount: Int
-  public let edgeCount: Int
+  /// 🚀 Needle 스타일 컴포넌트 매크로 (성능 향상 버전)
+  ///
+  /// Needle과 같은 선언적 의존성 정의를 제공하면서 더 뛰어난 성능을 제공합니다.
+  ///
+  /// ### 성능 최적화:
+  /// - **컴파일 타임 해결**: 런타임 조회 최소화
+  /// - **정적 팩토리**: Zero-cost dependency resolution
+  /// - **메모리 최적화**: 효율적인 싱글톤 캐싱
+  /// - **의존성 순서 최적화**: 토폴로지 정렬로 최적 등록 순서
+  ///
+  /// ### 사용법:
+  /// ```swift
+  /// @Component
+  /// struct AppComponent {
+  ///     var userRepository: UserRepository { UserRepositoryImpl() }
+  ///     var userService: UserService { UserServiceImpl(repository: userRepository) }
+  ///     var apiClient: APIClient { APIClientImpl() }
+  /// }
+  ///
+  /// // 앱 시작 시 한 번만 호출
+  /// AppComponent.register()
+  ///
+  /// // 이후 어디서든 사용
+  /// @Inject var userService: UserService
+  /// ```
+  ///
+  /// ### Needle 대비 장점:
+  /// - 🚀 **10x 빠른 해결 속도**: 정적 팩토리 사용
+  /// - 📦 **메모리 효율성**: 최적화된 캐싱 전략
+  /// - 🔍 **컴파일 타임 검증**: 순환 의존성 사전 감지
+  /// - ⚡ **Actor hop 최소화**: Swift 6 최적화
+  ///
+  /// **Note**: Component 매크로 정의는 MacroDefinitions.swift에서 관리됩니다.
 
-  public init(cycles: [[String]], componentCount: Int, edgeCount: Int) {
-    self.cycles = cycles
-    self.componentCount = componentCount
-    self.edgeCount = edgeCount
-  }
-}
+  // MARK: - Static Factory Generation (Needle-level Performance)
 
-  /// Returns compile-time component metadata registered via @Component macros.
-  public static func componentMetadata() -> [ComponentMetadata] {
-    ComponentMetadataRegistry.allMetadata()
-  }
+  /// Static factory generation for zero-cost dependency resolution
+  /// Compiles dependencies into static methods for maximum performance
+  extension UnifiedDI {
 
-  /// Human-readable dump of component metadata for diagnostics.
-  public static func dumpComponentMetadata() -> String {
-    ComponentMetadataRegistry.dumpMetadata()
-  }
-
-  /// Analyze metadata for duplicate providers and inconsistent scopes.
-  public static func analyzeComponentMetadata() -> ComponentDiagnostics {
-    let metadata = ComponentMetadataRegistry.allMetadata()
-    var typeProviders: [String: [(component: String, scope: String)]] = [:]
-
-    for meta in metadata {
-      for (index, typeName) in meta.providedTypes.enumerated() {
-        let scope = index < meta.scopes.count ? meta.scopes[index] : "unknown"
-        typeProviders[typeName, default: []].append((meta.componentName, scope))
-      }
-    }
-
-    var issues: [ComponentDiagnostics.Issue] = []
-
-    for (type, entries) in typeProviders {
-      let components = entries.map { $0.component }
-      let uniqueComponents = Array(Set(components))
-      if uniqueComponents.count > 1 {
-        issues.append(
-          .init(
-            type: type,
-            providers: uniqueComponents,
-            detail: "Multiple components provide this type."
-          )
-        )
-      }
-
-      let scopes = entries.map { $0.scope }
-      let uniqueScopes = Array(Set(scopes))
-      if uniqueScopes.count > 1 {
-        issues.append(
-          .init(
-            type: type,
-            providers: uniqueComponents,
-            detail: "Inconsistent scopes: \(uniqueScopes.joined(separator: ", "))"
-          )
-        )
-      }
-    }
-
-    return ComponentDiagnostics(issues: issues)
-  }
-
-  public static func detectComponentCycles() -> ComponentCycleReport {
-    let metadata = ComponentMetadataRegistry.allMetadata()
-    let componentNames = Set(metadata.map { $0.componentName })
-    var graph: [String: [String]] = [:]
-    var edgeCount = 0
-
-    for meta in metadata {
-      let neighbors = meta.providedTypes.filter { componentNames.contains($0) }
-      if !neighbors.isEmpty {
-        graph[meta.componentName, default: []].append(contentsOf: neighbors)
-        edgeCount += neighbors.count
-      }
-    }
-
-    var recorded: Set<String> = []
-    var cycles: [[String]] = []
-
-    func visit(
-      start: String,
-      current: String,
-      path: inout [String]
-    ) {
-      path.append(current)
-
-      for neighbor in graph[current, default: []] {
-        if neighbor == start {
-          var cycle = path
-          cycle.append(neighbor)
-          let (key, normalized) = canonicalizeCycle(cycle)
-          if !key.isEmpty && !recorded.contains(key) {
-            recorded.insert(key)
-            cycles.append(normalized)
-          }
-        } else if !path.contains(neighbor) {
-          visit(start: start, current: neighbor, path: &path)
-        }
-      }
-
-      path.removeLast()
-    }
-
-    for node in graph.keys.sorted() {
-      var path: [String] = []
-      visit(start: node, current: node, path: &path)
-    }
-
-    cycles.sort { $0.joined(separator: " -> ") < $1.joined(separator: " -> ") }
-
-    return ComponentCycleReport(
-      cycles: cycles,
-      componentCount: metadata.count,
-      edgeCount: edgeCount
-    )
-  }
-
-  private static func canonicalizeCycle(_ cycle: [String]) -> (String, [String]) {
-    guard !cycle.isEmpty else { return ("", []) }
-    var trimmed = cycle
-    if let first = trimmed.first, let last = trimmed.last, first == last {
-      trimmed.removeLast()
-    }
-    guard !trimmed.isEmpty else { return ("", []) }
-
-    func rotations(of array: [String]) -> [[String]] {
-      guard !array.isEmpty else { return [[]] }
-      return (0..<array.count).map { index in
-        Array(array[index...]) + Array(array[..<index])
-      }
-    }
-
-    let candidates = rotations(of: trimmed) + rotations(of: trimmed.reversed())
-    var bestSequence: [String] = []
-    var bestKey = ""
-    for sequence in candidates {
-      let key = sequence.joined(separator: " -> ")
-      if bestKey.isEmpty || key < bestKey {
-        bestKey = key
-        bestSequence = sequence
-      }
-    }
-    return (bestKey, bestSequence)
-  }
-}
-
-// MARK: - Compile-Time Dependency Graph Verification
-
-/// Compile-time dependency graph verification macro
-/// Detects circular dependencies and validates dependency relationships at compile time
-///
-/// Usage:
-/// ```swift
-/// @DependencyGraph([
-///     UserService.self: [NetworkService.self, Logger.self],
-///     NetworkService.self: [Logger.self]
-/// ])
-/// extension WeaveDI {}
-/// ```
-@attached(peer, names: named(validateDependencyGraph))
-public macro DependencyGraph<T>(_ dependencies: T) = #externalMacro(module: "WeaveDIMacros", type: "DependencyGraphMacro")
-
-// MARK: - Needle-Style Component System
-
-/// 🚀 Needle 스타일 컴포넌트 매크로 (성능 향상 버전)
-///
-/// Needle과 같은 선언적 의존성 정의를 제공하면서 더 뛰어난 성능을 제공합니다.
-///
-/// ### 성능 최적화:
-/// - **컴파일 타임 해결**: 런타임 조회 최소화
-/// - **정적 팩토리**: Zero-cost dependency resolution
-/// - **메모리 최적화**: 효율적인 싱글톤 캐싱
-/// - **의존성 순서 최적화**: 토폴로지 정렬로 최적 등록 순서
-///
-/// ### 사용법:
-/// ```swift
-/// @Component
-/// struct AppComponent {
-///     var userRepository: UserRepository { UserRepositoryImpl() }
-///     var userService: UserService { UserServiceImpl(repository: userRepository) }
-///     var apiClient: APIClient { APIClientImpl() }
-/// }
-///
-/// // 앱 시작 시 한 번만 호출
-/// AppComponent.register()
-///
-/// // 이후 어디서든 사용
-/// @Inject var userService: UserService
-/// ```
-///
-/// ### Needle 대비 장점:
-/// - 🚀 **10x 빠른 해결 속도**: 정적 팩토리 사용
-/// - 📦 **메모리 효율성**: 최적화된 캐싱 전략
-/// - 🔍 **컴파일 타임 검증**: 순환 의존성 사전 감지
-/// - ⚡ **Actor hop 최소화**: Swift 6 최적화
-///
-/// **Note**: Component 매크로 정의는 MacroDefinitions.swift에서 관리됩니다.
-
-// MARK: - Static Factory Generation (Needle-level Performance)
-
-/// Static factory generation for zero-cost dependency resolution
-/// Compiles dependencies into static methods for maximum performance
-extension UnifiedDI {
-  
-  /// Configure static factory optimization
-  /// Enables compile-time dependency resolution like Needle
-  public static func enableStaticOptimization() {
+    /// Configure static factory optimization
+    /// Enables compile-time dependency resolution like Needle
+    public static func enableStaticOptimization() {
 #if USE_STATIC_FACTORY
-    DILogger.info(channel: .optimization, "🚀 WeaveDI: Static factory optimization ENABLED")
-    DILogger.info(channel: .optimization, "📊 Performance: Needle-level zero-cost resolution")
+      DILogger.info(channel: .optimization, "🚀 WeaveDI: Static factory optimization ENABLED")
+      DILogger.info(channel: .optimization, "📊 Performance: Needle-level zero-cost resolution")
 #else
-    DILogger.info(channel: .optimization, "⚠️  WeaveDI: Add -DUSE_STATIC_FACTORY to build flags for maximum performance")
-    DILogger.info(channel: .optimization, "📖 Guide: https://github.com/Roy-wonji/WeaveDI#static-optimization")
+      DILogger.info(channel: .optimization, "⚠️  WeaveDI: Add -DUSE_STATIC_FACTORY to build flags for maximum performance")
+      DILogger.info(channel: .optimization, "📖 Guide: https://github.com/Roy-wonji/WeaveDI#static-optimization")
 #endif
-  }
-  
-  /// Static resolve with compile-time optimization
-  /// Zero runtime cost when USE_STATIC_FACTORY is enabled
-  public static func staticResolve<T>(_ type: T.Type) -> T? where T: Sendable {
+    }
+
+    /// Static resolve with compile-time optimization
+    /// Zero runtime cost when USE_STATIC_FACTORY is enabled
+    public static func staticResolve<T>(_ type: T.Type) -> T? where T: Sendable {
 #if USE_STATIC_FACTORY
-    // Compile-time optimized path - no runtime overhead
-    return _staticFactoryResolve(type)
+      // Compile-time optimized path - no runtime overhead
+      return _staticFactoryResolve(type)
 #else
-    // Fallback to regular resolution
-    return resolve(type)
+      // Fallback to regular resolution
+      return resolve(type)
 #endif
-  }
-  
+    }
+
 #if USE_STATIC_FACTORY
-  /// Internal static factory resolver (compile-time optimized)
-  private static func _staticFactoryResolve<T>(_ type: T.Type) -> T? {
-    // This would be generated by macro in real implementation
-    // For now, fallback to regular resolution
-    return WeaveDI.Container.live.resolve(type)
-  }
+    /// Internal static factory resolver (compile-time optimized)
+    private static func _staticFactoryResolve<T>(_ type: T.Type) -> T? {
+      // This would be generated by macro in real implementation
+      // For now, fallback to regular resolution
+      return WeaveDI.Container.live.resolve(type)
+    }
 #endif
-  
-  /// Compare performance with Needle
-  public static func performanceComparison() -> String {
+
+    /// Compare performance with Needle
+    public static func performanceComparison() -> String {
 #if USE_STATIC_FACTORY
-    return """
+      return """
     🏆 WeaveDI vs Needle Performance:
     ✅ Compile-time safety: EQUAL
     ✅ Runtime performance: EQUAL (zero-cost)
@@ -1348,66 +826,48 @@ extension UnifiedDI {
     🎯 Swift 6 support: WeaveDI EXCLUSIVE
     """
 #else
-    return """
+      return """
     ⚠️  Enable static optimization for Needle-level performance:
     🔧 Add -DUSE_STATIC_FACTORY to build flags
     📈 Expected improvement: 10x faster resolution
     """
 #endif
+    }
   }
-}
 
-// MARK: - 📈 Performance Monitoring & Bulk Operations (from AsyncUnifiedDI)
-public extension UnifiedDI {
+  // MARK: - 📈 Performance Monitoring & Bulk Operations (from AsyncUnifiedDI)
+  public extension UnifiedDI {
 
-  /// 🎯 **Bulk Registration** - 여러 의존성을 한 번에 등록
-  static func registerBulkAsync<T: Sendable>(_ registrations: [(T.Type, @Sendable () async -> T)]) async {
-    await withTaskGroup(of: Void.self) { group in
-      for (type, factory) in registrations {
-        group.addTask {
-          _ = await registerAsync(type, factory: factory)
+    /// 🎯 **Bulk Registration** - 여러 의존성을 한 번에 등록
+    static func registerBulkAsync<T: Sendable>(_ registrations: [(T.Type, @Sendable () async -> T)]) async {
+      await withTaskGroup(of: Void.self) { group in
+        for (type, factory) in registrations {
+          group.addTask {
+            _ = await registerAsync(type, factory: factory)
+          }
         }
       }
-    }
-    DILogger.info(channel: .registration, "🚀 Bulk registered \(registrations.count) dependencies")
-  }
-
-  /// 📈 성능 모니터링 시작
-  static func startPerformanceMonitoring() async {
-    DILogger.info("📈 UnifiedDI Performance Monitoring Started")
-    DILogger.info("   - No semaphore blocking: ✅")
-    DILogger.info("   - Pure async chains: ✅")
-    DILogger.info("   - Actor isolation: ✅")
-    DILogger.info("   - Swift 6 compatible: ✅")
-  }
-
-  /// 📈 메모리 사용량 조회
-  static func getMemoryUsageAsync() async -> (registeredCount: Int, singletonCount: Int) {
-    // 실제 구현에서는 등록된 타입 수와 singleton 수를 계산
-    return (registeredCount: 0, singletonCount: 0)
-  }
-
-  /// 🧹 모든 등록된 의존성 정리 (async)
-  static func clearAsync() async {
-    DILogger.info("🧹 UnifiedDI async clear completed")
-  }
-}
-
-// MARK: - Legacy Compatibility
-
-private extension UnifiedDI {
-
-  @preconcurrency
-  static func blockingAwait<T: Sendable>(_ operation: @escaping @Sendable () async -> T) -> T {
-    let semaphore = DispatchSemaphore(value: 0)
-    var result: T?
-
-    Task(priority: .utility) {
-      result = await operation()
-      semaphore.signal()
+      DILogger.info(channel: .registration, "🚀 Bulk registered \(registrations.count) dependencies")
     }
 
-    semaphore.wait()
-    return result!
+    /// 📈 성능 모니터링 시작
+    static func startPerformanceMonitoring() async {
+      DILogger.info("📈 UnifiedDI Performance Monitoring Started")
+      DILogger.info("   - No semaphore blocking: ✅")
+      DILogger.info("   - Pure async chains: ✅")
+      DILogger.info("   - Actor isolation: ✅")
+      DILogger.info("   - Swift 6 compatible: ✅")
+    }
+
+    /// 📈 메모리 사용량 조회
+    static func getMemoryUsageAsync() async -> (registeredCount: Int, singletonCount: Int) {
+      // 실제 구현에서는 등록된 타입 수와 singleton 수를 계산
+      return (registeredCount: 0, singletonCount: 0)
+    }
+
+    /// 🧹 모든 등록된 의존성 정리 (async)
+    static func clearAsync() async {
+      DILogger.info("🧹 UnifiedDI async clear completed")
+    }
   }
-}
+
