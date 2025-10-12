@@ -555,10 +555,15 @@ private extension DIContainer {
 
   func logResolutionMiss<T>(_ type: T.Type) where T: Sendable {
     let typeName = String(describing: type)
-    DILogger.info("🔍 해결: \(typeName) (총 1회)")
-    DILogger.info("⚠️ Nil 해결 감지: \(typeName)")
-    DILogger.error("No registered dependency found for \(typeName)")
-    DILogger.info("💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
+    let logLevel = AutoDIOptimizer.readSnapshot().logLevel
+
+    if logLevel == .all || logLevel == .registration {
+      DILogger.info(channel: .registration, "🔍 해결: \(typeName)")
+      DILogger.info(channel: .registration, "⚠️ Nil 해결 감지: \(typeName)")
+      DILogger.info(channel: .registration, "💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
+    }
+
+    DILogger.error(channels: [.registration, .error], "No registered dependency found for \(typeName)")
 
     Task { @DIActor in
       AutoDIOptimizer.shared.handleNilResolution(type)

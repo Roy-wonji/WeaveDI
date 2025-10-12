@@ -2,7 +2,7 @@ import Foundation
 
 private struct WeaveDIConfigState {
   var optimizerEnabled: Bool = true
-  var monitorEnabled: Bool = true
+  var monitorEnabled: Bool = false
   var verboseLogging: Bool = false
   var registryAutoHealthCheckEnabled: Bool = true
   var registryAutoFixEnabled: Bool = true
