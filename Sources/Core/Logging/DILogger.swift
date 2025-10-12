@@ -136,6 +136,13 @@ public struct DILogger {
     ) {
         #if DEBUG || DI_MONITORING_ENABLED
         guard shouldEmit(channel: channel, severity: severity) else { return }
+        #else
+        runtimeConfigLock.lock()
+        let hasRuntimeOverride = _runtimeLogLevel != nil || _runtimeSeverityThreshold != nil
+        runtimeConfigLock.unlock()
+        guard hasRuntimeOverride else { return }
+        guard shouldEmit(channel: channel, severity: severity) else { return }
+        #endif
 
         let timestamp = DateFormatter.logFormatter.string(from: Date())
         let fileName = (file as NSString).lastPathComponent
@@ -152,7 +159,6 @@ public struct DILogger {
         case .error:
             Log.error(logMessage)
         }
-        #endif
     }
 
     // MARK: - Macro-based Logging Methods
