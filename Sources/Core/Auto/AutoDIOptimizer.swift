@@ -117,7 +117,7 @@ public final class AutoDIOptimizer {
     case .all, .registration:
       DILogger.info(channel: .registration, "📦 등록: \(typeName) (총 \(registrationCount)개)")
     case .errorsOnly:
-      DILogger.error(channels: [.registration, .error], "📦 등록: \(typeName) (총 \(registrationCount)개)")
+      Log.info("📦 등록: \(typeName) (총 \(registrationCount)개)")
     default:
       break
     }
@@ -567,7 +567,7 @@ public final class AutoDIOptimizer {
   }
   
   /// 로그 레벨 설정
-  public func setLogLevel(_ level: LogLevel) {
+  public func setLogLevel(_ level: LogLevel, configureLogger: Bool = true) {
     currentLogLevel = level
     #logInfo("📝 로그 레벨 설정: \(level.rawValue)")
 
@@ -590,7 +590,9 @@ public final class AutoDIOptimizer {
       mappedLevel = .off
       severityThreshold = .error
     }
-    DILogger.configure(level: mappedLevel, severityThreshold: severityThreshold)
+    if configureLogger {
+      DILogger.configure(level: mappedLevel, severityThreshold: severityThreshold)
+    }
     scheduleSnapshotDebounced()
   }
   

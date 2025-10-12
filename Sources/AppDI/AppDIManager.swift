@@ -251,12 +251,13 @@ public final actor AppDIManager {
   /// - `registerModule.makeDependency(...)`, `makeUseCaseWithRepository(...)` 등을
   ///   활용해 여러 모듈을 한 번에 등록할 수 있습니다.
   public func registerDependencies(
+    logLevel: UnifiedDI.LogLevel = .errors,
     registerModules: @escaping @Sendable (WeaveDI.Container) async -> Void
   ) async {
     // Enable runtime optimization and minimize logging for performance-sensitive builds
     UnifiedDI.configureOptimization(debounceMs: 100, threshold: 10, realTimeUpdate: true)
     UnifiedDI.setAutoOptimization(true)
-    UnifiedDI.setLogLevel(.errors)
+    UnifiedDI.setLogLevel(logLevel)
 
     // Swift 6 안전성을 위해 Task 내에서 실행
     await withCheckedContinuation { continuation in

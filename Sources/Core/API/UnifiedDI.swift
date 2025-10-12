@@ -562,21 +562,34 @@ public extension UnifiedDI {
     /// UnifiedDI.setLogLevel(.off)
     /// ```
     static func setLogLevel(_ level: LogLevel) {
+        let optimizerLogLevel: AutoDIOptimizer.LogLevel
+
         switch level {
         case .all:
             DILogger.configure(level: .all, severityThreshold: .debug)
+            optimizerLogLevel = .all
         case .errors:
             DILogger.configure(level: .errorsOnly, severityThreshold: .error)
+            optimizerLogLevel = .errors
         case .warnings:
             DILogger.configure(level: .errorsOnly, severityThreshold: .warning)
+            optimizerLogLevel = .errors
         case .performance:
             DILogger.configure(level: .optimization, severityThreshold: .info)
+            optimizerLogLevel = .optimization
         case .registration:
             DILogger.configure(level: .registration, severityThreshold: .info)
+            optimizerLogLevel = .registration
         case .health:
             DILogger.configure(level: .health, severityThreshold: .info)
+            optimizerLogLevel = .errors
         case .off:
             DILogger.configure(level: .off)
+            optimizerLogLevel = .off
+        }
+
+        Task { @DIActor in
+            AutoDIOptimizer.shared.setLogLevel(optimizerLogLevel, configureLogger: false)
         }
     }
 
