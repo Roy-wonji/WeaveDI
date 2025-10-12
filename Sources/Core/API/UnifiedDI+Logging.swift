@@ -132,6 +132,46 @@ public extension UnifiedDI {
   static func generateMonitoringReport() async -> DIMonitorReport {
     return await DIMonitor.shared.generateReport()
   }
+  static func logDebug(
+    channel: DILogChannel = .general,
+    _ message: String
+  ) {
+    DILogger.macroDebug(channel: channel, message)
+  }
+
+  static func logInfo(
+    channel: DILogChannel = .general,
+    _ message: String
+  ) {
+    DILogger.macroInfo(channel: channel, message)
+  }
+
+  static func logWarning(
+    channel: DILogChannel = .general,
+    _ message: String
+  ) {
+    DILogger.macroWarning(channel: channel, message)
+  }
+
+  static func logError(
+    channels: [DILogChannel] = [.error],
+    _ message: String
+  ) {
+    DILogger.macroError(channels: channels, message)
+  }
+
+  static func logRegistrationSuccess(_ message: String) {
+    DILogger.macroInfo(channel: .registration, message)
+  }
+
+  static func logResolutionSuccess(_ message: String) {
+    DILogger.macroInfo(channel: .resolution, message)
+  }
+
+  static func logFailure(_ message: String) {
+    DILogger.macroError(channels: [.error], message)
+  }
+
 }
 
 public extension UnifiedDI {

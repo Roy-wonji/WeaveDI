@@ -155,6 +155,68 @@ public struct DILogger {
         #endif
     }
 
+    // MARK: - Macro-based Logging Methods
+
+    /// 매크로 기반 디버그 로깅 - 빠른 성능을 위한 컴파일 타임 최적화
+    public static func macroDebug(
+        channel: DILogChannel = .general,
+        _ message: String,
+        file: String = #file,
+        function: String = #function,
+        line: Int = #line
+    ) {
+        #if DEBUG && DI_MONITORING_ENABLED
+        if shouldEmit(channel: channel, severity: .debug) {
+            #logDebug("[DI][\(channel.rawValue)] \(message)")
+        }
+        #endif
+    }
+
+    /// 매크로 기반 정보 로깅
+    public static func macroInfo(
+        channel: DILogChannel = .general,
+        _ message: String,
+        file: String = #file,
+        function: String = #function,
+        line: Int = #line
+    ) {
+        #if DEBUG && DI_MONITORING_ENABLED
+        if shouldEmit(channel: channel, severity: .info) {
+            #logInfo("[DI][\(channel.rawValue)] \(message)")
+        }
+        #endif
+    }
+
+    /// 매크로 기반 경고 로깅
+    public static func macroWarning(
+        channel: DILogChannel = .general,
+        _ message: String,
+        file: String = #file,
+        function: String = #function,
+        line: Int = #line
+    ) {
+        #if DEBUG && DI_MONITORING_ENABLED
+        if shouldEmit(channel: channel, severity: .warning) {
+            #logWarning("[DI][\(channel.rawValue)] \(message)")
+        }
+        #endif
+    }
+
+    /// 매크로 기반 에러 로깅
+    public static func macroError(
+        channels: [DILogChannel] = [.error],
+        _ message: String,
+        file: String = #file,
+        function: String = #function,
+        line: Int = #line
+    ) {
+        for channel in channels {
+            if shouldEmit(channel: channel, severity: .error) {
+                #logError("[DI][\(channel.rawValue)] \(message)")
+            }
+        }
+    }
+
     // MARK: - Public Logging Methods
 
     public static func debug(
