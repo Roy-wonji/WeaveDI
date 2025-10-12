@@ -639,16 +639,18 @@ public struct NodeChangeType: Sendable {
 
 // MARK: - LogLevel 정의
 
-/// 로깅 레벨을 정의하는 열거형
-public enum LogLevel: String, CaseIterable, Sendable {
-  /// 모든 로그 출력 (기본값)
-  case all = "all"
-  /// 등록만 로깅
-  case registration = "registration"
-  /// 최적화만 로깅
-  case optimization = "optimization"
-  /// 에러만 로깅
-  case errors = "errors"
-  /// 로깅 끄기
-  case off = "off"
+public extension AutoDIOptimizer {
+  /// 로깅 레벨을 정의하는 열거형
+  enum LogLevel: String, CaseIterable, Sendable {
+    /// 모든 로그 출력 (기본값)
+    case all = "all"
+    /// 등록만 로깅
+    case registration = "registration"
+    /// 최적화만 로깅
+    case optimization = "optimization"
+    /// 에러만 로깅
+    case errors = "errors"
+    /// 로깅 끄기
+    case off = "off"
+  }
 }
