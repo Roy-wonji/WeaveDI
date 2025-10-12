@@ -10,36 +10,37 @@ private struct WeaveDIConfigState {
 }
 
 public enum WeaveDIConfiguration {
-  private static let state = ManagedCriticalState(WeaveDIConfigState())
+  private static var state = WeaveDIConfigState()
+  private static let lock = NSLock()
 
   public static var enableOptimizerTracking: Bool {
-    get { state.withCriticalRegion { $0.optimizerEnabled } }
-    set { state.withCriticalRegion { $0.optimizerEnabled = newValue } }
+    get { withLock { $0.optimizerEnabled } }
+    set { withLock { $0.optimizerEnabled = newValue } }
   }
 
   public static var enableAutoMonitor: Bool {
-    get { state.withCriticalRegion { $0.monitorEnabled } }
-    set { state.withCriticalRegion { $0.monitorEnabled = newValue } }
+    get { withLock { $0.monitorEnabled } }
+    set { withLock { $0.monitorEnabled = newValue } }
   }
 
   public static var enableVerboseLogging: Bool {
-    get { state.withCriticalRegion { $0.verboseLogging } }
-    set { state.withCriticalRegion { $0.verboseLogging = newValue } }
+    get { withLock { $0.verboseLogging } }
+    set { withLock { $0.verboseLogging = newValue } }
   }
 
   public static var enableRegistryAutoHealthCheck: Bool {
-    get { state.withCriticalRegion { $0.registryAutoHealthCheckEnabled } }
-    set { state.withCriticalRegion { $0.registryAutoHealthCheckEnabled = newValue } }
+    get { withLock { $0.registryAutoHealthCheckEnabled } }
+    set { withLock { $0.registryAutoHealthCheckEnabled = newValue } }
   }
 
   public static var enableRegistryAutoFix: Bool {
-    get { state.withCriticalRegion { $0.registryAutoFixEnabled } }
-    set { state.withCriticalRegion { $0.registryAutoFixEnabled = newValue } }
+    get { withLock { $0.registryAutoFixEnabled } }
+    set { withLock { $0.registryAutoFixEnabled = newValue } }
   }
 
   public static var enableRegistryHealthLogging: Bool {
-    get { state.withCriticalRegion { $0.registryHealthLoggingEnabled } }
-    set { state.withCriticalRegion { $0.registryHealthLoggingEnabled = newValue } }
+    get { withLock { $0.registryHealthLoggingEnabled } }
+    set { withLock { $0.registryHealthLoggingEnabled = newValue } }
   }
 
   public static func applyFromEnvironment(
@@ -84,5 +85,12 @@ public enum WeaveDIConfiguration {
       case "0", "false", "no", "off": return false
       default: return defaultValue
     }
+  }
+
+  private static func withLock<T>(_ closure: (inout WeaveDIConfigState) -> T) -> T {
+    lock.lock()
+    let result = closure(&state)
+    lock.unlock()
+    return result
   }
 }

@@ -8,22 +8,26 @@ public struct ComponentMetadata: Sendable {
 }
 
 public enum ComponentMetadataRegistry {
-  private static let state = ManagedCriticalState([ComponentMetadata]())
+  private static var storage: [ComponentMetadata] = []
+  private static let lock = NSLock()
 
   public static func register(_ metadata: ComponentMetadata) {
-    state.withCriticalRegion { storage in
-      storage.append(metadata)
-    }
+    lock.lock()
+    storage.append(metadata)
+    lock.unlock()
   }
 
   public static func allMetadata() -> [ComponentMetadata] {
-    state.withCriticalRegion { $0 }
+    lock.lock()
+    let snapshot = storage
+    lock.unlock()
+    return snapshot
   }
 
   public static func reset() {
-    state.withCriticalRegion { storage in
-      storage.removeAll(keepingCapacity: false)
-    }
+    lock.lock()
+    storage.removeAll(keepingCapacity: false)
+    lock.unlock()
   }
 
   public static func dumpMetadata() -> String {
