@@ -7,27 +7,34 @@ public struct ComponentMetadata: Sendable {
   public let scopes: [String]
 }
 
+private final class MetadataStorage: @unchecked Sendable {
+  private var snapshot: [ComponentMetadata]
+  private let lock = NSLock()
+
+  init(_ initial: [ComponentMetadata] = []) {
+    snapshot = initial
+  }
+
+  func withLock<T>(_ body: (inout [ComponentMetadata]) -> T) -> T {
+    lock.lock()
+    defer { lock.unlock() }
+    return body(&snapshot)
+  }
+}
+
 public enum ComponentMetadataRegistry {
-  private static var storage: [ComponentMetadata] = []
-  private static let lock = NSLock()
+  private static let storage = MetadataStorage()
 
   public static func register(_ metadata: ComponentMetadata) {
-    lock.lock()
-    storage.append(metadata)
-    lock.unlock()
+    storage.withLock { $0.append(metadata) }
   }
 
   public static func allMetadata() -> [ComponentMetadata] {
-    lock.lock()
-    let snapshot = storage
-    lock.unlock()
-    return snapshot
+    storage.withLock { $0 }
   }
 
   public static func reset() {
-    lock.lock()
-    storage.removeAll(keepingCapacity: false)
-    lock.unlock()
+    storage.withLock { $0.removeAll(keepingCapacity: false) }
   }
 
   public static func dumpMetadata() -> String {

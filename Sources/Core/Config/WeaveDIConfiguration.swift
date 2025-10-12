@@ -9,38 +9,52 @@ private struct WeaveDIConfigState {
   var registryHealthLoggingEnabled: Bool = false
 }
 
+private final class ConfigStorage: @unchecked Sendable {
+  private var state: WeaveDIConfigState
+  private let lock = NSLock()
+
+  init(_ initial: WeaveDIConfigState = .init()) {
+    state = initial
+  }
+
+  func withLock<T>(_ body: (inout WeaveDIConfigState) -> T) -> T {
+    lock.lock()
+    defer { lock.unlock() }
+    return body(&state)
+  }
+}
+
 public enum WeaveDIConfiguration {
-  private static var state = WeaveDIConfigState()
-  private static let lock = NSLock()
+  private static let storage = ConfigStorage()
 
   public static var enableOptimizerTracking: Bool {
-    get { withLock { $0.optimizerEnabled } }
-    set { withLock { $0.optimizerEnabled = newValue } }
+    get { storage.withLock { $0.optimizerEnabled } }
+    set { storage.withLock { $0.optimizerEnabled = newValue } }
   }
 
   public static var enableAutoMonitor: Bool {
-    get { withLock { $0.monitorEnabled } }
-    set { withLock { $0.monitorEnabled = newValue } }
+    get { storage.withLock { $0.monitorEnabled } }
+    set { storage.withLock { $0.monitorEnabled = newValue } }
   }
 
   public static var enableVerboseLogging: Bool {
-    get { withLock { $0.verboseLogging } }
-    set { withLock { $0.verboseLogging = newValue } }
+    get { storage.withLock { $0.verboseLogging } }
+    set { storage.withLock { $0.verboseLogging = newValue } }
   }
 
   public static var enableRegistryAutoHealthCheck: Bool {
-    get { withLock { $0.registryAutoHealthCheckEnabled } }
-    set { withLock { $0.registryAutoHealthCheckEnabled = newValue } }
+    get { storage.withLock { $0.registryAutoHealthCheckEnabled } }
+    set { storage.withLock { $0.registryAutoHealthCheckEnabled = newValue } }
   }
 
   public static var enableRegistryAutoFix: Bool {
-    get { withLock { $0.registryAutoFixEnabled } }
-    set { withLock { $0.registryAutoFixEnabled = newValue } }
+    get { storage.withLock { $0.registryAutoFixEnabled } }
+    set { storage.withLock { $0.registryAutoFixEnabled = newValue } }
   }
 
   public static var enableRegistryHealthLogging: Bool {
-    get { withLock { $0.registryHealthLoggingEnabled } }
-    set { withLock { $0.registryHealthLoggingEnabled = newValue } }
+    get { storage.withLock { $0.registryHealthLoggingEnabled } }
+    set { storage.withLock { $0.registryHealthLoggingEnabled = newValue } }
   }
 
   public static func applyFromEnvironment(
@@ -87,10 +101,4 @@ public enum WeaveDIConfiguration {
     }
   }
 
-  private static func withLock<T>(_ closure: (inout WeaveDIConfigState) -> T) -> T {
-    lock.lock()
-    let result = closure(&state)
-    lock.unlock()
-    return result
-  }
 }
