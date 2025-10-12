@@ -555,16 +555,18 @@ private extension DIContainer {
 
   func logResolutionMiss<T>(_ type: T.Type) where T: Sendable {
     let typeName = String(describing: type)
-    switch AutoDIOptimizer.readSnapshot().logLevel {
+    switch DILogger.getCurrentLogLevel() {
     case .all:
       DILogger.info(channel: .registration, "⚠️ \(typeName) resolving returned nil")
       DILogger.info(channel: .registration, "💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
-      DILogger.error("No registered dependency found for \(typeName)")
+      DILogger.error(channels: [.registration, .error], "No registered dependency found for \(typeName)")
     case .registration:
       DILogger.info(channel: .registration, "⚠️ \(typeName) resolving returned nil")
-      DILogger.error("No registered dependency found for \(typeName)")
-    case .optimization, .errors:
-      DILogger.error("No registered dependency found for \(typeName)")
+      DILogger.error(channels: [.registration, .error], "No registered dependency found for \(typeName)")
+    case .optimization, .health:
+      DILogger.error(channels: [.error], "No registered dependency found for \(typeName)")
+    case .errorsOnly:
+      DILogger.error(channels: [.error], "No registered dependency found for \(typeName)")
     case .off:
       return
     }

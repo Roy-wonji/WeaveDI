@@ -44,7 +44,10 @@ public final class AutoDIOptimizer {
   
   private init() {
     lifecycleManager = SimpleLifecycleManager.shared
-    #logInfo("🚀 AutoDIOptimizer 초기화 완료 (최적화 기능 포함)")
+    DILogger.configure(level: .errorsOnly, severityThreshold: .error)
+    if DILogger.getCurrentLogLevel() == .all {
+      DILogger.info(channel: .optimization, "🚀 AutoDIOptimizer 초기화 완료 (최적화 기능 포함)")
+    }
   }
   
   // MARK: - Debounced snapshot
@@ -65,7 +68,9 @@ public final class AutoDIOptimizer {
   public func setDebounceInterval(ms: Int) {
     let clamped = max(50, min(ms, 1000))
     snapshotDebounceNanos = UInt64(clamped) * 1_000_000
-    #logInfo("🕒 Snapshot debounce set to: \(clamped)ms")
+    if DILogger.getCurrentLogLevel() == .all {
+      DILogger.info(channel: .optimization, "🕒 Snapshot debounce set to: \(clamped)ms")
+    }
   }
   
   // MARK: - Snapshot helpers
@@ -108,9 +113,11 @@ public final class AutoDIOptimizer {
       registrationCount += 1
     }
 
-    switch currentLogLevel {
+    switch DILogger.getCurrentLogLevel() {
     case .all, .registration:
       DILogger.info(channel: .registration, "📦 등록: \(typeName) (총 \(registrationCount)개)")
+    case .errorsOnly:
+      DILogger.error(channels: [.registration, .error], "📦 등록: \(typeName) (총 \(registrationCount)개)")
     default:
       break
     }
@@ -138,13 +145,16 @@ public final class AutoDIOptimizer {
       }
     }
     if hit10 {
-      if currentLogLevel == .all || currentLogLevel == .optimization {
-        DILogger.error("⚡ 최적화 권장: \(typeName)이 자주 사용됩니다 (싱글톤 고려)")
+      switch DILogger.getCurrentLogLevel() {
+      case .all, .optimization:
+        DILogger.error(channels: [.optimization], "⚡ 최적화 권장: \(typeName)이 자주 사용됩니다 (싱글톤 고려)")
+      default:
+        break
       }
     }
 
-    if currentLogLevel == .all {
-      DILogger.debug("🔍 해결: \(typeName) (총 \(resolutionCount)회)")
+    if DILogger.getCurrentLogLevel() == .all {
+      DILogger.debug(channel: .resolution, "🔍 해결: \(typeName) (총 \(resolutionCount)회)")
     }
     scheduleSnapshotDebounced()
   }
@@ -156,8 +166,10 @@ public final class AutoDIOptimizer {
     let toName = String(describing: to)
     
     withLock { dependencies.append((from: fromName, to: toName)) }
-    
-    #logInfo("🔗 의존성 추가: \(fromName) → \(toName)")
+
+    if DILogger.getCurrentLogLevel() == .all {
+      DILogger.info(channel: .optimization, "🔗 의존성 추가: \(fromName) → \(toName)")
+    }
     
     // 자동 모니터링 연계
     AutoMonitor.shared.onDependencyAdded(from: from, to: to)
@@ -558,6 +570,27 @@ public final class AutoDIOptimizer {
   public func setLogLevel(_ level: LogLevel) {
     currentLogLevel = level
     #logInfo("📝 로그 레벨 설정: \(level.rawValue)")
+
+    let mappedLevel: DILogLevel
+    let severityThreshold: DILogSeverity
+    switch level {
+    case .all:
+      mappedLevel = .all
+      severityThreshold = .debug
+    case .registration:
+      mappedLevel = .registration
+      severityThreshold = .info
+    case .optimization:
+      mappedLevel = .optimization
+      severityThreshold = .info
+    case .errors:
+      mappedLevel = .errorsOnly
+      severityThreshold = .error
+    case .off:
+      mappedLevel = .off
+      severityThreshold = .error
+    }
+    DILogger.configure(level: mappedLevel, severityThreshold: severityThreshold)
     scheduleSnapshotDebounced()
   }
   
@@ -570,7 +603,12 @@ public final class AutoDIOptimizer {
   /// Nil 해결 처리 (간단 버전)
   public func handleNilResolution<T>(_ type: T.Type) {
     let typeName = String(describing: type)
-    #logInfo("⚠️ Nil 해결 감지: \(typeName)")
+    switch DILogger.getCurrentLogLevel() {
+    case .all, .registration:
+      DILogger.info(channel: .resolution, "⚠️ Nil 해결 감지: \(typeName)")
+    default:
+      break
+    }
   }
   
   /// 설정 업데이트 (간단 버전)
