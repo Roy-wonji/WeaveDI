@@ -302,8 +302,8 @@ final class AutoOptimizationTests: XCTestCase {
     UnifiedDI.setLogLevel(.registration)
     XCTAssertEqual(UnifiedDI.logLevel, .registration)
 
-    UnifiedDI.setLogLevel(.optimization)
-    XCTAssertEqual(UnifiedDI.logLevel, .optimization)
+    UnifiedDI.setLogLevel(.performance)
+    XCTAssertEqual(UnifiedDI.logLevel, .performance)
 
     UnifiedDI.setLogLevel(.errors)
     XCTAssertEqual(UnifiedDI.logLevel, .errors)

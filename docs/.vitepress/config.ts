@@ -143,6 +143,14 @@ export default defineConfig({
               ]
             },
             {
+              text: 'Monitoring & Logging',
+              collapsed: true,
+              items: [
+                { text: 'Logging System', link: '/api/logging' },
+                { text: 'Health Check', link: '/api/healthCheck' }
+              ]
+            },
+            {
               text: 'Performance Components',
               collapsed: true,
               items: [
@@ -309,6 +317,14 @@ export default defineConfig({
                 { text: 'TCA 정책 설정', link: '/ko/api/tcaPolicyConfiguration' },
                 { text: '자동 DI 최적화', link: '/ko/api/autoDiOptimizer' },
                 { text: 'DIActor', link: '/ko/api/diActor' }
+              ]
+            },
+            {
+              text: '모니터링 & 로깅',
+              collapsed: true,
+              items: [
+                { text: '로깅 시스템', link: '/ko/api/logging' },
+                { text: '헬스체크 시스템', link: '/ko/api/healthCheck' }
               ]
             },
             {
