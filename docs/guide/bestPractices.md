@@ -556,6 +556,33 @@ class UserService {
 }
 ```
 
+## Runtime Diagnostics Control
+
+- `WEAVEDI_REGISTRY_HEALTH_LOGGING=1`: opt in if you want auto health-check/auto-fix logs (default is off).
+- `WEAVEDI_REGISTRY_AUTO_HEALTH=0`: disable the UnifiedRegistry health-check loop entirely.
+- `WEAVEDI_REGISTRY_AUTO_FIX=0`: avoid triggering automatic fixes when the score drops.
+
+All flags are consumed by `WeaveDIConfiguration.applyFromEnvironment()`, so you can toggle them per scheme or CI job.
+
+### Log levels for runtime diagnostics
+
+Tune noise without touching env vars by calling `UnifiedDI.setLogLevel(_:)`:
+
+| Level | Emits |
+| ----- | ----- |
+| `.all` | every diagnostic message (default) |
+| `.registration` | registration successes + critical errors |
+| `.optimization` | optimization lifecycle + errors |
+| `.errors` | errors plus registration failures/overwrites |
+| `.off` | silent mode |
+
+```swift
+WeaveDIConfiguration.applyFromEnvironment()
+UnifiedDI.setLogLevel(.errors)
+```
+
+Registry health/auto-fix logs stay disabled unless you explicitly enable `WEAVEDI_REGISTRY_HEALTH_LOGGING`.
+
 ## Next Steps
 
 - [Migration Guide](./migrationInjectToInjected) - Upgrading from @Inject

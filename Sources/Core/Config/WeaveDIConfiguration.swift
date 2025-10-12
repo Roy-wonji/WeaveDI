@@ -5,6 +5,9 @@ private struct WeaveDIConfigState {
   var optimizerEnabled: Bool = true
   var monitorEnabled: Bool = true
   var verboseLogging: Bool = false
+  var registryAutoHealthCheckEnabled: Bool = true
+  var registryAutoFixEnabled: Bool = true
+  var registryHealthLoggingEnabled: Bool = false
 }
 
 public enum WeaveDIConfiguration {
@@ -25,10 +28,28 @@ public enum WeaveDIConfiguration {
     set { lock.withLockUnchecked { $0.verboseLogging = newValue } }
   }
 
+  public static var enableRegistryAutoHealthCheck: Bool {
+    get { lock.withLock { $0.registryAutoHealthCheckEnabled } }
+    set { lock.withLockUnchecked { $0.registryAutoHealthCheckEnabled = newValue } }
+  }
+
+  public static var enableRegistryAutoFix: Bool {
+    get { lock.withLock { $0.registryAutoFixEnabled } }
+    set { lock.withLockUnchecked { $0.registryAutoFixEnabled = newValue } }
+  }
+
+  public static var enableRegistryHealthLogging: Bool {
+    get { lock.withLock { $0.registryHealthLoggingEnabled } }
+    set { lock.withLockUnchecked { $0.registryHealthLoggingEnabled = newValue } }
+  }
+
   public static func applyFromEnvironment(
     optimizerKey: String = "WEAVEDI_ENABLE_OPTIMIZER",
     monitorKey: String = "WEAVEDI_ENABLE_MONITOR",
-    verboseKey: String = "WEAVEDI_VERBOSE_LOGGING"
+    verboseKey: String = "WEAVEDI_VERBOSE_LOGGING",
+    registryHealthKey: String = "WEAVEDI_REGISTRY_AUTO_HEALTH",
+    registryFixKey: String = "WEAVEDI_REGISTRY_AUTO_FIX",
+    registryLogKey: String = "WEAVEDI_REGISTRY_HEALTH_LOGGING"
   ) {
     let env = ProcessInfo.processInfo.environment
 
@@ -42,6 +63,18 @@ public enum WeaveDIConfiguration {
 
     if let value = env[verboseKey] {
       enableVerboseLogging = parseBool(value, defaultValue: enableVerboseLogging)
+    }
+
+    if let value = env[registryHealthKey] {
+      enableRegistryAutoHealthCheck = parseBool(value, defaultValue: enableRegistryAutoHealthCheck)
+    }
+
+    if let value = env[registryFixKey] {
+      enableRegistryAutoFix = parseBool(value, defaultValue: enableRegistryAutoFix)
+    }
+
+    if let value = env[registryLogKey] {
+      enableRegistryHealthLogging = parseBool(value, defaultValue: enableRegistryHealthLogging)
     }
   }
 

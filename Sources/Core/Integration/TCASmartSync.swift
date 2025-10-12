@@ -56,8 +56,8 @@ public struct TCASmartSync {
         // 자동 초기화 완료 마킹
         isAutoInitialized = true
 
-        Log.info("🎯 TCA ↔ WeaveDI 완전 자동 초기화 완료!")
-        Log.info("   사용자 코드 수정 없이 자동으로 동기화됩니다.")
+        DILogger.info("🎯 TCA ↔ WeaveDI 완전 자동 초기화 완료!")
+        DILogger.info("   사용자 코드 수정 없이 자동으로 동기화됩니다.")
     }
 
     /// 자동 동기화할 DependencyKey 타입들
@@ -90,8 +90,8 @@ public struct TCASmartSync {
         // Runtime hook 설정 (method swizzling 대신 안전한 방법)
         installAutoSyncHook()
 
-        Log.info("🎯 TCA ↔ WeaveDI 글로벌 자동 동기화가 활성화되었습니다!")
-        Log.info("   이제 모든 TCA DependencyKey가 자동으로 WeaveDI와 동기화됩니다.")
+        DILogger.info("🎯 TCA ↔ WeaveDI 글로벌 자동 동기화가 활성화되었습니다!")
+        DILogger.info("   이제 모든 TCA DependencyKey가 자동으로 WeaveDI와 동기화됩니다.")
     }
 
     /// 🎯 **브릿지 정책 설정**: TCA ↔ WeaveDI 우선순위 정책 변경
@@ -110,15 +110,15 @@ public struct TCASmartSync {
     @MainActor
     public static func configure(policy: TCABridgePolicy) {
         currentPolicy = policy
-        Log.info("🎯 TCA 브릿지 정책이 '\(policy.rawValue)'로 변경되었습니다!")
+        DILogger.info("🎯 TCA 브릿지 정책이 '\(policy.rawValue)'로 변경되었습니다!")
 
         switch policy {
         case .testPriority:
-            Log.info("   testValue가 우선됩니다 (테스트 환경에 적합)")
+            DILogger.info("   testValue가 우선됩니다 (테스트 환경에 적합)")
         case .livePriority:
-            Log.info("   liveValue가 우선됩니다 (프로덕션 환경에 적합)")
+            DILogger.info("   liveValue가 우선됩니다 (프로덕션 환경에 적합)")
         case .contextual:
-            Log.info("   컨텍스트에 따라 자동으로 결정됩니다")
+            DILogger.info("   컨텍스트에 따라 자동으로 결정됩니다")
         }
     }
 
@@ -144,7 +144,7 @@ public struct TCASmartSync {
             syncSingle(keyType)
         }
 
-        Log.info("🎯 \(keys.count)개 TCA DependencyKey가 WeaveDI와 동기화되었습니다!")
+        DILogger.info("🎯 \(keys.count)개 TCA DependencyKey가 WeaveDI와 동기화되었습니다!")
     }
 
     /// 🎯 **개별 등록**: 특정 DependencyKey를 WeaveDI와 동기화
@@ -161,7 +161,7 @@ public struct TCASmartSync {
         // 등록된 키 추가
         registeredKeys.insert(String(describing: keyType))
 
-        Log.info("🎯 \(keyType) → WeaveDI + InjectedValues 동기화 완료 (정책: \(currentPolicy.rawValue))")
+        DILogger.info("🎯 \(keyType) → WeaveDI + InjectedValues 동기화 완료 (정책: \(currentPolicy.rawValue))")
     }
 
     /// 🎯 **정책 기반 값 선택**: 현재 정책에 따라 적절한 값 반환
@@ -240,7 +240,7 @@ public struct TCASmartSync {
     private static func syncToInjectedValues<T: Sendable>(type: T.Type, value: T) async {
         // 🔧 DIContainer를 통해 InjectedValues와 동기화
         await DIContainer.shared.registerAsync(type, instance: value)
-        Log.info("🎯 \(type) → InjectedValues 동기화 완료")
+        DILogger.info("🎯 \(type) → InjectedValues 동기화 완료")
     }
 
     /// 🎯 **스마트 감지**: DependencyKey 사용을 감지해서 자동 동기화 (nonisolated)
@@ -264,7 +264,7 @@ public struct TCASmartSync {
 
                 registeredKeys.insert(keyTypeName)
 
-                Log.info("🎯 자동 감지: \(keyTypeName) → WeaveDI + InjectedValues 동기화 완료")
+                DILogger.info("🎯 자동 감지: \(keyTypeName) → WeaveDI + InjectedValues 동기화 완료")
             } else {
                 // 등록된 타입이라도 최신 값을 유지하도록 InjectedValues 갱신
                 registerAsInjectedKey(valueType: T.Value.self, value: value)
@@ -297,7 +297,7 @@ public struct TCASmartSync {
             syncToTCADependencies(type: type, value: injectedInstance)
             registeredInjectedKeys.insert(typeName)
 
-            Log.info("🔄 역방향 동기화: \(type) WeaveDI → TCA 동기화 완료")
+            DILogger.info("🔄 역방향 동기화: \(type) WeaveDI → TCA 동기화 완료")
         }
     }
 
@@ -318,7 +318,7 @@ public struct TCASmartSync {
 
         // 임시 저장소에 값 등록 (TCA에서 접근 가능)
         await storeTCACompatibleValue(type: type, value: value)
-        Log.info("🔄 \(type) → TCA DependencyValues 호환 저장 완료")
+        DILogger.info("🔄 \(type) → TCA DependencyValues 호환 저장 완료")
     }
 
     /// 🔄 **TCA 호환 저장소**: DependencyValues subscript에서 접근 가능한 임시 저장소
@@ -420,7 +420,7 @@ public struct TCASmartSync {
 public extension TCASmartSync {
     /// 🎯 **편의 메서드**: 일반적인 서비스들을 한 번에 동기화
     static func syncCommonServices() {
-        Log.info("🎯 일반적인 서비스들을 자동 감지하여 동기화합니다...")
+        DILogger.info("🎯 일반적인 서비스들을 자동 감지하여 동기화합니다...")
         // 런타임에 등록된 DependencyKey들을 자동 감지
         // 실제 구현에서는 리플렉션을 사용할 수 있음
     }
@@ -439,7 +439,7 @@ public extension TCASmartSync {
             }
         }
 
-        Log.info("🔧 \(type) TestDependencyKey 호환성 해결 완료")
+        DILogger.info("🔧 \(type) TestDependencyKey 호환성 해결 완료")
     }
 
     // MARK: - 🔧 자동 TestDependencyKey 생성
@@ -462,8 +462,8 @@ public extension TCASmartSync {
         }
 
         // 🔧 기본값 생성 실패 시 사용자에게 알림
-        Log.error("🔧 \(type)에 대한 기본 인스턴스를 생성할 수 없습니다.")
-        Log.error("   해결법: fixTestDependencyKeyError(\(type).self) { /* liveValue 제공 */ }")
+        DILogger.error("🔧 \(type)에 대한 기본 인스턴스를 생성할 수 없습니다.")
+        DILogger.error("   해결법: fixTestDependencyKeyError(\(type).self) { /* liveValue 제공 */ }")
         fatalError("🔧 TestDependencyKey 자동 생성 실패: \(type)")
     }
 
@@ -476,7 +476,7 @@ public extension TCASmartSync {
         // 🔄 통합 저장소에 즉시 저장 (@Dependency와 @Injected 동일성 보장)
         tcaCompatibleStorage[String(describing: type)] = value
 
-        Log.info("🔧 자동 해결: \(type) TestDependencyKey 호환성 완료")
+        DILogger.info("🔧 자동 해결: \(type) TestDependencyKey 호환성 완료")
     }
 
     // MARK: - 🔄 TestDependencyKey 동적 Conformance
@@ -490,7 +490,7 @@ public extension TCASmartSync {
     // 🔧 TestDependencyKey 호환성 추가
     makeTestDependencyKeyCompatible(type, liveValue: liveValue, testValue: testValue)
 
-    Log.info("🔄 동적 TestDependencyKey 생성: \(type)")
+    DILogger.info("🔄 동적 TestDependencyKey 생성: \(type)")
   }
 
     /// 🔄 **자동 역방향 동기화**: WeaveDI 등록을 감지하여 TCA에 자동 동기화 (nonisolated)
@@ -509,7 +509,7 @@ public extension TCASmartSync {
                 // 🔧 자동 TestDependencyKey 호환성 해결
                 autoFixTestDependencyKeyForType(type, value: value)
 
-                Log.info("🔄 자동 감지: WeaveDI 등록 → TCA 동기화 (\(type))")
+                DILogger.info("🔄 자동 감지: WeaveDI 등록 → TCA 동기화 (\(type))")
             }
         }
     }
@@ -566,8 +566,8 @@ public func fixTestDependencyKeyError<T: Sendable>(_ type: T.Type, liveValue: T,
 @MainActor
 public func fixTCACompatibility() {
     TCASmartSync.enableGlobalAutoSync()
-    Log.info("🎯 TCA 호환성 문제가 자동으로 해결되었습니다!")
-    Log.info("   이제 @Injected, ExchangeUseCaseImpl 등이 정상 작동합니다.")
+    DILogger.info("🎯 TCA 호환성 문제가 자동으로 해결되었습니다!")
+    DILogger.info("   이제 @Injected, ExchangeUseCaseImpl 등이 정상 작동합니다.")
 }
 
 // MARK: - 🔄 역방향 동기화 편의 함수들
@@ -588,8 +588,8 @@ public func autoSyncWeaveDIToTCA<T: Sendable>(_ type: T.Type, value: T) {
 @MainActor
 public func enableBidirectionalTCASync() {
     TCASmartSync.enableGlobalAutoSync()
-    Log.info("🎯 TCA ↔ WeaveDI 완전 양방향 동기화가 활성화되었습니다!")
-    Log.info("   DependencyKey ↔ InjectedKey 자동 변환이 가능합니다.")
+    DILogger.info("🎯 TCA ↔ WeaveDI 완전 양방향 동기화가 활성화되었습니다!")
+    DILogger.info("   DependencyKey ↔ InjectedKey 자동 변환이 가능합니다.")
 }
 
 // MARK: - 🎯 글로벌 자동 초기화
@@ -600,7 +600,7 @@ private let _globalAutoInitializer: Void = {
     DispatchQueue.main.async {
         Task { @MainActor in
             TCASmartSync.ensureAutoInitialized()
-            Log.info("🎯 글로벌 자동 초기화 완료: WeaveDI 모듈 import 시 자동 실행됨")
+            DILogger.info("🎯 글로벌 자동 초기화 완료: WeaveDI 모듈 import 시 자동 실행됨")
         }
     }
     return ()
@@ -628,7 +628,7 @@ internal let __weaveDI_autoInit: Void = _globalAutoInitializer
 @MainActor
 public func fixAllTestDependencyKeyErrors<T: Sendable>(_ types: T.Type...) {
     TCASmartSync.autoFixTestDependencyKeyError(Array(types))
-    Log.info("🔧 \(types.count)개 타입의 TestDependencyKey 에러가 해결되었습니다!")
+    DILogger.info("🔧 \(types.count)개 타입의 TestDependencyKey 에러가 해결되었습니다!")
 }
 
 /// 🔧 **개별 TestDependencyKey 에러 해결**: 특정 타입의 liveValue 직접 제공
@@ -643,7 +643,7 @@ public func fixAllTestDependencyKeyErrors<T: Sendable>(_ types: T.Type...) {
 public func fixTestDependencyKeyError<T: Sendable>(_ type: T.Type, liveValue: @escaping @Sendable () -> T) {
     let instance = liveValue()
     TCASmartSync.makeTestDependencyKeyCompatible(type, liveValue: instance)
-    Log.info("🔧 \(type) TestDependencyKey 에러가 해결되었습니다!")
+    DILogger.info("🔧 \(type) TestDependencyKey 에러가 해결되었습니다!")
 }
 
 // MARK: - 🔄 동적 TestDependencyKey Extensions
@@ -677,7 +677,7 @@ public func makeCompatibleWithDependency<T: InjectedKey>(_ type: T.Type) where T
     // 🔄 통합 저장소에 값 저장
     TCASmartSync.createTestDependencyKey(T.Value.self, liveValue: T.liveValue)
 
-    Log.info("🔄 \(type) → @Dependency 호환성 완료")
+    DILogger.info("🔄 \(type) → @Dependency 호환성 완료")
 }
 
 /// 🔄 **여러 타입 일괄 호환성 해결**: 한 번에 여러 타입을 @Dependency와 호환되게 만들기
@@ -695,7 +695,7 @@ public func makeAllCompatibleWithDependency<T: InjectedKey>(_ types: T.Type...) 
     for type in types {
         makeCompatibleWithDependency(type)
     }
-    Log.info("🔄 \(types.count)개 타입 → @Dependency 호환성 완료")
+    DILogger.info("🔄 \(types.count)개 타입 → @Dependency 호환성 완료")
 }
 
 #endif

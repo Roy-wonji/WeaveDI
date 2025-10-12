@@ -25,9 +25,9 @@ This document outlines the future development plans, upcoming features, and long
 - ✅ Comprehensive testing utilities
 - ✅ Bilingual documentation (English & Korean)
 
-**Deprecated:**
-- ⚠️ `@Inject` - Will be removed in 4.0.0 (use `@Injected`)
-- ⚠️ `@SafeInject` - Will be removed in 4.0.0 (use `@Injected`)
+**Removed Features:**
+- ❌ `@Inject` - Removed in 3.2.0 (use `@Injected`)
+- ❌ `@SafeInject` - Removed in 3.2.0 (use `@Injected`)
 
 **Performance Metrics (v3.3.0):**
 - ⚡ 50-80% faster dependency resolution vs v2.x

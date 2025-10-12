@@ -104,6 +104,9 @@ Supported environment variables:
 | `WEAVEDI_ENABLE_OPTIMIZER` | `true` | Enables AutoDI optimizer tracking |
 | `WEAVEDI_ENABLE_MONITOR` | `true` | Turns on automatic monitoring |
 | `WEAVEDI_VERBOSE_LOGGING` | `false` | Switches internal logging to verbose mode |
+| `WEAVEDI_REGISTRY_AUTO_HEALTH` | `true` | Enables UnifiedRegistry auto health-check loop |
+| `WEAVEDI_REGISTRY_AUTO_FIX` | `true` | Attempts automatic fixes when health score drops |
+| `WEAVEDI_REGISTRY_HEALTH_LOGGING` | `false` | Emits health-check/auto-fix logs |
 
 Inject different values per scheme/CI job to ensure production keeps optimizers enabled while local debugging can turn on verbose logging early in the bootstrap sequence.
 

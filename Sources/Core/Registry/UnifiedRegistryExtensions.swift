@@ -113,7 +113,7 @@ extension UnifiedRegistry {
     for inconsistency in syncReport.factoryInconsistencies {
       let typeName = inconsistency.components(separatedBy: ":").first ?? ""
       // 실제 복구 로직은 복잡하므로 여기서는 로그만 남김
-      Log.info("🔧 [AutoFix] Would fix duplicate registration for: \(typeName)")
+      DILogger.info(channel: .registration, "🔧 [AutoFix] Would fix duplicate registration for: \(typeName)")
       fixedDuplicates += 1
     }
 
@@ -126,11 +126,11 @@ extension UnifiedRegistry {
       // 기존 캐시 완전 정리
       SimpleOptimizationManager.shared.clearCache()
       fixReport.suggestedOptimizationEnabled = true
-      Log.info("🔧 [AutoFix] Optimization cache cleared and enabled (mandatory cleanup)")
+      DILogger.info(channel: .optimization, "🔧 [AutoFix] Optimization cache cleared and enabled (mandatory cleanup)")
     } else if syncReport.optimizationStats.isEnabled {
       // 이미 활성화된 경우 캐시만 정리
       SimpleOptimizationManager.shared.clearCache()
-      Log.info("🔧 [AutoFix] Optimization cache cleared (mandatory cleanup)")
+      DILogger.info(channel: .optimization, "🔧 [AutoFix] Optimization cache cleared (mandatory cleanup)")
     }
 
     // 3. 복구 후 건강성 점수 재계산
@@ -145,7 +145,7 @@ extension UnifiedRegistry {
   /// 🚀 배치 파이프라인 시작
   public func startBatchPipeline() {
     guard !isPipelineRunning else {
-      Log.debug("🔄 [UnifiedRegistry] Batch pipeline already running")
+    DILogger.debug("🔄 [UnifiedRegistry] Batch pipeline already running")
       return
     }
 
@@ -153,7 +153,7 @@ extension UnifiedRegistry {
     startBatchProcessing()
     startAutoHealthCheck()
 
-    Log.info("🚀 [UnifiedRegistry] Batch pipeline started with config: batch=\(pipelineConfig.batchInterval)s, health=\(pipelineConfig.autoHealthCheckInterval)s")
+    DILogger.info("🚀 [UnifiedRegistry] Batch pipeline started with config: batch=\(pipelineConfig.batchInterval)s, health=\(pipelineConfig.autoHealthCheckInterval)s")
   }
 
   /// ⏹️ 배치 파이프라인 중지
@@ -166,12 +166,12 @@ extension UnifiedRegistry {
     batchTask = nil
     healthCheckTask = nil
 
-    Log.info("⏹️ [UnifiedRegistry] Batch pipeline stopped")
+    DILogger.info("⏹️ [UnifiedRegistry] Batch pipeline stopped")
   }
 
   /// 🔄 배치 파이프라인 재시작
   public func restartBatchPipeline() {
-    Log.info("🔄 [UnifiedRegistry] Restarting batch pipeline...")
+    DILogger.info("🔄 [UnifiedRegistry] Restarting batch pipeline...")
     stopBatchPipeline()
     startBatchPipeline()
   }
@@ -181,10 +181,10 @@ extension UnifiedRegistry {
     let oldConfig = self.pipelineConfig
     self.pipelineConfig = newConfig
 
-    Log.info("⚙️ [UnifiedRegistry] Pipeline config updated:")
-    Log.info("  Batch Interval: \(oldConfig.batchInterval)s → \(newConfig.batchInterval)s")
-    Log.info("  Health Check Interval: \(oldConfig.autoHealthCheckInterval)s → \(newConfig.autoHealthCheckInterval)s")
-    Log.info("  Auto Fix: \(oldConfig.autoFixEnabled) → \(newConfig.autoFixEnabled)")
+    DILogger.info("⚙️ [UnifiedRegistry] Pipeline config updated:")
+    DILogger.info("  Batch Interval: \(oldConfig.batchInterval)s → \(newConfig.batchInterval)s")
+    DILogger.info("  Health Check Interval: \(oldConfig.autoHealthCheckInterval)s → \(newConfig.autoHealthCheckInterval)s")
+    DILogger.info("  Auto Fix: \(oldConfig.autoFixEnabled) → \(newConfig.autoFixEnabled)")
 
     if isPipelineRunning {
       restartBatchPipeline()
@@ -208,11 +208,11 @@ extension UnifiedRegistry {
   internal func addEvent(_ event: RegistrationEvent) {
     pendingEvents.append(event)
 
-    Log.debug("📝 [UnifiedRegistry] Event added: \(event.eventType) (pending: \(pendingEvents.count))")
+    DILogger.debug("📝 [UnifiedRegistry] Event added: \(event.eventType) (pending: \(pendingEvents.count))")
 
     // 최대 배치 크기 도달 시 즉시 처리
     if pendingEvents.count >= pipelineConfig.maxBatchSize {
-      Log.info("⚡ [UnifiedRegistry] Max batch size reached, processing immediately")
+      DILogger.info("⚡ [UnifiedRegistry] Max batch size reached, processing immediately")
       Task { await processPendingBatch() }
     }
   }
@@ -239,7 +239,7 @@ extension UnifiedRegistry {
     totalBatchesProcessed += 1
 
 #if DEBUG
-    Log.info("🔄 [UnifiedRegistry] Processing batch #\(totalBatchesProcessed) with \(eventsToProcess.count) events")
+    DILogger.info("🔄 [UnifiedRegistry] Processing batch #\(totalBatchesProcessed) with \(eventsToProcess.count) events")
 #endif
 
     // 이벤트별 통계 수집 (RegistrationInfo 활용)
@@ -286,7 +286,7 @@ extension UnifiedRegistry {
     totalEventsProcessed += eventsToProcess.count
 
 #if DEBUG
-    Log.debug("✅ [UnifiedRegistry] Batch processed: \(registrationCount) reg, \(resolutionCount) res, \(releaseCount) rel")
+    DILogger.debug("✅ [UnifiedRegistry] Batch processed: \(registrationCount) reg, \(resolutionCount) res, \(releaseCount) rel")
 #endif
   }
 
@@ -304,10 +304,10 @@ extension UnifiedRegistry {
 #if DEBUG
           if registrations > 0 {
             // 실제 타입을 알 수 없으므로 타입명으로만 추적
-            Log.debug("📈 [BatchPipeline] Tracking registration for \(typeName)")
+            DILogger.debug(channel: .registration, "📈 [BatchPipeline] Tracking registration for \(typeName)")
           }
           if resolutions > 0 {
-            Log.debug("📈 [BatchPipeline] Tracking resolution for \(typeName)")
+            DILogger.debug("📈 [BatchPipeline] Tracking resolution for \(typeName)")
           }
 #endif
         }
@@ -317,7 +317,7 @@ extension UnifiedRegistry {
     // 2. AutoMonitor 업데이트 (배치)
     Task {
 #if DEBUG
-      Log.debug("📊 [BatchPipeline] Batch monitoring update: +\(registrations) reg, +\(resolutions) res, -\(releases) rel")
+      DILogger.debug("📊 [BatchPipeline] Batch monitoring update: +\(registrations) reg, +\(resolutions) res, -\(releases) rel")
 #endif
     }
 
@@ -333,7 +333,7 @@ extension UnifiedRegistry {
       while isPipelineRunning {
         try? await Task.sleep(nanoseconds: UInt64(pipelineConfig.autoHealthCheckInterval * 1_000_000_000))
 
-        if isPipelineRunning {
+        if isPipelineRunning && WeaveDIConfiguration.enableRegistryAutoHealthCheck {
           await performAutoHealthCheck()
         }
       }
@@ -342,23 +342,58 @@ extension UnifiedRegistry {
 
   /// 🔍 자동 건강성 체크 수행
   private func performAutoHealthCheck() async {
+    guard WeaveDIConfiguration.enableRegistryAutoHealthCheck else { return }
     lastHealthCheckTime = Date()
-
-    Log.info("🏥 [UnifiedRegistry] Performing automatic health check...")
 
     // 1. 건강성 체크
     let healthReport = verifyRegistrySync()
 
-    Log.info("📊 [UnifiedRegistry] Health Score: \(String(format: "%.1f", healthReport.healthScore))/100")
+    let score = healthReport.healthScore
+    let loggingEnabled = WeaveDIConfiguration.enableRegistryHealthLogging || WeaveDIConfiguration.enableVerboseLogging
+    let belowThreshold = score < 90.0
+
+    let shouldLogScore: Bool
+    if let previous = lastLoggedHealthScore {
+      let scoreChanged = abs(previous - score) >= 0.5
+      let thresholdChanged = belowThreshold != lastHealthBelowThreshold
+      shouldLogScore = loggingEnabled && (scoreChanged || thresholdChanged)
+    } else {
+      shouldLogScore = loggingEnabled
+    }
+
+    if shouldLogScore {
+      DILogger.info(channel: .health, "🏥 [UnifiedRegistry] Performing automatic health check...")
+      DILogger.info(channel: .health, "📊 [UnifiedRegistry] Health Score: \(String(format: "%.1f", score))/100")
+    }
+
+    lastLoggedHealthScore = score
+    lastHealthBelowThreshold = belowThreshold
 
     // 2. 자동 문제해결 (활성화된 경우)
-    if pipelineConfig.autoFixEnabled && healthReport.healthScore < 90.0 {
-      await performAutoFix(basedOn: healthReport)
+    if pipelineConfig.autoFixEnabled && WeaveDIConfiguration.enableRegistryAutoFix && belowThreshold {
+      let now = Date()
+      let shouldAttempt: Bool
+      if let lastScore = lastAutoFixAttemptScore,
+         let lastDate = lastAutoFixAttemptDate {
+        let scoreChanged = abs(lastScore - score) >= 0.1
+        let timeElapsed = now.timeIntervalSince(lastDate) >= max(30.0, pipelineConfig.autoHealthCheckInterval * 2)
+        shouldAttempt = scoreChanged || timeElapsed
+      } else {
+        shouldAttempt = true
+      }
+
+      if shouldAttempt {
+        lastAutoFixAttemptScore = score
+        lastAutoFixAttemptDate = now
+        await performAutoFix(basedOn: healthReport)
+      }
     }
 
     // 3. 성능 최적화 제안
     if pipelineConfig.autoOptimizationEnabled && healthReport.totalRegistrations > 10 && !healthReport.optimizationStats.isEnabled {
-      Log.info("💡 [UnifiedRegistry] Auto-enabling optimization for \(healthReport.totalRegistrations) registered types")
+      if loggingEnabled {
+      DILogger.info(channel: .optimization, "💡 [UnifiedRegistry] Auto-enabling optimization for \(healthReport.totalRegistrations) registered types")
+      }
       enableOptimization()
     }
   }
@@ -367,19 +402,29 @@ extension UnifiedRegistry {
   private func performAutoFix(basedOn healthReport: RegistrySyncReport) async {
     lastAutoFixTime = Date()
 
-    Log.error("🔧 [UnifiedRegistry] Health score (\(String(format: "%.1f", healthReport.healthScore))) below threshold, attempting auto-fix...")
+    let loggingEnabled = WeaveDIConfiguration.enableRegistryHealthLogging || WeaveDIConfiguration.enableVerboseLogging
+
+    if loggingEnabled {
+      DILogger.error("🔧 [UnifiedRegistry] Health score (\(String(format: "%.1f", healthReport.healthScore))) below threshold, attempting auto-fix...")
+    }
 
     let fixReport = attemptRegistryAutoFix()
 
     let improvement = fixReport.finalHealthScore - fixReport.originalHealthScore
     if improvement > 0 {
-      Log.info("✅ [UnifiedRegistry] Auto-fix successful! Health improved by \(String(format: "%.1f", improvement)) points")
+      if loggingEnabled {
+        DILogger.info(channel: .health, "✅ [UnifiedRegistry] Auto-fix successful! Health improved by \(String(format: "%.1f", improvement)) points")
+      }
     } else {
-      Log.error("⚠️ [UnifiedRegistry] Auto-fix completed but no significant improvement detected")
+      if loggingEnabled {
+        DILogger.error("⚠️ [UnifiedRegistry] Auto-fix completed but no significant improvement detected")
+      }
     }
 
     if fixReport.fixedDuplicates > 0 {
-      Log.info("🔄 [UnifiedRegistry] Fixed \(fixReport.fixedDuplicates) duplicate registrations")
+      if loggingEnabled {
+      DILogger.info(channel: .registration, "🔄 [UnifiedRegistry] Fixed \(fixReport.fixedDuplicates) duplicate registrations")
+      }
     }
   }
 
@@ -416,7 +461,7 @@ extension UnifiedRegistry {
 
 #if DEBUG
     if syncCount > 0 || asyncCount > 0 || scopedCount > 0 {
-      Log.info("📊 [RegistrationInfo] Pattern Analysis: sync=\(syncCount), async=\(asyncCount), scoped=\(scopedCount)")
+      DILogger.info("📊 [RegistrationInfo] Pattern Analysis: sync=\(syncCount), async=\(asyncCount), scoped=\(scopedCount)")
     }
 #endif
   }
@@ -424,14 +469,14 @@ extension UnifiedRegistry {
   /// 🚀 자동 최적화 적용
   private func applyAutoOptimization(for typeNames: Set<String>) async {
 #if DEBUG
-    Log.info("🚀 [UnifiedRegistry] Applying auto-optimization for \(typeNames.count) types")
+    DILogger.info(channel: .optimization, "🚀 [UnifiedRegistry] Applying auto-optimization for \(typeNames.count) types")
 #endif
 
     // 자주 사용되는 타입들에 대해 최적화 활성화
     if typeNames.count >= 3 {
       enableOptimization()
 #if DEBUG
-      Log.info("✅ [UnifiedRegistry] Optimization enabled due to frequent usage pattern")
+      DILogger.info(channel: .optimization, "✅ [UnifiedRegistry] Optimization enabled due to frequent usage pattern")
 #endif
     }
   }
@@ -443,7 +488,7 @@ extension UnifiedRegistry {
     let typeName = String(describing: type)
     let key = AnyTypeIdentifier(type: type)
 
-    Log.error("❌ [UnifiedRegistry] Failed to resolve async \(typeName)")
+    DILogger.error("❌ [UnifiedRegistry] Failed to resolve async \(typeName)")
 
     // 등록 상태 체크
     let hasSync = syncFactories[key] != nil
@@ -453,23 +498,23 @@ extension UnifiedRegistry {
     let isOptimizationEnabled = SimpleOptimizationManager.shared.isEnabled()
 
 #if DEBUG
-    Log.error("🔍 [Resolution Diagnostics] for \(typeName):")
-    Log.error("  📦 Sync Factory: \(hasSync ? "✅ Found" : "❌ None")")
-    Log.error("  ⚡ Async Factory: \(hasAsync ? "✅ Found" : "❌ None")")
-    Log.error("  🔒 Scoped Factory: \(hasScoped ? "✅ Found" : "❌ None")")
-    Log.error("  🔒⚡ Scoped Async Factory: \(hasScopedAsync ? "✅ Found" : "❌ None")")
-    Log.error("  🚀 Optimization Enabled: \(isOptimizationEnabled ? "✅ Yes" : "❌ No")")
+    DILogger.error("🔍 [Resolution Diagnostics] for \(typeName):")
+    DILogger.error("  📦 Sync Factory: \(hasSync ? "✅ Found" : "❌ None")")
+    DILogger.error("  ⚡ Async Factory: \(hasAsync ? "✅ Found" : "❌ None")")
+    DILogger.error("  🔒 Scoped Factory: \(hasScoped ? "✅ Found" : "❌ None")")
+    DILogger.error("  🔒⚡ Scoped Async Factory: \(hasScopedAsync ? "✅ Found" : "❌ None")")
+    DILogger.error("  🚀 Optimization Enabled: \(isOptimizationEnabled ? "✅ Yes" : "❌ No")")
 #endif
 
     // 등록된 모든 타입 목록 출력 (디버깅용)
     let allRegisteredTypes = getAllRegisteredTypeNames()
-    Log.error("  📋 Total Registered Types: \(allRegisteredTypes.count)")
+    DILogger.error("  📋 Total Registered Types: \(allRegisteredTypes.count)")
 
     if allRegisteredTypes.count > 0 && allRegisteredTypes.count <= 10 {
-      Log.error("  📝 Registered Types: \(allRegisteredTypes.joined(separator: ", "))")
+      DILogger.error("  📝 Registered Types: \(allRegisteredTypes.joined(separator: ", "))")
     } else if allRegisteredTypes.count > 10 {
       let first5 = Array(allRegisteredTypes.prefix(5))
-      Log.error("  📝 Sample Registered Types: \(first5.joined(separator: ", "))... (+\(allRegisteredTypes.count - 5) more)")
+      DILogger.error("  📝 Sample Registered Types: \(first5.joined(separator: ", "))... (+\(allRegisteredTypes.count - 5) more)")
     }
 
     // 유사한 타입명 검색 (오타 감지)
@@ -479,16 +524,16 @@ extension UnifiedRegistry {
     }
 
     if !similarTypes.isEmpty {
-      Log.error("  💡 Similar registered types found (possible typo?): \(similarTypes.joined(separator: ", "))")
+      DILogger.error("  💡 Similar registered types found (possible typo?): \(similarTypes.joined(separator: ", "))")
     }
 
-    Log.error("  💡 Suggestion: Use UnifiedDI.register(\(typeName).self) { YourImplementation() }")
+    DILogger.error("  💡 Suggestion: Use UnifiedDI.register(\(typeName).self) { YourImplementation() }")
 
     // 등록 히스토리 정보
     if let info = registrationStats[key] {
-      Log.error("  📊 Registration History: \(info.registrationCount) times, last: \(info.lastRegistrationDate)")
+      DILogger.error("  📊 Registration History: \(info.registrationCount) times, last: \(info.lastRegistrationDate)")
     } else {
-      Log.error("  📊 Registration History: Never registered")
+      DILogger.error("  📊 Registration History: Never registered")
     }
   }
 
@@ -616,13 +661,13 @@ extension UnifiedRegistry {
   /// 런타임 최적화를 활성화합니다
   public func enableOptimization() {
     SimpleOptimizationManager.shared.enable()
-    Log.info("🚀 [UnifiedRegistry] Runtime optimization enabled")
+    DILogger.info(channel: .optimization, "🚀 [UnifiedRegistry] Runtime optimization enabled")
   }
 
   /// 런타임 최적화를 비활성화합니다
   public func disableOptimization() {
     SimpleOptimizationManager.shared.disable()
-    Log.info("🔧 [UnifiedRegistry] Runtime optimization disabled")
+    DILogger.info(channel: .optimization, "🔧 [UnifiedRegistry] Runtime optimization disabled")
   }
 
   /// 최적화 상태 확인
@@ -638,7 +683,7 @@ internal extension UnifiedRegistry {
   func tryOptimizedResolve<T>(_ type: T.Type) -> T? where T: Sendable {
     let result = SimpleOptimizationManager.shared.tryResolve(type)
     if result != nil {
-      Log.debug("🚀 [UnifiedRegistry] Resolved from optimization cache: \(String(describing: type))")
+      DILogger.debug(channel: .optimization, "🚀 [UnifiedRegistry] Resolved from optimization cache: \(String(describing: type))")
     }
     return result
   }
@@ -646,7 +691,7 @@ internal extension UnifiedRegistry {
   /// 최적화된 등록 (내부용)
   func tryOptimizedRegister<T>(_ type: T.Type, factory: @escaping @Sendable () -> T) where T: Sendable {
     SimpleOptimizationManager.shared.tryRegister(type, factory: factory)
-    Log.debug("🚀 [UnifiedRegistry] Added to optimization cache: \(String(describing: type))")
+    DILogger.debug(channel: .optimization, "🚀 [UnifiedRegistry] Added to optimization cache: \(String(describing: type))")
   }
 }
 
@@ -712,7 +757,7 @@ internal final class SimpleOptimizationManager: @unchecked Sendable {
     let clearedCount = optimizedInstances.count
     optimizedInstances.removeAll()
 
-    Log.info("🧹 [OptimizationManager] Cache cleared: \(clearedCount) instances removed (mandatory cleanup)")
+    DILogger.info(channel: .optimization, "🧹 [OptimizationManager] Cache cleared: \(clearedCount) instances removed (mandatory cleanup)")
   }
 }
 

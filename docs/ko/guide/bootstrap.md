@@ -104,6 +104,9 @@ struct MyApp: App {
 | `WEAVEDI_ENABLE_OPTIMIZER` | `true` | AutoDI 최적화 트래킹 활성화 여부 |
 | `WEAVEDI_ENABLE_MONITOR` | `true` | 자동 모니터링 시스템 활성화 |
 | `WEAVEDI_VERBOSE_LOGGING` | `false` | 내부 로깅을 상세 모드로 전환 |
+| `WEAVEDI_REGISTRY_AUTO_HEALTH` | `true` | UnifiedRegistry 자동 헬스 체크 루프 활성화 |
+| `WEAVEDI_REGISTRY_AUTO_FIX` | `true` | 헬스 스코어 하락 시 자동 복구 시도 여부 |
+| `WEAVEDI_REGISTRY_HEALTH_LOGGING` | `false` | 헬스 체크/오토픽스 로그 출력 여부 |
 
 프로덕션에서는 최적화/모니터링을 켜고, 로컬 디버깅 시에는 로깅을 켜는 식으로 `.xcconfig`나 CI 스크립트에서 환경 변수를 주입하면 부트스트랩 전에 즉시 적용됩니다.
 

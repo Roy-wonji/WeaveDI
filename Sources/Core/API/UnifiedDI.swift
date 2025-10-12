@@ -352,7 +352,7 @@ public enum UnifiedDI {
             """)
 #else
       // 프로덕션: 에러 로깅 후 크래시(명확한 메시지)
-      Log.error("🚨 [DI] Critical: Required dependency \(typeName) not found!")
+      DILogger.error("🚨 [DI] Critical: Required dependency \(typeName) not found!")
       fatalError("[DI] Critical dependency missing: \(typeName)")
 #endif
     }
@@ -471,8 +471,8 @@ public enum UnifiedDI {
   /// await UnifiedDI.printAsyncContainerStatus()
   /// ```
   public static func printAsyncContainerStatus() async {
-    Log.info("🚀 AppDIManager Status:")
-    Log.info("   AppDIManager.shared를 통한 의존성 관리")
+    DILogger.info("🚀 AppDIManager Status:")
+    DILogger.info("   AppDIManager.shared를 통한 의존성 관리")
   }
 }
 
@@ -775,19 +775,19 @@ public extension UnifiedDI {
   /// 📋 레지스트리 상태 요약 출력
   static func printRegistryStatus() async {
     let report = await verifyRegistryHealth()
-    Log.info("📊 WeaveDI Registry Status:")
-    Log.info(report.summary)
+    DILogger.info("📊 WeaveDI Registry Status:")
+    DILogger.info(report.summary)
 
     if report.healthScore < 90.0 {
-      Log.info("💡 Suggestions:")
+      DILogger.info("💡 Suggestions:")
       if !report.factoryInconsistencies.isEmpty {
-        Log.info("  • Fix duplicate registrations: \(report.factoryInconsistencies.joined(separator: ", "))")
+        DILogger.info(channel: .registration, "  • Fix duplicate registrations: \(report.factoryInconsistencies.joined(separator: ", "))")
       }
       if !report.optimizationStats.isEnabled && report.totalRegistrations > 5 {
-        Log.info("  • Consider enabling optimization: GlobalUnifiedRegistry.enableOptimization()")
+        DILogger.info(channel: .optimization, "  • Consider enabling optimization: GlobalUnifiedRegistry.enableOptimization()")
       }
     } else {
-      Log.info("✅ Registry is in excellent health!")
+      DILogger.info(channel: .health, "✅ Registry is in excellent health!")
     }
   }
 }
@@ -1066,11 +1066,11 @@ extension UnifiedDI {
   /// Enables compile-time dependency resolution like Needle
   public static func enableStaticOptimization() {
 #if USE_STATIC_FACTORY
-    Log.info("🚀 WeaveDI: Static factory optimization ENABLED")
-    Log.info("📊 Performance: Needle-level zero-cost resolution")
+    DILogger.info(channel: .optimization, "🚀 WeaveDI: Static factory optimization ENABLED")
+    DILogger.info(channel: .optimization, "📊 Performance: Needle-level zero-cost resolution")
 #else
-    Log.info("⚠️  WeaveDI: Add -DUSE_STATIC_FACTORY to build flags for maximum performance")
-    Log.info("📖 Guide: https://github.com/Roy-wonji/WeaveDI#static-optimization")
+    DILogger.info(channel: .optimization, "⚠️  WeaveDI: Add -DUSE_STATIC_FACTORY to build flags for maximum performance")
+    DILogger.info(channel: .optimization, "📖 Guide: https://github.com/Roy-wonji/WeaveDI#static-optimization")
 #endif
   }
   
@@ -1127,16 +1127,16 @@ public extension UnifiedDI {
         }
       }
     }
-    Log.info("🚀 Bulk registered \(registrations.count) dependencies")
+    DILogger.info(channel: .registration, "🚀 Bulk registered \(registrations.count) dependencies")
   }
 
   /// 📈 성능 모니터링 시작
   static func startPerformanceMonitoring() async {
-    Log.info("📈 UnifiedDI Performance Monitoring Started")
-    Log.info("   - No semaphore blocking: ✅")
-    Log.info("   - Pure async chains: ✅")
-    Log.info("   - Actor isolation: ✅")
-    Log.info("   - Swift 6 compatible: ✅")
+    DILogger.info("📈 UnifiedDI Performance Monitoring Started")
+    DILogger.info("   - No semaphore blocking: ✅")
+    DILogger.info("   - Pure async chains: ✅")
+    DILogger.info("   - Actor isolation: ✅")
+    DILogger.info("   - Swift 6 compatible: ✅")
   }
 
   /// 📈 메모리 사용량 조회
@@ -1147,7 +1147,7 @@ public extension UnifiedDI {
 
   /// 🧹 모든 등록된 의존성 정리 (async)
   static func clearAsync() async {
-    Log.info("🧹 UnifiedDI async clear completed")
+    DILogger.info("🧹 UnifiedDI async clear completed")
   }
 }
 

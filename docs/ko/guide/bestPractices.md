@@ -556,6 +556,33 @@ class UserService {
 }
 ```
 
+## 런타임 진단 로그 제어
+
+- `WEAVEDI_REGISTRY_HEALTH_LOGGING=1` : 자동 헬스 체크/오토픽스 로그를 보고 싶을 때만 켭니다(기본은 꺼짐).
+- `WEAVEDI_REGISTRY_AUTO_HEALTH=0` : UnifiedRegistry 헬스 체크 루프를 비활성화합니다.
+- `WEAVEDI_REGISTRY_AUTO_FIX=0` : 헬스 스코어가 떨어져도 자동 복구를 시도하지 않습니다.
+
+이 값들은 `WeaveDIConfiguration.applyFromEnvironment()`에서 읽혀 앱 초기화 시 손쉽게 제어할 수 있습니다.
+
+### 런타임 로그 레벨 제어
+
+환경 변수 대신 `UnifiedDI.setLogLevel(_:)`로 원하는 로그만 남길 수 있습니다.
+
+| 레벨 | 출력 |
+| ----- | ----- |
+| `.all` | 모든 진단 메시지 (기본값) |
+| `.registration` | 등록 완료/중복 경고 + 에러 |
+| `.optimization` | 최적화 라이프사이클 + 에러 |
+| `.errors` | 에러와 등록 실패/덮어쓰기 경고만 |
+| `.off` | 완전 무음 |
+
+```swift
+WeaveDIConfiguration.applyFromEnvironment()
+UnifiedDI.setLogLevel(.errors)
+```
+
+헬스체크/오토픽스 로그는 기본적으로 비활성화되어 있으며, 필요할 때만 `WEAVEDI_REGISTRY_HEALTH_LOGGING=1`로 켜면 됩니다.
+
 ## 다음 단계
 
 - [마이그레이션 가이드](./migrationInjectToInjected) - @Injected에서 업그레이드

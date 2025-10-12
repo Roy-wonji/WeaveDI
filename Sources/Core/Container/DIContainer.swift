@@ -272,12 +272,12 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     }
 
     if let value: T = syncRegistry.resolve(type) {
-      Log.debug("Resolved \(String(describing: type)) from current container")
+      DILogger.debug("Resolved \(String(describing: type)) from current container")
       return value
     }
 
     if let parent = parent, let value: T = parent.resolve(type) {
-      Log.debug("Resolved \(String(describing: type)) from parent container")
+      DILogger.debug("Resolved \(String(describing: type)) from parent container")
       return value
     }
 
@@ -369,7 +369,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
       }
     }
 
-    Log.debug("Built \(processedCount) modules")
+    DILogger.debug("Built \(processedCount) modules")
   }
   
   /// 성능 메트릭과 함께 모듈을 빌드합니다
@@ -458,7 +458,7 @@ private extension DIContainer {
     postRegistrationHook(for: type)
     FastResolveCache.shared.set(type, value: instance)
     if WeaveDIConfiguration.enableVerboseLogging {
-      Log.debug("Registered instance for \(String(describing: type))")
+      DILogger.debug(channel: .registration, "Registered instance for \(String(describing: type))")
     }
     return instance
   }
@@ -481,7 +481,7 @@ private extension DIContainer {
     postRegistrationHook(for: type)
     FastResolveCache.shared.set(type, value: nil)
     if WeaveDIConfiguration.enableVerboseLogging {
-      Log.debug("Registered factory for \(String(describing: type))")
+      DILogger.debug(channel: .registration, "Registered factory for \(String(describing: type))")
     }
 
     let release: @Sendable () -> Void = { [weak self] in
@@ -489,7 +489,7 @@ private extension DIContainer {
       self.syncRegistry.release(type)
       self.scheduleActorRelease(type)
       if WeaveDIConfiguration.enableVerboseLogging {
-        Log.debug("Released \(String(describing: type))")
+        DILogger.debug("Released \(String(describing: type))")
       }
     }
 
@@ -501,7 +501,7 @@ private extension DIContainer {
     scheduleActorRelease(type)
     FastResolveCache.shared.set(type, value: nil)
     if WeaveDIConfiguration.enableVerboseLogging {
-      Log.debug("Released \(String(describing: type))")
+      DILogger.debug("Released \(String(describing: type))")
     }
   }
 
@@ -555,10 +555,10 @@ private extension DIContainer {
 
   func logResolutionMiss<T>(_ type: T.Type) where T: Sendable {
     let typeName = String(describing: type)
-    Log.info("🔍 해결: \(typeName) (총 1회)")
-    Log.info("⚠️ Nil 해결 감지: \(typeName)")
-    Log.error("No registered dependency found for \(typeName)")
-    Log.info("💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
+    DILogger.info("🔍 해결: \(typeName) (총 1회)")
+    DILogger.info("⚠️ Nil 해결 감지: \(typeName)")
+    DILogger.error("No registered dependency found for \(typeName)")
+    DILogger.info("💡 @AutoRegister를 사용하여 자동 등록을 활성화하세요")
 
     Task { @DIActor in
       AutoDIOptimizer.shared.handleNilResolution(type)
@@ -580,7 +580,7 @@ public extension DIContainer {
     let newContainer = DIContainer()
     configure(newContainer)
     Self.shared = newContainer
-    Log.debug("Container bootstrapped (sync)")
+    DILogger.debug("Container bootstrapped (sync)")
   }
 
   /// 백그라운드 UnifiedRegistry 싱크 작업을 모두 기다립니다.
@@ -652,17 +652,17 @@ public extension DIContainer {
   static func bootstrapAsync(_ configure: @Sendable (DIContainer) async throws -> Void) async -> Bool {
     do {
       let startTime = CFAbsoluteTimeGetCurrent()
-      Log.debug("Starting Container async bootstrap...")
+      DILogger.debug("Starting Container async bootstrap...")
 
       let newContainer = DIContainer()
       try await configure(newContainer)
       Self.shared = newContainer
 
       let duration = CFAbsoluteTimeGetCurrent() - startTime
-      Log.debug("Container bootstrapped successfully in \(String(format: "%.3f", duration))s")
+      DILogger.debug("Container bootstrapped successfully in \(String(format: "%.3f", duration))s")
       return true
     } catch {
-      Log.error("Container bootstrap failed: \(error)")
+      DILogger.error("Container bootstrap failed: \(error)")
 #if DEBUG
       fatalError("Container bootstrap failed: \(error)")
 #else
@@ -676,9 +676,9 @@ public extension DIContainer {
     Task.detached(priority: .high) {
       let success = await bootstrapAsync(configure)
       if success {
-        await MainActor.run { Log.debug("Container bootstrap completed in background task") }
+        await MainActor.run { DILogger.debug("Container bootstrap completed in background task") }
       } else {
-        await MainActor.run { Log.error("Container bootstrap failed in background task") }
+        await MainActor.run { DILogger.error("Container bootstrap failed in background task") }
       }
     }
   }
@@ -696,13 +696,13 @@ public extension DIContainer {
     let newContainer = DIContainer()
     // 1) 동기 등록
     sync(newContainer)
-    Log.debug("Core dependencies registered synchronously")
+    DILogger.debug(channel: .registration, "Core dependencies registered synchronously")
     // 2) 비동기 등록
     await async(newContainer)
-    Log.debug("Extended dependencies registered asynchronously")
+    DILogger.debug(channel: .registration, "Extended dependencies registered asynchronously")
 
     Self.shared = newContainer
-    Log.debug("Container bootstrapped with mixed dependencies")
+    DILogger.debug("Container bootstrapped with mixed dependencies")
   }
 
   /// 이미 부트스트랩되어 있지 않은 경우에만 실행합니다
@@ -716,7 +716,7 @@ public extension DIContainer {
       await bootstrap(configure)
       return true
     }
-    Log.debug("Container bootstrap skipped - already initialized")
+    DILogger.debug("Container bootstrap skipped - already initialized")
     return false
   }
 
@@ -726,7 +726,7 @@ public extension DIContainer {
     if shared.isEmpty {
       return await bootstrapAsync(configure)
     } else {
-      Log.debug("Container bootstrap skipped - already initialized")
+      DILogger.debug("Container bootstrap skipped - already initialized")
       return false
     }
   }
@@ -736,7 +736,7 @@ public extension DIContainer {
   /// - Parameter configure: 업데이트할 의존성 등록 클로저
   static func update(_ configure: @Sendable (DIContainer) -> Void) async {
     configure(shared)
-    Log.debug("Container updated (sync)")
+    DILogger.debug("Container updated (sync)")
   }
 
   /// 런타임에 의존성을 업데이트합니다 (비동기)
@@ -744,7 +744,7 @@ public extension DIContainer {
   /// - Parameter configure: 비동기 업데이트 클로저
   static func updateAsync(_ configure: @Sendable (DIContainer) async -> Void) async {
     await configure(shared)
-    Log.debug("Container updated (async)")
+    DILogger.debug("Container updated (async)")
   }
 
   /// DI 컨테이너 접근 전, 부트스트랩이 완료되었는지를 보장합니다
@@ -767,7 +767,7 @@ public extension DIContainer {
   static func resetForTesting() {
 #if DEBUG
     Self.shared = DIContainer()
-    Log.debug("Container reset for testing")
+    DILogger.debug("Container reset for testing")
 #else
     fatalError("resetForTesting() is only available in DEBUG builds")
 #endif

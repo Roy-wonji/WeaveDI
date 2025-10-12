@@ -159,6 +159,10 @@ public actor UnifiedRegistry {
   internal var totalBatchesProcessed: Int = 0
   internal var lastHealthCheckTime: Date?
   internal var lastAutoFixTime: Date?
+  internal var lastLoggedHealthScore: Double?
+  internal var lastHealthBelowThreshold: Bool = false
+  internal var lastAutoFixAttemptScore: Double?
+  internal var lastAutoFixAttemptDate: Date?
   
   // MARK: - Singleton & Initialization
 
@@ -166,7 +170,7 @@ public actor UnifiedRegistry {
   public static let shared = UnifiedRegistry()
 
   public init() {
-    Log.debug("🏗️ [UnifiedRegistry] Initialized")
+    DILogger.debug("🏗️ [UnifiedRegistry] Initialized")
     // 🚀 배치 파이프라인 자동 시작 (비동기)
     Task {
       await startBatchPipeline()
@@ -194,8 +198,8 @@ public actor UnifiedRegistry {
                                scopedAsyncFactories[key] != nil
 
     if wasAlreadyRegistered {
-      Log.error("⚠️ [UnifiedRegistry] Duplicate registration detected for \(String(describing: type))")
-      Log.error("💡 Previous registration will be overwritten. Use 'isRegistered' to check before registering.")
+      DILogger.error("⚠️ [UnifiedRegistry] Duplicate registration detected for \(String(describing: type))")
+      DILogger.error("💡 Previous registration will be overwritten. Use 'isRegistered' to check before registering.")
     }
 
     syncFactories[key] = syncFactory
@@ -211,9 +215,9 @@ public actor UnifiedRegistry {
     addEvent(event)
 
     if wasAlreadyRegistered {
-      Log.info("🔄 [UnifiedRegistry] Overwritten sync factory for \(String(describing: type))")
+      DILogger.info(channel: .registration, "🔄 [UnifiedRegistry] Overwritten sync factory for \(String(describing: type))")
     } else {
-      Log.debug("✅ [UnifiedRegistry] Registered sync factory for \(String(describing: type))")
+      DILogger.debug(channel: .registration, "✅ [UnifiedRegistry] Registered sync factory for \(String(describing: type))")
     }
   }
   
@@ -238,8 +242,8 @@ public actor UnifiedRegistry {
                                scopedAsyncFactories[key] != nil
 
     if wasAlreadyRegistered {
-      Log.error("⚠️ [UnifiedRegistry] Duplicate async registration detected for \(String(describing: type))")
-      Log.error("💡 Previous registration will be overwritten. Use 'isRegistered' to check before registering.")
+      DILogger.error("⚠️ [UnifiedRegistry] Duplicate async registration detected for \(String(describing: type))")
+      DILogger.error("💡 Previous registration will be overwritten. Use 'isRegistered' to check before registering.")
     }
 
     asyncFactories[key] = asyncFactory
@@ -252,9 +256,9 @@ public actor UnifiedRegistry {
     addEvent(event)
 
     if wasAlreadyRegistered {
-      Log.info("🔄 [UnifiedRegistry] Overwritten async factory for \(String(describing: type))")
+      DILogger.info(channel: .registration, "🔄 [UnifiedRegistry] Overwritten async factory for \(String(describing: type))")
     } else {
-      Log.debug("✅ [UnifiedRegistry] Registered async factory for \(String(describing: type))")
+      DILogger.debug(channel: .registration, "✅ [UnifiedRegistry] Registered async factory for \(String(describing: type))")
     }
   }
   
@@ -277,7 +281,7 @@ public actor UnifiedRegistry {
     )
     addEvent(event)
 
-    Log.debug("✅ [UnifiedRegistry] Registered async singleton for \(String(describing: type))")
+    DILogger.debug(channel: .registration, "✅ [UnifiedRegistry] Registered async singleton for \(String(describing: type))")
   }
   
   /// 내부 헬퍼: Async 싱글톤 박스 얻기/생성
@@ -307,7 +311,7 @@ public actor UnifiedRegistry {
     register(type, factory: selectedFactory)
     
     let conditionStr = condition ? "true" : "false"
-    Log.debug("🔀 [UnifiedRegistry] Registered conditional (\(conditionStr)) for \(String(describing: type))")
+    DILogger.debug(channel: .registration, "🔀 [UnifiedRegistry] Registered conditional (\(conditionStr)) for \(String(describing: type))")
   }
   
   /// 조건부 등록 (비동기)
@@ -321,7 +325,7 @@ public actor UnifiedRegistry {
     registerAsync(type, factory: selectedFactory)
     
     let conditionStr = condition ? "true" : "false"
-    Log.debug("🔀 [UnifiedRegistry] Registered async conditional (\(conditionStr)) for \(String(describing: type))")
+    DILogger.debug(channel: .registration, "🔀 [UnifiedRegistry] Registered async conditional (\(conditionStr)) for \(String(describing: type))")
   }
   
   // MARK: - KeyPath Support
@@ -343,7 +347,7 @@ public actor UnifiedRegistry {
     // 실제 등록은 타입 기반으로 수행
     register(T.self, factory: factory)
     
-    Log.debug("🔗 [UnifiedRegistry] Registered with KeyPath: \(keyPathString) -> \(String(describing: T.self))")
+    DILogger.debug(channel: .registration, "🔗 [UnifiedRegistry] Registered with KeyPath: \(keyPathString) -> \(String(describing: T.self))")
   }
   
   // MARK: - Scoped Registration
@@ -364,7 +368,7 @@ public actor UnifiedRegistry {
     )
     addEvent(event)
 
-    Log.debug("🔒 [UnifiedRegistry] Registered scoped factory (\(scope.rawValue)) for \(String(describing: type))")
+    DILogger.debug(channel: .registration, "🔒 [UnifiedRegistry] Registered scoped factory (\(scope.rawValue)) for \(String(describing: type))")
   }
   
   public func registerAsyncScoped<T>(
@@ -383,7 +387,7 @@ public actor UnifiedRegistry {
     )
     addEvent(event)
 
-    Log.debug("🔒 [UnifiedRegistry] Registered async scoped factory (\(scope.rawValue)) for \(String(describing: type))")
+    DILogger.debug(channel: .registration, "🔒 [UnifiedRegistry] Registered async scoped factory (\(scope.rawValue)) for \(String(describing: type))")
   }
   
   // MARK: - Resolution
@@ -509,7 +513,7 @@ public actor UnifiedRegistry {
       let box = await factory()
       let resolved: T? = box.unwrap()
       if let result = resolved {
-        Log.debug("✅ [UnifiedRegistry] Resolved from async factory \(String(describing: type))")
+        DILogger.debug("✅ [UnifiedRegistry] Resolved from async factory \(String(describing: type))")
         await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
 
         // 📝 배치 파이프라인에 해결 이벤트 추가
@@ -527,7 +531,7 @@ public actor UnifiedRegistry {
       let box = factory()
       let resolved: T? = box.unwrap()
       if let result = resolved {
-        Log.debug("✅ [UnifiedRegistry] Resolved from sync factory (async context) \(String(describing: type))")
+        DILogger.debug("✅ [UnifiedRegistry] Resolved from sync factory (async context) \(String(describing: type))")
         await CircularDependencyDetector.shared.recordAutoEdgeIfEnabled(for: type)
 
         // 📝 배치 파이프라인에 해결 이벤트 추가
@@ -542,7 +546,7 @@ public actor UnifiedRegistry {
     
     // 🔄 DIContainer fallback 시도 (3.2.1 호환성)
     if let fallbackResult = WeaveDI.Container.live.resolve(type) {
-      Log.debug("✅ [UnifiedRegistry] Resolved from DIContainer fallback: \(String(describing: type))")
+      DILogger.debug("✅ [UnifiedRegistry] Resolved from DIContainer fallback: \(String(describing: type))")
       return fallbackResult
     }
 
@@ -557,7 +561,7 @@ public actor UnifiedRegistry {
   public func resolveAsync<T>(keyPath: KeyPath<WeaveDI.Container, T?>) async -> T? where T: Sendable {
     let keyPathString = String(describing: keyPath)
     guard keyPathMappings[keyPathString] != nil else {
-      Log.debug("❌ [UnifiedRegistry] KeyPath not found: \(keyPathString)")
+      DILogger.debug("❌ [UnifiedRegistry] KeyPath not found: \(keyPathString)")
       return nil
     }
     return await resolveAsync(T.self)
@@ -587,7 +591,7 @@ public actor UnifiedRegistry {
     )
     addEvent(event)
 
-    Log.debug("🗑️ [UnifiedRegistry] Released \(String(describing: type))")
+    DILogger.debug("🗑️ [UnifiedRegistry] Released \(String(describing: type))")
   }
   
   /// 모든 등록을 해제합니다
@@ -603,7 +607,7 @@ public actor UnifiedRegistry {
     keyPathMappings.removeAll()
     registrationStats.removeAll()
     
-    Log.info("🧹 [UnifiedRegistry] Released all registrations (total: \(totalCount))")
+    DILogger.info(channel: .registration, "🧹 [UnifiedRegistry] Released all registrations (total: \(totalCount))")
   }
 
   /// 현재 등록된 타입 수를 반환합니다

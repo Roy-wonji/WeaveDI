@@ -134,7 +134,10 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { text: 'WeaveDI Macros', link: '/api/weaveDiMacros' },
-                { text: 'Bulk Registration DSL', link: '/api/bulkRegistrationDsl' },
+                { text: 'Batch Registration DSL', link: '/api/batchRegistration' },
+                { text: 'Component Diagnostics', link: '/api/componentDiagnostics' },
+                { text: 'Environment Flags', link: '/api/environmentFlags' },
+                { text: 'TCA Policy Configuration', link: '/api/tcaPolicyConfiguration' },
                 { text: 'Auto DI Optimizer', link: '/api/autoDiOptimizer' },
                 { text: 'DIActor', link: '/api/diActor' }
               ]
@@ -143,6 +146,7 @@ export default defineConfig({
               text: 'Performance Components',
               collapsed: true,
               items: [
+                { text: 'Performance Optimizations', link: '/api/performanceOptimizations' },
                 { text: 'FastResolveCache', link: '/api/fastResolveCache' },
                 { text: 'RegistrationMetricsDispatcher', link: '/api/registrationMetricsDispatcher' },
                 { text: 'Performance Monitoring', link: '/api/performanceMonitoring' }
@@ -299,7 +303,10 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { text: 'WeaveDI 매크로', link: '/ko/api/weaveDiMacros' },
-                { text: 'Bulk Registration DSL', link: '/ko/api/bulkRegistrationDsl' },
+                { text: '배치 등록 DSL', link: '/ko/api/batchRegistration' },
+                { text: '컴포넌트 진단', link: '/ko/api/componentDiagnostics' },
+                { text: '환경 플래그', link: '/ko/api/environmentFlags' },
+                { text: 'TCA 정책 설정', link: '/ko/api/tcaPolicyConfiguration' },
                 { text: '자동 DI 최적화', link: '/ko/api/autoDiOptimizer' },
                 { text: 'DIActor', link: '/ko/api/diActor' }
               ]
@@ -308,6 +315,7 @@ export default defineConfig({
               text: '성능 컴포넌트',
               collapsed: true,
               items: [
+                { text: '성능 최적화', link: '/ko/api/performanceOptimizations' },
                 { text: 'FastResolveCache', link: '/ko/api/fastResolveCache' },
                 { text: 'RegistrationMetricsDispatcher', link: '/ko/api/registrationMetricsDispatcher' },
                 { text: '성능 모니터링', link: '/ko/api/performanceMonitoring' }

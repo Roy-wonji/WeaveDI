@@ -106,7 +106,7 @@ internal final class OptimizedTypeRegistry: @unchecked Sendable {
     // 원자적 스냅샷 교체
     currentStorage = Storage(instances: newInstances, factories: newFactories)
 
-    Log.debug("🚀 [OptimizedRegistry] Registered instance for \(String(describing: type)) at slot \(typeID.id)")
+    DILogger.debug(channel: .optimization, "🚀 [OptimizedRegistry] Registered instance for \(String(describing: type)) at slot \(typeID.id)")
   }
 
   /// 팩토리 등록 (트랜지언트)
@@ -126,7 +126,7 @@ internal final class OptimizedTypeRegistry: @unchecked Sendable {
     // 원자적 스냅샷 교체
     currentStorage = Storage(instances: newInstances, factories: newFactories)
 
-    Log.debug("🚀 [OptimizedRegistry] Registered factory for \(String(describing: type)) at slot \(typeID.id)")
+    DILogger.debug(channel: .optimization, "🚀 [OptimizedRegistry] Registered factory for \(String(describing: type)) at slot \(typeID.id)")
   }
 
   // MARK: - Resolution (Lock-Free Hot Path)
@@ -175,7 +175,7 @@ internal final class OptimizedTypeRegistry: @unchecked Sendable {
 
     currentStorage = Storage(instances: newInstances, factories: newFactories)
 
-    Log.debug("🗑️ [OptimizedRegistry] Released \(String(describing: type)) from slot \(typeID.id)")
+    DILogger.debug(channel: .optimization, "🗑️ [OptimizedRegistry] Released \(String(describing: type)) from slot \(typeID.id)")
   }
 
   // MARK: - Internal Helpers
