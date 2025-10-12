@@ -654,3 +654,5 @@ public extension AutoDIOptimizer {
     case off = "off"
   }
 }
+
+public typealias LogLevel = AutoDIOptimizer.LogLevel
