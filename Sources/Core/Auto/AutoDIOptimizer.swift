@@ -29,7 +29,7 @@ public final class AutoDIOptimizer {
   private var cachedInstances: [String: Any] = [:]
   private var optimizationEnabled: Bool = true
   
-  private var currentLogLevel: LogLevel = .all
+  private var currentLogLevel: LogLevel = .errors
   
   // Synchronization for internal mutable state to avoid races under concurrency
   private let stateLock = NSLock()
@@ -107,8 +107,13 @@ public final class AutoDIOptimizer {
       registeredTypes.insert(typeName)
       registrationCount += 1
     }
-    
-    #logInfo("📦 등록: \(typeName) (총 \(registrationCount)개)")
+
+    switch currentLogLevel {
+    case .all, .registration:
+      DILogger.info(channel: .registration, "📦 등록: \(typeName) (총 \(registrationCount)개)")
+    default:
+      break
+    }
     
     // 자동 모니터링 연계
     // Same global actor; direct call
@@ -133,10 +138,14 @@ public final class AutoDIOptimizer {
       }
     }
     if hit10 {
-      #logError("⚡ 최적화 권장: \(typeName)이 자주 사용됩니다 (싱글톤 고려)")
+      if currentLogLevel == .all || currentLogLevel == .optimization {
+        DILogger.error("⚡ 최적화 권장: \(typeName)이 자주 사용됩니다 (싱글톤 고려)")
+      }
     }
-    
-    #logDebug("🔍 해결: \(typeName) (총 \(resolutionCount)회)")
+
+    if currentLogLevel == .all {
+      DILogger.debug("🔍 해결: \(typeName) (총 \(resolutionCount)회)")
+    }
     scheduleSnapshotDebounced()
   }
   

@@ -14,7 +14,7 @@ public struct DIStatsSnapshot: Sendable {
     registered: Set<String> = [],
     resolved: Set<String> = [],
     dependencies: [(from: String, to: String)] = [],
-    logLevel: LogLevel = .all,
+    logLevel: LogLevel = .errors,
     graphText: String = ""
   ) {
     self.frequentlyUsed = frequentlyUsed
@@ -43,4 +43,3 @@ public final class DIStatsCache: @unchecked Sendable {
     lock.lock(); let s = snapshot; lock.unlock(); return s
   }
 }
-

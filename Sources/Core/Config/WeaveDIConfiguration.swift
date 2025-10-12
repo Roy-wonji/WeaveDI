@@ -34,7 +34,10 @@ public enum WeaveDIConfiguration {
 
   public static var enableAutoMonitor: Bool {
     get { storage.withLock { $0.monitorEnabled } }
-    set { storage.withLock { $0.monitorEnabled = newValue } }
+    set {
+      storage.withLock { $0.monitorEnabled = newValue }
+      AutoMonitor.isEnabled = newValue
+    }
   }
 
   public static var enableVerboseLogging: Bool {

@@ -15,8 +15,12 @@ public final class AutoMonitor {
     if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
       return false
     }
-    // 일반 DEBUG 환경에서는 활성화
-    return true
+    if let flag = ProcessInfo.processInfo.environment["WEAVEDI_ENABLE_MONITOR"] {
+      let normalized = flag.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+      return ["1", "true", "yes", "on"].contains(normalized)
+    }
+    // 기본은 비활성화
+    return false
   }()
 #else
   /// 릴리즈 빌드에서는 기본적으로 비활성화
