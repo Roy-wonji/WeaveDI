@@ -36,7 +36,8 @@ public enum WeaveDIConfiguration {
     get { storage.withLock { $0.monitorEnabled } }
     set {
       storage.withLock { $0.monitorEnabled = newValue }
-      AutoMonitor.isEnabled = newValue
+      let flag = newValue
+      Task { @DIActor in AutoMonitor.isEnabled = flag }
     }
   }
 
