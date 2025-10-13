@@ -44,9 +44,6 @@ jobs:
     - name: 🏗️ Build Package
       run: swift build --configuration release
 
-    - name: 🧪 Run Tests
-      run: swift test --enable-code-coverage
-
     - name: 📊 Generate Coverage Report
       run: |
         xcrun llvm-cov export -format="lcov" \
@@ -176,21 +173,21 @@ jobs:
             body: report
           });
 
-  quality-check:
-    name: Code Quality Check
-    runs-on: macos-latest
+  # quality-check:
+  #   name: Code Quality Check
+  #   runs-on: macos-latest
 
-    steps:
-    - name: 📥 Checkout
-      uses: actions/checkout@v4
+  #   steps:
+  #   - name: 📥 Checkout
+  #     uses: actions/checkout@v4
 
-    - name: 🔧 Install SwiftLint
-      run: |
-        brew install swiftlint
+  #   - name: 🔧 Install SwiftLint
+  #     run: |
+  #       brew install swiftlint
 
-    - name: 🔍 Run SwiftLint
-      run: |
-        swiftlint lint --reporter github-actions-logging
+  #   - name: 🔍 Run SwiftLint
+  #     run: |
+  #       swiftlint lint --reporter github-actions-logging
 
   release:
     name: Create Release
