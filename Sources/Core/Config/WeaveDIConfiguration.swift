@@ -7,7 +7,7 @@ private struct WeaveDIConfigState {
   var registryAutoHealthCheckEnabled: Bool = true
   var registryAutoFixEnabled: Bool = true
   var registryHealthLoggingEnabled: Bool = false
-  var injectedEnvironment: InjectedEnvironment = .automatic
+  var injectedEnvironment: WeaveDIConfiguration.InjectedEnvironment = .automatic
 }
 
 private final class ConfigStorage: @unchecked Sendable {
