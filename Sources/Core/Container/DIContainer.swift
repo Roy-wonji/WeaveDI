@@ -227,13 +227,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     _ type: T.Type,
     factory: @escaping @Sendable () -> T
   ) -> T where T: Sendable {
-    blockingAwait {
-      await Task { @DIContainerActor [self] in
-        let instance = factory()
-        registerInstanceSync(type, instance: instance)
-        return instance
-      }.value
-    }
+    registerInstanceSync(type, instance: factory())
   }
 
   /// 팩토리 패턴으로 의존성을 등록합니다 (지연 생성)
