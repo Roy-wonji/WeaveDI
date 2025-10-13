@@ -26,17 +26,15 @@ final class SyncDependencyRegistry: @unchecked Sendable {
 
   func registerInstance<T>(_ type: T.Type, instance: T) where T: Sendable {
     let key = AnyTypeIdentifier(type: type)
-    queue.async(flags: .barrier) { [weak self] in
-      guard let self else { return }
-      self.storage[key] = .instance(instance)
+    queue.syncBarrier {
+      storage[key] = .instance(instance)
     }
   }
 
   func registerFactory<T>(_ type: T.Type, factory: @escaping @Sendable () -> T) where T: Sendable {
     let key = AnyTypeIdentifier(type: type)
-    queue.async(flags: .barrier) { [weak self] in
-      guard let self else { return }
-      self.storage[key] = .factory(factory)
+    queue.syncBarrier {
+      storage[key] = .factory(factory)
     }
   }
 
@@ -59,16 +57,21 @@ final class SyncDependencyRegistry: @unchecked Sendable {
 
   func release<T>(_ type: T.Type) where T: Sendable {
     let key = AnyTypeIdentifier(type: type)
-    queue.async(flags: .barrier) { [weak self] in
-      guard let self else { return }
-      self.storage.removeValue(forKey: key)
+    queue.syncBarrier {
+      storage.removeValue(forKey: key)
     }
   }
 
   func removeAll() {
-    queue.async(flags: .barrier) { [weak self] in
-      guard let self else { return }
-      self.storage.removeAll()
+    queue.syncBarrier {
+      storage.removeAll()
     }
+  }
+}
+
+private extension DispatchQueue {
+  @discardableResult
+  func syncBarrier<Result>(execute work: () -> Result) -> Result {
+    sync(flags: .barrier, execute: work)
   }
 }
