@@ -80,13 +80,13 @@ final class AutoSyncIntegrationTests: XCTestCase {
         let service = InjectedValues.current.autoSyncTestServiceSync
 
         // Then: 자동으로 WeaveDI에 등록되어야 함
-        XCTAssertEqual(service.getValue(), "live_auto_sync")
+        XCTAssertEqual(service.getValue(), "mock_auto_sync")
 
         // WeaveDI에서도 접근 가능해야 함
         await UnifiedDI.waitForRegistration()
         let weaveDIService = UnifiedDI.resolve(AutoSyncTestService.self)
         XCTAssertNotNil(weaveDIService)
-        XCTAssertEqual(weaveDIService?.getValue(), "live_auto_sync")
+        XCTAssertEqual(weaveDIService?.getValue(), "mock_auto_sync")
     }
 
     func testInjectedPropertyWrapperAutoSync() async throws {
@@ -97,13 +97,13 @@ final class AutoSyncIntegrationTests: XCTestCase {
         let result = consumer.callService()
 
         // Then: 자동 동기화가 작동해야 함
-        XCTAssertEqual(result, "live_auto_sync")
+        XCTAssertEqual(result, "mock_auto_sync")
 
         // WeaveDI에서도 등록되어 있어야 함
         await UnifiedDI.waitForRegistration()
         let weaveDIService = UnifiedDI.resolve(AutoSyncTestService.self)
         XCTAssertNotNil(weaveDIService)
-        XCTAssertEqual(weaveDIService?.getValue(), "live_auto_sync")
+        XCTAssertEqual(weaveDIService?.getValue(), "mock_auto_sync")
     }
 
     func testInjectedValuesSetterAutoSync() async throws {

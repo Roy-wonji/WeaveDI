@@ -153,7 +153,7 @@ public final class AutoDIOptimizer {
       }
     }
 
-    if DILogger.getCurrentLogLevel() == .all {
+    if WeaveDIConfiguration.enableVerboseLogging && DILogger.getCurrentLogLevel() == .all {
       DILogger.debug(channel: .resolution, "🔍 해결: \(typeName) (총 \(resolutionCount)회)")
     }
     scheduleSnapshotDebounced()

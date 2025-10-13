@@ -55,7 +55,7 @@ final class AsyncTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         UnifiedDI.releaseAll()
-        UnifiedDI.setLogLevel(.off)
+        UnifiedDI.setLogLevel(.all)
     }
 
     @MainActor

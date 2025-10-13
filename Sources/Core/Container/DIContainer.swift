@@ -220,6 +220,22 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     registerInstanceSync(type, instance: factory())
   }
 
+  /// Actor 격리 컨텍스트에서 의존성을 등록합니다.
+  /// 내부적으로 `@DIContainerActor`를 사용하여 Swift 6 동시성 규칙을 준수합니다.
+  @discardableResult
+  public func actorRegister<T>(
+    _ type: T.Type,
+    factory: @escaping @Sendable () -> T
+  ) -> T where T: Sendable {
+    blockingAwait {
+      await Task { @DIContainerActor [self] in
+        let instance = factory()
+        registerInstanceSync(type, instance: instance)
+        return instance
+      }.value
+    }
+  }
+
   /// 팩토리 패턴으로 의존성을 등록합니다 (지연 생성)
   ///
   /// 실제 `resolve` 호출 시에만 팩토리가 실행되어 매번 새로운 인스턴스가 생성됩니다.
@@ -272,12 +288,16 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
     }
 
     if let value: T = syncRegistry.resolve(type) {
-      DILogger.debug("Resolved \(String(describing: type)) from current container")
+      if WeaveDIConfiguration.enableVerboseLogging {
+        DILogger.debug(channel: .general, "Resolved \(String(describing: type)) from current container")
+      }
       return value
     }
 
     if let parent = parent, let value: T = parent.resolve(type, logOnMiss: logOnMiss) {
-      DILogger.debug("Resolved \(String(describing: type)) from parent container")
+      if WeaveDIConfiguration.enableVerboseLogging {
+        DILogger.debug(channel: .general, "Resolved \(String(describing: type)) from parent container")
+      }
       return value
     }
 
@@ -436,7 +456,8 @@ private extension DIContainer {
     let semaphore = DispatchSemaphore(value: 0)
     var result: T?
 
-    Task(priority: .utility) {
+    let priority = Task.currentPriority
+    Task(priority: priority) {
       result = await operation()
       semaphore.signal()
     }

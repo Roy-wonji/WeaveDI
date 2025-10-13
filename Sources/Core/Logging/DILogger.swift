@@ -41,9 +41,7 @@ public struct DILogger {
 
     /// 현재 로그 레벨 (환경 플래그로 제어) - Thread-safe
     private static let currentLogLevel: DILogLevel = {
-        #if DEBUG && DI_MONITORING_ENABLED
-        return .all
-        #elseif DEBUG
+        #if DEBUG
         return .errorsOnly
         #else
         return .off
@@ -52,9 +50,7 @@ public struct DILogger {
 
     /// 현재 로그 심각도 임계값 - Thread-safe
     private static let severityThreshold: DILogSeverity = {
-        #if DEBUG && DI_MONITORING_ENABLED
-        return .debug
-        #elseif DEBUG
+        #if DEBUG
         return .warning
         #else
         return .error
@@ -134,7 +130,7 @@ public struct DILogger {
         line: Int = #line,
         _ arguments: [Any]
     ) {
-        #if DEBUG || DI_MONITORING_ENABLED
+        #if DEBUG
         guard shouldEmit(channel: channel, severity: severity) else { return }
         #else
         runtimeConfigLock.lock()
@@ -144,20 +140,34 @@ public struct DILogger {
         guard shouldEmit(channel: channel, severity: severity) else { return }
         #endif
 
+        let verbose = WeaveDIConfiguration.enableVerboseLogging
         let timestamp = DateFormatter.logFormatter.string(from: Date())
         let fileName = (file as NSString).lastPathComponent
-        let logMessage = "[\(timestamp)] [\(severity.rawValue)] [\(channel.rawValue)] \(fileName):\(line) \(function) - \(message)"
+        let detailedMessage = "[\(timestamp)] [\(severity.rawValue)] [\(channel.rawValue)] \(fileName):\(line) \(function) - \(message)"
+        let basicMessage = String(describing: message)
 
-        switch severity {
-        case .debug:
-            Log.debug(logMessage)
-        case .info:
-            Log.info(logMessage)
-        case .warning:
-            // LogMacro에서 warning을 지원하지 않을 수 있으므로 info로 처리
-            Log.info("⚠️ " + logMessage)
-        case .error:
-            Log.error(logMessage)
+        if verbose {
+            switch severity {
+            case .debug:
+                Log.debug(detailedMessage)
+            case .info:
+                Log.info(detailedMessage)
+            case .warning:
+                Log.info("⚠️ " + detailedMessage)
+            case .error:
+                Log.error(detailedMessage)
+            }
+        } else {
+            switch severity {
+            case .debug:
+                print(basicMessage)
+            case .info:
+                print(basicMessage)
+            case .warning:
+                print("⚠️ " + basicMessage)
+            case .error:
+                fputs(basicMessage + "\n", stderr)
+            }
         }
     }
 
@@ -171,11 +181,13 @@ public struct DILogger {
         function: String = #function,
         line: Int = #line
     ) {
-        #if DEBUG && DI_MONITORING_ENABLED
-        if shouldEmit(channel: channel, severity: .debug) {
-            #logDebug("[DI][\(channel.rawValue)] \(message)")
+        guard shouldEmit(channel: channel, severity: .debug) else { return }
+        let prefix = "[DI][\(channel.rawValue)] "
+        if WeaveDIConfiguration.enableVerboseLogging {
+            #logDebug(prefix + message)
+        } else {
+            print(prefix + message)
         }
-        #endif
     }
 
     /// 매크로 기반 정보 로깅
@@ -186,11 +198,13 @@ public struct DILogger {
         function: String = #function,
         line: Int = #line
     ) {
-        #if DEBUG && DI_MONITORING_ENABLED
-        if shouldEmit(channel: channel, severity: .info) {
-            #logInfo("[DI][\(channel.rawValue)] \(message)")
+        guard shouldEmit(channel: channel, severity: .info) else { return }
+        let prefix = "[DI][\(channel.rawValue)] "
+        if WeaveDIConfiguration.enableVerboseLogging {
+            #logInfo(prefix + message)
+        } else {
+            print(prefix + message)
         }
-        #endif
     }
 
     /// 매크로 기반 경고 로깅
@@ -201,11 +215,13 @@ public struct DILogger {
         function: String = #function,
         line: Int = #line
     ) {
-        #if DEBUG && DI_MONITORING_ENABLED
-        if shouldEmit(channel: channel, severity: .warning) {
-            #logWarning("[DI][\(channel.rawValue)] \(message)")
+        guard shouldEmit(channel: channel, severity: .warning) else { return }
+        let prefix = "⚠️ [DI][\(channel.rawValue)] "
+        if WeaveDIConfiguration.enableVerboseLogging {
+            #logInfo(prefix + message)
+        } else {
+            print(prefix + message)
         }
-        #endif
     }
 
     /// 매크로 기반 에러 로깅
@@ -216,9 +232,12 @@ public struct DILogger {
         function: String = #function,
         line: Int = #line
     ) {
-        for channel in channels {
-            if shouldEmit(channel: channel, severity: .error) {
-                #logError("[DI][\(channel.rawValue)] \(message)")
+        for channel in channels where shouldEmit(channel: channel, severity: .error) {
+            let prefix = "[DI][\(channel.rawValue)] "
+            if WeaveDIConfiguration.enableVerboseLogging {
+                #logError(prefix + message)
+            } else {
+                fputs(prefix + message + "\n", stderr)
             }
         }
     }

@@ -82,7 +82,7 @@ public enum UnifiedDI {
     factory: @escaping @Sendable () -> T
   ) -> T where T: Sendable {
     let startTime = Date()
-    let instance = DIContainer.shared.register(type, factory: factory)
+    let instance = DIContainer.shared.actorRegister(type, factory: factory)
     let duration = Date().timeIntervalSince(startTime)
 
     DILogger.logRegistration(type: type, success: true)
@@ -228,11 +228,11 @@ public enum UnifiedDI {
       let duration = Date().timeIntervalSince(startTime)
       DILogger.logResolution(type: type, success: true, duration: duration)
 
-#if DEBUG && DI_MONITORING_ENABLED
-      Task { @DIActor in
-        AutoDIOptimizer.shared.trackResolution(type)
+      if WeaveDIConfiguration.enableOptimizerTracking {
+        Task { @DIActor in
+          AutoDIOptimizer.shared.trackResolution(type)
+        }
       }
-#endif
       return cached
     }
 
@@ -247,11 +247,11 @@ public enum UnifiedDI {
     let duration = Date().timeIntervalSince(startTime)
     DILogger.logResolution(type: type, success: true, duration: duration)
 
-#if DEBUG && DI_MONITORING_ENABLED
-    Task { @DIActor in
-      AutoDIOptimizer.shared.trackResolution(type)
+    if WeaveDIConfiguration.enableOptimizerTracking {
+      Task { @DIActor in
+        AutoDIOptimizer.shared.trackResolution(type)
+      }
     }
-#endif
     return resolved
   }
 

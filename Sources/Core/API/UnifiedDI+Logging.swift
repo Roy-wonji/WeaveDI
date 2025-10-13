@@ -12,7 +12,7 @@ public extension UnifiedDI {
         optimizerLogLevel = .all
         WeaveDIConfiguration.enableRegistryHealthLogging = true
         configureRuntimeToggles(
-          verbose: true,
+          verbose: false,
           autoMonitor: true,
           autoFix: true,
           optimizerTracking: true
@@ -52,7 +52,7 @@ public extension UnifiedDI {
         optimizerLogLevel = .registration
         WeaveDIConfiguration.enableRegistryHealthLogging = false
         configureRuntimeToggles(
-          verbose: true,
+          verbose: false,
           autoMonitor: false,
           autoFix: true,
           optimizerTracking: true

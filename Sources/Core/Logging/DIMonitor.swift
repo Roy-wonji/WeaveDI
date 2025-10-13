@@ -80,7 +80,7 @@ public class DIMonitor: ObservableObject {
     private var startTime: Date?
 
     private init() {
-        #if DEBUG && DI_MONITORING_ENABLED
+        #if DEBUG
         self.configuration = DIMonitorConfiguration(
             logLevel: .all,
             logSeverityThreshold: .debug,

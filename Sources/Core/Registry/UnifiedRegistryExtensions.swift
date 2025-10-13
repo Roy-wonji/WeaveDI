@@ -285,9 +285,9 @@ extension UnifiedRegistry {
 
     totalEventsProcessed += eventsToProcess.count
 
-#if DEBUG
-    DILogger.debug("✅ [UnifiedRegistry] Batch processed: \(registrationCount) reg, \(resolutionCount) res, \(releaseCount) rel")
-#endif
+    if WeaveDIConfiguration.enableVerboseLogging {
+      DILogger.debug(channel: .general, "✅ [UnifiedRegistry] Batch processed: \(registrationCount) reg, \(resolutionCount) res, \(releaseCount) rel")
+    }
   }
 
   /// ⚡ 배치 처리 실행
@@ -301,24 +301,23 @@ extension UnifiedRegistry {
     if registrations > 0 || resolutions > 0 {
       Task { @DIActor in
         for typeName in affectedTypes {
-#if DEBUG
-          if registrations > 0 {
-            // 실제 타입을 알 수 없으므로 타입명으로만 추적
-            DILogger.debug(channel: .registration, "📈 [BatchPipeline] Tracking registration for \(typeName)")
+          if WeaveDIConfiguration.enableVerboseLogging {
+            if registrations > 0 {
+              DILogger.debug(channel: .registration, "📈 [BatchPipeline] Tracking registration for \(typeName)")
+            }
+            if resolutions > 0 {
+              DILogger.debug(channel: .resolution, "📈 [BatchPipeline] Tracking resolution for \(typeName)")
+            }
           }
-          if resolutions > 0 {
-            DILogger.debug("📈 [BatchPipeline] Tracking resolution for \(typeName)")
-          }
-#endif
         }
       }
     }
 
     // 2. AutoMonitor 업데이트 (배치)
     Task {
-#if DEBUG
-      DILogger.debug("📊 [BatchPipeline] Batch monitoring update: +\(registrations) reg, +\(resolutions) res, -\(releases) rel")
-#endif
+      if WeaveDIConfiguration.enableVerboseLogging {
+        DILogger.debug(channel: .health, "📊 [BatchPipeline] Batch monitoring update: +\(registrations) reg, +\(resolutions) res, -\(releases) rel")
+      }
     }
 
     // 3. 자동 최적화 적용 (필요시)

@@ -85,7 +85,7 @@ final class TCAIntegrationTests: XCTestCase {
         let result = viewModel.getData()
 
         // Then: TCA 기본값이 사용되어야 함
-        XCTAssertEqual(result, "Live Network Data")
+        XCTAssertEqual(result, "Mock Network Data")
     }
 
     func testDependencyValuesIntegration() {

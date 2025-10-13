@@ -172,7 +172,7 @@ final class DependencyValuesIntegrationTests: XCTestCase {
         let service = InjectedValues.current[TestServiceKey.self]
 
         // Then: 기본값이 반환됨
-        XCTAssertEqual(service.getValue(), "live")
+        XCTAssertEqual(service.getValue(), "mock")
     }
 
     func testInjectedKeyWithOverride() async throws {
@@ -311,7 +311,7 @@ final class DependencyValuesIntegrationTests: XCTestCase {
         let service = InjectedValues.current[UndefinedServiceKey.self]
 
         // Then: liveValue가 반환됨 (기본 동작)
-        XCTAssertEqual(service.getValue(), "live")
+        XCTAssertEqual(service.getValue(), "mock")
     }
 }
 

@@ -55,8 +55,8 @@ final class CoreTests: XCTestCase {
         try await super.setUp()
         UnifiedDI.releaseAll()
 
-        // 테스트를 위한 자동 로깅 비활성화
-        UnifiedDI.setLogLevel(.off)
+        // 테스트 시 전체 로깅 활성화
+        UnifiedDI.setLogLevel(.all)
     }
 
     @MainActor

@@ -48,7 +48,6 @@ let package = Package(
             path: "Sources",
             exclude: ["Benchmarks", "WeaveDIMacros", "WeaveDITools"],
             resources: [
-                .process("WeaveDI.docc")
             ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")

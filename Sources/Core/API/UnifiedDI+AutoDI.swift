@@ -52,9 +52,7 @@ public extension UnifiedDI {
 
   /// 자동 최적화 기능을 제어합니다.
   static func setAutoOptimization(_ enabled: Bool = true) {
-#if DEBUG && DI_MONITORING_ENABLED
     Task { @DIActor in AutoDIOptimizer.shared.setOptimizationEnabled(enabled) }
-#endif
   }
 
   /// 자동 수집된 통계를 초기화합니다.
@@ -130,16 +128,6 @@ public extension UnifiedDI {
 
   /// 비동기 성능 통계.
 
-  /// Configure static factory optimization
-  static func enableStaticOptimization() {
-#if USE_STATIC_FACTORY
-    DILogger.info(channel: .optimization, "🚀 WeaveDI: Static factory optimization ENABLED")
-    DILogger.info(channel: .optimization, "📊 Performance: Needle-level zero-cost resolution")
-#else
-    DILogger.info(channel: .optimization, "⚠️  WeaveDI: Add -DUSE_STATIC_FACTORY to build flags for maximum performance")
-    DILogger.info(channel: .optimization, "📖 Guide: https://github.com/Roy-wonji/WeaveDI#static-optimization")
-#endif
-  }
 
   static func staticResolve<T>(_ type: T.Type) -> T? where T: Sendable {
 #if USE_STATIC_FACTORY
@@ -155,23 +143,6 @@ public extension UnifiedDI {
   }
 #endif
 
-  static func performanceComparison() -> String {
-#if USE_STATIC_FACTORY
-    return """
-    🏆 WeaveDI vs Needle Performance:
-    ✅ Compile-time safety: EQUAL
-    ✅ Runtime performance: EQUAL (zero-cost)
-    🚀 Developer experience: WeaveDI BETTER
-    🎯 Swift 6 support: WeaveDI EXCLUSIVE
-    """
-#else
-    return """
-    ⚠️  Enable static optimization for Needle-level performance:
-    🔧 Add -DUSE_STATIC_FACTORY to build flags
-    📈 Expected improvement: 10x faster resolution
-    """
-#endif
-  }
 
   static func registerBulkAsync<T: Sendable>(_ registrations: [(T.Type, @Sendable () async -> T)]) async {
     await withTaskGroup(of: Void.self) { group in
@@ -184,13 +155,6 @@ public extension UnifiedDI {
     DILogger.info(channel: .registration, "🚀 Bulk registered \(registrations.count) dependencies")
   }
 
-  static func startPerformanceMonitoring() async {
-    DILogger.info("📈 UnifiedDI Performance Monitoring Started")
-    DILogger.info("   - No semaphore blocking: ✅")
-    DILogger.info("   - Pure async chains: ✅")
-    DILogger.info("   - Actor isolation: ✅")
-    DILogger.info("   - Swift 6 compatible: ✅")
-  }
 
   static func getMemoryUsageAsync() async -> (registeredCount: Int, singletonCount: Int) {
     return (registeredCount: 0, singletonCount: 0)
@@ -199,6 +163,7 @@ public extension UnifiedDI {
   static func clearAsync() async {
     DILogger.info("🧹 UnifiedDI async clear completed")
   }
+
   static var asyncPerformanceStats: [String: Double] {
     get async {
       let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
@@ -264,4 +229,3 @@ private extension UnifiedDI {
     }
   }
 }
-

@@ -34,9 +34,9 @@ public enum DIAdvanced {
     /// - Parameter type: 해결할 타입
     /// - Returns: 해결된 인스턴스 (없으면 nil)
     public static func resolveWithTracking<T>(_ type: T.Type) -> T? where T: Sendable {
-#if DEBUG && DI_MONITORING_ENABLED
-      Task { @DIActor in AutoDIOptimizer.shared.trackResolution(type) }
-#endif
+      if WeaveDIConfiguration.enableOptimizerTracking {
+        Task { @DIActor in AutoDIOptimizer.shared.trackResolution(type) }
+      }
       return WeaveDI.Container.live.resolve(type)
     }
     
@@ -46,17 +46,15 @@ public enum DIAdvanced {
     @MainActor
     public static func markAsFrequentlyUsed<T>(_ type: T.Type) {
       // AutoDIOptimizer가 자동으로 처리하므로 별도 처리 불필요
-#if DEBUG && DI_MONITORING_ENABLED
-      Task { @DIActor in AutoDIOptimizer.shared.trackResolution(type) }
-#endif
+      if WeaveDIConfiguration.enableOptimizerTracking {
+        Task { @DIActor in AutoDIOptimizer.shared.trackResolution(type) }
+      }
     }
     
     /// 성능 최적화를 활성화합니다
     @MainActor
     public static func enableOptimization() {
-#if DEBUG && DI_MONITORING_ENABLED
       Task { @DIActor in AutoDIOptimizer.shared.setOptimizationEnabled(true) }
-#endif
     }
     
     /// 현재 성능 통계를 반환합니다
@@ -81,24 +79,7 @@ public enum DIAdvanced {
       }
     }
   }
-  
-  // MARK: - Auto Detection Features (제거됨)
-  
-  /// 자동 의존성 감지 기능은 제거되었습니다.
-  /// 대신 수동으로 의존성 그래프를 관리하거나 DependencyGraph를 사용하세요.
-  @available(*, deprecated, message: "AutoDetection 기능이 제거되었습니다. DependencyGraph를 사용하세요.")
-  public enum AutoDetection {
-    /// 더 이상 지원되지 않습니다
-    public static func enable() {
-      // No-op: 기능이 제거됨
-    }
     
-    /// 더 이상 지원되지 않습니다
-    public static func disable() {
-      // No-op: 기능이 제거됨
-    }
-  }
-  
   // MARK: - Scope Management Features
   
   /// 스코프 관리 관련 기능들

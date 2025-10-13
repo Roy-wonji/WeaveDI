@@ -98,22 +98,19 @@ public actor DIHealthCheck {
 
   /// 연속 모니터링 시작
   public func startMonitoring(interval: TimeInterval = 60.0) {
-#if DEBUG && DI_MONITORING_ENABLED
     guard !isMonitoring else { return }
 
-    self.healthCheckInterval = interval
-    self.isMonitoring = true
+    healthCheckInterval = interval
+    isMonitoring = true
 
     monitoringTask = Task {
       while !Task.isCancelled && isMonitoring {
-        let _ = await performHealthCheck()
-
+        _ = await performHealthCheck()
         try? await Task.sleep(nanoseconds: UInt64(healthCheckInterval * 1_000_000_000))
       }
     }
 
     DILogger.info(channel: .health, "Started DI health monitoring (interval: \(interval)s)")
-#endif
   }
 
   /// 연속 모니터링 중지
@@ -205,22 +202,30 @@ public actor DIHealthCheck {
 
   /// 성능 지표 체크
   private func checkPerformanceMetrics() async -> DIHealthCheckResult {
-#if DEBUG && DI_MONITORING_ENABLED
-    let stats = await AutoDIOptimizer.shared.getPerformanceStats()
-    let avgTime = stats.averageResolutionTime
+    guard WeaveDIConfiguration.enableOptimizerTracking else {
+      return DIHealthCheckResult(
+        name: "Performance Metrics",
+        status: true,
+        message: "Performance monitoring disabled",
+        severity: .info,
+        metrics: nil
+      )
+    }
+
+    let usageStats = DIContainer.shared.getUsageStatistics()
+    let totalResolutions = usageStats.values.reduce(0, +)
+    let topTypes = usageStats.sorted { $0.value > $1.value }.prefix(3)
 
     var severity: DIHealthSeverity = .info
-    var message = "Average resolution time: \(String(format: "%.2f", avgTime * 1000))ms"
-    var status = true
+    var message = "Total resolutions: \(totalResolutions)"
+    let status = totalResolutions > 0
 
-    // 성능 임계값 체크
-    if avgTime > 0.1 { // 100ms
-      severity = .critical
-      message += " (SLOW - Above 100ms)"
-      status = false
-    } else if avgTime > 0.05 { // 50ms
+    if totalResolutions == 0 {
       severity = .warning
-      message += " (MEDIUM - Above 50ms)"
+      message = "No resolution activity detected"
+    } else if topTypes.first?.value ?? 0 >= 50 {
+      severity = .warning
+      message += " (heavy usage detected)"
     }
 
     return DIHealthCheckResult(
@@ -229,20 +234,10 @@ public actor DIHealthCheck {
       message: message,
       severity: severity,
       metrics: [
-        "average_resolution_time_ms": String(format: "%.2f", avgTime * 1000),
-        "total_resolutions": String(stats.totalResolutions),
-        "cache_hits": String(stats.cacheHits)
+        "total_resolutions": String(totalResolutions),
+        "top_types": topTypes.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
       ]
     )
-#else
-    return DIHealthCheckResult(
-      name: "Performance Metrics",
-      status: true,
-      message: "Performance monitoring disabled (production mode)",
-      severity: .info,
-      metrics: nil
-    )
-#endif
   }
 
   /// 의존성 그래프 체크
@@ -341,16 +336,13 @@ public actor DIHealthCheck {
     let registeredCount = await UnifiedRegistry.shared.getRegisteredCount()
     let memoryUsage = getMemoryUsage().usedMemory / 1024 / 1024
 
-#if DEBUG && DI_MONITORING_ENABLED
-    let stats = await AutoDIOptimizer.shared.getPerformanceStats()
-    let avgTime = stats.averageResolutionTime * 1000
-    let resolvedCount = Int(stats.totalResolutions)
-    let failedCount = Int(stats.failedResolutions)
-#else
+    let usageStats = WeaveDIConfiguration.enableOptimizerTracking
+      ? DIContainer.shared.getUsageStatistics()
+      : [:]
+
+    let resolvedCount = usageStats.values.reduce(0, +)
     let avgTime = 0.0
-    let resolvedCount = 0
     let failedCount = 0
-#endif
 
     let circularDeps = await CircularDependencyDetector.shared.detectAllCircularDependencies().count
 

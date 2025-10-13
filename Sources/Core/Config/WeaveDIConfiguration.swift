@@ -35,9 +35,25 @@ public enum WeaveDIConfiguration {
   public static var enableAutoMonitor: Bool {
     get { storage.withLock { $0.monitorEnabled } }
     set {
-      storage.withLock { $0.monitorEnabled = newValue }
+      let previous = storage.withLock { state -> Bool in
+        let oldValue = state.monitorEnabled
+        state.monitorEnabled = newValue
+        return oldValue
+      }
+
+      guard previous != newValue else { return }
+
       let flag = newValue
+
       Task { @DIActor in AutoMonitor.isEnabled = flag }
+
+      Task { @MainActor in
+        if flag {
+          DIMonitor.shared.startMonitoring()
+        } else {
+          DIMonitor.shared.stopMonitoring()
+        }
+      }
     }
   }
 

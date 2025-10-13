@@ -85,13 +85,31 @@ public struct InjectedValues: Sendable {
       if let resolved: Key.Value = DIContainer.shared.resolve(Key.Value.self, logOnMiss: false) {
         return resolved
       }
-      return Key.liveValue
+      return InjectedValues.resolveDefaultValue(for: key)
     }
     set {
       storage[ObjectIdentifier(key)] = AnySendable(newValue)
     }
   }
 
+}
+
+private extension InjectedValues {
+  static func resolveDefaultValue<Key: InjectedKey>(for key: Key.Type) -> Key.Value where Key.Value: Sendable {
+#if canImport(XCTest)
+    if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+      return Key.testValue
+    }
+#endif
+
+#if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
+    if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+      return Key.previewValue
+    }
+#endif
+
+    return Key.liveValue
+  }
 }
 
 // MARK: - AnySendable
@@ -117,11 +135,11 @@ public protocol InjectedKey {
 
 public extension InjectedKey {
   static var testValue: Value {
-    testValue
+    liveValue
   }
 
   static var previewValue: Value {
-    previewValue
+    liveValue
   }
 }
 
