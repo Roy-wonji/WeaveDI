@@ -10,13 +10,13 @@ private enum BridgeResolver {
     _ type: T.Type,
     fallback: K.Type
   ) -> T where K.Value == T {
-    UnifiedDI.resolve(type) ?? fallback.liveValue
+    UnifiedDI.resolve(type, logOnMiss: false) ?? fallback.liveValue
   }
 
   /// 자동 인터셉션: WeaveDI 우선, TCA DependencyValues 폴백
   static func autoInterceptResolve<T: Sendable>(_ type: T.Type) -> T? {
     // 1. WeaveDI에서 먼저 시도
-    if let resolved = UnifiedDI.resolve(type) {
+    if let resolved = UnifiedDI.resolve(type, logOnMiss: false) {
       return resolved
     }
 
@@ -65,7 +65,7 @@ public extension DependencyValues {
 
   /// Convenience helper to resolve a type directly from the container.
   func resolve<T: Sendable>(_ type: T.Type) -> T? {
-    diContainer.resolve(type)
+    diContainer.resolve(type, logOnMiss: false)
   }
 }
 
