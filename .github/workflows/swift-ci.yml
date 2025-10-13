@@ -18,7 +18,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        xcode: ['15.0']
+        xcode: ['16.4']
         ios-version: ['17.0']
 
     steps:
