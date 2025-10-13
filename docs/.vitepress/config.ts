@@ -146,6 +146,7 @@ export default defineConfig({
               text: 'Monitoring & Logging',
               collapsed: true,
               items: [
+                { text: 'Log Setup Guide', link: '/api/logSetupGuide' },
                 { text: 'Logging System', link: '/api/logging' },
                 { text: 'Health Check', link: '/api/healthCheck' }
               ]
@@ -323,6 +324,7 @@ export default defineConfig({
               text: '모니터링 & 로깅',
               collapsed: true,
               items: [
+                { text: '로그 설정 가이드', link: '/ko/api/logSetupGuide' },
                 { text: '로깅 시스템', link: '/ko/api/logging' },
                 { text: '헬스체크 시스템', link: '/ko/api/healthCheck' }
               ]

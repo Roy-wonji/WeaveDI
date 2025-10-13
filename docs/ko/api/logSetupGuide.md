@@ -2,15 +2,6 @@
 
 > 🚀 WeaveDI의 새로운 로깅 시스템을 빠르게 설정하고 사용하는 방법
 
-## 📋 목차
-- [빠른 설정](#빠른-설정)
-- [환경별 설정](#환경별-설정)
-- [고급 설정](#고급-설정)
-- [실제 사용 예제](#실제-사용-예제)
-- [문제 해결](#문제-해결)
-
----
-
 ## 🚀 빠른 설정
 
 ### 1. 기본 로그 설정 (30초)
@@ -289,9 +280,9 @@ UnifiedDI.setLogLevel(.off)  // 완전히 끄기
 
 ## 📚 추가 리소스
 
-- **상세 문서**: [docs/ko/api/logging.md](./docs/ko/api/logging.md)
-- **헬스체크**: [docs/ko/api/healthCheck.md](./docs/ko/api/healthCheck.md)
-- **성능 모니터링**: [docs/ko/api/performanceMonitoring.md](./docs/ko/api/performanceMonitoring.md)
+- **상세 문서**: [logging.md](./logging.md)
+- **헬스체크**: [healthCheck.md](./healthCheck.md)
+- **성능 모니터링**: [performanceMonitoring.md](./performanceMonitoring.md)
 
 ---
 
