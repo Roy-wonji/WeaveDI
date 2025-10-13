@@ -352,7 +352,7 @@ public struct TCASmartSync {
         }
 
         // 🔄 3. UnifiedDI에서 조회
-        return DIContainer.shared.resolve(type)
+        return DIContainer.shared.resolve(type, logOnMiss: false)
     }
 
     /// 🔄 **완전 통합 저장소**: @Dependency와 @Injected가 동일한 인스턴스 반환하도록 보장
@@ -373,7 +373,7 @@ public struct TCASmartSync {
         }
 
         // 🔄 3. DIContainer에서 조회
-        if let resolvedValue = DIContainer.shared.resolve(type) {
+        if let resolvedValue = DIContainer.shared.resolve(type, logOnMiss: false) {
             tcaCompatibleStorage[key] = resolvedValue
             return resolvedValue
         }
@@ -400,7 +400,7 @@ public struct TCASmartSync {
         }
 
         // 🔄 3. DIContainer에서 조회
-        return DIContainer.shared.resolve(type)
+        return DIContainer.shared.resolve(type, logOnMiss: false)
     }
 
     /// 🔄 **통합 값 조회 (타입 안전)**: @Injected에서 사용하는 범용 접근

@@ -82,7 +82,7 @@ public struct InjectedValues: Sendable {
       if let value = storage[ObjectIdentifier(key)]?.value as? Key.Value {
         return value
       }
-      if let resolved: Key.Value = DIContainer.shared.resolve(Key.Value.self) {
+      if let resolved: Key.Value = DIContainer.shared.resolve(Key.Value.self, logOnMiss: false) {
         return resolved
       }
       return Key.liveValue
