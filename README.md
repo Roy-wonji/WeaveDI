@@ -1,8 +1,9 @@
 <p align="center">
- <img src="Sources/WeaveDI.docc/Resources/Images/Logo.png" alt="WeaveDI – App Image" width="70%" height="500">
+ <img src="https://github.com/user-attachments/assets/9d1318c9-a2d5-4a57-a56b-279dcbbf5c44" alt="WeaveDI – App Image" width="70%" height="500">
 </p>
 
 # WeaveDI
+
 ![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Roy-wonji/WeaveDI/blob/main/LICENSE)
