@@ -266,7 +266,7 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
   ///
   /// - Parameter type: 조회할 타입
   /// - Returns: 해결된 인스턴스 (없으면 nil)
-  public func resolve<T>(_ type: T.Type) -> T? where T: Sendable {
+  public func resolve<T>(_ type: T.Type, logOnMiss: Bool = true) -> T? where T: Sendable {
     Task { @DIActor in
       AutoDIOptimizer.shared.trackResolution(type)
     }
@@ -276,12 +276,14 @@ public final class DIContainer: ObservableObject, @unchecked Sendable {
       return value
     }
 
-    if let parent = parent, let value: T = parent.resolve(type) {
+    if let parent = parent, let value: T = parent.resolve(type, logOnMiss: logOnMiss) {
       DILogger.debug("Resolved \(String(describing: type)) from parent container")
       return value
     }
 
-    logResolutionMiss(type)
+    if logOnMiss {
+      logResolutionMiss(type)
+    }
     return nil
   }
 

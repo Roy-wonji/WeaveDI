@@ -108,7 +108,7 @@ public extension InjectedValues {
   /// InjectedKey 값 조회를 위한 자동 해결
   func getWithAutoResolve<Key: InjectedKey>(_ key: Key.Type) -> Key.Value where Key.Value: Sendable {
     // 1. WeaveDI에서 먼저 조회
-    if let resolved = UnifiedDI.resolve(Key.Value.self) {
+    if let resolved = UnifiedDI.resolve(Key.Value.self, logOnMiss: false) {
       return resolved
     }
     // 2. 기본 InjectedKey 동작
@@ -133,7 +133,7 @@ public extension InjectedValues {
   subscript<Key: InjectedKey>(autoSync key: Key.Type) -> Key.Value where Key.Value: Sendable {
     get {
       // 1. WeaveDI에서 먼저 조회
-      if let resolved = UnifiedDI.resolve(Key.Value.self) {
+      if let resolved = UnifiedDI.resolve(Key.Value.self, logOnMiss: false) {
         return resolved
       }
       // 2. 기본 InjectedKey 동작 + 자동 등록
@@ -247,7 +247,7 @@ public extension DependencyValues {
   subscript<Key: DependencyKey>(autoSync key: Key.Type) -> Key.Value where Key.Value: Sendable {
     get {
       // 1. WeaveDI에서 먼저 조회
-      if let resolved = UnifiedDI.resolve(Key.Value.self) {
+    if let resolved = UnifiedDI.resolve(Key.Value.self, logOnMiss: false) {
         return resolved
       }
       // 2. 기본 DependencyKey 동작 + 자동 등록

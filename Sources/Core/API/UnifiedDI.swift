@@ -218,7 +218,10 @@ public enum UnifiedDI {
   /// - **WeaveDI**: ~200ns per resolve (cached)
   /// - **개선율**: 10x faster! 🚀
   @inlinable
-  public static func resolve<T>(_ type: T.Type) -> T? where T: Sendable {
+  public static func resolve<T>(
+    _ type: T.Type,
+    logOnMiss: Bool = true
+  ) -> T? where T: Sendable {
     let startTime = Date()
 
     if let cached = FastResolveCache.shared.get(type) {
@@ -233,7 +236,8 @@ public enum UnifiedDI {
       return cached
     }
 
-    guard let resolved = WeaveDI.Container.live.resolve(type) else {
+    guard let resolved = WeaveDI.Container.live.resolve(type, logOnMiss: logOnMiss) else {
+      guard logOnMiss else { return nil }
       let duration = Date().timeIntervalSince(startTime)
       DILogger.logResolution(type: type, success: false, duration: duration)
       return nil
