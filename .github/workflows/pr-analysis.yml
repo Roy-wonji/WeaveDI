@@ -1,0 +1,335 @@
+name: PR Analysis & Auto Comment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  analyze-pr:
+    name: Analyze PR Changes
+    runs-on: macos-latest
+
+    steps:
+    - name: 📥 Checkout PR
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: ${{ github.event.pull_request.head.sha }}
+
+    - name: 📥 Checkout Base Branch
+      run: |
+        git fetch origin ${{ github.base_ref }}:${{ github.base_ref }}
+
+    - name: 🔧 Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.0'
+
+    - name: 📊 Analyze Changes
+      id: analyze
+      run: |
+        # 변경된 파일들 분석
+        git diff --name-only ${{ github.base_ref }}..HEAD > changed_files.txt
+
+        # Swift 파일 개수
+        SWIFT_FILES=$(grep -c "\.swift$" changed_files.txt || echo "0")
+
+        # 테스트 파일 개수
+        TEST_FILES=$(grep -c "Tests.*\.swift$" changed_files.txt || echo "0")
+
+        # 문서 파일 개수
+        DOC_FILES=$(grep -c -E "\.(md|txt)$" changed_files.txt || echo "0")
+
+        # 설정 파일 개수
+        CONFIG_FILES=$(grep -c -E "\.(yml|yaml|json|plist)$" changed_files.txt || echo "0")
+
+        # 라인 수 변경량 계산
+        ADDITIONS=$(git diff --numstat ${{ github.base_ref }}..HEAD | awk '{sum+=$1} END {print sum+0}')
+        DELETIONS=$(git diff --numstat ${{ github.base_ref }}..HEAD | awk '{sum+=$2} END {print sum+0}')
+
+        echo "swift_files=$SWIFT_FILES" >> $GITHUB_OUTPUT
+        echo "test_files=$TEST_FILES" >> $GITHUB_OUTPUT
+        echo "doc_files=$DOC_FILES" >> $GITHUB_OUTPUT
+        echo "config_files=$CONFIG_FILES" >> $GITHUB_OUTPUT
+        echo "additions=$ADDITIONS" >> $GITHUB_OUTPUT
+        echo "deletions=$DELETIONS" >> $GITHUB_OUTPUT
+
+    - name: 🏗️ Build and Test
+      id: build_test
+      run: |
+        # 빌드 성공 여부 확인
+        if swift build --configuration release 2>&1 | tee build.log; then
+          echo "build_status=✅ Success" >> $GITHUB_OUTPUT
+        else
+          echo "build_status=❌ Failed" >> $GITHUB_OUTPUT
+        fi
+
+        # 테스트 실행
+        if swift test 2>&1 | tee test.log; then
+          echo "test_status=✅ Passed" >> $GITHUB_OUTPUT
+        else
+          echo "test_status=❌ Failed" >> $GITHUB_OUTPUT
+        fi
+
+        # 테스트 개수 확인
+        TEST_COUNT=$(grep -c "Test Case.*passed" test.log || echo "0")
+        echo "test_count=$TEST_COUNT" >> $GITHUB_OUTPUT
+
+    - name: 🔍 Code Quality Check
+      id: quality
+      run: |
+        # SwiftLint 실행 (설치되어 있다면)
+        if command -v swiftlint &> /dev/null; then
+          swiftlint lint --reporter json > swiftlint_results.json 2>/dev/null || true
+          LINT_ISSUES=$(jq length swiftlint_results.json 2>/dev/null || echo "0")
+          echo "lint_issues=$LINT_ISSUES" >> $GITHUB_OUTPUT
+        else
+          echo "lint_issues=N/A" >> $GITHUB_OUTPUT
+        fi
+
+        # TODO/FIXME 개수 확인
+        TODO_COUNT=$(git diff ${{ github.base_ref }}..HEAD | grep -c "TODO\|FIXME" || echo "0")
+        echo "todo_count=$TODO_COUNT" >> $GITHUB_OUTPUT
+
+    - name: 📈 Performance Impact Analysis
+      id: performance
+      run: |
+        # 성능 테스트 실행 (있다면)
+        if swift test --filter PerformanceTests 2>&1 | tee perf.log; then
+          echo "perf_status=✅ Completed" >> $GITHUB_OUTPUT
+        else
+          echo "perf_status=⚠️ No performance tests or failed" >> $GITHUB_OUTPUT
+        fi
+
+        # 메모리 영향도 분석 (간단한 추정)
+        if grep -q "class.*Service\|struct.*Service" changed_files.txt; then
+          echo "memory_impact=🧠 Medium - DI services modified" >> $GITHUB_OUTPUT
+        elif grep -q "Protocol\|protocol" changed_files.txt; then
+          echo "memory_impact=🔧 Low - Protocol changes" >> $GITHUB_OUTPUT
+        else
+          echo "memory_impact=✨ Minimal" >> $GITHUB_OUTPUT
+        fi
+
+    - name: 🤖 Generate AI-Style Analysis
+      id: ai_analysis
+      run: |
+        # PR 분석 결과를 AI 스타일로 요약
+        cat > ai_analysis.md << EOF
+        ## 🤖 WeaveDI Auto-Analyzer Report
+
+        ### 📊 Change Summary
+        - **Swift Files Modified**: ${{ steps.analyze.outputs.swift_files }}
+        - **Test Files**: ${{ steps.analyze.outputs.test_files }}
+        - **Lines Added**: +${{ steps.analyze.outputs.additions }}
+        - **Lines Removed**: -${{ steps.analyze.outputs.deletions }}
+
+        ### 🔍 Impact Analysis
+        EOF
+
+        # DI 관련 변경사항 분석
+        if git diff ${{ github.base_ref }}..HEAD | grep -q "UnifiedDI\|@Injected\|DIContainer"; then
+          echo "- 🎯 **DI Core Changes Detected**: This PR modifies core dependency injection functionality" >> ai_analysis.md
+        fi
+
+        if git diff ${{ github.base_ref }}..HEAD | grep -q "Performance\|Benchmark"; then
+          echo "- ⚡ **Performance Related**: Changes may impact performance characteristics" >> ai_analysis.md
+        fi
+
+        if git diff ${{ github.base_ref }}..HEAD | grep -q "Test\|Mock"; then
+          echo "- 🧪 **Test Coverage**: Test-related modifications detected" >> ai_analysis.md
+        fi
+
+        cat >> ai_analysis.md << EOF
+
+        ### 🏗️ Build & Test Status
+        - **Build**: ${{ steps.build_test.outputs.build_status }}
+        - **Tests**: ${{ steps.build_test.outputs.test_status }} (${{ steps.build_test.outputs.test_count }} tests)
+        - **Code Quality**: ${{ steps.quality.outputs.lint_issues }} lint issues
+        - **TODOs Added**: ${{ steps.quality.outputs.todo_count }}
+
+        ### 📈 Performance Impact
+        - **Performance Tests**: ${{ steps.performance.outputs.perf_status }}
+        - **Memory Impact**: ${{ steps.performance.outputs.memory_impact }}
+        EOF
+
+        # 권장사항 생성
+        cat >> ai_analysis.md << EOF
+
+        ### 💡 Auto-Analyzer Recommendations
+        EOF
+
+        if [ "${{ steps.analyze.outputs.test_files }}" = "0" ] && [ "${{ steps.analyze.outputs.swift_files }}" != "0" ]; then
+          echo "- 🧪 Consider adding unit tests for new Swift code" >> ai_analysis.md
+        fi
+
+        if [ "${{ steps.quality.outputs.todo_count }}" != "0" ]; then
+          echo "- 📝 ${{ steps.quality.outputs.todo_count }} TODO/FIXME items added - consider addressing before merge" >> ai_analysis.md
+        fi
+
+        if git diff ${{ github.base_ref }}..HEAD | grep -q "public\|open"; then
+          echo "- 📚 Public API changes detected - ensure documentation is updated" >> ai_analysis.md
+        fi
+
+        cat >> ai_analysis.md << EOF
+
+        ### 🎯 Focus Areas for Review
+        EOF
+
+        # 리뷰 포인트 생성
+        if git diff ${{ github.base_ref }}..HEAD | grep -q "UnifiedDI.*register"; then
+          echo "- 🔍 **DI Registration**: Verify dependency registration correctness" >> ai_analysis.md
+        fi
+
+        if git diff ${{ github.base_ref }}..HEAD | grep -q "@Injected"; then
+          echo "- 🔍 **Property Injection**: Check @Injected usage patterns" >> ai_analysis.md
+        fi
+
+        if git diff ${{ github.base_ref }}..HEAD | grep -q "async\|await"; then
+          echo "- 🔍 **Async/Await**: Review async dependency injection patterns" >> ai_analysis.md
+        fi
+
+    - name: 🎨 Generate Visual Diff Summary
+      id: visual_diff
+      run: |
+        # 시각적 diff 요약 생성
+        cat > visual_diff.md << EOF
+
+        ## 📊 Visual Change Summary
+
+        \`\`\`
+        Files Changed: ${{ steps.analyze.outputs.swift_files }} Swift | ${{ steps.analyze.outputs.test_files }} Tests | ${{ steps.analyze.outputs.doc_files }} Docs
+        Line Changes: +${{ steps.analyze.outputs.additions }} -${{ steps.analyze.outputs.deletions }}
+
+        📁 Modified Files:
+        EOF
+
+        while IFS= read -r file; do
+          echo "   📄 $file" >> visual_diff.md
+        done < changed_files.txt
+
+        echo "\`\`\`" >> visual_diff.md
+
+    - name: 💬 Post Analysis Comment
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+
+          // 분석 결과 읽기
+          const aiAnalysis = fs.readFileSync('ai_analysis.md', 'utf8');
+          const visualDiff = fs.readFileSync('visual_diff.md', 'utf8');
+
+          // PR 번호 확인
+          const prNumber = context.issue.number;
+
+          // 기존 봇 댓글 찾기
+          const comments = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber
+          });
+
+          const botComment = comments.data.find(comment =>
+            comment.user.type === 'Bot' &&
+            comment.body.includes('🤖 WeaveDI Auto-Analyzer Report')
+          );
+
+          const commentBody = `${aiAnalysis}
+          ${visualDiff}
+
+          ---
+
+          🔄 *This analysis is automatically updated on each push*
+
+          ⏰ *Last updated: ${new Date().toISOString()}*
+
+          🤖 *Powered by WeaveDI Auto-Analyzer*`;
+
+          if (botComment) {
+            // 기존 댓글 업데이트
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: commentBody
+            });
+          } else {
+            // 새 댓글 생성
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: commentBody
+            });
+          }
+
+    - name: 🏷️ Auto Label PR
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const labels = [];
+
+          // 변경 규모에 따른 라벨
+          const additions = parseInt('${{ steps.analyze.outputs.additions }}');
+          const deletions = parseInt('${{ steps.analyze.outputs.deletions }}');
+          const totalChanges = additions + deletions;
+
+          if (totalChanges < 10) {
+            labels.push('size/XS');
+          } else if (totalChanges < 50) {
+            labels.push('size/S');
+          } else if (totalChanges < 200) {
+            labels.push('size/M');
+          } else if (totalChanges < 500) {
+            labels.push('size/L');
+          } else {
+            labels.push('size/XL');
+          }
+
+          // 변경 유형에 따른 라벨
+          const changedFiles = require('fs').readFileSync('changed_files.txt', 'utf8');
+
+          if (changedFiles.includes('Test')) {
+            labels.push('type/test');
+          }
+
+          if (changedFiles.includes('.md')) {
+            labels.push('type/documentation');
+          }
+
+          if (changedFiles.includes('Sources/')) {
+            labels.push('type/enhancement');
+          }
+
+          // 빌드 상태에 따른 라벨
+          if ('${{ steps.build_test.outputs.build_status }}'.includes('Failed')) {
+            labels.push('status/build-failed');
+          }
+
+          if ('${{ steps.build_test.outputs.test_status }}'.includes('Failed')) {
+            labels.push('status/tests-failed');
+          }
+
+          // 라벨 적용
+          if (labels.length > 0) {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: labels
+            });
+          }
+
+    - name: 🎯 Create Performance Comparison
+      if: steps.performance.outputs.perf_status == '✅ Completed'
+      run: |
+        echo "## 📊 Performance Comparison" > perf_comparison.md
+        echo "" >> perf_comparison.md
+        echo "Performance tests completed successfully!" >> perf_comparison.md
+        echo "Detailed performance metrics have been collected and will be available in the CI logs." >> perf_comparison.md

@@ -1,0 +1,193 @@
+# WeaveDI SwiftLint Configuration
+# 고품질 Swift 코드를 위한 린트 규칙 설정
+
+# 포함할 경로
+included:
+  - Sources
+  - Tests
+
+# 제외할 경로
+excluded:
+  - .build
+  - Package.swift
+  - docs
+  - scripts
+  - blog-series
+
+# 비활성화할 규칙들
+disabled_rules:
+  - line_length # 긴 주석이나 문서화 때문에 유연하게 처리
+  - function_body_length # 복잡한 DI 로직 때문에 유연하게 처리
+  - type_body_length # 큰 DI 컨테이너 클래스 허용
+  - file_length # 테스트 파일이 길어질 수 있음
+
+# 활성화할 선택적 규칙들
+opt_in_rules:
+  - array_init
+  - attributes
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - discouraged_object_literal
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - enum_case_associated_values_count
+  - explicit_init
+  - extension_access_modifier
+  - fallthrough
+  - fatal_error_message
+  - first_where
+  - flatmap_over_map_reduce
+  - identical_operands
+  - joined_default_parameter
+  - last_where
+  - legacy_random
+  - literal_expression_end_indentation
+  - modifier_order
+  - nimble_operator
+  - operator_usage_whitespace
+  - overridden_super_call
+  - override_in_extension
+  - pattern_matching_keywords
+  - prefer_self_type_over_type_of_self
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - single_test_class
+  - sorted_first_last
+  - static_operator
+  - strong_iboutlet
+  - toggle_bool
+  - trailing_closure
+  - unneeded_parentheses_in_closure_argument
+  - vertical_parameter_alignment_on_call
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+  - yoda_condition
+
+# 커스텀 규칙들
+custom_rules:
+  # DI 관련 네이밍 규칙
+  di_service_naming:
+    name: "DI Service Naming"
+    message: "DI 서비스는 'Service' 또는 'Manager' 접미사를 사용해야 합니다"
+    regex: '(class|struct)\s+\w+(?!Service|Manager|Provider|Client|Handler)\s*:\s*\w*Service'
+    severity: warning
+
+  # Mock 클래스 네이밍 규칙
+  mock_naming:
+    name: "Mock Naming"
+    message: "테스트용 Mock 클래스는 'Mock' 접두사를 사용해야 합니다"
+    regex: '(class|struct)\s+(?!Mock)\w+.*:\s*.*Mock'
+    severity: warning
+
+  # UnifiedDI 사용 규칙
+  unified_di_usage:
+    name: "UnifiedDI Usage"
+    message: "레거시 DIContainer 대신 UnifiedDI를 사용하세요"
+    regex: 'DIContainer\.shared'
+    severity: error
+
+# 규칙별 세부 설정
+line_length:
+  warning: 120
+  error: 150
+  ignores_function_declarations: true
+  ignores_comments: true
+  ignores_urls: true
+
+function_body_length:
+  warning: 60
+  error: 100
+
+type_body_length:
+  warning: 300
+  error: 500
+
+file_length:
+  warning: 500
+  error: 1000
+
+identifier_name:
+  min_length:
+    warning: 1
+    error: 0
+  max_length:
+    warning: 50
+    error: 100
+  excluded:
+    - id
+    - url
+    - ok
+    - db
+    - ui
+    - di
+
+nesting:
+  type_level:
+    warning: 2
+    error: 3
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+large_tuple:
+  warning: 3
+  error: 4
+
+# 접근 제어자 순서
+modifier_order:
+  preferred_modifier_order:
+    - acl
+    - setterACL
+    - override
+    - dynamic
+    - mutators
+    - lazy
+    - final
+    - required
+    - convenience
+    - typeMethods
+    - owned
+
+# 수직 공백 규칙
+vertical_whitespace:
+  max_empty_lines: 2
+
+# 후행 공백 규칙
+trailing_whitespace:
+  ignores_empty_lines: false
+  ignores_comments: false
+
+# 강제 언래핑 규칙 (DI에서는 필요한 경우가 많으므로 경고 수준)
+force_unwrapping:
+  severity: warning
+
+# 강제 타입 캐스팅 규칙
+force_cast:
+  severity: error
+
+# TODO/FIXME 규칙
+todo:
+  severity: warning
+
+# 리포터 설정 (GitHub Actions에서 사용)
+reporter: "github-actions-logging"
+
+# 자동 수정 규칙들
+correctable_rules:
+  - trailing_whitespace
+  - vertical_whitespace
+  - trailing_newline
+  - colon
+  - comma
+  - control_statement
+  - leading_whitespace
+  - return_arrow_whitespace
+  - statement_position
+  - operator_whitespace

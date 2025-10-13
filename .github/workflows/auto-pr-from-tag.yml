@@ -1,0 +1,378 @@
+name: Auto PR from Tag
+
+on:
+  push:
+    tags:
+      - 'v*'          # v1.0.0, v2.1.3 등 버전 태그
+      - '[0-9]*'      # 3.0.0, 3.1.5 등 버전 태그 (v 접두사 없음)
+      - 'release-*'   # release-3.4.0 등 릴리즈 준비 태그
+      - 'pr-*'        # pr-feature-name 등 PR 생성 태그
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  create-pr-from-tag:
+    name: Create PR from Tag
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 🏷️ Extract Tag Information
+      id: tag_info
+      run: |
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+        # 태그 타입 결정
+        if [[ $TAG_NAME =~ ^v[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
+          echo "tag_type=version" >> $GITHUB_OUTPUT
+          echo "pr_type=release" >> $GITHUB_OUTPUT
+        elif [[ $TAG_NAME =~ ^[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
+          echo "tag_type=version" >> $GITHUB_OUTPUT
+          echo "pr_type=release" >> $GITHUB_OUTPUT
+        elif [[ $TAG_NAME =~ ^release-.*$ ]]; then
+          echo "tag_type=release" >> $GITHUB_OUTPUT
+          echo "pr_type=release" >> $GITHUB_OUTPUT
+        elif [[ $TAG_NAME =~ ^pr-.*$ ]]; then
+          echo "tag_type=feature" >> $GITHUB_OUTPUT
+          echo "pr_type=feature" >> $GITHUB_OUTPUT
+        else
+          echo "tag_type=general" >> $GITHUB_OUTPUT
+          echo "pr_type=general" >> $GITHUB_OUTPUT
+        fi
+
+        # 브랜치 이름 생성
+        BRANCH_NAME="auto-pr/${TAG_NAME}"
+        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+        echo "🏷️ Tag: $TAG_NAME"
+        echo "🌿 Branch: $BRANCH_NAME"
+
+    - name: 🔍 Check if Branch Already Exists
+      id: branch_check
+      run: |
+        if git ls-remote --heads origin ${{ steps.tag_info.outputs.branch_name }} | grep -q ${{ steps.tag_info.outputs.branch_name }}; then
+          echo "branch_exists=true" >> $GITHUB_OUTPUT
+          echo "⚠️ Branch already exists"
+        else
+          echo "branch_exists=false" >> $GITHUB_OUTPUT
+          echo "✅ Branch does not exist"
+        fi
+
+    - name: 🌿 Create New Branch from Tag
+      if: steps.branch_check.outputs.branch_exists == 'false'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        # 태그에서 새 브랜치 생성
+        git checkout -b ${{ steps.tag_info.outputs.branch_name }}
+
+        echo "✅ Created branch: ${{ steps.tag_info.outputs.branch_name }}"
+
+    - name: 📊 Generate Changelog
+      id: changelog
+      run: |
+        # 이전 태그 찾기
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "📈 Generating changelog from $PREVIOUS_TAG to ${{ steps.tag_info.outputs.tag_name }}"
+
+          # 커밋 메시지들을 수집
+          git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..${{ steps.tag_info.outputs.tag_name }} > changelog_raw.txt
+
+          # 체인지로그 생성
+          cat > CHANGELOG_EXCERPT.md << EOF
+        ## 🚀 Changes in ${{ steps.tag_info.outputs.tag_name }}
+
+        ### 📋 Commits since $PREVIOUS_TAG:
+        EOF
+          cat changelog_raw.txt >> CHANGELOG_EXCERPT.md
+        else
+          echo "📋 No previous tag found, creating initial changelog"
+          cat > CHANGELOG_EXCERPT.md << EOF
+        ## 🚀 Initial Release ${{ steps.tag_info.outputs.tag_name }}
+
+        ### 🎯 Features:
+        - Initial release of WeaveDI
+        - Core dependency injection functionality
+        - Auto DI Optimizer
+        - TCA integration support
+        EOF
+        fi
+
+        echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+
+    - name: 📝 Create Release Notes
+      id: release_notes
+      if: steps.tag_info.outputs.pr_type == 'release'
+      run: |
+        cat > RELEASE_NOTES.md << EOF
+        # 🎉 WeaveDI ${{ steps.tag_info.outputs.tag_name }} Release
+
+        ## 📊 Release Information
+        - **Version**: ${{ steps.tag_info.outputs.tag_name }}
+        - **Release Date**: $(date +"%Y-%m-%d")
+        - **Previous Version**: ${{ steps.changelog.outputs.previous_tag }}
+
+        ## 🚀 What's New
+
+        $(cat CHANGELOG_EXCERPT.md)
+
+        ## 🔧 Installation
+
+        ### Swift Package Manager
+        \`\`\`swift
+        dependencies: [
+            .package(url: "https://github.com/Roy-wonji/WeaveDI", from: "${{ steps.tag_info.outputs.tag_name }}")
+        ]
+        \`\`\`
+
+        ## 📚 Documentation
+        - [Quick Start Guide](https://roy-wonji.github.io/WeaveDI/guide/quick-start.html)
+        - [API Reference](https://roy-wonji.github.io/WeaveDI/api/core-apis.html)
+        - [Migration Guide](https://roy-wonji.github.io/WeaveDI/guide/migration.html)
+
+        ## 🤝 Contributing
+        We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+        ## 📄 License
+        This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+        EOF
+
+    - name: 🔄 Update Version Files (for version tags)
+      if: steps.tag_info.outputs.tag_type == 'version'
+      run: |
+        # Package.swift에서 버전 업데이트 (있다면)
+        if grep -q "version:" Package.swift; then
+          sed -i.bak "s/version: \".*\"/version: \"${{ steps.tag_info.outputs.tag_name }}\"/" Package.swift
+          rm Package.swift.bak
+          echo "✅ Updated Package.swift version"
+        fi
+
+        # README.md에서 버전 업데이트 (있다면)
+        if grep -q "from.*WeaveDI" README.md; then
+          sed -i.bak "s/from: \".*\"/from: \"${{ steps.tag_info.outputs.tag_name }}\"/" README.md
+          rm README.md.bak
+          echo "✅ Updated README.md version"
+        fi
+
+        # 변경사항이 있으면 커밋
+        if ! git diff --quiet; then
+          git add .
+          git commit -m "🔖 Update version to ${{ steps.tag_info.outputs.tag_name }}"
+          echo "✅ Committed version updates"
+        fi
+
+    - name: 📤 Push Branch
+      if: steps.branch_check.outputs.branch_exists == 'false'
+      run: |
+        git push origin ${{ steps.tag_info.outputs.branch_name }}
+        echo "✅ Pushed branch: ${{ steps.tag_info.outputs.branch_name }}"
+
+    - name: 🎯 Generate PR Title and Body
+      id: pr_content
+      run: |
+        case "${{ steps.tag_info.outputs.pr_type }}" in
+          "release")
+            PR_TITLE="🚀 Release ${{ steps.tag_info.outputs.tag_name }}"
+            cat > PR_BODY.md << EOF
+        ## 🎉 Release PR for ${{ steps.tag_info.outputs.tag_name }}
+
+        This PR was automatically created from the tag \`${{ steps.tag_info.outputs.tag_name }}\`.
+
+        ### 📋 Release Checklist
+        - [ ] 📊 Review changelog
+        - [ ] 🧪 Verify all tests pass
+        - [ ] 📚 Update documentation
+        - [ ] 🏷️ Confirm version numbers
+        - [ ] 🔍 Final code review
+        - [ ] 🚀 Ready for release
+
+        ### 📈 Changes
+        $(cat CHANGELOG_EXCERPT.md)
+
+        ### 📝 Release Notes
+        $(cat RELEASE_NOTES.md)
+
+        ---
+        🤖 *Auto-generated from tag by WeaveDI Release Bot*
+        EOF
+            ;;
+          "feature")
+            FEATURE_NAME=$(echo ${{ steps.tag_info.outputs.tag_name }} | sed 's/^pr-//')
+            PR_TITLE="✨ Feature: $FEATURE_NAME"
+            cat > PR_BODY.md << EOF
+        ## ✨ Feature PR: $FEATURE_NAME
+
+        This PR was automatically created from the tag \`${{ steps.tag_info.outputs.tag_name }}\`.
+
+        ### 🎯 Feature Description
+        Please describe the feature implemented in this PR.
+
+        ### 🧪 Testing
+        - [ ] Unit tests added/updated
+        - [ ] Integration tests pass
+        - [ ] Manual testing completed
+
+        ### 📚 Documentation
+        - [ ] Code comments updated
+        - [ ] API documentation updated
+        - [ ] README updated (if needed)
+
+        ### 📈 Changes
+        $(cat CHANGELOG_EXCERPT.md)
+
+        ---
+        🤖 *Auto-generated from tag by WeaveDI Feature Bot*
+        EOF
+            ;;
+          *)
+            PR_TITLE="🔄 Auto PR from tag ${{ steps.tag_info.outputs.tag_name }}"
+            cat > PR_BODY.md << EOF
+        ## 🔄 Automatic PR from Tag
+
+        This PR was automatically created from the tag \`${{ steps.tag_info.outputs.tag_name }}\`.
+
+        ### 📈 Changes
+        $(cat CHANGELOG_EXCERPT.md)
+
+        ---
+        🤖 *Auto-generated from tag by WeaveDI Bot*
+        EOF
+            ;;
+        esac
+
+        echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
+
+    - name: 🔍 Check if PR Already Exists
+      id: pr_check
+      run: |
+        # 동일한 브랜치로부터의 PR이 이미 있는지 확인
+        EXISTING_PR=$(gh pr list --head ${{ steps.tag_info.outputs.branch_name }} --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+        if [ -n "$EXISTING_PR" ]; then
+          echo "pr_exists=true" >> $GITHUB_OUTPUT
+          echo "existing_pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
+          echo "⚠️ PR already exists: #$EXISTING_PR"
+        else
+          echo "pr_exists=false" >> $GITHUB_OUTPUT
+          echo "✅ No existing PR found"
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 🆕 Create New PR
+      if: steps.pr_check.outputs.pr_exists == 'false'
+      id: create_pr
+      run: |
+        PR_URL=$(gh pr create \
+          --title "${{ steps.pr_content.outputs.pr_title }}" \
+          --body-file PR_BODY.md \
+          --base main \
+          --head ${{ steps.tag_info.outputs.branch_name }} \
+          --label "automated-pr,from-tag" \
+          --label "type/${{ steps.tag_info.outputs.pr_type }}")
+
+        PR_NUMBER=$(echo $PR_URL | grep -o '[0-9]\+$')
+
+        echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+        echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+        echo "🎉 Created PR: $PR_URL"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 🔄 Update Existing PR
+      if: steps.pr_check.outputs.pr_exists == 'true'
+      run: |
+        gh pr edit ${{ steps.pr_check.outputs.existing_pr_number }} \
+          --title "${{ steps.pr_content.outputs.pr_title }}" \
+          --body-file PR_BODY.md
+
+        echo "🔄 Updated existing PR: #${{ steps.pr_check.outputs.existing_pr_number }}"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 🏷️ Add Additional Labels
+      if: steps.pr_check.outputs.pr_exists == 'false'
+      run: |
+        PR_NUMBER=${{ steps.create_pr.outputs.pr_number }}
+
+        # 태그 타입에 따른 추가 라벨
+        case "${{ steps.tag_info.outputs.tag_type }}" in
+          "version")
+            gh pr edit $PR_NUMBER --add-label "release,version-bump"
+            ;;
+          "release")
+            gh pr edit $PR_NUMBER --add-label "release,needs-review"
+            ;;
+          "feature")
+            gh pr edit $PR_NUMBER --add-label "enhancement,feature"
+            ;;
+        esac
+
+        # 크기 라벨 추가
+        CHANGED_FILES=$(git diff --name-only main...)
+        FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l)
+
+        if [ $FILE_COUNT -lt 5 ]; then
+          gh pr edit $PR_NUMBER --add-label "size/S"
+        elif [ $FILE_COUNT -lt 15 ]; then
+          gh pr edit $PR_NUMBER --add-label "size/M"
+        else
+          gh pr edit $PR_NUMBER --add-label "size/L"
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 📢 Post Summary
+      run: |
+        cat >> $GITHUB_STEP_SUMMARY << EOF
+        ## 🎉 Auto PR Created from Tag
+
+        ### 📋 Summary
+        - **Tag**: \`${{ steps.tag_info.outputs.tag_name }}\`
+        - **Branch**: \`${{ steps.tag_info.outputs.branch_name }}\`
+        - **PR Type**: ${{ steps.tag_info.outputs.pr_type }}
+        - **Status**: ${PR_STATUS}
+
+        ### 🔗 Links
+        ${PR_LINK}
+
+        ### 📈 Next Steps
+        1. Review the automatically generated changelog
+        2. Update the PR description if needed
+        3. Request reviews from team members
+        4. Merge when ready!
+
+        ### 🏷️ Supported Tag Formats
+        - **Version Tags**: \`3.0.0\`, \`v3.1.5\`, \`1.2.3-beta1\`
+        - **Release Tags**: \`release-3.4.0\`
+        - **Feature Tags**: \`pr-new-feature\`
+
+        ---
+        🤖 *Auto-generated by WeaveDI Tag-to-PR Bot*
+        EOF
+
+        if [ "${{ steps.pr_check.outputs.pr_exists }}" == "false" ]; then
+          PR_STATUS="✅ New PR Created"
+          PR_LINK="- **PR**: [${{ steps.pr_content.outputs.pr_title }}](${{ steps.create_pr.outputs.pr_url }})"
+        else
+          PR_STATUS="🔄 Existing PR Updated"
+          PR_LINK="- **PR**: [#${{ steps.pr_check.outputs.existing_pr_number }}](https://github.com/${{ github.repository }}/pull/${{ steps.pr_check.outputs.existing_pr_number }})"
+        fi
+
+    - name: 🧹 Cleanup
+      run: |
+        rm -f changelog_raw.txt CHANGELOG_EXCERPT.md RELEASE_NOTES.md PR_BODY.md
+        echo "🧹 Cleaned up temporary files"
