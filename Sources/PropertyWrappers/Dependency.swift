@@ -97,6 +97,19 @@ public struct InjectedValues: Sendable {
 private extension InjectedValues {
   static func resolveDefaultValue<Key: InjectedKey>(for key: Key.Type) -> Key.Value where Key.Value: Sendable {
     switch WeaveDIConfiguration.defaultInjectedEnvironment {
+    case .automatic:
+#if canImport(XCTest)
+      if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        return Key.testValue
+      }
+#endif
+
+#if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
+      if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+        return Key.previewValue
+      }
+#endif
+      return Key.liveValue
     case .live:
       return Key.liveValue
     case .test:

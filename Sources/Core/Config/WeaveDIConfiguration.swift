@@ -7,11 +7,7 @@ private struct WeaveDIConfigState {
   var registryAutoHealthCheckEnabled: Bool = true
   var registryAutoFixEnabled: Bool = true
   var registryHealthLoggingEnabled: Bool = false
-  #if canImport(XCTest)
-  var injectedEnvironment: InjectedEnvironment = .test
-  #else
-  var injectedEnvironment: InjectedEnvironment = .live
-  #endif
+  var injectedEnvironment: InjectedEnvironment = .automatic
 }
 
 private final class ConfigStorage: @unchecked Sendable {
@@ -33,6 +29,7 @@ public enum WeaveDIConfiguration {
   private static let storage = ConfigStorage()
 
   public enum InjectedEnvironment {
+    case automatic
     case live
     case test
     case preview
@@ -99,7 +96,8 @@ public enum WeaveDIConfiguration {
     verboseKey: String = "WEAVEDI_VERBOSE_LOGGING",
     registryHealthKey: String = "WEAVEDI_REGISTRY_AUTO_HEALTH",
     registryFixKey: String = "WEAVEDI_REGISTRY_AUTO_FIX",
-    registryLogKey: String = "WEAVEDI_REGISTRY_HEALTH_LOGGING"
+    registryLogKey: String = "WEAVEDI_REGISTRY_HEALTH_LOGGING",
+    injectedEnvKey: String = "WEAVEDI_INJECTED_ENV"
   ) {
     let env = ProcessInfo.processInfo.environment
 
@@ -125,6 +123,21 @@ public enum WeaveDIConfiguration {
 
     if let value = env[registryLogKey] {
       enableRegistryHealthLogging = parseBool(value, defaultValue: enableRegistryHealthLogging)
+    }
+
+    if let value = env[injectedEnvKey]?.lowercased() {
+      switch value {
+      case "automatic":
+        defaultInjectedEnvironment = .automatic
+      case "live":
+        defaultInjectedEnvironment = .live
+      case "test":
+        defaultInjectedEnvironment = .test
+      case "preview":
+        defaultInjectedEnvironment = .preview
+      default:
+        break
+      }
     }
   }
 
