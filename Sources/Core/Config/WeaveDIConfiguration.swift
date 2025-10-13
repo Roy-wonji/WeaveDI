@@ -7,6 +7,11 @@ private struct WeaveDIConfigState {
   var registryAutoHealthCheckEnabled: Bool = true
   var registryAutoFixEnabled: Bool = true
   var registryHealthLoggingEnabled: Bool = false
+  #if canImport(XCTest)
+  var injectedEnvironment: InjectedEnvironment = .test
+  #else
+  var injectedEnvironment: InjectedEnvironment = .live
+  #endif
 }
 
 private final class ConfigStorage: @unchecked Sendable {
@@ -26,6 +31,12 @@ private final class ConfigStorage: @unchecked Sendable {
 
 public enum WeaveDIConfiguration {
   private static let storage = ConfigStorage()
+
+  public enum InjectedEnvironment {
+    case live
+    case test
+    case preview
+  }
 
   public static var enableOptimizerTracking: Bool {
     get { storage.withLock { $0.optimizerEnabled } }
@@ -75,6 +86,11 @@ public enum WeaveDIConfiguration {
   public static var enableRegistryHealthLogging: Bool {
     get { storage.withLock { $0.registryHealthLoggingEnabled } }
     set { storage.withLock { $0.registryHealthLoggingEnabled = newValue } }
+  }
+
+  public static var defaultInjectedEnvironment: InjectedEnvironment {
+    get { storage.withLock { $0.injectedEnvironment } }
+    set { storage.withLock { $0.injectedEnvironment = newValue } }
   }
 
   public static func applyFromEnvironment(
