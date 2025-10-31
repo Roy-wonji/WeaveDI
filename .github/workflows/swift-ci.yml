@@ -46,12 +46,51 @@ jobs:
 
     - name: 📊 Generate Coverage Report
       run: |
-        CODECOV_PROFILE=$(swift test --show-codecov-path)
+        CODECOV_PATH=$(swift test --show-codecov-path 2>/dev/null || true)
         TEST_BIN_PATH=$(swift build --show-bin-path)
-        echo "Using coverage data at $CODECOV_PROFILE"
+        echo "swift test reported coverage path: $CODECOV_PATH"
+        echo "Test products directory: $TEST_BIN_PATH"
+
+        PROFILE_PATH=""
+        if [ -n "$CODECOV_PATH" ] && [ -f "$CODECOV_PATH" ]; then
+          case "$CODECOV_PATH" in
+            *.profdata)
+              PROFILE_PATH=$CODECOV_PATH
+              ;;
+            *)
+              echo "Reported coverage artifact is not a .profdata file; rebuilding from raw data."
+              ;;
+          esac
+        fi
+
+        if [ -z "$PROFILE_PATH" ]; then
+          echo "Preparing coverage profile via llvm-profdata merge..."
+          PROFRAW_FILES=$(find .build -name '*.profraw' -print)
+
+          if [ -z "$PROFRAW_FILES" ]; then
+            echo "::error::No .profraw files found after running tests."
+            exit 1
+          fi
+
+          echo "Merging the following .profraw files:"
+          echo "$PROFRAW_FILES"
+          mkdir -p .build/codecov
+          xcrun llvm-profdata merge -sparse $PROFRAW_FILES -o .build/codecov/coverage.profdata
+          PROFILE_PATH=.build/codecov/coverage.profdata
+        fi
+
+        TEST_EXECUTABLE=$(find "$TEST_BIN_PATH" -type f -name 'WeaveDIPackageTests' -perm -111 -print | head -n1)
+
+        if [ ! -f "$TEST_EXECUTABLE" ]; then
+          echo "::error::Unable to locate test executable under $TEST_BIN_PATH"
+          exit 1
+        fi
+
+        echo "Using coverage profile $PROFILE_PATH"
+        echo "Using test bundle $TEST_EXECUTABLE"
         xcrun llvm-cov export -format="lcov" \
-          "$TEST_BIN_PATH/WeaveDIPackageTests.xctest/Contents/MacOS/WeaveDIPackageTests" \
-          -instr-profile "$CODECOV_PROFILE" > coverage.lcov
+          "$TEST_EXECUTABLE" \
+          -instr-profile "$PROFILE_PATH" > coverage.lcov
 
     - name: 📤 Upload Coverage to Codecov
       uses: codecov/codecov-action@v3
