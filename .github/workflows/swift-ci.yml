@@ -47,7 +47,7 @@ jobs:
     - name: 📊 Generate Coverage Report
       run: |
         CODECOV_PROFILE=$(swift test --show-codecov-path)
-        TEST_BIN_PATH=$(swift test --show-bin-path)
+        TEST_BIN_PATH=$(swift build --show-bin-path)
         echo "Using coverage data at $CODECOV_PROFILE"
         xcrun llvm-cov export -format="lcov" \
           "$TEST_BIN_PATH/WeaveDIPackageTests.xctest/Contents/MacOS/WeaveDIPackageTests" \
