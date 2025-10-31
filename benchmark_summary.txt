@@ -1,0 +1,13 @@
+🚀 WeaveDI Benchmark Suite
+📊 Running Performance Benchmarks
+🚀 Starting WeaveDI Performance Benchmarks
+📊 Single Dependency Resolution:
+📊 Complex Dependency Graph:
+📊 Concurrent Resolution:
+📊 Memory Efficiency:
+📊 Auto DI Optimizer:
+📊 Property Wrapper (@Injected):
+📊 Results exported to: benchmark_results.json
+📊 Total operations: 300000
+⏱️ Total time: 1.85s
+🚀 Average throughput: 536712 ops/sec

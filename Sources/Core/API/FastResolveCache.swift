@@ -4,6 +4,10 @@ import Foundation
 
 /// ⚡ 초고속 의존성 해결 캐시 시스템
 /// Needle보다 10배 빠른 성능을 제공하는 핵심 캐시 레이어입니다.
+///
+/// Invariants:
+/// - 모든 `storage` 접근은 `lock`으로 직렬화되어야 한다.
+/// - 저장되는 값은 `Sendable`이어야 하며, 호출 측에서 제약을 검증한다.
 @usableFromInline
 internal final class FastResolveCache: @unchecked Sendable {
 
@@ -134,4 +138,3 @@ public extension UnifiedDI {
   }
 }
 #endif
-

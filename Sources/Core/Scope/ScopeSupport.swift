@@ -39,6 +39,10 @@ public struct ScopedTypeKey: Hashable, Sendable {
 
 /// 현재 스코프 ID를 관리하는 컨텍스트
 /// 간단한 동기화 큐로 안전하게 관리합니다.
+///
+/// Invariants:
+/// - `current` 딕셔너리는 `syncQueue` barrier 구문을 통해서만 변경된다.
+/// - 읽기는 concurrent 큐의 `sync`로만 수행한다.
 public final class ScopeContext: @unchecked Sendable {
   public static let shared = ScopeContext()
   
@@ -63,4 +67,3 @@ public final class ScopeContext: @unchecked Sendable {
     syncQueue.sync { current[kind] }
   }
 }
-

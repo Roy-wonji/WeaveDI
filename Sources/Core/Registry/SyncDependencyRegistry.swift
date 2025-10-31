@@ -9,6 +9,10 @@ import Foundation
 
 /// Thread-safe synchronous registry that keeps local dependency snapshots.
 ///
+/// Invariants:
+/// - 모든 쓰기 작업은 `queue.syncBarrier` 경유로 직렬화된다.
+/// - 저장된 엔트리는 `Sendable` 값 또는 `@Sendable` 팩토리여야 한다.
+///
 /// This registry backs the synchronous DI APIs so they no longer need to hop
 /// to the actor-backed `UnifiedRegistry`. Each `DIContainer` owns an instance
 /// and mirrors writes to the async registry in the background.

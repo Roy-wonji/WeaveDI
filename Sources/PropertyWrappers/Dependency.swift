@@ -123,8 +123,8 @@ private extension InjectedValues {
 // MARK: - AnySendable
 
 /// Sendable wrapper for storage
-private struct AnySendable: @unchecked Sendable {
-  let value: Any
+private struct AnySendable: Sendable {
+  let value: any Sendable
 
   init<T: Sendable>(_ value: T) {
     self.value = value

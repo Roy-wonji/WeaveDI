@@ -10,6 +10,8 @@ private struct WeaveDIConfigState {
   var injectedEnvironment: WeaveDIConfiguration.InjectedEnvironment = .automatic
 }
 
+/// Invariants: 모든 상태 접근은 `withLock`을 통해 수행되어야 하며, 해당 메서드는 내부
+/// `NSLock`으로 직렬화된다.
 private final class ConfigStorage: @unchecked Sendable {
   private var state: WeaveDIConfigState
   private let lock = NSLock()

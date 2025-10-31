@@ -49,9 +49,12 @@ jobs:
 
     - name: 📊 Generate Coverage Report
       run: |
+        CODECOV_PROFILE=$(swift test --show-codecov-path)
+        TEST_BIN_PATH=$(swift test --show-bin-path)
+        echo "Using coverage data at $CODECOV_PROFILE"
         xcrun llvm-cov export -format="lcov" \
-          .build/debug/WeaveDIPackageTests.xctest/Contents/MacOS/WeaveDIPackageTests \
-          -instr-profile .build/debug/codecov/default.profdata > coverage.lcov
+          "$TEST_BIN_PATH/WeaveDIPackageTests.xctest/Contents/MacOS/WeaveDIPackageTests" \
+          -instr-profile "$CODECOV_PROFILE" > coverage.lcov
 
     - name: 📤 Upload Coverage to Codecov
       uses: codecov/codecov-action@v3

@@ -22,7 +22,7 @@ public enum DIAsync {
   public static func register<T>(
     _ type: T.Type,
     factory: @Sendable @escaping () async -> T
-  ) async {
+  ) async where T: Sendable {
     await registry.register(type, factory: factory)
   }
   
@@ -92,7 +92,7 @@ public enum DIAsync {
     condition: Bool,
     factory: @Sendable @escaping () async -> T,
     fallback: @Sendable @escaping () async -> T
-  ) async {
+  ) async where T: Sendable {
     if condition {
       await register(type, factory: factory)
     } else {
@@ -158,7 +158,7 @@ public struct DIAsyncRegistrationBuilder {
 public struct DIAsyncRegistration: Sendable {
   private let action: @Sendable () async -> Void
   
-  public init<T>(_ type: T.Type, factory: @Sendable @escaping () async -> T) {
+  public init<T>(_ type: T.Type, factory: @Sendable @escaping () async -> T) where T: Sendable {
     self.action = { @Sendable in await DIAsync.register(type, factory: factory) }
   }
   
@@ -166,7 +166,7 @@ public struct DIAsyncRegistration: Sendable {
   public init<T>(
     _ keyPath: KeyPath<WeaveDI.Container, T?>,
     factory: @Sendable @escaping () async -> T
-  ) {
+  ) where T: Sendable {
     // Work around KeyPath not being Sendable - capture type instead
     let type = T.self
     self.action = { @Sendable in await DIAsync.register(type, factory: factory) }

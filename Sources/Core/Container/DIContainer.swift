@@ -43,6 +43,10 @@ public actor DIContainerActor {
 /// - **원자적 교체**: 컨테이너 전체를 한 번에 교체
 /// - **테스트 지원**: 테스트 간 격리 보장
 /// - **Swift 6 동시성**: 기존 API는 동기, Actor API는 자동 생성
+///
+/// Invariants for `@unchecked Sendable`:
+/// - 모든 공유 상태는 `syncRegistry` 또는 전용 GCD 큐/락을 통해서만 접근한다.
+/// - `pendingRegistryTasks` 수정은 `pendingTasksQueue`의 barrier 블록 안에서만 수행한다.
 public final class DIContainer: ObservableObject, @unchecked Sendable {
 
   // MARK: - Properties
@@ -438,6 +442,7 @@ public func build() async {
 
 private extension DIContainer {
 
+  /// Invariant: `operations`는 생성된 TaskLocal 컨텍스트 내에서 단일 스레드로만 변이된다.
   final class RegistrationBatchContext: @unchecked Sendable {
     var operations: [@Sendable (UnifiedRegistry) async -> Void] = []
   }

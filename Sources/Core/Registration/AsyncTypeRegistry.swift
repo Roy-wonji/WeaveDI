@@ -14,9 +14,11 @@ import LogMacro
 /// Stores async factories without using GCD/locks.
 public actor AsyncTypeRegistry {
   // Type-erased, sendable box to safely move values across concurrency domains
-  public struct AnySendableBox: @unchecked Sendable {
-    public let value: Any
-    public init(_ v: Any) { self.value = v }
+  /// Invariant: values inserted must conform to `Sendable`; enforced by the
+  /// `where T: Sendable` constraint on the exposed APIs.
+  public struct AnySendableBox: Sendable {
+    public let value: any Sendable
+    public init(_ v: any Sendable) { self.value = v }
   }
 
   private var asyncFactories: [AnyTypeIdentifier: (@Sendable () async -> AnySendableBox)] = [:]
@@ -29,7 +31,7 @@ public actor AsyncTypeRegistry {
   public func register<T>(
     _ type: T.Type,
     factory: @Sendable @escaping () async -> T
-  ) {
+  ) where T: Sendable {
     let key = AnyTypeIdentifier(type: type)
     asyncFactories[key] = { AnySendableBox(await factory()) }
   }
@@ -38,7 +40,7 @@ public actor AsyncTypeRegistry {
   // MARK: Resolve
 
   /// Resolve a type and return a sendable box
-  public func resolveBox<T>(_ type: T.Type) async -> AnySendableBox? {
+  public func resolveBox<T>(_ type: T.Type) async -> AnySendableBox? where T: Sendable {
     let key = AnyTypeIdentifier(type: type)
     if let maker = asyncFactories[key] {
       let box = await maker()
@@ -51,7 +53,7 @@ public actor AsyncTypeRegistry {
   // MARK: Maintenance
 
   /// Release a registration (factory)
-  public func release<T>(_ type: T.Type) {
+  public func release<T>(_ type: T.Type) where T: Sendable {
     let key = AnyTypeIdentifier(type: type)
     asyncFactories[key] = nil
   }
