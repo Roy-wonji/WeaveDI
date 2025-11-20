@@ -34,7 +34,7 @@ let package = Package(
           url: "https://github.com/apple/swift-syntax.git", from: "600.0.0"),
         .package(
           url: "https://github.com/pointfreeco/swift-dependencies.git",
-          from: "1.2.0"
+          from: "1.10.0"
         ),
     ],
     targets: [
