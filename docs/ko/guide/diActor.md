@@ -440,6 +440,7 @@ public final class AppDIContainer {
 
     public func setupDependencies() async {
         // 모든 연산이 Actor로 격리됨
+        await registerDi()
         await registerRepositories()
         await registerUseCases()
         await registerServices()

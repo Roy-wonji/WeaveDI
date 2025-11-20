@@ -182,6 +182,26 @@ await WeaveDI.Container.bootstrapMixed(
 )
 ```
 
+#### 자동 등록 훅 (`registerDi` 포함)
+
+`WeaveDI.Container.registerAllDependencies()`는 `registerDi()`, `registerRepositories()`, `registerUseCases()`를 순서대로 호출합니다. 프로젝트에서 이 세 확장 포인트를 구현해 부트스트랩 구성을 한곳에 모으세요:
+
+```swift
+extension WeaveDI.Container {
+    static func registerDi() async {
+        // 공통 인프라 (예: 로거, 설정)
+    }
+
+    static func registerRepositories() async {
+        // 데이터 레이어 모듈
+    }
+
+    static func registerUseCases() async {
+        // 도메인/유스케이스 모듈
+    }
+}
+```
+
 #### 2. 부모-자식 컨테이너 아키텍처
 
 ```swift

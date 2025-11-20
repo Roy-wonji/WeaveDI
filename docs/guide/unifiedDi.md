@@ -182,6 +182,26 @@ await WeaveDI.Container.bootstrapMixed(
 )
 ```
 
+#### Auto Registration Hook (`registerDi` + convention)
+
+`WeaveDI.Container.registerAllDependencies()` calls three extension points in order: `registerDi()`, `registerRepositories()`, and `registerUseCases()`. Provide these stubs in your project to centralize bootstrap wiring:
+
+```swift
+extension WeaveDI.Container {
+    static func registerDi() async {
+        // Common infra (e.g., logger, config)
+    }
+
+    static func registerRepositories() async {
+        // Data-layer modules
+    }
+
+    static func registerUseCases() async {
+        // Domain/use-case modules
+    }
+}
+```
+
 #### 2. Parent-Child Container Architecture
 
 ```swift
