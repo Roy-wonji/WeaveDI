@@ -221,6 +221,7 @@ public final actor AppDIManager {
   
   /// 기본 Factory들을 DI 컨테이너에 등록합니다.
   nonisolated private func setupDefaultFactories() {
+    WeaveDI.Container.live.register(DiModuleFactory.self, instance: DiModuleFactory())
     // Repository Factory 등록
     WeaveDI.Container.live.register(RepositoryModuleFactory.self, instance: RepositoryModuleFactory())
     
@@ -232,6 +233,8 @@ public final actor AppDIManager {
     
     // 통합 Factory Manager 등록
     WeaveDI.Container.live.register(ModuleFactoryManager.self, instance: ModuleFactoryManager())
+
+
   }
   
   /// 내부적으로 모듈 등록과 빌드를 수행하는 ``Container`` 인스턴스입니다.

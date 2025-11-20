@@ -100,10 +100,31 @@ public struct ScopeModuleFactory: ModuleFactory, Sendable {
   }
 }
 
+/// 공통 DI 의존성을 담는 팩토리 (예: Logger, Config 등)
+public struct DiModuleFactory: ModuleFactory, Sendable {
+  public let registerModule = RegisterModule()
+  public var definitions: [@Sendable () -> Module] = []
+  
+  public init() {}
+  
+  /// Di 의존성을 추가하는 헬퍼
+  public mutating func addDependency<T>(
+    _ type: T.Type,
+    factory: @Sendable @escaping () -> T
+  ) where T: Sendable {
+    let helper = registerModule
+    let closure: @Sendable () -> Module = {
+      helper.makeModule(type, factory: factory)
+    }
+    definitions.append(closure)
+  }
+}
+
 // MARK: - Factory Manager
 
 /// 여러 팩토리를 한 번에 관리하는 매니저
 public struct ModuleFactoryManager: Sendable {
+  public var diFactory = DiModuleFactory()
   public var repositoryFactory = RepositoryModuleFactory()
   public var useCaseFactory = UseCaseModuleFactory()
   public var scopeFactory = ScopeModuleFactory()
@@ -113,6 +134,7 @@ public struct ModuleFactoryManager: Sendable {
   /// 모든 팩토리의 모듈을 한 번에 생성
   public func makeAllModules() -> [Module] {
     var allModules: [Module] = []
+    allModules.append(contentsOf: diFactory.makeAllModules())
     allModules.append(contentsOf: repositoryFactory.makeAllModules())
     allModules.append(contentsOf: useCaseFactory.makeAllModules())
     allModules.append(contentsOf: scopeFactory.makeAllModules())
@@ -140,8 +162,17 @@ public struct ModuleFactoryManager: Sendable {
     // 1️⃣ WeaveDI.Container.registerAllDependencies() 자동 호출
     await WeaveDI.Container.registerAllDependencies()
     #logInfo("✅ WeaveDI.Container.registerAllDependencies() 호출 완료")
+
+    // 2️⃣ DI 기본 모듈 등록 (있으면)
+    let diModules = self.diFactory.makeAllModules()
+    if !diModules.isEmpty {
+      for module in diModules {
+        await container.register(module)
+      }
+      #logInfo("✅ DI 모듈 \(diModules.count)개 등록")
+    }
     
-    // 2️⃣ Repository 모듈들 등록 (있으면)
+    // 3️⃣ Repository 모듈들 등록 (있으면)
     let repositoryModules = self.repositoryFactory.makeAllModules()
     if !repositoryModules.isEmpty {
       for module in repositoryModules {
@@ -150,7 +181,7 @@ public struct ModuleFactoryManager: Sendable {
       #logInfo("✅ Repository 모듈 \(repositoryModules.count)개 등록")
     }
     
-    // 3️⃣ UseCase 모듈들 등록 (있으면)
+    // 4️⃣ UseCase 모듈들 등록 (있으면)
     let useCaseModules = self.useCaseFactory.makeAllModules()
     if !useCaseModules.isEmpty {
       for module in useCaseModules {
@@ -159,7 +190,7 @@ public struct ModuleFactoryManager: Sendable {
       #logInfo("✅ UseCase 모듈 \(useCaseModules.count)개 등록")
     }
     
-    // 4️⃣ Scope 모듈들 등록 (있으면)
+    // 5️⃣ Scope 모듈들 등록 (있으면)
     let scopeModules = self.scopeFactory.makeAllModules()
     if !scopeModules.isEmpty {
       for module in scopeModules {
