@@ -285,7 +285,7 @@ await withTaskGroup(of: Void.self) { group in
 }
 
 // 자동 로그 (5회 이상 hop 발생 시):
-// 🎯 Actor optimization suggestion for UserService: MainActor로 이동 권장
+//  Actor optimization suggestion for UserService: MainActor로 이동 권장
 ```
 
 ### 🔒 자동 타입 안전성 검증
@@ -295,8 +295,8 @@ await withTaskGroup(of: Void.self) { group in
 let service = UnifiedDI.resolve(UserService.self)
 
 // 자동 로그 (문제 감지 시):
-// 🔒 Type safety issue: UserService is not Sendable
-// 🚨 Auto safety check: UserService resolved to nil
+//  Type safety issue: UserService is not Sendable
+//  Auto safety check: UserService resolved to nil
 ```
 
 ### ⚡ 자동 성능 최적화
@@ -503,11 +503,11 @@ python3 Scripts/plot_bench.py --csv bench.csv --out bench_plot
 | 특징 | Needle | WeaveDI | 결과 |
 |------|--------|---------|------|
 | **컴파일타임 안전성** | ✅ 코드 생성 | ✅ 매크로 기반 | **동등** |
-| **런타임 성능** | ✅ 제로 코스트 | ✅ 제로 코스트 + Actor 최적화 | **WeaveDI 우승** |
-| **Swift 6 지원** | ⚠️ 제한적 | ✅ 완벽 네이티브 | **WeaveDI 우승** |
-| **코드 생성 필요** | ❌ 필수 | ✅ 선택적 | **WeaveDI 우승** |
-| **학습 곡선** | ❌ 가파름 | ✅ 점진적 | **WeaveDI 우승** |
-| **마이그레이션** | ❌ All-or-nothing | ✅ 점진적 | **WeaveDI 우승** |
+| **런타임 성능** | ✅ 제로 코스트 | ✅ 제로 코스트 + Actor 최적화 | **WeaveDI 우수** |
+| **Swift 6 지원** | ⚠️ 제한적 | ✅ 완벽 네이티브 | **WeaveDI 우수** |
+| **코드 생성 필요** | ❌ 필수 | ✅ 선택적 | **WeaveDI 우수** |
+| **학습 곡선** | ❌ 가파름 | ✅ 점진적 | **WeaveDI 우수** |
+| **마이그레이션** | ❌ All-or-nothing | ✅ 점진적 | **WeaveDI 우수** |
 
 ```swift
 // Needle 수준 성능 + 더 쉬운 사용법
