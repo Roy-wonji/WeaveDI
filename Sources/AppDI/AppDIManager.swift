@@ -267,9 +267,6 @@ public final actor AppDIManager {
       Task {
         await container.performBatchRegistration { batchContainer in
           await registerModules(batchContainer)
-          Task {
-            await WeaveDI.Container.registerDi()
-          }
         }
         await container {
           // 빈 클로저: callAsFunction() 체이닝을 위해 사용
