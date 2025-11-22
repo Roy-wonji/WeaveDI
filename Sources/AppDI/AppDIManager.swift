@@ -266,6 +266,7 @@ public final actor AppDIManager {
     await withCheckedContinuation { continuation in
       Task {
         await container.performBatchRegistration { batchContainer in
+          await WeaveDI.Container.registerDi()
           await registerModules(batchContainer)
         }
         await container {
