@@ -1,0 +1,232 @@
+import Foundation
+import WeaveDICore
+
+// MARK: - Auto DI Features & Diagnostics
+
+public extension UnifiedDI {
+  /// 최적화 설정을 간편하게 조정합니다.
+  static func configureOptimization(
+    debounceMs: Int = 100,
+    threshold: Int = 10,
+    realTimeUpdate: Bool = true
+  ) {
+    Task { @DIActor in
+      AutoDIOptimizer.shared.updateConfig("threshold: \(threshold), realTime: \(realTimeUpdate)")
+      AutoDIOptimizer.shared.setDebounceInterval(ms: debounceMs)
+    }
+  }
+
+  /// 그래프 변경 히스토리를 가져옵니다.
+  static func getGraphChanges(limit: Int = 10) async -> [(timestamp: Date, changes: [String: NodeChangeType])] {
+    let deps = Array(AutoDIOptimizer.readSnapshot().dependencies.prefix(limit))
+    let now = Date()
+    return deps.enumerated().map { index, dep in
+      (timestamp: now.addingTimeInterval(-Double(index) * 60),
+       changes: [dep.from: NodeChangeType(change: "added dependency to \(dep.to)")])
+    }
+  }
+
+  /// 자동 생성된 의존성 그래프를 시각화합니다.
+  static func autoGraph() -> String {
+    AutoDIOptimizer.readSnapshot().graphText
+  }
+
+  /// 자동 최적화된 타입들을 반환합니다.
+  static func optimizedTypes() -> Set<String> {
+    AutoDIOptimizer.getFrequentlyUsedTypes()
+  }
+
+  /// 자동 감지된 순환 의존성을 반환합니다.
+  static func circularDependencies() -> Set<String> {
+    AutoDIOptimizer.getDetectedCircularDependencies()
+  }
+
+  /// 자동 수집된 성능 통계를 반환합니다.
+  static func stats() -> [String: Int] {
+    AutoDIOptimizer.getCurrentStats()
+  }
+
+  /// 특정 타입이 자동 최적화되었는지 확인합니다.
+  static func isOptimized<T>(_ type: T.Type) -> Bool {
+    let stats = AutoDIOptimizer.getCurrentStats()
+    return (stats[String(describing: type)] ?? 0) >= 5
+  }
+
+  /// 자동 최적화 기능을 제어합니다.
+  static func setAutoOptimization(_ enabled: Bool = true) {
+    Task { @DIActor in AutoDIOptimizer.shared.setOptimizationEnabled(enabled) }
+  }
+
+  /// 자동 수집된 통계를 초기화합니다.
+  static func resetStats() {
+    Task { @DIActor in AutoDIOptimizer.shared.resetStats() }
+  }
+
+  /// AutoDIOptimizer의 로깅 레벨을 설정합니다.
+  static func setAutoOptimizerLogLevel(_ level: OptimizerLogLevel) {
+    let mapped: AutoDIOptimizer.LogLevel
+    switch level {
+    case .all: mapped = .all
+    case .registration: mapped = .registration
+    case .optimization: mapped = .optimization
+    case .errors: mapped = .errors
+    case .off: mapped = .off
+    }
+    Task { @DIActor in
+      AutoDIOptimizer.shared.setLogLevel(mapped)
+    }
+  }
+
+  /// 현재 로깅 레벨을 반환합니다 (비동기).
+  static func getLogLevel() async -> OptimizerLogLevel {
+    mapLogLevel(DILogger.getCurrentLogLevel())
+  }
+
+  /// 현재 로깅 레벨(동기 스냅샷).
+  static var logLevel: OptimizerLogLevel {
+    mapLogLevel(DILogger.getCurrentLogLevel())
+  }
+
+  /// 자동 Actor 최적화 제안.
+  static var actorOptimizations: [String: ActorOptimization] {
+    get async {
+      let regs = AutoDIOptimizer.readSnapshot().registered
+      var out: [String: ActorOptimization] = [:]
+      for type in regs where type.contains("Actor") {
+        out[type] = ActorOptimization(suggestion: "Actor 타입 감지됨")
+      }
+      return out
+    }
+  }
+
+  /// 타입 안전성 이슈 목록.
+  static var typeSafetyIssues: [String: TypeSafetyIssue] {
+    get async {
+      let regs = AutoDIOptimizer.readSnapshot().registered
+      var issues: [String: TypeSafetyIssue] = [:]
+      for type in regs where type.contains("Unsafe") {
+        issues[type] = TypeSafetyIssue(issue: "Unsafe 타입 사용 감지")
+      }
+      return issues
+    }
+  }
+
+  /// 사용 빈도 상위 타입.
+  static var autoFixedTypes: Set<String> {
+    get async {
+      let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
+      return Set(freq.sorted { $0.value > $1.value }.prefix(3).map { $0.key })
+    }
+  }
+
+  /// Actor hop 통계.
+  static var actorHopStats: [String: Int] {
+    get async {
+      let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
+      return freq.filter { $0.key.contains("Actor") }
+    }
+  }
+
+  /// 비동기 성능 통계.
+
+
+  static func staticResolve<T>(_ type: T.Type) -> T? where T: Sendable {
+#if USE_STATIC_FACTORY
+    return _staticFactoryResolve(type)
+#else
+    return resolve(type)
+#endif
+  }
+
+#if USE_STATIC_FACTORY
+  private static func _staticFactoryResolve<T>(_ type: T.Type) -> T? {
+    return UnifiedDI.resolve(type)
+  }
+#endif
+
+
+  static func registerBulkAsync<T: Sendable>(_ registrations: [(T.Type, @Sendable () async -> T)]) async {
+    await withTaskGroup(of: Void.self) { group in
+      for (type, factory) in registrations {
+        group.addTask {
+          _ = await registerAsync(type, factory: factory)
+        }
+      }
+    }
+    DILogger.info(channel: .registration, "🚀 Bulk registered \(registrations.count) dependencies")
+  }
+
+
+  static func getMemoryUsageAsync() async -> (registeredCount: Int, singletonCount: Int) {
+    return (registeredCount: 0, singletonCount: 0)
+  }
+
+  static func clearAsync() async {
+    DILogger.info("🧹 UnifiedDI async clear completed")
+  }
+
+  static var asyncPerformanceStats: [String: Double] {
+    get async {
+      let freq = AutoDIOptimizer.readSnapshot().frequentlyUsed
+      var stats: [String: Double] = [:]
+      for (type, count) in freq where type.lowercased().contains("async") {
+        stats[type] = Double(count) * 0.1
+      }
+      return stats
+    }
+  }
+
+  /// 모니터링 상태 초기화.
+  static func resetMonitoring() async {
+    await AutoDIOptimizer.shared.reset()
+    await AutoMonitor.shared.reset()
+  }
+
+  /// 레지스트리 동기화 상태 검증.
+  static func verifyRegistryHealth() async -> RegistrySyncReport {
+    await UnifiedRegistry.shared.verifyRegistrySync()
+  }
+
+  /// 레지스트리 자동 복구.
+  static func autoFixRegistry() async -> RegistryFixReport {
+    await UnifiedRegistry.shared.attemptRegistryAutoFix()
+  }
+
+  /// 레지스트리 건강성 점수.
+  static func getRegistryHealthScore() async -> Double {
+    let report = await UnifiedRegistry.shared.verifyRegistrySync()
+    return report.healthScore
+  }
+
+  /// 레지스트리 상태 요약 출력.
+  static func printRegistryStatus() async {
+    let report = await verifyRegistryHealth()
+    DILogger.info("📊 WeaveDI Registry Status:")
+    DILogger.info(report.summary)
+
+    if report.healthScore < 90.0 {
+      DILogger.info("💡 Suggestions:")
+      if !report.factoryInconsistencies.isEmpty {
+        DILogger.info(channel: .registration, "  • Fix duplicate registrations: \(report.factoryInconsistencies.joined(separator: ", "))")
+      }
+      if !report.optimizationStats.isEnabled && report.totalRegistrations > 5 {
+        DILogger.info(channel: .optimization, "  • Consider enabling optimization: GlobalUnifiedRegistry.enableOptimization()")
+      }
+    } else {
+      DILogger.info(channel: .health, "✅ Registry is in excellent health!")
+    }
+  }
+}
+
+private extension UnifiedDI {
+  static func mapLogLevel(_ level: DILogLevel) -> OptimizerLogLevel {
+    switch level {
+    case .all: return .all
+    case .registration: return .registration
+    case .optimization: return .optimization
+    case .health: return .errors
+    case .errorsOnly: return .errors
+    case .off: return .off
+    }
+  }
+}

@@ -14,18 +14,17 @@ let package = Package(
         .visionOS(.v1)
     ],
     products: [
-        .library(
-            name: "WeaveDI",
-            targets: ["WeaveDI"]
-        ),
-        .executable(
-            name: "Benchmarks",
-            targets: ["Benchmarks"]
-        ),
-        .executable(
-            name: "WeaveDITools",
-            targets: ["WeaveDITools"]
-        ),
+        .library(name: "WeaveDI", targets: ["WeaveDI"]),
+        .library(name: "WeaveDICore", targets: ["WeaveDICore"]),
+        .library(name: "WeaveDIMacroSupport", targets: ["WeaveDIMacroSupport"]),
+        .library(name: "WeaveDIAppDI", targets: ["WeaveDIAppDI"]),
+        .library(name: "WeaveDICompat", targets: ["WeaveDICompat"]),
+        .library(name: "WeaveDINeedleCompat", targets: ["WeaveDINeedleCompat"]),
+        .library(name: "WeaveDITCA", targets: ["WeaveDITCA"]),
+        .library(name: "WeaveDIMonitoring", targets: ["WeaveDIMonitoring"]),
+        .library(name: "WeaveDIOptimizations", targets: ["WeaveDIOptimizations"]),
+        .executable(name: "Benchmarks", targets: ["Benchmarks"]),
+        .executable(name: "WeaveDITools", targets: ["WeaveDITools"]),
     ],
     dependencies: [
         .package(url: "https://github.com/Roy-wonji/LogMacro.git", exact: "1.1.1"),
@@ -40,18 +39,29 @@ let package = Package(
     targets: [
         .target(
             name: "WeaveDI",
-            dependencies: [
-                .product(name: "LogMacro", package: "LogMacro"),
-                "WeaveDIMacros",
-                .product(name: "Dependencies", package: "swift-dependencies")
-            ],
-            path: "Sources",
-            exclude: ["Benchmarks", "WeaveDIMacros", "WeaveDITools"],
-            resources: [
-            ],
+            dependencies: ["WeaveDICore"],
+            path: "Sources/WeaveDI",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")
             ]
+        ),
+        .target(
+            name: "WeaveDICore",
+            dependencies: [
+                .product(name: "LogMacro", package: "LogMacro")
+            ],
+            path: "Sources/WeaveDICore",
+            swiftSettings: [
+                .enableUpcomingFeature("StrictConcurrency")
+            ]
+        ),
+        .target(
+            name: "WeaveDIMacroSupport",
+            dependencies: [
+                "WeaveDICore",
+                "WeaveDIMacros"
+            ],
+            path: "Sources/WeaveDIMacroSupport"
         ),
         .macro(
             name: "WeaveDIMacros",
@@ -63,6 +73,52 @@ let package = Package(
             ],
             path: "Sources/WeaveDIMacros"
         ),
+        .target(
+            name: "WeaveDIAppDI",
+            dependencies: [
+                "WeaveDICore",
+                "WeaveDIOptimizations",
+                "WeaveDIMonitoring",
+                .product(name: "LogMacro", package: "LogMacro")
+            ],
+            path: "Sources/WeaveDIAppDI"
+        ),
+        .target(
+            name: "WeaveDICompat",
+            dependencies: ["WeaveDICore"],
+            path: "Sources/WeaveDICompat"
+        ),
+        .target(
+            name: "WeaveDINeedleCompat",
+            dependencies: ["WeaveDICore"],
+            path: "Sources/WeaveDINeedleCompat"
+        ),
+        .target(
+            name: "WeaveDITCA",
+            dependencies: [
+                "WeaveDICore",
+                "WeaveDINeedleCompat",
+                .product(name: "Dependencies", package: "swift-dependencies")
+            ],
+            path: "Sources/WeaveDITCA"
+        ),
+        .target(
+            name: "WeaveDIMonitoring",
+            dependencies: [
+                "WeaveDICore",
+                "WeaveDINeedleCompat",
+                "WeaveDIOptimizations"
+            ],
+            path: "Sources/WeaveDIMonitoring"
+        ),
+        .target(
+            name: "WeaveDIOptimizations",
+            dependencies: [
+                "WeaveDICore",
+                .product(name: "LogMacro", package: "LogMacro")
+            ],
+            path: "Sources/WeaveDIOptimizations"
+        ),
         .testTarget(
             name: "WeaveDITests",
             dependencies: [
@@ -72,12 +128,18 @@ let package = Package(
         ),
         .executableTarget(
             name: "Benchmarks",
-            dependencies: ["WeaveDI"],
+            dependencies: [
+                "WeaveDI",
+                "WeaveDIOptimizations"
+            ],
             path: "Sources/Benchmarks"
         ),
         .executableTarget(
             name: "WeaveDITools",
-            dependencies: ["WeaveDI"],
+            dependencies: [
+                "WeaveDI",
+                "WeaveDINeedleCompat"
+            ],
             path: "Sources/WeaveDITools"
         ),
     ],

@@ -1,5 +1,6 @@
 import Foundation
 import WeaveDI
+import WeaveDIOptimizations
 import Darwin
 
 @main
@@ -164,7 +165,7 @@ struct Benchmarks {
                 struct Impl: Svc {}
 
                 // ③ 재사용 타입은 인스턴스 등록으로 고정
-                DIContainer.live.register(Svc.self, instance: Impl())
+                _ = UnifiedDI.register(Svc.self) { Impl() }
 
                 // 워밍업
 #if USE_STATIC_FACTORY

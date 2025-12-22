@@ -225,7 +225,7 @@ struct PerformanceBenchmarks {
         Task { @MainActor in
             UnifiedDI.releaseAll()
         }
-        DIContainer.live.register(MockService.self, factory: { SimpleService() })
+        _ = UnifiedDI.register(MockService.self) { SimpleService() }
     }
 
     private static func setupComplexDependencyGraph() {
@@ -234,22 +234,22 @@ struct PerformanceBenchmarks {
         }
 
         // 여러 의존성을 시뮬레이션하기 위해 별도 등록
-        DIContainer.live.register(MockService.self, factory: { SimpleService() })
+        _ = UnifiedDI.register(MockService.self) { SimpleService() }
 
-        DIContainer.live.register(ComplexService.self, factory: {
+        _ = UnifiedDI.register(ComplexService.self) {
             ComplexService(
                 dep1: SimpleService(),
                 dep2: SimpleService(),
                 dep3: SimpleService()
             )
-        })
+        }
     }
 
     private static func setupThreadSafeDependency() {
         Task { @MainActor in
             UnifiedDI.releaseAll()
         }
-        DIContainer.live.register(ThreadSafeService.self, factory: { ThreadSafeService() })
+        _ = UnifiedDI.register(ThreadSafeService.self) { ThreadSafeService() }
     }
 
     // MARK: - Performance Measurement

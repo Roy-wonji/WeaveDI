@@ -1,4 +1,5 @@
 import Foundation
+import WeaveDINeedleCompat
 import WeaveDI
 
 enum Command: String {
