@@ -185,8 +185,7 @@ struct PerformanceBenchmarks {
     }
 
     static func benchmarkAutoOptimizer(config: BenchmarkConfig) -> BenchmarkResult {
-        // Auto DI Optimizer 활성화
-        UnifiedDI.configureOptimization(debounceMs: 50, threshold: 10, realTimeUpdate: true)
+        // Auto DI Optimizer is simplified in v4.0 - using default behavior
         setupComplexDependencyGraph()
 
         return measurePerformance(

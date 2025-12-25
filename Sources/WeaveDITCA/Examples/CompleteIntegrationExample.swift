@@ -7,7 +7,7 @@
 
 import Foundation
 import WeaveDICore
-import WeaveDINeedleCompat
+// WeaveDINeedleCompat removed in v4.0 - simplified architecture
 
 // MARK: - 완전한 @Component + @Injected 통합 예제
 // Dependency.swift를 건드리지 않고 구현된 완벽한 솔루션

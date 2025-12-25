@@ -28,8 +28,8 @@ public enum TCABridgePolicy: String, CaseIterable, Sendable {
 /// 사용자 코드 수정을 최소화하는 스마트 동기화 시스템
 ///
 /// ## 양방향 동기화 지원:
-/// - TCA DependencyKey → WeaveDI InjectedKey ✅
-/// - WeaveDI InjectedKey → TCA DependencyKey ✅
+/// - TCA Dependencies.DependencyKey → WeaveDI InjectedKey ✅
+/// - WeaveDI InjectedKey → TCA Dependencies.DependencyKey ✅
 /// - 완전 자동 초기화 (수동 호출 불필요) ✅
 /// - 정책 기반 우선순위 설정 ✅
 public struct TCASmartSync {
@@ -61,7 +61,7 @@ public struct TCASmartSync {
         DILogger.info("   사용자 코드 수정 없이 자동으로 동기화됩니다.")
     }
 
-    /// 자동 동기화할 DependencyKey 타입들
+    /// 자동 동기화할 Dependencies.DependencyKey 타입들
     @MainActor
     private static var registeredKeys: Set<String> = []
 
@@ -69,7 +69,7 @@ public struct TCASmartSync {
     @MainActor
     private static var registeredInjectedKeys: Set<String> = []
 
-    /// 🚀 **원클릭 활성화**: 모든 TCA DependencyKey가 자동으로 WeaveDI와 동기화됩니다!
+    /// 🚀 **원클릭 활성화**: 모든 TCA Dependencies.DependencyKey가 자동으로 WeaveDI와 동기화됩니다!
     ///
     /// ## 사용법:
     /// ```swift
@@ -92,7 +92,7 @@ public struct TCASmartSync {
         installAutoSyncHook()
 
         DILogger.info("🎯 TCA ↔ WeaveDI 글로벌 자동 동기화가 활성화되었습니다!")
-        DILogger.info("   이제 모든 TCA DependencyKey가 자동으로 WeaveDI와 동기화됩니다.")
+        DILogger.info("   이제 모든 TCA Dependencies.DependencyKey가 자동으로 WeaveDI와 동기화됩니다.")
     }
 
     /// 🎯 **브릿지 정책 설정**: TCA ↔ WeaveDI 우선순위 정책 변경
@@ -129,7 +129,7 @@ public struct TCASmartSync {
         return currentPolicy
     }
 
-    /// 🎯 **벌크 등록**: 여러 DependencyKey를 한 번에 WeaveDI와 동기화
+    /// 🎯 **벌크 등록**: 여러 Dependencies.DependencyKey를 한 번에 WeaveDI와 동기화
     ///
     /// ## 사용법:
     /// ```swift
@@ -140,17 +140,17 @@ public struct TCASmartSync {
     /// ])
     /// ```
     @MainActor
-    public static func syncAll<T: DependencyKey>(_ keys: [T.Type]) where T.Value: Sendable {
+    public static func syncAll<T: Dependencies.Dependencies.DependencyKey>(_ keys: [T.Type]) where T.Value: Sendable {
         for keyType in keys {
             syncSingle(keyType)
         }
 
-        DILogger.info("🎯 \(keys.count)개 TCA DependencyKey가 WeaveDI와 동기화되었습니다!")
+        DILogger.info("🎯 \(keys.count)개 TCA Dependencies.DependencyKey가 WeaveDI와 동기화되었습니다!")
     }
 
-    /// 🎯 **개별 등록**: 특정 DependencyKey를 WeaveDI와 동기화
+    /// 🎯 **개별 등록**: 특정 Dependencies.DependencyKey를 WeaveDI와 동기화
     @MainActor
-    public static func syncSingle<T: DependencyKey>(_ keyType: T.Type) where T.Value: Sendable {
+    public static func syncSingle<T: Dependencies.DependencyKey>(_ keyType: T.Type) where T.Value: Sendable {
         let value = getValueByPolicy(keyType: keyType)
 
         // 🔧 Fix: 두 곳 모두에 등록 (DIContainer + InjectedValues 호환성)
@@ -167,7 +167,7 @@ public struct TCASmartSync {
 
     /// 🎯 **정책 기반 값 선택**: 현재 정책에 따라 적절한 값 반환
     @MainActor
-    private static func getValueByPolicy<T: DependencyKey>(keyType: T.Type) -> T.Value where T.Value: Sendable {
+    private static func getValueByPolicy<T: Dependencies.DependencyKey>(keyType: T.Type) -> T.Value where T.Value: Sendable {
         switch currentPolicy {
         case .livePriority:
             return keyType.liveValue
@@ -186,7 +186,7 @@ public struct TCASmartSync {
 
     /// TestDependencyKey의 testValue를 안전하게 가져오는 헬퍼 메서드
     @MainActor
-    private static func getTestValueSafely<T: DependencyKey>(for keyType: T.Type) -> T.Value? where T.Value: Sendable {
+    private static func getTestValueSafely<T: Dependencies.DependencyKey>(for keyType: T.Type) -> T.Value? where T.Value: Sendable {
         // 메모리에서 testValue 속성 존재 여부 확인
         if hasTestValueProperty(keyType) {
             // testValue가 있는 경우에만 접근
@@ -198,7 +198,7 @@ public struct TCASmartSync {
 
     /// 타입에 testValue 속성이 있는지 확인
     @MainActor
-    private static func hasTestValueProperty<T: DependencyKey>(_ keyType: T.Type) -> Bool {
+    private static func hasTestValueProperty<T: Dependencies.DependencyKey>(_ keyType: T.Type) -> Bool {
         // Mirror를 사용하여 타입의 정적 속성 확인
         let mirror = Mirror(reflecting: keyType)
         return mirror.children.contains { $0.label == "testValue" }
@@ -206,20 +206,20 @@ public struct TCASmartSync {
 
     /// TestDependencyKey의 testValue를 추출
     @MainActor
-    private static func extractTestValue<T: DependencyKey>(from keyType: T.Type) -> T.Value? {
+    private static func extractTestValue<T: Dependencies.DependencyKey>(from keyType: T.Type) -> T.Value? {
         // 안전한 타입 변환을 통한 testValue 추출
         // TestDependencyKey 프로토콜을 직접 참조하지 않고 값 추출
         let anyTestKey = keyType as Any
-        if let testDependencyKey = anyTestKey as? any TestDependencyKey.Type {
-            let testValue = testDependencyKey.testValue
+        if let testDependencies.DependencyKey = anyTestKey as? any TestDependencyKey.Type {
+            let testValue = testDependencies.DependencyKey.testValue
             return testValue as? T.Value
         }
         return nil
     }
 
-    /// 🎯 **InjectedValues 자동 등록**: DependencyKey를 InjectedKey로 변환하여 등록
+    /// 🎯 **InjectedValues 자동 등록**: Dependencies.DependencyKey를 InjectedKey로 변환하여 등록
     @MainActor
-    private static func registerToInjectedValues<T: DependencyKey>(keyType: T.Type, value: T.Value) where T.Value: Sendable {
+    private static func registerToInjectedValues<T: Dependencies.DependencyKey>(keyType: T.Type, value: T.Value) where T.Value: Sendable {
         // 🔧 InjectedKey 자동 생성 및 등록
         registerAsInjectedKey(valueType: T.Value.self, value: value)
     }
@@ -244,8 +244,8 @@ public struct TCASmartSync {
         DILogger.info("🎯 \(type) → InjectedValues 동기화 완료")
     }
 
-    /// 🎯 **스마트 감지**: DependencyKey 사용을 감지해서 자동 동기화 (nonisolated)
-    public static func autoDetectAndSync<T: DependencyKey>(_ keyType: T.Type, value: T.Value) where T.Value: Sendable {
+    /// 🎯 **스마트 감지**: Dependencies.DependencyKey 사용을 감지해서 자동 동기화 (nonisolated)
+    public static func autoDetectAndSync<T: Dependencies.DependencyKey>(_ keyType: T.Type, value: T.Value) where T.Value: Sendable {
         // 즉시 WeaveDI에 등록하여 동기 API에서도 최신 값을 사용할 수 있도록 함
         _ = UnifiedDI.register(T.Value.self) { value }
 
@@ -281,7 +281,7 @@ public struct TCASmartSync {
 
     // MARK: - 🔄 역방향 동기화 (WeaveDI → TCA)
 
-    /// 🔄 **역방향 동기화**: WeaveDI InjectedKey를 TCA DependencyKey로 자동 동기화
+    /// 🔄 **역방향 동기화**: WeaveDI InjectedKey를 TCA Dependencies.DependencyKey로 자동 동기화
     ///
     /// ## 사용법:
     /// ```swift
@@ -312,9 +312,9 @@ public struct TCASmartSync {
         }
     }
 
-    /// 🔄 **동적 TCA 의존성 생성**: 런타임에 DependencyKey 생성 및 등록
+    /// 🔄 **동적 TCA 의존성 생성**: 런타임에 Dependencies.DependencyKey 생성 및 등록
     private static func createDynamicTCADependency<T: Sendable>(for type: T.Type, value: T) async {
-        // 🔧 런타임에 DependencyKey처럼 작동하는 래퍼 생성
+        // 🔧 런타임에 Dependencies.DependencyKey처럼 작동하는 래퍼 생성
         // 실제로는 DependencyValues subscript를 통해 접근 가능하도록 함
 
         // 임시 저장소에 값 등록 (TCA에서 접근 가능)
@@ -422,7 +422,7 @@ public extension TCASmartSync {
     /// 🎯 **편의 메서드**: 일반적인 서비스들을 한 번에 동기화
     static func syncCommonServices() {
         DILogger.info("🎯 일반적인 서비스들을 자동 감지하여 동기화합니다...")
-        // 런타임에 등록된 DependencyKey들을 자동 감지
+        // 런타임에 등록된 Dependencies.DependencyKey들을 자동 감지
         // 실제 구현에서는 리플렉션을 사용할 수 있음
     }
 
@@ -527,9 +527,9 @@ public extension TCASmartSync {
     }
 }
 
-// MARK: - 자동 감지를 위한 DependencyKey 확장
+// MARK: - 자동 감지를 위한 Dependencies.DependencyKey 확장
 
-public extension DependencyKey where Value: Sendable {
+public extension Dependencies.DependencyKey where Value: Sendable {
     /// 자동 WeaveDI 동기화가 포함된 값 접근
     @MainActor
     static func autoSyncValue() -> Value {
@@ -553,7 +553,7 @@ public func enableTCAAutoSync() {
 }
 
 @MainActor
-public func syncTCAKeys<T: DependencyKey>(_ keys: T.Type...) where T.Value: Sendable {
+public func syncTCAKeys<T: Dependencies.DependencyKey>(_ keys: T.Type...) where T.Value: Sendable {
     TCASmartSync.syncAll(keys)
 }
 
@@ -590,7 +590,7 @@ public func autoSyncWeaveDIToTCA<T: Sendable>(_ type: T.Type, value: T) {
 public func enableBidirectionalTCASync() {
     TCASmartSync.enableGlobalAutoSync()
     DILogger.info("🎯 TCA ↔ WeaveDI 완전 양방향 동기화가 활성화되었습니다!")
-    DILogger.info("   DependencyKey ↔ InjectedKey 자동 변환이 가능합니다.")
+    DILogger.info("   Dependencies.DependencyKey ↔ InjectedKey 자동 변환이 가능합니다.")
 }
 
 // MARK: - 🎯 글로벌 자동 초기화

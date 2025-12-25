@@ -1,6 +1,5 @@
 import Foundation
 import WeaveDI
-import WeaveDIOptimizations
 import Darwin
 
 @main
@@ -157,9 +156,9 @@ struct Benchmarks {
         print("📊 Optimizer Bench: counts=\(counts), debounces=\(debounces) (ms)" + (quick ? " [quick]" : ""))
 
         outer: for db in debounces {
-            UnifiedDI.configureOptimization(debounceMs: db, threshold: 10, realTimeUpdate: false)
+            // UnifiedDI.configureOptimization is removed in v4.0 - simplified architecture
             for n in counts {
-                await MainActor.run { UnifiedDI.releaseAll() }
+                await UnifiedDI.releaseAllAsync()
 
                 protocol Svc: Sendable {}
                 struct Impl: Svc {}

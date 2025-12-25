@@ -14,37 +14,41 @@ let package = Package(
         .visionOS(.v1)
     ],
     products: [
+        // 🎯 메인 라이브러리 - 모든 기능 통합!
         .library(name: "WeaveDI", targets: ["WeaveDI"]),
-        .library(name: "WeaveDICore", targets: ["WeaveDICore"]),
-        .library(name: "WeaveDIMacroSupport", targets: ["WeaveDIMacroSupport"]),
-        .library(name: "WeaveDIAppDI", targets: ["WeaveDIAppDI"]),
-        .library(name: "WeaveDICompat", targets: ["WeaveDICompat"]),
-        .library(name: "WeaveDINeedleCompat", targets: ["WeaveDINeedleCompat"]),
-        .library(name: "WeaveDITCA", targets: ["WeaveDITCA"]),
-        .library(name: "WeaveDIMonitoring", targets: ["WeaveDIMonitoring"]),
-        .library(name: "WeaveDIOptimizations", targets: ["WeaveDIOptimizations"]),
-        .executable(name: "Benchmarks", targets: ["Benchmarks"]),
-        .executable(name: "WeaveDITools", targets: ["WeaveDITools"]),
+
+        // 📝 매크로 (선택적)
+        .library(name: "WeaveDIMacros", targets: ["WeaveDIMacros"]),
+
+        // 🔄 TCA 통합 (v4.1에서 재구현 예정)
+        // .library(name: "WeaveDITCA", targets: ["WeaveDITCA"]),
     ],
     dependencies: [
         .package(url: "https://github.com/Roy-wonji/LogMacro.git", exact: "1.1.1"),
         .package(url: "https://github.com/apple/swift-docc-plugin.git", from: "1.4.5"),
         .package(
           url: "https://github.com/apple/swift-syntax.git", from: "600.0.0"),
-        .package(
-          url: "https://github.com/pointfreeco/swift-dependencies.git",
-          from: "1.10.0"
-        ),
+        // .package(
+        //   url: "https://github.com/pointfreeco/swift-dependencies.git",
+        //   from: "1.10.0"
+        // ),
     ],
     targets: [
+        // 🎯 메인 타겟 - 모든 핵심 기능 통합!
         .target(
             name: "WeaveDI",
-            dependencies: ["WeaveDICore"],
+            dependencies: [
+                "WeaveDICore",
+                "WeaveDIMacros",
+                .product(name: "LogMacro", package: "LogMacro")
+            ],
             path: "Sources/WeaveDI",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")
             ]
         ),
+
+        // 🎯 Core 기능 타겟
         .target(
             name: "WeaveDICore",
             dependencies: [
@@ -55,14 +59,8 @@ let package = Package(
                 .enableUpcomingFeature("StrictConcurrency")
             ]
         ),
-        .target(
-            name: "WeaveDIMacroSupport",
-            dependencies: [
-                "WeaveDICore",
-                "WeaveDIMacros"
-            ],
-            path: "Sources/WeaveDIMacroSupport"
-        ),
+
+        // 📝 매크로 타겟
         .macro(
             name: "WeaveDIMacros",
             dependencies: [
@@ -70,77 +68,27 @@ let package = Package(
                 .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
-            ],
-            path: "Sources/WeaveDIMacros"
+            ]
         ),
-        .target(
-            name: "WeaveDIAppDI",
-            dependencies: [
-                "WeaveDICore",
-                "WeaveDIOptimizations",
-                "WeaveDIMonitoring",
-                .product(name: "LogMacro", package: "LogMacro")
-            ],
-            path: "Sources/WeaveDIAppDI"
-        ),
-        .target(
-            name: "WeaveDICompat",
-            dependencies: ["WeaveDICore"],
-            path: "Sources/WeaveDICompat"
-        ),
-        .target(
-            name: "WeaveDINeedleCompat",
-            dependencies: ["WeaveDICore"],
-            path: "Sources/WeaveDINeedleCompat"
-        ),
-        .target(
-            name: "WeaveDITCA",
-            dependencies: [
-                "WeaveDICore",
-                "WeaveDINeedleCompat",
-                .product(name: "Dependencies", package: "swift-dependencies")
-            ],
-            path: "Sources/WeaveDITCA"
-        ),
-        .target(
-            name: "WeaveDIMonitoring",
-            dependencies: [
-                "WeaveDICore",
-                "WeaveDINeedleCompat",
-                "WeaveDIOptimizations"
-            ],
-            path: "Sources/WeaveDIMonitoring"
-        ),
-        .target(
-            name: "WeaveDIOptimizations",
-            dependencies: [
-                "WeaveDICore",
-                .product(name: "LogMacro", package: "LogMacro")
-            ],
-            path: "Sources/WeaveDIOptimizations"
-        ),
+
+        // 🔄 TCA 통합 타겟 (v4.1에서 재구현 예정)
+        // .target(
+        //     name: "WeaveDITCA",
+        //     dependencies: [
+        //         "WeaveDI",
+        //         .product(name: "Dependencies", package: "swift-dependencies")
+        //     ]
+        // ),
+        // 🧪 테스트 타겟
         .testTarget(
             name: "WeaveDITests",
-            dependencies: [
-                "WeaveDI"
-            ],
-            path: "Tests/WeaveDITests"
+            dependencies: ["WeaveDI"]
         ),
+
+        // 📊 벤치마크 타겟 (성능 측정)
         .executableTarget(
             name: "Benchmarks",
-            dependencies: [
-                "WeaveDI",
-                "WeaveDIOptimizations"
-            ],
-            path: "Sources/Benchmarks"
-        ),
-        .executableTarget(
-            name: "WeaveDITools",
-            dependencies: [
-                "WeaveDI",
-                "WeaveDINeedleCompat"
-            ],
-            path: "Sources/WeaveDITools"
+            dependencies: ["WeaveDI"]
         ),
     ],
     swiftLanguageModes: [.v6]

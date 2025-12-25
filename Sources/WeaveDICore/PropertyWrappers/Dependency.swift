@@ -27,20 +27,138 @@ public struct InjectedValues: @unchecked Sendable {
       storage[key] = newValue
     }
   }
+
+  /// 🚀 **TCA 스타일 지원**: DependencyKey 패턴을 위한 subscript
+  ///
+  /// 사용자가 extension SignUpUseCaseImpl: DependencyKey 패턴을 사용할 때
+  /// DependencyValues에서 self[SignUpUseCaseImpl.self] 형태로 접근 가능
+  public subscript<T: Sendable>(dependencyKeyType: T.Type) -> T {
+    get {
+      // 1. UnifiedDI에서 먼저 조회
+      if let resolved = UnifiedDI.resolve(dependencyKeyType, logOnMiss: false) {
+        return resolved
+      }
+
+      // 2. storage에서 조회
+      let key = ObjectIdentifier(dependencyKeyType)
+      if let stored = storage[key] as? T {
+        return stored
+      }
+
+      // 3. liveValue 시도 (DependencyKey conformance 확인)
+      if let dependencyKey = dependencyKeyType as? any InjectedKey.Type {
+        let liveValue = dependencyKey.liveValue
+        if let typedValue = liveValue as? T {
+          return typedValue
+        }
+      }
+
+      fatalError("🚨 [WeaveDI] \(dependencyKeyType) 의존성을 찾을 수 없습니다!")
+    }
+    set {
+      let key = ObjectIdentifier(dependencyKeyType)
+      storage[key] = newValue
+
+      // UnifiedDI에도 등록해서 @Injected에서 사용 가능하게 함
+      _ = UnifiedDI.register(dependencyKeyType) { newValue }
+    }
+  }
 }
 
-// MARK: - Dependency Property Wrapper
+// MARK: - Enhanced Dependency Property Wrapper
 
+/// 🚀 **개선된 @Injected** - TCA 스타일로 타입만으로 간단하게!
+///
+/// ### Before (복잡함):
+/// ```swift
+/// @Injected(\.userService) var userService: UserService
+/// ```
+///
+/// ### After (간단함):
+/// ```swift
+/// @Injected var userService: UserService  // 끝!
+/// ```
 @propertyWrapper
 public struct Injected<T>: @unchecked Sendable where T: Sendable {
-  private let keyPath: WritableKeyPath<InjectedValues, T>
+  private let keyPath: WritableKeyPath<InjectedValues, T>?
+  private let type: T.Type
+  private var cachedValue: T?
 
-  public init(_ keyPath: WritableKeyPath<InjectedValues, T>) {
-    self.keyPath = keyPath
+  // MARK: - 초기화
+
+  /// 🎯 **타입만으로 간단하게!** (새 방식 - 권장)
+  ///
+  /// UnifiedDI에 등록된 타입을 자동으로 해결합니다.
+  ///
+  /// ### 사용법:
+  /// ```swift
+  /// @Injected var userService: UserService
+  /// @Injected var repository: Repository
+  /// ```
+  public init() where T: Sendable {
+    self.type = T.self
+    self.keyPath = nil
+    self.cachedValue = nil
   }
 
+  /// 🔄 **기존 KeyPath 방식** (호환성 유지)
+  ///
+  /// InjectedValues의 KeyPath를 사용하는 기존 방식입니다.
+  ///
+  /// ### 사용법:
+  /// ```swift
+  /// @Injected(\.userService) var userService: UserService
+  /// ```
+  public init(_ keyPath: WritableKeyPath<InjectedValues, T>) {
+    self.type = T.self
+    self.keyPath = keyPath
+    self.cachedValue = nil
+  }
+
+  // MARK: - Property Wrapper 구현
+
   public var wrappedValue: T {
-    InjectedManager.current[keyPath: keyPath]
+    mutating get {
+      // 캐시된 값이 있으면 반환 (성능 최적화)
+      if let cached = cachedValue {
+        return cached
+      }
+
+      let resolved: T
+
+      if let keyPath = keyPath {
+        // 🔄 기존 KeyPath 방식
+        resolved = InjectedManager.current[keyPath: keyPath]
+      } else {
+        // 🎯 새로운 타입 기반 방식
+        resolved = resolveFromUnifiedDI()
+      }
+
+      // 캐시에 저장
+      cachedValue = resolved
+      return resolved
+    }
+  }
+
+  // MARK: - Private 구현
+
+  /// UnifiedDI에서 타입 기반으로 해결
+  private func resolveFromUnifiedDI() -> T {
+    // 1. UnifiedDI에서 먼저 시도
+    if let resolved = UnifiedDI.resolve(type, logOnMiss: false) {
+      return resolved
+    }
+
+    // 2. 모두 실패하면 명확한 에러
+    fatalError("""
+        🚨 [WeaveDI] \(type) 의존성을 찾을 수 없습니다!
+
+        💡 해결 방법:
+        1. UnifiedDI 등록: UnifiedDI.register(\(type).self) { YourImplementation() }
+        2. 새 방식 등록: WeaveDI.register { YourImplementation() }
+
+        🔍 등록이 해결보다 먼저 수행되었는지 확인하세요.
+        """)
   }
 }
 

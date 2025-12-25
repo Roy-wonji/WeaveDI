@@ -13,8 +13,8 @@
 
 - ⚡ **Swift Concurrency Native**: Perfect support for async/await and Actor
 - 🔒 **Type Safety**: Compile-time type verification
-- 📝 **TCA-Style Dependency Injection**: `@Injected` with KeyPath and type-based access (v3.2.0)
-- 🏗️ **AppDI Simplification**: Automatic dependency registration with `AppDIManager` (v3.2.0)
+- 📝 **TCA-Style Dependency Injection**: `@Injected`/`@Dependency` with KeyPath and type-based access (v3.2.0)
+- 🏗️ **Optional AppDI**: Use `WeaveDIAppDI` for module/factory registration only when needed
 - 🤖 **Auto Optimization**: Automated dependency graph, Actor hop detection, type safety verification
 - 🚀 **Runtime Hot-Path Optimization**: 50-80% performance improvement with TypeID + lock-free reads
 - 🧪 **Test Friendly**: Support for dependency mocking and isolation
@@ -34,20 +34,16 @@ dependencies: [
 ```swift
 import WeaveDI
 
-// 1. App initialization - automatic dependency registration
-@main
-struct MyApp: App {
-    init() {
-        WeaveDI.Container.bootstrapInTask { @DIContainerActor _ in
-            await AppDIManager.shared.registerDefaultDependencies()
-        }
-    }
+// 1. App initialization - single entry point
+await UnifiedDI.bootstrap { di in
+    di.register(UserServiceProtocol.self) { UserService() }
+    di.register(Networking.self) { NetworkClient() }
 }
 
-// 2. TCA-style @Injected usage (recommended)
+// 2. TCA-style @Injected/@Dependency usage (recommended)
 class ViewModel {
     @Injected(\.userService) var userService
-    @Injected(ExchangeUseCaseImpl.self) var exchangeUseCase
+    @Dependency(\.networkClient) var networkClient
 
     func loadData() async {
         let data = await userService.fetchData()
@@ -63,17 +59,26 @@ extension InjectedValues {
 }
 
 struct UserServiceKey: InjectedKey {
-    static var currentValue: UserServiceProtocol = UserService()
+    static var liveValue: UserServiceProtocol = UserService()
+    static var testValue: UserServiceProtocol = UserService()
+    static var previewValue: UserServiceProtocol = UserService()
 }
+```
 
-// ⚠️ Legacy Property Wrappers (Deprecated since v3.2.0)
-class LegacyViewController {
-    @Inject var userService: UserServiceProtocol?     // Deprecated (v3.2.0+)
-    @Factory var generator: PDFGenerator              // Maintained
-    @SafeInject var apiService: APIServiceProtocol?   // Deprecated (v3.2.0+)
+### App Module Registration (Optional: WeaveDIAppDI)
+
+```swift
+import WeaveDI
+import WeaveDIAppDI
+
+await UnifiedDI.bootstrap { _ in
+    await UnifiedDI.registerDi { register in
+        [
+            register.authRepositoryImplModule(),
+            register.authUseCaseImplModule()
+        ]
+    }
 }
-
-// Migration note: Use @Injected instead for better type safety and TCA-style KeyPath access
 ```
 
 ## 🎨 Swift Macro Support (v3.2.1+)
@@ -195,30 +200,10 @@ For detailed information, see [PERFORMANCE-OPTIMIZATION.md](PERFORMANCE-OPTIMIZA
 ### Registration API
 
 ```swift
-// Basic registration (recommended)
-let service = UnifiedDI.register(ServiceProtocol.self) {
-    ServiceImpl()
-}
-
-// KeyPath registration
-let repository = UnifiedDI.register(\.userRepository) {
-    UserRepositoryImpl()
-}
-
-// Conditional registration
-let service = UnifiedDI.Conditional.registerIf(
-    ServiceProtocol.self,
-    condition: isProduction,
-    factory: { ProductionService() },
-    fallback: { MockService() }
-)
-
-// Scope-based registration
-let sessionService = UnifiedDI.registerScoped(
-    SessionService.self,
-    scope: .session
-) {
-    SessionServiceImpl()
+// Core recommended: register inside bootstrap
+UnifiedDI.bootstrap { di in
+    di.register(ServiceProtocol.self) { ServiceImpl() }
+    di.register(UserRepositoryProtocol.self) { UserRepositoryImpl() }
 }
 ```
 
@@ -227,6 +212,7 @@ let sessionService = UnifiedDI.registerScoped(
 | Property Wrapper | Purpose | Example | Status |
 |---|---|---|---|
 | `@Injected` | TCA-style injection (recommended) | `@Injected(\.service) var service` | ✅ v3.2.0 |
+| `@Dependency` | TCA-style injection (same storage) | `@Dependency(\.service) var service` | ✅ v3.2.0 |
 | `@Factory` | Factory pattern (new instance) | `@Factory var generator: Generator` | ✅ Maintained |
 | `@Inject` | Basic injection (legacy) | `@Inject var service: Service?` | ⚠️ Deprecated (v3.2.0+) |
 | `@SafeInject` | Safe injection (legacy) | `@SafeInject var api: API?` | ⚠️ Deprecated (v3.2.0+) |
@@ -311,7 +297,7 @@ let service = WeaveDI.Container.live.resolve(UserService.self)
 let service = await UnifiedDI.resolve(UserService.self)
 
 // or still supported
-let service = DIContainer.shared.resolve(UserService.self)
+let service = UnifiedDI.resolve(UserService.self)
 ```
 
 ## 📖 Documentation
