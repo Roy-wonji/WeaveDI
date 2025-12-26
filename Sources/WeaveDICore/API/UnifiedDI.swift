@@ -713,7 +713,7 @@ extension UnifiedDI {
   /// UnifiedDI 등록 시 InjectedValues에 자동 동기화
   private static func syncToInjectedValues<T: Sendable>(type: T.Type, instance: T) {
     var current = InjectedManager.current
-    current[type] = instance
+    current.setWithoutSync(type, value: instance)
     InjectedManager.setCurrent(current)
   }
 

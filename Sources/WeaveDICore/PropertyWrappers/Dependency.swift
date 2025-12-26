@@ -63,6 +63,12 @@ public struct InjectedValues: @unchecked Sendable {
       _ = UnifiedDI.register(dependencyKeyType) { newValue }
     }
   }
+
+  /// Internal helper to set values without re-entering UnifiedDI registration.
+  mutating func setWithoutSync<T: Sendable>(_ type: T.Type, value: T) {
+    let key = ObjectIdentifier(type)
+    storage[key] = value
+  }
 }
 
 // MARK: - Enhanced Dependency Property Wrapper
