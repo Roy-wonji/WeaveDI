@@ -19,7 +19,7 @@ import Foundation
 
 // MARK: - 🎨 Enhanced TCA-Style API
 
-/// **WeaveDI** - TCA 스타일 확장 API
+/// **WeaveDI** - TCA 스타일 확장 API with Builder Pattern
 ///
 /// ### 🚀 새로운 사용법 (더 간단!):
 /// ```swift

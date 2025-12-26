@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git tag:*)",
+      "Bash(brew install:*)",
+      "Bash(git lfs:*)",
+      "Bash(git push:*)",
+      "Bash(git cat-file:*)",
+      "Bash(curl -s \"https://api.github.com/repos/Roy-wonji/WeaveDI/tags\")",
+      "Bash(git show-ref:*)",
+      "Bash(swift package --version)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(curl -s \"https://api.github.com/repos/Roy-wonji/DiContainer\")",
+      "Bash(curl -s \"https://api.github.com/repos/Roy-wonji/WeaveDI\")",
+      "Bash(git remote set-url:*)",
+      "Bash(chmod:*)",
+      "Bash(bash:*)",
+      "Bash(swift run:*)",
+      "Bash(./scripts/run-performance-tests.sh:*)",
+      "Read(//Users/suhwonji/Desktop/SpartaCamp/MovieBooking/MovieBooking/Data/DataSources/**)",
+      "Read(//Users/suhwonji/Desktop/SpartaCamp/MovieBooking/**)",
+      "Bash(xcodebuild clean -project MovieBooking.xcodeproj)",
+      "Bash(xcodebuild build -project MovieBooking.xcodeproj -scheme MovieBooking)",
+      "Bash(swift test:*)",
+      "Bash(swift build:*)",
+      "Bash(swift:*)",
+      "Bash(grep:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(find:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
