@@ -170,19 +170,15 @@ public struct Injected<T>: @unchecked Sendable where T: Sendable {
   }
 }
 
-// MARK: - WeaveDI의 전용 Dependency (이름 변경으로 충돌 방지)
-@propertyWrapper
-public struct WeaveDependency<T>: @unchecked Sendable where T: Sendable {
-  private let keyPath: WritableKeyPath<InjectedValues, T>
-
-  public init(_ keyPath: WritableKeyPath<InjectedValues, T>) {
-    self.keyPath = keyPath
-  }
-
-  public var wrappedValue: T {
-    InjectedManager.current[keyPath: keyPath]
-  }
-}
+// MARK: - 🚨 중요: Dependency 타입은 완전히 제거됨
+//
+// ComposableArchitecture와의 충돌을 방지하기 위해
+// WeaveDI의 모든 Dependency 관련 타입을 제거했습니다.
+//
+// 대신 사용하세요:
+// - @Injected var service: ServiceType
+// - @ComposableArchitecture.Dependency(\.service) var service
+//
 
 // MARK: - Dependency Manager
 public enum InjectedManager {
