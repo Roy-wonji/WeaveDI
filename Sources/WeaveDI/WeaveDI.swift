@@ -54,6 +54,7 @@ public typealias DIContainerActor = WeaveDICore.DIContainerActor
 public enum WeaveDI {
 
     // MARK: - 타입 추론 등록
+    public typealias Container = WeaveDICore.DIContainer
 
     /// 🎯 **타입 추론으로 간단하게 등록!**
     ///
