@@ -24,6 +24,7 @@ public typealias DIError = WeaveDICore.DIError
 public typealias ProvideScope = WeaveDICore.ProvideScope
 public typealias InjectedKey = WeaveDICore.InjectedKey
 public typealias ComponentProtocol = WeaveDICore.ComponentProtocol
+public typealias DIContainerActor = WeaveDICore.DIContainerActor
 
 // 🚨 충돌 방지: TCA 타입들을 export하지 않음
 // ComposableArchitecture와 충돌 방지를 위해 제거
