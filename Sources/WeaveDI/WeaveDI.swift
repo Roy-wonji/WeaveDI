@@ -19,18 +19,20 @@ public typealias InjectedValues = WeaveDICore.InjectedValues
 public typealias InjectedManager = WeaveDICore.InjectedManager
 public typealias UnifiedDI = WeaveDICore.UnifiedDI
 public typealias DIContainer = WeaveDICore.DIContainer
+public typealias Container = WeaveDICore.DIContainer  // ✅ 사용자 호환성을 위한 별칭
 public typealias DIError = WeaveDICore.DIError
 public typealias ProvideScope = WeaveDICore.ProvideScope
 public typealias InjectedKey = WeaveDICore.InjectedKey
 public typealias ComponentProtocol = WeaveDICore.ComponentProtocol
 
-// ✅ TCA 호환성을 위한 typealiases만 export
-public typealias DependencyKey = InjectedKey
-public typealias DependencyValues = InjectedValues
-public typealias DependencyManager = InjectedManager
+// 🚨 충돌 방지: TCA 타입들을 export하지 않음
+// ComposableArchitecture와 충돌 방지를 위해 제거
+// 필요시 WeaveDI.InjectedValues, WeaveDI.InjectedKey 등으로 명시적 사용
 
-// 🚨 충돌 방지: Dependency 타입은 export하지 않음
-// 대신 @Injected 사용을 권장
+// ✅ WeaveDI 고유 타입들만 사용 권장:
+// - @Injected var service: ServiceType
+// - @WeaveDI.Injected(\.service) var service: ServiceType
+// - UnifiedDI.register { ServiceImpl() }
 
 // 🎨 새로운 TCA 스타일 API export (자동으로 사용 가능)
 // - @DependencyConfiguration (DependencyBuilder.swift)
