@@ -32,7 +32,7 @@ extension DIContainer {
   ///
   /// - Parameter configure: 의존성 등록 클로저
   static func bootstrap(_ configure: @Sendable (DIContainer) -> Void) async {
-    await bootstrap { container in
+    await bootstrap { (container: DIContainer) async in
       configure(container)
     }
   }
@@ -103,7 +103,7 @@ extension DIContainer {
   ///
   /// - Parameter configure: 비동기 의존성 등록 클로저
   @discardableResult
-  static func bootstrapAsync(_ configure: @Sendable (DIContainer) async throws -> Void) async -> Bool {
+  public static func bootstrapAsync(_ configure: @Sendable (DIContainer) async throws -> Void) async -> Bool {
     do {
       let startTime = CFAbsoluteTimeGetCurrent()
       DILogger.debug("Starting Container async bootstrap...")
@@ -126,7 +126,7 @@ extension DIContainer {
   }
 
   /// 별도의 Task 컨텍스트에서 비동기 부트스트랩을 수행하는 편의 메서드입니다
-  static func bootstrapInTask(_ configure: @Sendable @escaping (DIContainer) async throws -> Void) {
+  public static func bootstrapInTask(_ configure: @Sendable @escaping (DIContainer) async throws -> Void) {
     Task.detached(priority: .high) {
       let success = await bootstrapAsync(configure)
       if success {
