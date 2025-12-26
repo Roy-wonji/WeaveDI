@@ -82,7 +82,6 @@ public struct InjectedValues: @unchecked Sendable {
 public struct Injected<T>: @unchecked Sendable where T: Sendable {
   private let keyPath: WritableKeyPath<InjectedValues, T>?
   private let type: T.Type
-  private var cachedValue: T?
 
   // MARK: - 초기화
 
@@ -98,78 +97,82 @@ public struct Injected<T>: @unchecked Sendable where T: Sendable {
   public init() where T: Sendable {
     self.type = T.self
     self.keyPath = nil
-    self.cachedValue = nil
   }
 
-  /// 🔄 **기존 KeyPath 방식** (호환성 유지)
+  /// 🔄 **KeyPath 방식** (TCA 완전 호환!)
   ///
-  /// InjectedValues의 KeyPath를 사용하는 기존 방식입니다.
+  /// InjectedValues(=DependencyValues)의 KeyPath를 사용하는 방식입니다.
+  /// TCA에서 정의한 DependencyValues extension을 바로 사용할 수 있습니다!
   ///
   /// ### 사용법:
   /// ```swift
-  /// @Injected(\.userService) var userService: UserService
+  /// // TCA extension 정의
+  /// extension DependencyValues {
+  ///     var userService: UserService { ... }
+  /// }
+  ///
+  /// @Injected(\.userService) var userService: UserService  // ✅ 바로 사용!
   /// ```
   public init(_ keyPath: WritableKeyPath<InjectedValues, T>) {
     self.type = T.self
     self.keyPath = keyPath
-    self.cachedValue = nil
   }
+
 
   // MARK: - Property Wrapper 구현
 
   public var wrappedValue: T {
-    mutating get {
-      // 캐시된 값이 있으면 반환 (성능 최적화)
-      if let cached = cachedValue {
-        return cached
-      }
-
-      let resolved: T
-
+    get {
       if let keyPath = keyPath {
         // 🔄 기존 KeyPath 방식
-        resolved = InjectedManager.current[keyPath: keyPath]
+        return InjectedManager.current[keyPath: keyPath]
       } else {
         // 🎯 새로운 타입 기반 방식
-        resolved = resolveFromUnifiedDI()
+        return resolveFromUnifiedDI()
       }
-
-      // 캐시에 저장
-      cachedValue = resolved
-      return resolved
     }
   }
 
   // MARK: - Private 구현
 
-  /// UnifiedDI에서 타입 기반으로 해결
+  /// UnifiedDI와 InjectedValues에서 동기화된 해결
   private func resolveFromUnifiedDI() -> T {
     // 1. UnifiedDI에서 먼저 시도
     if let resolved = UnifiedDI.resolve(type, logOnMiss: false) {
       return resolved
     }
 
-    // 2. 모두 실패하면 명확한 에러
+    // 2. InjectedValues에서 타입 기반으로 시도 (🔄 @Dependency 동기화!)
+    if let resolved = tryResolveFromInjectedValues() {
+      return resolved
+    }
+
+    // 3. 모두 실패하면 명확한 에러
     fatalError("""
         🚨 [WeaveDI] \(type) 의존성을 찾을 수 없습니다!
 
         💡 해결 방법:
         1. UnifiedDI 등록: UnifiedDI.register(\(type).self) { YourImplementation() }
-        2. 새 방식 등록: WeaveDI.register { YourImplementation() }
+        2. DependencyValues 등록: extension DependencyValues { var yourService: \(type) { ... } }
+        3. 새 방식 등록: WeaveDI.register { YourImplementation() }
 
         🔍 등록이 해결보다 먼저 수행되었는지 확인하세요.
         """)
   }
+
+  /// InjectedValues에서 타입 기반 해결 시도
+  private func tryResolveFromInjectedValues() -> T? {
+    let current = InjectedManager.current
+
+    // 타입 기반으로 InjectedValues에서 해결 시도
+    let resolved = current[type]
+    return resolved
+  }
 }
 
-// MARK: - TCA-style Compatibility
-
-public typealias DependencyKey = InjectedKey
-public typealias DependencyValues = InjectedValues
-public typealias DependencyManager = InjectedManager
-
+// MARK: - WeaveDI의 전용 Dependency (이름 변경으로 충돌 방지)
 @propertyWrapper
-public struct Dependency<T>: @unchecked Sendable where T: Sendable {
+public struct WeaveDependency<T>: @unchecked Sendable where T: Sendable {
   private let keyPath: WritableKeyPath<InjectedValues, T>
 
   public init(_ keyPath: WritableKeyPath<InjectedValues, T>) {
@@ -182,7 +185,6 @@ public struct Dependency<T>: @unchecked Sendable where T: Sendable {
 }
 
 // MARK: - Dependency Manager
-
 public enum InjectedManager {
   @TaskLocal
   private static var taskLocalValues: InjectedValues?

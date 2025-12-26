@@ -8,10 +8,29 @@
 
 import Foundation
 
-// MARK: - 🎯 Core Exports
+// MARK: - 🎯 Selective Core Exports
 
-// 기존 모든 기능 통합 export
-@_exported import WeaveDICore
+// 기존 WeaveDICore 기능 선별적 import
+import WeaveDICore
+
+// ✅ 권장 타입들만 public으로 re-export (충돌 방지)
+public typealias Injected = WeaveDICore.Injected
+public typealias InjectedValues = WeaveDICore.InjectedValues
+public typealias InjectedManager = WeaveDICore.InjectedManager
+public typealias UnifiedDI = WeaveDICore.UnifiedDI
+public typealias DIContainer = WeaveDICore.DIContainer
+public typealias DIError = WeaveDICore.DIError
+public typealias ProvideScope = WeaveDICore.ProvideScope
+public typealias InjectedKey = WeaveDICore.InjectedKey
+public typealias ComponentProtocol = WeaveDICore.ComponentProtocol
+
+// ✅ TCA 호환성을 위한 typealiases만 export
+public typealias DependencyKey = InjectedKey
+public typealias DependencyValues = InjectedValues
+public typealias DependencyManager = InjectedManager
+
+// 🚨 충돌 방지: Dependency 타입은 export하지 않음
+// 대신 @Injected 사용을 권장
 
 // 🎨 새로운 TCA 스타일 API export (자동으로 사용 가능)
 // - @DependencyConfiguration (DependencyBuilder.swift)

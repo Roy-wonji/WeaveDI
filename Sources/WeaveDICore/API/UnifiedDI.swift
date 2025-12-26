@@ -148,6 +148,10 @@ public enum UnifiedDI {
   ) -> T where T: Sendable {
     let startTime = Date()
     let instance = DIContainer.shared.actorRegister(type, factory: factory)
+
+    // 🔄 InjectedValues와 동기화 (양방향 동기화!)
+    syncToInjectedValues(type: type, instance: instance)
+
     let duration = Date().timeIntervalSince(startTime)
 
     DILogger.logRegistration(type: type, success: true)
@@ -166,6 +170,10 @@ public enum UnifiedDI {
   ) async -> T where T: Sendable {
     let startTime = Date()
     let instance = await DIContainer.shared.registerAsync(type, factory: factory)
+
+    // 🔄 InjectedValues와 동기화 (양방향 동기화!)
+    syncToInjectedValues(type: type, instance: instance)
+
     let duration = Date().timeIntervalSince(startTime)
 
     DILogger.logRegistration(type: type, success: true)
@@ -196,7 +204,12 @@ public enum UnifiedDI {
     scope: ProvideScope = .transient,
     factory: @escaping @Sendable () async -> T
   ) async -> T where T: Sendable {
-    return await DIContainer.shared.registerAsync(type, factory: factory)
+    let instance = await DIContainer.shared.registerAsync(type, factory: factory)
+
+    // 🔄 InjectedValues와 동기화 (양방향 동기화!)
+    syncToInjectedValues(type: type, instance: instance)
+
+    return instance
   }
 
   /// 🚀 Singleton 등록 (즉시 생성으로 일관성 보장)
@@ -694,6 +707,15 @@ extension UnifiedDI {
   /// - ⚡ **Actor hop 최소화**: Swift 6 최적화
   ///
   /// **Note**: Component 매크로 정의는 MacroDefinitions.swift에서 관리됩니다.
+
+  // MARK: - TCA 동기화 헬퍼
+
+  /// UnifiedDI 등록 시 InjectedValues에 자동 동기화
+  private static func syncToInjectedValues<T: Sendable>(type: T.Type, instance: T) {
+    var current = InjectedManager.current
+    current[type] = instance
+    InjectedManager.setCurrent(current)
+  }
 
   // MARK: - Static Factory Generation (Needle-level Performance)
 
