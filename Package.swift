@@ -28,10 +28,10 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-docc-plugin.git", from: "1.4.5"),
         .package(
           url: "https://github.com/apple/swift-syntax.git", from: "600.0.0"),
-        // .package(
-        //   url: "https://github.com/pointfreeco/swift-dependencies.git",
-        //   from: "1.10.0"
-        // ),
+        .package(
+          url: "https://github.com/pointfreeco/swift-dependencies.git",
+          from: "1.10.0"
+        ),
     ],
     targets: [
         // 🎯 메인 타겟 - 모든 핵심 기능 통합!
@@ -40,6 +40,7 @@ let package = Package(
             dependencies: [
                 "WeaveDICore",
                 "WeaveDIMacros",
+                .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "LogMacro", package: "LogMacro")
             ],
             path: "Sources/WeaveDI",
