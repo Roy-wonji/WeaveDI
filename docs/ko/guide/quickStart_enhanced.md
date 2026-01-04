@@ -2,6 +2,10 @@
 
 5분 안에 WeaveDI를 시작해보세요 - 제로부터 프로덕션 준비 완료된 의존성 주입까지.
 
+## 관련 링크
+
+- [Builder 패턴 가이드](builderPattern.md)
+
 ## 설치
 
 ### Swift Package Manager

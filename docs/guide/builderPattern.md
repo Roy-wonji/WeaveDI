@@ -2,6 +2,10 @@
 
 Complete guide for the new Builder pattern officially introduced in WeaveDI v3.4.0. This pattern enables dependency registration through a more intuitive and fluent API.
 
+## Related Links
+
+- [README v3.4.0 update summary](../../README-EN.md#-latest-updates-v340)
+
 ## Overview
 
 The WeaveDI.builder pattern is a new approach that allows you to register multiple dependencies at once through method chaining. It enables writing more readable and maintainable code compared to the traditional individual registration method.
