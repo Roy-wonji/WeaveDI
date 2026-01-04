@@ -4,9 +4,19 @@ This document outlines the future development plans, upcoming features, and long
 
 ## Version History & Current Status
 
-### Current Version: 3.3.0 ✅ (Released 2025-10-12)
+### Current Version: 3.4.0 ✅ (Released 2025-12-27)
 
-**Latest Released Features:**
+**v3.4.0 New Features:**
+- 🆕 **DiModuleFactory Added** - Systematic management of common DI dependencies (Logger, Config, etc.)
+- 🔄 **ModuleFactoryManager Extended** - Simplified dependency registration with DiModuleFactory integration
+- ⚙️ **AppDIManager Enhanced** - Automatic DiModuleFactory registration in default factories
+- 🎯 **Type-Safe Dependency Management** - Safer DI with compile-time type verification
+- 🏗️ **WeaveDI.builder Pattern** - New fluent API for intuitive dependency registration
+- ⚡ **v3.4.0 Highlight** - Next-generation DependencyBuilder and enhanced @Dependency support
+- 📦 **Module Structure Improvements** - Clear role separation with WeaveDICore, WeaveDIAppDI, etc.
+- 🔧 **TCA Conflict Resolution** - Perfect compatibility with The Composable Architecture
+
+**v3.3.0 Previous Features:**
 - ✅ **Environment Flags Performance Optimization** - Achieved 0% overhead in production
 - ✅ **TCA Bridge Policy Configuration** - Dynamic dependency priority control
 - ✅ **Modern Batch Registration DSL** - Result Builder-based declarative registration
@@ -35,18 +45,62 @@ This document outlines the future development plans, upcoming features, and long
 - 🚀 Complete zero-cost abstractions in production environments
 - 📊 Real-time performance insights in development environments
 
-## Upcoming Releases
+### Latest Development Highlights (December 2025)
 
-### Version 3.4.0 🚧 (Q4 2025)
+#### 🏗️ WeaveDI.builder Pattern
 
-**Focus: Developer Tools & Visualization**
+New fluent API for much more intuitive dependency registration:
 
-#### New Features
-- 🔧 **WeaveDI Inspector**: Visual dependency graph analysis tool with SwiftUI overlay
-- 📊 **Enhanced Performance Dashboard**: Real-time DI performance monitoring dashboard
-- 🎯 **Smart Code Completion**: Enhanced Xcode integration and autocomplete
-- 📝 **Auto-Generated Documentation**: Dependency documentation from code
-- 🔍 **Dependency Graph Visualization**: Visual representation of complex dependency relationships
+```swift
+// Traditional approach
+UnifiedDI.register(UserService.self) { UserServiceImpl() }
+UnifiedDI.register(Logger.self) { ConsoleLogger() }
+
+// New builder pattern
+WeaveDI.builder
+    .register { UserServiceImpl() }    // Automatic type inference
+    .register { ConsoleLogger() }      // Automatic type inference
+    .configure()
+```
+
+#### ⚡ v3.4.0 Feature Highlights
+
+Experience the new DependencyBuilder and @Dependency enhancements available in v3.4.0:
+
+```swift
+@DependencyConfiguration
+var dependencies {
+    UserService()     // Automatic type inference
+    NetworkClient()   // Simple registration
+    Logger()          // No keypath registration
+}
+
+// Enhanced @Dependency
+@Dependency var userService: UserService  // Works without keypath
+```
+
+#### 📦 Major Module Structure Overhaul
+
+More clear and maintainable module structure:
+
+- **WeaveDICore**: Core DI engine
+- **WeaveDIAppDI**: App-level dependency management
+- **WeaveDITCA**: Dedicated The Composable Architecture integration
+- **WeaveDIMacros**: Swift macro support
+- **WeaveDIOptimizations**: Performance optimization dedicated
+
+#### 🔧 Perfect TCA Compatibility Achievement
+
+```swift
+// TCA and WeaveDI now work perfectly together
+struct AppFeature: Reducer {
+    @Dependency(\.userService) var userService: UserService  // TCA
+
+    struct State {
+        @Injected var logger: Logger  // WeaveDI - no conflicts!
+    }
+}
+```
 
 #### Enhancements
 - 🚀 **Enhanced @Factory**: Support for complex factory patterns with parameters

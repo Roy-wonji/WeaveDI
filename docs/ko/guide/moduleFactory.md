@@ -1486,3 +1486,251 @@ struct LazyModuleFactory {
 ```
 
 WeaveDI의 모듈 팩토리 시스템은 깨끗하고 테스트 가능하며 유지보수 가능한 코드 아키텍처를 유지하면서 복잡한 의존성 그래프를 관리하는 견고한 기반을 제공합니다.
+
+## DiModuleFactory - 공통 DI 의존성 관리 (v3.3.4+)
+
+v3.3.4부터 도입된 `DiModuleFactory`는 Logger, Config, Cache 등 앱 전반에서 사용되는 공통 DI 의존성을 체계적으로 관리하기 위한 특별한 모듈 팩토리입니다.
+
+### 핵심 특징
+
+- 📦 **공통 의존성 관리**: 앱 전반에서 공유되는 의존성을 중앙집중식으로 관리
+- 🔄 **빌더 패턴**: 직관적인 API로 의존성 추가
+- ⚙️ **자동 통합**: ModuleFactoryManager와 seamless 연동
+- 🎯 **타입 안전성**: 컴파일 타임 타입 검증
+
+### 기본 사용법
+
+```swift
+import WeaveDI
+
+// DiModuleFactory 인스턴스 생성
+var diFactory = DiModuleFactory()
+
+// 공통 DI 의존성 추가 (빌더 패턴)
+diFactory.addDependency(Logger.self) {
+    ConsoleLogger()
+}
+
+diFactory.addDependency(APIConfig.self) {
+    APIConfig(baseURL: "https://api.example.com")
+}
+
+diFactory.addDependency(CacheService.self) {
+    MemoryCacheService()
+}
+
+// 의존성 모듈 생성
+let modules = diFactory.makeAllModules()
+```
+
+### ModuleFactoryManager와 통합
+
+`DiModuleFactory`는 `ModuleFactoryManager`와 완벽하게 통합되어 다른 팩토리들과 함께 사용할 수 있습니다.
+
+```swift
+// ModuleFactoryManager 설정
+var factoryManager = ModuleFactoryManager()
+
+// DiModuleFactory 설정
+factoryManager.diFactory.addDependency(Logger.self) {
+    #if DEBUG
+    ConsoleLogger()
+    #else
+    ProductionLogger()
+    #endif
+}
+
+factoryManager.diFactory.addDependency(NetworkConfig.self) {
+    NetworkConfig(
+        timeout: 30.0,
+        retryCount: 3,
+        baseURL: "https://api.example.com"
+    )
+}
+
+// Repository와 UseCase 팩토리도 함께 설정
+factoryManager.repositoryFactory.addRepository(UserRepository.self) {
+    UserRepositoryImpl()
+}
+
+factoryManager.useCaseFactory.addUseCase(AuthUseCase.self) {
+    AuthUseCaseImpl()
+}
+
+// 모든 모듈을 한번에 등록
+await factoryManager.registerAllModules()
+```
+
+### 환경별 의존성 설정
+
+환경에 따라 다른 의존성을 설정할 수 있는 유연한 패턴:
+
+```swift
+struct EnvironmentDiFactory {
+    static func create(for environment: AppEnvironment) -> DiModuleFactory {
+        var factory = DiModuleFactory()
+
+        // 공통 의존성
+        factory.addDependency(AppConfig.self) {
+            AppConfig.load()
+        }
+
+        // 환경별 Logger
+        switch environment {
+        case .development:
+            factory.addDependency(Logger.self) {
+                ConsoleLogger(level: .debug)
+            }
+        case .staging:
+            factory.addDependency(Logger.self) {
+                FileLogger(level: .info)
+            }
+        case .production:
+            factory.addDependency(Logger.self) {
+                ProductionLogger(level: .warning)
+            }
+        }
+
+        // 환경별 Analytics
+        factory.addDependency(AnalyticsService.self) {
+            switch environment {
+            case .development:
+                return MockAnalyticsService()
+            case .staging, .production:
+                return FirebaseAnalyticsService()
+            }
+        }
+
+        return factory
+    }
+}
+
+// 사용법
+let environment = AppEnvironment.current
+var factoryManager = ModuleFactoryManager()
+factoryManager.diFactory = EnvironmentDiFactory.create(for: environment)
+```
+
+### 앱 시작시 자동 설정
+
+`AppDIManager`는 v3.3.4부터 자동으로 `DiModuleFactory`를 지원합니다:
+
+```swift
+// AppDelegate 또는 App.swift에서
+@main
+struct MyApp: App {
+    init() {
+        setupDependencies()
+    }
+
+    private func setupDependencies() {
+        // DiModuleFactory는 자동으로 등록됩니다
+        // ModuleFactoryManager도 자동으로 설정됩니다
+
+        // 필요한 경우 추가 설정
+        let factoryManager = WeaveDI.Container.live.resolve(ModuleFactoryManager.self)
+
+        factoryManager?.diFactory.addDependency(CustomService.self) {
+            CustomServiceImpl()
+        }
+    }
+}
+```
+
+### 고급 패턴
+
+#### 조건부 의존성 등록
+
+```swift
+var factory = DiModuleFactory()
+
+// 기능 플래그에 따른 조건부 등록
+if FeatureFlags.isAnalyticsEnabled {
+    factory.addDependency(AnalyticsService.self) {
+        FirebaseAnalyticsService()
+    }
+} else {
+    factory.addDependency(AnalyticsService.self) {
+        NoOpAnalyticsService()
+    }
+}
+
+// 플랫폼별 의존성
+#if os(iOS)
+factory.addDependency(BiometricService.self) {
+    iOSBiometricService()
+}
+#elseif os(macOS)
+factory.addDependency(BiometricService.self) {
+    MacBiometricService()
+}
+#endif
+```
+
+#### 의존성 체인
+
+```swift
+var factory = DiModuleFactory()
+
+// 의존성 체인 설정
+factory.addDependency(NetworkClient.self) {
+    let config = WeaveDI.Container.live.resolve(NetworkConfig.self)!
+    let logger = WeaveDI.Container.live.resolve(Logger.self)!
+    return NetworkClient(config: config, logger: logger)
+}
+
+factory.addDependency(APIService.self) {
+    let client = WeaveDI.Container.live.resolve(NetworkClient.self)!
+    return APIService(client: client)
+}
+```
+
+### 테스팅 지원
+
+테스트 환경에서 쉽게 목 객체로 교체할 수 있습니다:
+
+```swift
+#if DEBUG
+struct TestDiFactory {
+    static func createMockFactory() -> DiModuleFactory {
+        var factory = DiModuleFactory()
+
+        factory.addDependency(Logger.self) {
+            MockLogger()
+        }
+
+        factory.addDependency(NetworkClient.self) {
+            MockNetworkClient()
+        }
+
+        factory.addDependency(AnalyticsService.self) {
+            MockAnalyticsService()
+        }
+
+        return factory
+    }
+}
+
+// 테스트에서 사용
+class SomeTestCase: XCTestCase {
+    override func setUp() {
+        super.setUp()
+
+        var factoryManager = ModuleFactoryManager()
+        factoryManager.diFactory = TestDiFactory.createMockFactory()
+
+        await factoryManager.registerAllModules()
+    }
+}
+#endif
+```
+
+### 모범 사례
+
+1. **의존성 그룹화**: 관련된 의존성들을 함께 설정
+2. **환경별 분리**: 개발/스테이징/프로덕션 환경별로 다른 구현체 사용
+3. **늦은 바인딩**: 설정 로드 후 의존성 등록
+4. **타입 안전성**: 컴파일 타임에 잘못된 타입 등록 방지
+5. **테스트 격리**: 테스트용 의존성을 별도로 관리
+
+`DiModuleFactory`를 통해 앱의 공통 의존성을 체계적이고 타입 안전하게 관리할 수 있으며, 빌더 패턴을 통해 직관적이고 읽기 쉬운 코드를 작성할 수 있습니다.

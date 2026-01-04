@@ -1486,3 +1486,256 @@ struct LazyModuleFactory {
 ```
 
 The Module Factory system in WeaveDI provides a robust foundation for managing complex dependency graphs while maintaining clean, testable, and maintainable code architecture.
+
+## DiModuleFactory - Common DI Dependency Management (v3.3.4+)
+
+The `DiModuleFactory` introduced in v3.3.4 is a specialized module factory for systematically managing common DI dependencies such as Logger, Config, Cache, etc., used throughout the app.
+
+### Key Features
+
+- 📦 **Common Dependency Management**: Centralized management of dependencies shared across the app
+- 🔄 **Builder Pattern**: Intuitive API for adding dependencies
+- ⚙️ **Automatic Integration**: Seamless integration with ModuleFactoryManager
+- 🎯 **Type Safety**: Compile-time type verification
+
+### Basic Usage
+
+```swift
+import WeaveDI
+import WeaveDIAppDI
+
+// Create DiModuleFactory instance
+var diFactory = DiModuleFactory()
+
+// Add common DI dependencies (builder pattern)
+diFactory.addDependency(Logger.self) {
+    ConsoleLogger()
+}
+
+diFactory.addDependency(APIConfig.self) {
+    APIConfig(baseURL: "https://api.example.com")
+}
+
+diFactory.addDependency(CacheService.self) {
+    MemoryCacheService()
+}
+
+// Generate dependency modules
+let modules = diFactory.makeAllModules()
+```
+
+### Integration with ModuleFactoryManager
+
+`DiModuleFactory` integrates perfectly with `ModuleFactoryManager` for use alongside other factories.
+
+```swift
+// Configure ModuleFactoryManager
+var factoryManager = ModuleFactoryManager()
+
+// Configure DiModuleFactory
+factoryManager.diFactory.addDependency(Logger.self) {
+    #if DEBUG
+    ConsoleLogger()
+    #else
+    ProductionLogger()
+    #endif
+}
+
+factoryManager.diFactory.addDependency(NetworkConfig.self) {
+    NetworkConfig(
+        timeout: 30.0,
+        retryCount: 3,
+        baseURL: "https://api.example.com"
+    )
+}
+
+// Configure Repository and UseCase factories together
+factoryManager.repositoryFactory.addRepository(UserRepository.self) {
+    UserRepositoryImpl()
+}
+
+factoryManager.useCaseFactory.addUseCase(
+    AuthUseCase.self,
+    repositoryType: UserRepository.self,
+    repositoryFallback: { UserRepositoryImpl() }
+) { repo in
+    AuthUseCaseImpl(repository: repo)
+}
+
+// Register all modules at once
+await factoryManager.registerAll(to: WeaveDI.Container.live)
+```
+
+### Environment-Specific Dependencies
+
+Flexible patterns for setting different dependencies based on environment:
+
+```swift
+struct EnvironmentDiFactory {
+    static func create(for environment: AppEnvironment) -> DiModuleFactory {
+        var factory = DiModuleFactory()
+
+        // Common dependencies
+        factory.addDependency(AppConfig.self) {
+            AppConfig.load()
+        }
+
+        // Environment-specific Logger
+        switch environment {
+        case .development:
+            factory.addDependency(Logger.self) {
+                ConsoleLogger(level: .debug)
+            }
+        case .staging:
+            factory.addDependency(Logger.self) {
+                FileLogger(level: .info)
+            }
+        case .production:
+            factory.addDependency(Logger.self) {
+                ProductionLogger(level: .warning)
+            }
+        }
+
+        // Environment-specific Analytics
+        factory.addDependency(AnalyticsService.self) {
+            switch environment {
+            case .development:
+                return MockAnalyticsService()
+            case .staging, .production:
+                return FirebaseAnalyticsService()
+            }
+        }
+
+        return factory
+    }
+}
+
+// Usage
+let environment = AppEnvironment.current
+var factoryManager = ModuleFactoryManager()
+factoryManager.diFactory = EnvironmentDiFactory.create(for: environment)
+```
+
+### Automatic Setup at App Startup
+
+`AppDIManager` automatically supports `DiModuleFactory` from v3.3.4:
+
+```swift
+// In AppDelegate or App.swift
+@main
+struct MyApp: App {
+    init() {
+        setupDependencies()
+    }
+
+    private func setupDependencies() {
+        // DiModuleFactory is automatically registered
+        // ModuleFactoryManager is also automatically configured
+
+        // Additional configuration if needed
+        let factoryManager = WeaveDI.Container.live.resolve(ModuleFactoryManager.self)
+
+        factoryManager?.diFactory.addDependency(CustomService.self) {
+            CustomServiceImpl()
+        }
+    }
+}
+```
+
+### Advanced Patterns
+
+#### Conditional Dependency Registration
+
+```swift
+var factory = DiModuleFactory()
+
+// Conditional registration based on feature flags
+if FeatureFlags.isAnalyticsEnabled {
+    factory.addDependency(AnalyticsService.self) {
+        FirebaseAnalyticsService()
+    }
+} else {
+    factory.addDependency(AnalyticsService.self) {
+        NoOpAnalyticsService()
+    }
+}
+
+// Platform-specific dependencies
+#if os(iOS)
+factory.addDependency(BiometricService.self) {
+    iOSBiometricService()
+}
+#elseif os(macOS)
+factory.addDependency(BiometricService.self) {
+    MacBiometricService()
+}
+#endif
+```
+
+#### Dependency Chains
+
+```swift
+var factory = DiModuleFactory()
+
+// Set up dependency chains
+factory.addDependency(NetworkClient.self) {
+    let config = WeaveDI.Container.live.resolve(NetworkConfig.self)!
+    let logger = WeaveDI.Container.live.resolve(Logger.self)!
+    return NetworkClient(config: config, logger: logger)
+}
+
+factory.addDependency(APIService.self) {
+    let client = WeaveDI.Container.live.resolve(NetworkClient.self)!
+    return APIService(client: client)
+}
+```
+
+### Testing Support
+
+Easy replacement with mock objects in test environments:
+
+```swift
+#if DEBUG
+struct TestDiFactory {
+    static func createMockFactory() -> DiModuleFactory {
+        var factory = DiModuleFactory()
+
+        factory.addDependency(Logger.self) {
+            MockLogger()
+        }
+
+        factory.addDependency(NetworkClient.self) {
+            MockNetworkClient()
+        }
+
+        factory.addDependency(AnalyticsService.self) {
+            MockAnalyticsService()
+        }
+
+        return factory
+    }
+}
+
+// Usage in tests
+class SomeTestCase: XCTestCase {
+    override func setUp() {
+        super.setUp()
+
+        var factoryManager = ModuleFactoryManager()
+        factoryManager.diFactory = TestDiFactory.createMockFactory()
+
+        await factoryManager.registerAll(to: WeaveDI.Container.live)
+    }
+}
+#endif
+```
+
+### Best Practices
+
+1. **Dependency Grouping**: Configure related dependencies together
+2. **Environment Separation**: Use different implementations for development/staging/production environments
+3. **Late Binding**: Register dependencies after configuration loading
+4. **Type Safety**: Prevent incorrect type registration at compile time
+5. **Test Isolation**: Manage test-specific dependencies separately
+
+Through `DiModuleFactory`, you can systematically and type-safely manage your app's common dependencies while writing intuitive and readable code through the builder pattern.

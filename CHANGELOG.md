@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.4.0] - 2025-12-27
+
+### 🎉 추가됨
+- **WeaveDI.builder 패턴**: fluent API로 체이닝 등록 지원
+- **@DependencyConfiguration Result Builder**: SwiftUI 스타일 선언적 등록
+
+### 🔧 개선됨
+- **모듈 구조 개선**: WeaveDICore, WeaveDIAppDI, WeaveDITCA 등 역할별 분리
+- **TCA 충돌 해결**: The Composable Architecture와의 타입 충돌 제거
+
+---
+
+## [3.3.4] - 2025-11-22
+
+### 🎉 Added
+- **DiModuleFactory**: Dedicated module factory for common DI dependencies (Logger, Config, Cache, etc.)
+  - New `DiModuleFactory` in ModuleFactory system
+  - Aggregated by `ModuleFactoryManager` via `makeAllModules()`
+  - Files: `Sources/WeaveDIAppDI/Factory/ModuleFactory.swift`
+
+### 🔧 Improved
+- **AppDIManager default DI registration**: Automatically registers `DiModuleFactory` in the live container
+  - File: `Sources/WeaveDIAppDI/AppDI/AppDIManager.swift`
+
+---
+
 ## [3.3.0] - 2025-10-12
 
 ### 🚀 Major Performance Enhancements

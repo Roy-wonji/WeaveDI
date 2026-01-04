@@ -68,6 +68,20 @@ public enum WeaveDI {
         return UnifiedDI.register(T.self, factory: factory)
     }
 
+    /// 🎯 **프로토콜/추상 타입 명시 등록**
+    ///
+    /// ### 사용법:
+    /// ```swift
+    /// WeaveDI.register(UserService.self) { UserServiceImpl() }
+    /// ```
+    @discardableResult
+    public static func register<T: Sendable>(
+        _ type: T.Type,
+        factory: @escaping @Sendable () -> T
+    ) -> T {
+        return UnifiedDI.register(type, factory: factory)
+    }
+
     /// 🎯 **체이닝 등록 시작**
     ///
     /// ### 사용법:
@@ -112,6 +126,15 @@ public struct RegistrationBuilder {
         return self
     }
 
+    @discardableResult
+    public func register<T: Sendable>(
+        _ type: T.Type,
+        factory: @escaping @Sendable () -> T
+    ) -> RegistrationBuilder {
+        _ = WeaveDI.register(type, factory: factory)
+        return self
+    }
+
     public func configure() {
         // 등록 완료
     }
@@ -140,6 +163,15 @@ public struct EnvironmentBuilder {
     @discardableResult
     public func register<T: Sendable>(_ factory: @escaping @Sendable () -> T) -> EnvironmentBuilder {
         _ = WeaveDI.register(factory)
+        return self
+    }
+
+    @discardableResult
+    public func register<T: Sendable>(
+        _ type: T.Type,
+        factory: @escaping @Sendable () -> T
+    ) -> EnvironmentBuilder {
+        _ = WeaveDI.register(type, factory: factory)
         return self
     }
 }

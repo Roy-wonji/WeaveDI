@@ -25,7 +25,7 @@
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.2.1")
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.4.0")
 ]
 ```
 
@@ -77,6 +77,152 @@ await UnifiedDI.bootstrap { _ in
             register.authRepositoryImplModule(),
             register.authUseCaseImplModule()
         ]
+    }
+}
+```
+
+### DiModuleFactory - Common DI Dependency Management (v3.3.4+)
+
+WeaveDI v3.3.4 introduces `DiModuleFactory` for systematic management of common DI dependencies like Logger, Config, etc.
+
+```swift
+import WeaveDI
+import WeaveDIAppDI
+
+// DiModuleFactory usage
+var diFactory = DiModuleFactory()
+
+// Add common DI dependencies (actual API)
+diFactory.addDependency(Logger.self) {
+    ConsoleLogger()
+}
+
+diFactory.addDependency(APIConfig.self) {
+    APIConfig(baseURL: "https://api.example.com")
+}
+
+// Use with ModuleFactoryManager
+var factoryManager = ModuleFactoryManager()
+factoryManager.diFactory = diFactory
+
+// Other factories can also be configured together
+factoryManager.repositoryFactory.addRepository(UserRepository.self) {
+    UserRepositoryImpl()
+}
+
+factoryManager.useCaseFactory.addUseCase(
+    AuthUseCase.self,
+    repositoryType: UserRepository.self,
+    repositoryFallback: { UserRepositoryImpl() }
+) { repo in
+    AuthUseCaseImpl(repository: repo)
+}
+
+// Register all modules to DI container
+await factoryManager.registerAll(to: WeaveDI.Container.live)
+```
+
+**Key Features:**
+- 📦 **Common Dependency Management**: Systematically manage dependencies used throughout the app like Logger, Config
+- 🔄 **Automatic Registration**: Integrates with `ModuleFactoryManager` for automatic DI container registration
+- 🎯 **Type Safety**: Compile-time type verification for safer DI
+
+## 🆕 Latest Updates (v3.4.0)
+
+### WeaveDI.builder Pattern Support 🏗️
+
+New fluent API for more intuitive dependency registration:
+
+```swift
+// New builder pattern - automatic type inference!
+WeaveDI.builder
+    .register { UserServiceImpl() }    // Automatically registered as UserService
+    .register { ConsoleLogger() }      // Automatically registered as Logger
+    .register { NetworkClientImpl() }  // Automatically registered as NetworkClient
+    .configure()
+
+// Individual registration also supported
+WeaveDI.register { UserServiceImpl() }  // Simple one-liner
+
+// Environment-based registration
+WeaveDI.registerForEnvironment { env in
+    if env.isDebug {
+        env.register { MockUserService() as UserService }
+        env.register { DebugLogger() as Logger }
+    } else {
+        env.register { UserServiceImpl() as UserService }
+        env.register { ProductionLogger() as Logger }
+    }
+}
+```
+
+### SwiftUI-Style @DependencyConfiguration ⚡
+
+Declare dependencies declaratively like SwiftUI's ViewBuilder:
+
+```swift
+// SwiftUI-style declarative registration
+@DependencyConfiguration
+var appDependencies {
+    UserServiceImpl()           // Automatically registered as UserService
+    RepositoryImpl()            // Automatically registered as Repository
+
+    // Conditional registration supported
+    if ProcessInfo.processInfo.environment["DEBUG"] != nil {
+        DebugLogger() as Logger
+    } else {
+        ProductionLogger() as Logger
+    }
+}
+
+// Call once at app startup
+appDependencies.configure()
+
+// Environment-specific configuration also supported
+let productionDeps = DependencyEnvironment.production {
+    UserServiceImpl()
+    ProductionLogger() as Logger
+    RealNetworkClient() as NetworkClient
+}
+
+let developmentDeps = DependencyEnvironment.development {
+    UserServiceImpl()
+    ConsoleLogger() as Logger
+    MockNetworkClient() as NetworkClient
+}
+
+#if DEBUG
+developmentDeps.configure()
+#else
+productionDeps.configure()
+#endif
+```
+
+### Module Structure Improvements 📦
+
+WeaveDI is now more systematically organized with clear role separation:
+
+- **WeaveDICore**: Core DI engine (`@Injected`, `UnifiedDI`, `DIContainer`)
+- **WeaveDIAppDI**: App-level DI management (`ModuleFactoryManager`, `DiModuleFactory`)
+- **WeaveDITCA**: TCA-dedicated integration (conflict resolution complete)
+- **WeaveDIMacros**: Swift macro support (`@Component`, `@AutoRegister`)
+- **WeaveDIOptimizations**: Performance optimization (AutoDI, graph optimization)
+- **WeaveDIMonitoring**: Real-time monitoring (performance tracking, health checks)
+- **WeaveDINeedleCompat**: Uber Needle compatibility
+- **WeaveDICompat**: Legacy compatibility support
+- **WeaveDITools**: CLI tools and utilities
+
+### TCA Conflict Resolution 🔧
+
+Type conflicts with The Composable Architecture are completely resolved:
+
+```swift
+// TCA and WeaveDI can now be used together safely
+struct AppFeature: Reducer {
+    @Dependency(\.userService) var userService: UserService  // TCA
+
+    struct State {
+        @Injected var logger: Logger  // WeaveDI - no conflicts!
     }
 }
 ```

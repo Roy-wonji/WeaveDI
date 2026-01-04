@@ -4,15 +4,82 @@
 
 ## 버전 기록 및 현재 상태
 
-### 현재 버전: 3.3.0 ✅ (2025년 10월 12일 출시)
+### 현재 버전: 3.4.0 ✅ (2025년 12월 27일 출시)
 
-**최신 출시된 기능:**
+**v3.4.0 새로운 기능:**
+- 🆕 **DiModuleFactory 추가** - 공통 DI 의존성(Logger, Config 등) 체계적 관리
+- 🔄 **ModuleFactoryManager 확장** - DiModuleFactory와 자동 통합으로 의존성 등록 간소화
+- ⚙️ **AppDIManager 개선** - 기본 팩토리에 DiModuleFactory 자동 등록 지원
+- 🎯 **타입 안전 의존성 관리** - 컴파일 타임 타입 검증으로 더욱 안전한 DI
+- 🏗️ **WeaveDI.builder 패턴** - 새로운 fluent API로 직관적인 의존성 등록 지원
+- ⚡ **v3.4.0 하이라이트** - 차세대 DependencyBuilder와 향상된 @Dependency 지원
+- 📦 **모듈 구조 개선** - WeaveDICore, WeaveDIAppDI 등으로 명확한 역할 분리
+- 🔧 **TCA 충돌 해결** - The Composable Architecture와 완벽한 호환성 달성
+
+**v3.3.0 기존 기능:**
 - ✅ **환경 플래그 성능 최적화** - 프로덕션에서 0% 오버헤드 달성
 - ✅ **TCA 브릿지 정책 설정** - 동적 의존성 우선순위 제어
 - ✅ **현대적 배치 등록 DSL** - Result Builder 기반 선언적 등록
 - ✅ **ComponentDiagnostics 시스템** - 자동 의존성 분석 및 이슈 감지
 - ✅ **고급 성능 모니터링** - 메모리 효율적 추적 및 최적화 제안
 - ✅ **컴파일 경고 완전 제거** - 타입 안전성 향상
+
+### 최신 개발 하이라이트 (2025년 12월)
+
+#### 🏗️ WeaveDI.builder 패턴
+
+새로운 fluent API로 훨씬 직관적인 의존성 등록:
+
+```swift
+// 기존 방식
+UnifiedDI.register(UserService.self) { UserServiceImpl() }
+UnifiedDI.register(Logger.self) { ConsoleLogger() }
+
+// 새로운 builder 패턴
+WeaveDI.builder
+    .register(UserService.self) { UserServiceImpl() }
+    .register(Logger.self) { ConsoleLogger() }
+    .configure()
+```
+
+#### ⚡ v3.4.0 기능 하이라이트
+
+v3.4.0에서 제공되는 DependencyBuilder 및 @Dependency 개선사항:
+
+```swift
+@DependencyConfiguration
+var dependencies {
+    UserService()     // 자동 타입 추론
+    NetworkClient()   // 간편한 등록
+    Logger()          // 키패스 없는 등록
+}
+
+// 향상된 @Dependency
+@Dependency var userService: UserService  // 키패스 없이도 동작
+```
+
+#### 📦 모듈 구조 대개편
+
+더 명확하고 유지보수하기 쉬운 모듈 구조:
+
+- **WeaveDICore**: 핵심 DI 엔진
+- **WeaveDIAppDI**: 앱 수준 의존성 관리
+- **WeaveDITCA**: The Composable Architecture 전용 통합
+- **WeaveDIMacros**: Swift 매크로 지원
+- **WeaveDIOptimizations**: 성능 최적화 전용
+
+#### 🔧 TCA 호환성 완벽 달성
+
+```swift
+// 이제 TCA와 WeaveDI가 완벽하게 함께 동작
+struct AppFeature: Reducer {
+    @Dependency(\.userService) var userService: UserService  // TCA
+
+    struct State {
+        @Injected var logger: Logger  // WeaveDI - 충돌 없음!
+    }
+}
+```
 
 **기존 기능 (v3.2.x):**
 - ✅ 엄격한 동시성을 포함한 Swift 6.0 완전 호환
@@ -37,7 +104,7 @@
 
 ## 예정된 릴리스
 
-### 버전 3.4.0 🚧 (2025년 Q4)
+### 버전 3.5.0 🚧 (2026년 Q1)
 
 **초점: 개발자 도구 및 시각화**
 
@@ -354,10 +421,8 @@ WeaveDI의 미래를 형성하는 데 커뮤니티의 의견을 중요하게 생
 | 버전 | 출시일 | 초점 | 주요 기능 |
 |------|--------|------|----------|
 | **v3.2.0** | ✅ 2025년 10월 1일 | TCA 스타일 DI | @Injected, AppDI 간소화 |
-| **v3.1.0** | 2025년 9월 27일 | 성능 | 런타임 최적화, Lock-free |
-| **v3.3.0** | 2026년 Q1 | 개발자 도구 | Inspector, 향상된 프로파일러 |
-| **v3.4.0** | 2026년 Q2 | 아키텍처 | 모듈 시스템 2.0, 스코프 |
-| **v4.0.0** | 2026년 Q4 | 주요 변경 | @Injected, @SafeInject 제거 |
+| **v3.3.4** | ✅ 2025년 12월 20일 | DI 모듈 관리 | DiModuleFactory, 의존성 체계화 |
+| **v3.4.0** | ✅ 2025년 12월 27일 | Builder 패턴 | WeaveDI.builder, 모듈 구조 개선 |
 
 ---
 

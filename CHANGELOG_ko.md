@@ -2,6 +2,20 @@
 
 이 프로젝트의 모든 주요 변경사항이 이 파일에 문서화됩니다.
 
+## [3.3.4] - 2025-11-22
+
+### 🎉 추가됨
+- **DiModuleFactory**: Logger, Config, Cache 등 공통 DI 의존성을 위한 전용 모듈 팩토리
+  - ModuleFactory 시스템에 `DiModuleFactory` 추가
+  - `ModuleFactoryManager.makeAllModules()`에서 DI 모듈 수집
+  - 파일: `Sources/WeaveDIAppDI/Factory/ModuleFactory.swift`
+
+### 🔧 개선됨
+- **AppDIManager 기본 DI 등록**: live 컨테이너에 `DiModuleFactory` 자동 등록
+  - 파일: `Sources/WeaveDIAppDI/AppDI/AppDIManager.swift`
+
+---
+
 ## [3.3.0] - 2025-10-12
 
 ### 🚀 주요 성능 향상

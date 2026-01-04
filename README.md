@@ -53,7 +53,7 @@
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "4.0.0")
+    .package(url: "https://github.com/Roy-wonji/WeaveDI.git", from: "3.4.0")
 ]
 ```
 
@@ -127,6 +127,152 @@ await UnifiedDI.bootstrap { _ in
             register.authRepositoryImplModule(),
             register.authUseCaseImplModule()
         ]
+    }
+}
+```
+
+### DiModuleFactory - 공통 DI 의존성 관리 (v3.3.4+)
+
+WeaveDI v3.3.4부터 공통 DI 의존성(Logger, Config 등)을 더 쉽게 관리할 수 있는 `DiModuleFactory`가 추가되었습니다.
+
+```swift
+import WeaveDI
+import WeaveDIAppDI
+
+// DiModuleFactory 사용법
+var diFactory = DiModuleFactory()
+
+// 공통 DI 의존성 추가 (실제 API)
+diFactory.addDependency(Logger.self) {
+    ConsoleLogger()
+}
+
+diFactory.addDependency(APIConfig.self) {
+    APIConfig(baseURL: "https://api.example.com")
+}
+
+// ModuleFactoryManager와 함께 사용
+var factoryManager = ModuleFactoryManager()
+factoryManager.diFactory = diFactory
+
+// 다른 팩토리도 함께 설정 가능
+factoryManager.repositoryFactory.addRepository(UserRepository.self) {
+    UserRepositoryImpl()
+}
+
+factoryManager.useCaseFactory.addUseCase(
+    AuthUseCase.self,
+    repositoryType: UserRepository.self,
+    repositoryFallback: { UserRepositoryImpl() }
+) { repo in
+    AuthUseCaseImpl(repository: repo)
+}
+
+// 모든 모듈을 DI 컨테이너에 등록
+await factoryManager.registerAll(to: WeaveDI.Container.live)
+```
+
+**주요 특징:**
+- 📦 **공통 의존성 관리**: Logger, Config 등 앱 전반에서 사용되는 의존성을 체계적으로 관리
+- 🔄 **자동 등록**: `ModuleFactoryManager`와 연동하여 자동으로 DI 컨테이너에 등록
+- 🎯 **타입 안전성**: 컴파일 타임에 타입 안전성 보장
+
+## 🆕 최신 업데이트 (v3.4.0)
+
+### WeaveDI.builder 패턴 지원 🏗️
+
+새로운 fluent API로 더욱 직관적인 의존성 등록이 가능해졌습니다:
+
+```swift
+// 새로운 빌더 패턴 - 타입 추론으로 간단하게!
+WeaveDI.builder
+    .register { UserServiceImpl() }    // UserService로 자동 등록
+    .register { ConsoleLogger() }      // Logger로 자동 등록
+    .register { NetworkClientImpl() }  // NetworkClient로 자동 등록
+    .configure()
+
+// 개별 등록도 가능
+WeaveDI.register { UserServiceImpl() }  // 한 줄로 간단하게
+
+// 환경별 등록
+WeaveDI.registerForEnvironment { env in
+    if env.isDebug {
+        env.register { MockUserService() as UserService }
+        env.register { DebugLogger() as Logger }
+    } else {
+        env.register { UserServiceImpl() as UserService }
+        env.register { ProductionLogger() as Logger }
+    }
+}
+```
+
+### SwiftUI 스타일 @DependencyConfiguration ⚡
+
+SwiftUI의 ViewBuilder처럼 선언적으로 의존성을 등록할 수 있습니다:
+
+```swift
+// SwiftUI 스타일 선언적 등록
+@DependencyConfiguration
+var appDependencies {
+    UserServiceImpl()           // UserService로 자동 등록
+    RepositoryImpl()            // Repository로 자동 등록
+
+    // 조건부 등록도 지원
+    if ProcessInfo.processInfo.environment["DEBUG"] != nil {
+        DebugLogger() as Logger
+    } else {
+        ProductionLogger() as Logger
+    }
+}
+
+// 앱 시작 시 한 번만 호출
+appDependencies.configure()
+
+// 환경별 설정도 지원
+let productionDeps = DependencyEnvironment.production {
+    UserServiceImpl()
+    ProductionLogger() as Logger
+    RealNetworkClient() as NetworkClient
+}
+
+let developmentDeps = DependencyEnvironment.development {
+    UserServiceImpl()
+    ConsoleLogger() as Logger
+    MockNetworkClient() as NetworkClient
+}
+
+#if DEBUG
+developmentDeps.configure()
+#else
+productionDeps.configure()
+#endif
+```
+
+### 모듈 구조 개선 📦
+
+WeaveDI는 이제 명확한 역할 분리로 더욱 체계적으로 구성되었습니다:
+
+- **WeaveDICore**: 핵심 DI 엔진 (`@Injected`, `UnifiedDI`, `DIContainer`)
+- **WeaveDIAppDI**: 앱 레벨 DI 관리 (`ModuleFactoryManager`, `DiModuleFactory`)
+- **WeaveDITCA**: TCA 전용 통합 (충돌 해결 완료)
+- **WeaveDIMacros**: Swift 매크로 지원 (`@Component`, `@AutoRegister`)
+- **WeaveDIOptimizations**: 성능 최적화 (AutoDI, 그래프 최적화)
+- **WeaveDIMonitoring**: 실시간 모니터링 (성능 추적, 헬스체크)
+- **WeaveDINeedleCompat**: Uber Needle 호환성
+- **WeaveDICompat**: 레거시 호환성 지원
+- **WeaveDITools**: CLI 도구와 유틸리티
+
+### TCA 충돌 해결 🔧
+
+The Composable Architecture와의 타입 충돌 문제가 완전히 해결되었습니다:
+
+```swift
+// TCA와 WeaveDI를 함께 안전하게 사용
+struct AppFeature: Reducer {
+    @Dependency(\.userService) var userService: UserService  // TCA
+
+    struct State {
+        @Injected var logger: Logger  // WeaveDI
     }
 }
 ```
