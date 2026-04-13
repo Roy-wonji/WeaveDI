@@ -17,22 +17,31 @@ extension DIContainer {
     var operations: [@Sendable (UnifiedRegistry) async -> Void] = []
   }
 
+  /// Wrapper to safely pass values between concurrent contexts
+  final class SendableBox<T>: @unchecked Sendable {
+    var value: T
+
+    init(_ value: T) {
+      self.value = value
+    }
+  }
+
   @TaskLocal static var batchContext: RegistrationBatchContext?
 
   /// Bridges an async operation to the existing synchronous API surface.
   @preconcurrency
   func blockingAwait<T: Sendable>(_ operation: @escaping @Sendable () async -> T) -> T {
     let semaphore = DispatchSemaphore(value: 0)
-    var result: T?
+    let resultBox = SendableBox<T?>(nil)
 
     let priority = Task.currentPriority
-    Task(priority: priority) {
-      result = await operation()
+    Task(priority: priority) { @Sendable in
+      resultBox.value = await operation()
       semaphore.signal()
     }
 
     semaphore.wait()
-    return result!
+    return resultBox.value!
   }
 
   @discardableResult
@@ -104,7 +113,7 @@ extension DIContainer {
 
     if WeaveDIConfiguration.enableAutoMonitor {
       if let onModuleRegistered = OptimizationHooks.onModuleRegistered {
-        Task {
+        Task { @Sendable in
           await onModuleRegistered(type)
         }
       }
@@ -113,7 +122,7 @@ extension DIContainer {
 
   func scheduleActorUpdate(_ operation: @escaping @Sendable (UnifiedRegistry) async -> Void) {
     let taskID = UUID()
-    let task = Task(priority: .utility) { [weak self] in
+    let task = Task(priority: .utility) { @Sendable [weak self] in
       guard let self else { return }
       defer { self.removePendingTask(taskID) }
       await operation(self.unifiedRegistry)
