@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.25.10",
-    "vite": "^7.3.2",
+    "vite": "^7.3.5",
     "vitepress": "^1.6.4"
   }
 }
